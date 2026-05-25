@@ -234,6 +234,6 @@
   <data name="Settings_AliasesHelp" xml:space="preserve"><value>One domain name per line.</value></data>
   <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Canonical URL:</value></data>
   <data name="Settings_NotSet" xml:space="preserve"><value>not set</value></data>
-  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Enforcement (HTTPS, HSTS, www, aliases) is currently only stored and not applied automatically.</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Enforcement (HTTPS, HSTS, www, aliases) is applied outside the Development environment; unrecognized domains and localhost are left untouched.</value></data>
   <data name="Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
 </root>

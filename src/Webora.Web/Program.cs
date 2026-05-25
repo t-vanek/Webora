@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
@@ -7,6 +8,7 @@ using Webora.Application.Notifications;
 using Webora.Infrastructure;
 using Webora.Web;
 using Webora.Web.Components;
+using Webora.Web.Hosting;
 using Webora.Web.Hubs;
 using Webora.Web.Identity;
 using Webora.Web.Notifications;
@@ -39,6 +41,16 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+
+// Honor the ingress-provided scheme/host so canonical-domain enforcement sees the public values
+// rather than the internal proxy connection. Assumes a trusted reverse proxy in front of the app.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Localization. Czech is the default; cultures are negotiated from the culture cookie (set by the
 // language switcher) and then the browser's Accept-Language header.
@@ -84,11 +96,18 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
 }
 
+app.UseForwardedHeaders();
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+// Canonical host/scheme redirects and HSTS, driven by the stored site settings. Skipped in
+// Development so local http://localhost runs untouched.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseDomainEnforcement();
+}
 
 app.UseRequestLocalization();
 

@@ -234,6 +234,6 @@
   <data name="Settings_AliasesHelp" xml:space="preserve"><value>Jeden název domény na řádek.</value></data>
   <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Kanonická URL:</value></data>
   <data name="Settings_NotSet" xml:space="preserve"><value>nenastaveno</value></data>
-  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se zatím pouze ukládá a neaplikuje se automaticky.</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se aplikuje mimo vývojové prostředí; nerozpoznané domény a localhost zůstávají beze změny.</value></data>
   <data name="Settings_Saved" xml:space="preserve"><value>Nastavení bylo uloženo.</value></data>
 </root>

@@ -11,4 +11,7 @@ public interface ISiteSettingsService
 
     /// <summary>The configured canonical base URL (scheme://host[:port]), or null when no host is set.</summary>
     Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>A read-only snapshot of the domain settings for the enforcement middleware.</summary>
+    Task<DomainPolicy> GetDomainPolicyAsync(CancellationToken cancellationToken = default);
 }

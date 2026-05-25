@@ -17,6 +17,18 @@ public sealed class SiteSettingsService(
     public async Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default) =>
         (await GetOrCreateAsync(cancellationToken)).BaseUrl;
 
+    public async Task<DomainPolicy> GetDomainPolicyAsync(CancellationToken cancellationToken = default)
+    {
+        // A read-only path for the hot middleware: never creates or tracks a row.
+        var s = await dbContext.SiteSettings.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == SiteSettings.SingletonId, cancellationToken)
+            ?? SiteSettings.CreateDefault();
+
+        return new DomainPolicy(
+            s.CanonicalHost, s.Port, s.ForceHttps, s.HstsEnabled,
+            s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases);
+    }
+
     public async Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(domain.CanonicalHost) && !IsValidHost(domain.CanonicalHost))
