@@ -3,15 +3,13 @@
 @inject ISiteSettingsService SiteSettings
 
 <FluentLayout>
-    @*  FluentHeader paints itself with --accent-fill-rest, so links inside need a foreground that
-        reads against the accent (not the page neutral). --foreground-on-accent-rest is the
-        complementary token Fluent components use for the same purpose. The brand uses a plain <a>
-        styled as brand text (no hyperlink underline), the About link stays a real link.  *@
+    @*  FluentHeader paints itself with --accent-fill-rest, so the brand text needs a foreground
+        that reads against the accent (not the page neutral). --foreground-on-accent-rest is the
+        complementary token Fluent components use for the same purpose.  *@
     <FluentHeader>
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
         <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-        <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" class="header-link">@L["Layout_About"]</a>
         <ThemeToggle @rendermode="InteractiveServer" />
     </FluentHeader>
 
