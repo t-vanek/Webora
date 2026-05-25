@@ -1,6 +1,5 @@
 /* Layout structure is handled by <FluentLayout>/<FluentHeader>/<FluentBodyContent>; this stylesheet
-   only owns the brand/about anchors inside the header and the Blazor framework error bar at the
-   bottom. */
+   only owns the brand link inside the header and the Blazor framework error bar at the bottom. */
 
 /* Brand title in the header. Looks like a label, not a hyperlink — no underline, full opacity. */
 .brand-link {
@@ -14,18 +13,6 @@
     .brand-link:hover {
         text-decoration: none;
         opacity: 0.85;
-    }
-
-/* Regular link in the header (e.g. About). Stays underlined on hover so it still reads as a link,
-   but the rest state matches the accent surface (white-ish) rather than the page-neutral colour. */
-.header-link {
-    color: var(--foreground-on-accent-rest, white);
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-    .header-link:hover {
-        text-decoration: underline;
     }
 
 #blazor-error-ui {
