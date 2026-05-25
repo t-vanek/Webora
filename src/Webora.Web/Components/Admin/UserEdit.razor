@@ -11,130 +11,140 @@
 
 <PageTitle>@L["Admin_UserEdit_Title"]</PageTitle>
 
-<h1>@L["Admin_UserEdit_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_UserEdit_Title"]</FluentLabel>
+    <FluentAnchor Href="admin/users" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Users_Title"]</FluentAnchor>
 
-<p><a href="admin/users">&laquo; @L["Admin_Users_Title"]</a></p>
-
-@if (_detail is null)
-{
-    <p class="text-muted">@(_loaded ? L["Admin_Users_NotFound"] : L["Admin_Loading"])</p>
-}
-else
-{
-    @if (!string.IsNullOrEmpty(_message))
+    @if (_detail is null)
     {
-        <div class="alert alert-success" role="alert">@_message</div>
-    }
-    @if (!string.IsNullOrEmpty(_error))
-    {
-        <div class="alert alert-danger" role="alert">@_error</div>
-    }
-
-    <dl class="row">
-        <dt class="col-sm-3">@L["Admin_Users_Email"]</dt>
-        <dd class="col-sm-9">@_detail.Email @(_detail.EmailConfirmed ? "" : $"({L["Admin_Users_Unconfirmed"]})")</dd>
-        <dt class="col-sm-3">@L["Admin_Users_Name"]</dt>
-        <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(_detail.DisplayName) ? "—" : _detail.DisplayName)</dd>
-        <dt class="col-sm-3">@L["Admin_Users_Phone"]</dt>
-        <dd class="col-sm-9">@(_detail.PhoneNumber ?? "—")</dd>
-        <dt class="col-sm-3">@L["Admin_Users_Status"]</dt>
-        <dd class="col-sm-9">
-            <StatusBadge Status="_detail.Status" />
-            @if (_detail.StatusChangedAtUtc is { } changed)
-            {
-                <small class="text-muted ms-2">@Fmt(changed)</small>
-            }
-            @if (!string.IsNullOrWhiteSpace(_detail.StatusReason))
-            {
-                <div><small class="text-muted">@_detail.StatusReason</small></div>
-            }
-        </dd>
-    </dl>
-
-    <h2 class="h5 mt-4">@L["Admin_UserEdit_Roles"]</h2>
-    <div class="d-flex flex-wrap gap-3 mb-2">
-        @foreach (var role in _allRoles)
+        @if (_loaded)
         {
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="@($"role-{role}")"
-                       checked="@_selectedRoles.Contains(role)"
-                       @onchange="e => ToggleRole(role, (bool)e.Value!)" />
-                <label class="form-check-label" for="@($"role-{role}")">@role</label>
-            </div>
-        }
-    </div>
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="editRoles">
-        <button class="btn btn-primary" @onclick="SaveRolesAsync">@L["Admin_Save"]</button>
-    </AuthorizeView>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="status">
-        <h2 class="h5 mt-4">@L["Admin_UserEdit_StatusActions"]</h2>
-        @if (_isSelf)
-        {
-            <p class="text-muted">@L["Admin_UserEdit_SelfNoStatus"]</p>
-        }
-        else if (_detail.Status == AccountStatus.Blocked)
-        {
-            <button class="btn btn-success" @onclick="UnblockAsync">@L["Admin_UserEdit_Unblock"]</button>
+            <FluentLabel Typo="Typography.Body">@L["Admin_Users_NotFound"]</FluentLabel>
         }
         else
         {
-            <div class="input-group mb-2" style="max-width:480px">
-                <input class="form-control" placeholder="@L["Admin_UserEdit_BlockReason"]" @bind="_blockReason" />
-                <button class="btn btn-danger" @onclick="BlockAsync">@L["Admin_UserEdit_Block"]</button>
-            </div>
+            <FluentProgressRing />
         }
-    </AuthorizeView>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Delete)" Context="delete">
-        @if (!_isSelf)
-        {
-            <h2 class="h5 mt-4">@L["Admin_UserEdit_DangerZone"]</h2>
-            @if (_confirmDelete)
-            {
-                <div class="alert alert-danger">
-                    <p>@L["Admin_UserEdit_DeleteConfirm"]</p>
-                    <button class="btn btn-danger me-2" @onclick="DeleteAsync">@L["Admin_UserEdit_DeleteYes"]</button>
-                    <button class="btn btn-outline-secondary" @onclick="() => _confirmDelete = false">@L["Admin_Cancel"]</button>
-                </div>
-            }
-            else
-            {
-                <button class="btn btn-outline-danger" @onclick="() => _confirmDelete = true">@L["Admin_UserEdit_Delete"]</button>
-            }
-        }
-    </AuthorizeView>
-
-    <h2 class="h5 mt-4">@L["Admin_UserEdit_Audit"]</h2>
-    @if (_audit.Count == 0)
-    {
-        <p class="text-muted">@L["Admin_UserEdit_NoAudit"]</p>
     }
     else
     {
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th>@L["Admin_UserEdit_AuditWhen"]</th>
-                    <th>@L["Admin_UserEdit_AuditEvent"]</th>
-                    <th>@L["Admin_UserEdit_AuditActor"]</th>
-                    <th>@L["Admin_UserEdit_AuditDetail"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var entry in _audit)
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+        }
+
+        <FluentCard>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="12" md="3"><strong>@L["Admin_Users_Email"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@_detail.Email @(_detail.EmailConfirmed ? "" : $"({L["Admin_Users_Unconfirmed"]})")</FluentGridItem>
+
+                <FluentGridItem xs="12" md="3"><strong>@L["Admin_Users_Name"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@(string.IsNullOrWhiteSpace(_detail.DisplayName) ? "—" : _detail.DisplayName)</FluentGridItem>
+
+                <FluentGridItem xs="12" md="3"><strong>@L["Admin_Users_Phone"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@(_detail.PhoneNumber ?? "—")</FluentGridItem>
+
+                <FluentGridItem xs="12" md="3"><strong>@L["Admin_Users_Status"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">
+                    <StatusBadge Status="_detail.Status" />
+                    @if (_detail.StatusChangedAtUtc is { } changed)
+                    {
+                        <small class="text-muted ms-2">@Fmt(changed)</small>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_detail.StatusReason))
+                    {
+                        <div><small class="text-muted">@_detail.StatusReason</small></div>
+                    }
+                </FluentGridItem>
+            </FluentGrid>
+        </FluentCard>
+
+        <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_Roles"]</FluentLabel>
+        <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
+            @foreach (var role in _allRoles)
+            {
+                <FluentCheckbox Label="@role"
+                                Value="@_selectedRoles.Contains(role)"
+                                ValueChanged="@(c => ToggleRole(role, c))" />
+            }
+        </FluentStack>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="editRoles">
+            <FluentButton OnClick="SaveRolesAsync" Appearance="Appearance.Accent">@L["Admin_Save"]</FluentButton>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="status">
+            <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_StatusActions"]</FluentLabel>
+            @if (_isSelf)
+            {
+                <FluentLabel Typo="Typography.Body">@L["Admin_UserEdit_SelfNoStatus"]</FluentLabel>
+            }
+            else if (_detail.Status == AccountStatus.Blocked)
+            {
+                <FluentButton OnClick="UnblockAsync" Appearance="Appearance.Accent">@L["Admin_UserEdit_Unblock"]</FluentButton>
+            }
+            else
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="max-width:480px">
+                    <FluentTextField @bind-Value="_blockReason"
+                                     Placeholder="@L["Admin_UserEdit_BlockReason"]"
+                                     Style="flex:1" />
+                    <FluentButton OnClick="BlockAsync" Appearance="Appearance.Accent" Style="background:var(--error-rest);color:var(--neutral-fill-rest)">
+                        @L["Admin_UserEdit_Block"]
+                    </FluentButton>
+                </FluentStack>
+            }
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Delete)" Context="delete">
+            @if (!_isSelf)
+            {
+                <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_DangerZone"]</FluentLabel>
+                @if (_confirmDelete)
                 {
-                    <tr>
-                        <td>@Fmt(entry.OccurredAtUtc)</td>
-                        <td>@entry.Type</td>
-                        <td>@entry.Actor</td>
-                        <td>@(entry.Detail ?? "—")</td>
-                    </tr>
+                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            <span>@L["Admin_UserEdit_DeleteConfirm"]</span>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                                <FluentButton OnClick="DeleteAsync" Appearance="Appearance.Accent">
+                                    @L["Admin_UserEdit_DeleteYes"]
+                                </FluentButton>
+                                <FluentButton OnClick="() => _confirmDelete = false" Appearance="Appearance.Outline">
+                                    @L["Admin_Cancel"]
+                                </FluentButton>
+                            </FluentStack>
+                        </FluentStack>
+                    </FluentMessageBar>
                 }
-            </tbody>
-        </table>
+                else
+                {
+                    <FluentButton OnClick="() => _confirmDelete = true" Appearance="Appearance.Outline">
+                        @L["Admin_UserEdit_Delete"]
+                    </FluentButton>
+                }
+            }
+        </AuthorizeView>
+
+        <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_Audit"]</FluentLabel>
+        @if (_audit.Count == 0)
+        {
+            <FluentLabel Typo="Typography.Body">@L["Admin_UserEdit_NoAudit"]</FluentLabel>
+        }
+        else
+        {
+            <FluentDataGrid Items="@_audit.AsQueryable()" TGridItem="AccountAuditEntry"
+                            GridTemplateColumns="1fr 1fr 1fr 2fr">
+                <TemplateColumn Title="@L["Admin_UserEdit_AuditWhen"]">@Fmt(context.OccurredAtUtc)</TemplateColumn>
+                <PropertyColumn Property="@(e => e.Type)" Title="@L["Admin_UserEdit_AuditEvent"]" />
+                <PropertyColumn Property="@(e => e.Actor)" Title="@L["Admin_UserEdit_AuditActor"]" />
+                <TemplateColumn Title="@L["Admin_UserEdit_AuditDetail"]">@(context.Detail ?? "—")</TemplateColumn>
+            </FluentDataGrid>
+        }
     }
-}
+</FluentStack>
 
 @code {
     [Parameter] public Guid Id { get; set; }

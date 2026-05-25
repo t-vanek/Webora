@@ -6,53 +6,50 @@
 
 <PageTitle>@L["Admin_Users_Title"]</PageTitle>
 
-<h1>@L["Admin_Users_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Title"]</FluentLabel>
 
-<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-    <input class="form-control" style="max-width:320px" placeholder="@L["Admin_Users_SearchPlaceholder"]"
-           @bind="_search" @bind:event="oninput" @onkeyup="OnKeyUp" />
-    <button class="btn btn-outline-secondary" @onclick="ReloadAsync">@L["Admin_Search"]</button>
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
-        <a class="btn btn-primary ms-auto" href="admin/users/create">@L["Admin_Users_Create"]</a>
-    </AuthorizeView>
-</div>
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
+                      Placeholder="@L["Admin_Users_SearchPlaceholder"]"
+                      Style="max-width:320px" />
+        <FluentButton OnClick="ReloadAsync" Appearance="Appearance.Outline">@L["Admin_Search"]</FluentButton>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
+            <FluentSpacer />
+            <FluentAnchor Href="admin/users/create" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentAnchor>
+        </AuthorizeView>
+    </FluentStack>
 
-@if (_users is null)
-{
-    <p>@L["Admin_Loading"]</p>
-}
-else if (_users.Count == 0)
-{
-    <p class="text-muted">@L["Admin_Users_None"]</p>
-}
-else
-{
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th>@L["Admin_Users_Email"]</th>
-                <th>@L["Admin_Users_Name"]</th>
-                <th>@L["Admin_Users_Status"]</th>
-                <th>@L["Admin_Users_Roles"]</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in _users)
-            {
-                <tr>
-                    <td>@user.Email</td>
-                    <td>@(string.IsNullOrWhiteSpace(user.DisplayName) ? "—" : user.DisplayName)</td>
-                    <td><StatusBadge Status="user.Status" /></td>
-                    <td>@(user.Roles.Count == 0 ? "—" : string.Join(", ", user.Roles))</td>
-                    <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" href="@($"admin/users/{user.Id}")">@L["Admin_Manage"]</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (_users is null)
+    {
+        <FluentProgressRing />
+    }
+    else if (_users.Count == 0)
+    {
+        <FluentLabel Typo="Typography.Body">@L["Admin_Users_None"]</FluentLabel>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_users.AsQueryable()" TGridItem="UserSummary"
+                        GridTemplateColumns="2fr 2fr 1fr 2fr auto">
+            <PropertyColumn Property="@(u => u.Email)" Title="@L["Admin_Users_Email"]" />
+            <TemplateColumn Title="@L["Admin_Users_Name"]">
+                @(string.IsNullOrWhiteSpace(context.DisplayName) ? "—" : context.DisplayName)
+            </TemplateColumn>
+            <TemplateColumn Title="@L["Admin_Users_Status"]">
+                <StatusBadge Status="context.Status" />
+            </TemplateColumn>
+            <TemplateColumn Title="@L["Admin_Users_Roles"]">
+                @(context.Roles.Count == 0 ? "—" : string.Join(", ", context.Roles))
+            </TemplateColumn>
+            <TemplateColumn Align="Align.End">
+                <FluentAnchor Href="@($"admin/users/{context.Id}")" Appearance="Appearance.Outline">
+                    @L["Admin_Manage"]
+                </FluentAnchor>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</FluentStack>
 
 @code {
     private IReadOnlyList<UserSummary>? _users;
@@ -61,12 +58,4 @@ else
     protected override Task OnInitializedAsync() => ReloadAsync();
 
     private async Task ReloadAsync() => _users = await UserAdmin.ListAsync(_search);
-
-    private async Task OnKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            await ReloadAsync();
-        }
-    }
 }

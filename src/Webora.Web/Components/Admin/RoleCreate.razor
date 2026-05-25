@@ -7,24 +7,24 @@
 
 <PageTitle>@L["Admin_Roles_Create"]</PageTitle>
 
-<h1>@L["Admin_Roles_Create"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Create"]</FluentLabel>
+    <FluentAnchor Href="admin/roles" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Roles_Title"]</FluentAnchor>
 
-<p><a href="admin/roles">&laquo; @L["Admin_Roles_Title"]</a></p>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+            @_error
+        </FluentMessageBar>
+    }
 
-@if (!string.IsNullOrEmpty(_error))
-{
-    <div class="alert alert-danger" role="alert">@_error</div>
-}
+    <FluentTextField @bind-Value="_name" Label="@L["Admin_Roles_Name"]" Style="max-width:480px" />
 
-<div class="form-floating mb-3" style="max-width:480px">
-    <input class="form-control" id="role-name" placeholder="@L["Admin_Roles_Name"]" @bind="_name" />
-    <label for="role-name">@L["Admin_Roles_Name"]</label>
-</div>
+    <FluentLabel Typo="Typography.H4">@L["Admin_Roles_Permissions"]</FluentLabel>
+    <PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" />
 
-<h2 class="h5">@L["Admin_Roles_Permissions"]</h2>
-<PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" />
-
-<button class="btn btn-primary" @onclick="CreateAsync">@L["Admin_Roles_Create"]</button>
+    <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentButton>
+</FluentStack>
 
 @code {
     private string? _name;

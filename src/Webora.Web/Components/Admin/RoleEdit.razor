@@ -7,75 +7,91 @@
 
 <PageTitle>@L["Admin_RoleEdit_Title"]</PageTitle>
 
-<h1>@L["Admin_RoleEdit_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_RoleEdit_Title"]</FluentLabel>
+    <FluentAnchor Href="admin/roles" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Roles_Title"]</FluentAnchor>
 
-<p><a href="admin/roles">&laquo; @L["Admin_Roles_Title"]</a></p>
-
-@if (_detail is null)
-{
-    <p class="text-muted">@(_loaded ? L["Admin_Roles_NotFound"] : L["Admin_Loading"])</p>
-}
-else
-{
-    @if (!string.IsNullOrEmpty(_message))
+    @if (_detail is null)
     {
-        <div class="alert alert-success" role="alert">@_message</div>
-    }
-    @if (!string.IsNullOrEmpty(_error))
-    {
-        <div class="alert alert-danger" role="alert">@_error</div>
-    }
-
-    <div class="d-flex align-items-center gap-2 mb-3">
-        <div class="form-floating" style="max-width:480px;flex:1">
-            <input class="form-control" id="role-name" placeholder="@L["Admin_Roles_Name"]" @bind="_name" disabled="@_detail.IsDefault" />
-            <label for="role-name">@L["Admin_Roles_Name"]</label>
-        </div>
-        @if (_detail.IsDefault)
+        @if (_loaded)
         {
-            <span class="badge bg-info text-dark">@L["Admin_Roles_Default"]</span>
+            <FluentLabel Typo="Typography.Body">@L["Admin_Roles_NotFound"]</FluentLabel>
         }
         else
         {
-            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="rename">
-                <button class="btn btn-outline-secondary" @onclick="RenameAsync">@L["Admin_RoleEdit_Rename"]</button>
-            </AuthorizeView>
+            <FluentProgressRing />
         }
-    </div>
-
-    <h2 class="h5">@L["Admin_Roles_Permissions"]</h2>
-    @if (_readOnly)
-    {
-        <p class="text-muted">@L["Admin_RoleEdit_AdminAll"]</p>
     }
-    <PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" Disabled="_readOnly" />
-
-    @if (!_readOnly)
+    else
     {
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="savePerms">
-            <button class="btn btn-primary" @onclick="SavePermissionsAsync">@L["Admin_Save"]</button>
-        </AuthorizeView>
-    }
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+        }
 
-    @if (!_detail.IsDefault)
-    {
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Delete)" Context="delete">
-            <h2 class="h5 mt-4">@L["Admin_UserEdit_DangerZone"]</h2>
-            @if (_confirmDelete)
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+            <FluentTextField @bind-Value="_name" Label="@L["Admin_Roles_Name"]"
+                             Disabled="_detail.IsDefault" Style="max-width:480px;flex:1" />
+            @if (_detail.IsDefault)
             {
-                <div class="alert alert-danger">
-                    <p>@L["Admin_RoleEdit_DeleteConfirm"]</p>
-                    <button class="btn btn-danger me-2" @onclick="DeleteAsync">@L["Admin_RoleEdit_DeleteYes"]</button>
-                    <button class="btn btn-outline-secondary" @onclick="() => _confirmDelete = false">@L["Admin_Cancel"]</button>
-                </div>
+                <FluentBadge Appearance="Appearance.Neutral">@L["Admin_Roles_Default"]</FluentBadge>
             }
             else
             {
-                <button class="btn btn-outline-danger" @onclick="() => _confirmDelete = true">@L["Admin_RoleEdit_Delete"]</button>
+                <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="rename">
+                    <FluentButton OnClick="RenameAsync" Appearance="Appearance.Outline">@L["Admin_RoleEdit_Rename"]</FluentButton>
+                </AuthorizeView>
             }
-        </AuthorizeView>
+        </FluentStack>
+
+        <FluentLabel Typo="Typography.H4">@L["Admin_Roles_Permissions"]</FluentLabel>
+        @if (_readOnly)
+        {
+            <FluentLabel Typo="Typography.Body">@L["Admin_RoleEdit_AdminAll"]</FluentLabel>
+        }
+        <PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" Disabled="_readOnly" />
+
+        @if (!_readOnly)
+        {
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="savePerms">
+                <FluentButton OnClick="SavePermissionsAsync" Appearance="Appearance.Accent">@L["Admin_Save"]</FluentButton>
+            </AuthorizeView>
+        }
+
+        @if (!_detail.IsDefault)
+        {
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Delete)" Context="delete">
+                <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_DangerZone"]</FluentLabel>
+                @if (_confirmDelete)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            <span>@L["Admin_RoleEdit_DeleteConfirm"]</span>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                                <FluentButton OnClick="DeleteAsync" Appearance="Appearance.Accent">
+                                    @L["Admin_RoleEdit_DeleteYes"]
+                                </FluentButton>
+                                <FluentButton OnClick="() => _confirmDelete = false" Appearance="Appearance.Outline">
+                                    @L["Admin_Cancel"]
+                                </FluentButton>
+                            </FluentStack>
+                        </FluentStack>
+                    </FluentMessageBar>
+                }
+                else
+                {
+                    <FluentButton OnClick="() => _confirmDelete = true" Appearance="Appearance.Outline">
+                        @L["Admin_RoleEdit_Delete"]
+                    </FluentButton>
+                }
+            </AuthorizeView>
+        }
     }
-}
+</FluentStack>
 
 @code {
     [Parameter] public Guid Id { get; set; }
