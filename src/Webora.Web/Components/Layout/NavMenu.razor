@@ -3,10 +3,8 @@
 @inject NavigationManager Navigation
 @inject ISiteSettingsService SiteSettings
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">@_siteName</a>
-    </div>
+<div class="top-row">
+    <a class="navbar-brand" href="">@_siteName</a>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
@@ -65,11 +63,11 @@
     @* Language switcher stays as small links below the nav menu — Fluent doesn't have a great
        slot for non-navigation footer items, and these are POST-cookie-and-redirect actions
        handled by /culture/set, not real routes. *@
-    <div class="nav-item px-3 mt-2">
-        <small class="text-light">@L["Language"]:</small>
-        <a class="nav-link d-inline p-0 ms-1" href="@CultureUrl("cs")">CS</a>
-        <span class="text-light">|</span>
-        <a class="nav-link d-inline p-0" href="@CultureUrl("en")">EN</a>
+    <div class="lang-switcher">
+        <small>@L["Language"]:</small>
+        <a href="@CultureUrl("cs")">CS</a>
+        <span>|</span>
+        <a href="@CultureUrl("en")">EN</a>
     </div>
 </div>
 

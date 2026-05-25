@@ -53,11 +53,11 @@
                     <StatusBadge Status="_detail.Status" />
                     @if (_detail.StatusChangedAtUtc is { } changed)
                     {
-                        <small class="text-muted ms-2">@Fmt(changed)</small>
+                        <small style="color:var(--neutral-foreground-hint); margin-left:8px">@Fmt(changed)</small>
                     }
                     @if (!string.IsNullOrWhiteSpace(_detail.StatusReason))
                     {
-                        <div><small class="text-muted">@_detail.StatusReason</small></div>
+                        <div><small style="color:var(--neutral-foreground-hint)">@_detail.StatusReason</small></div>
                     }
                 </FluentGridItem>
             </FluentGrid>
