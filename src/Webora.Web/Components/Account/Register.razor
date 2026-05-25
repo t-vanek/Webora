@@ -2,17 +2,15 @@
 @using System.ComponentModel.DataAnnotations
 @inject IAccountService AccountService
 @inject ILogger<Register> Logger
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Registrace</PageTitle>
+<PageTitle>@L["Register_Title"]</PageTitle>
 
-<h1>Registrace</h1>
+<h1>@L["Register_Title"]</h1>
 
 @if (_registered)
 {
-    <div class="alert alert-success" role="alert">
-        Účet byl vytvořen. Na <strong>@Input.Email</strong> jsme poslali aktivační odkaz —
-        po jeho potvrzení se budete moci přihlásit.
-    </div>
+    <div class="alert alert-success" role="alert">@L["Register_Success"]</div>
 }
 else
 {
@@ -26,24 +24,24 @@ else
                 }
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="name" placeholder="Jméno" />
-                    <label>Zobrazované jméno</label>
+                    <label>@L["Register_DisplayName"]</label>
                 </div>
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                    <label>E-mail</label>
+                    <label>@L["Register_Email"]</label>
                     <ValidationMessage For="() => Input.Email" />
                 </div>
                 <div class="form-floating mb-3">
                     <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                    <label>Heslo</label>
+                    <label>@L["Register_Password"]</label>
                     <ValidationMessage For="() => Input.Password" />
                 </div>
                 <div class="form-floating mb-3">
                     <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                    <label>Heslo znovu</label>
+                    <label>@L["Register_ConfirmPassword"]</label>
                     <ValidationMessage For="() => Input.ConfirmPassword" />
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Vytvořit účet</button>
+                <button type="submit" class="btn btn-primary w-100">@L["Register_Submit"]</button>
             </EditForm>
         </div>
     </div>
@@ -75,17 +73,17 @@ else
     {
         public string? DisplayName { get; set; }
 
-        [Required(ErrorMessage = "Zadejte e-mail.")]
-        [EmailAddress]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Required))]
+        [EmailAddress(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Invalid))]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Zadejte heslo.")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Heslo musí mít alespoň 8 znaků.")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Password_Required))]
+        [StringLength(100, MinimumLength = 8, ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Password_Length))]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
         [DataType(DataType.Password)]
-        [Compare(nameof(Password), ErrorMessage = "Hesla se neshodují.")]
+        [Compare(nameof(Password), ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ConfirmPassword_Mismatch))]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

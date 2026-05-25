@@ -1,4 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Webora.Web</a>
     </div>
@@ -10,19 +13,19 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @L["Nav_Home"]
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> @L["Nav_Counter"]
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> @L["Nav_Weather"]
             </NavLink>
         </div>
 
@@ -35,23 +38,37 @@
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="logout">
-                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Odhlásit
+                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> @L["Nav_Logout"]
                     </NavLink>
                 </div>
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Přihlásit
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> @L["Nav_Login"]
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="register">
-                        <span class="bi bi-person-plus-nav-menu" aria-hidden="true"></span> Registrace
+                        <span class="bi bi-person-plus-nav-menu" aria-hidden="true"></span> @L["Nav_Register"]
                     </NavLink>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
+
+        <div class="nav-item px-3 mt-2">
+            <small class="text-light">@L["Language"]:</small>
+            <a class="nav-link d-inline p-0 ms-1" href="@CultureUrl("cs")">CS</a>
+            <span class="text-light">|</span>
+            <a class="nav-link d-inline p-0" href="@CultureUrl("en")">EN</a>
+        </div>
     </nav>
 </div>
 
+@code {
+    private string CultureUrl(string culture)
+    {
+        var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        return $"/culture/set?culture={culture}&redirectUri={Uri.EscapeDataString(relative)}";
+    }
+}

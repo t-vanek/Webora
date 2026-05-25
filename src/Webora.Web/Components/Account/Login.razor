@@ -1,14 +1,14 @@
 @page "/login"
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
 @using Webora.Infrastructure.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
 @inject ILogger<Login> Logger
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Přihlášení</PageTitle>
+<PageTitle>@L["Login_Title"]</PageTitle>
 
-<h1>Přihlášení</h1>
+<h1>@L["Login_Title"]</h1>
 
 <div class="row">
     <div class="col-md-4">
@@ -20,24 +20,24 @@
             }
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                <label>E-mail</label>
+                <label>@L["Login_Email"]</label>
                 <ValidationMessage For="() => Input.Email" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" placeholder="heslo" />
-                <label>Heslo</label>
+                <label>@L["Login_Password"]</label>
                 <ValidationMessage For="() => Input.Password" />
             </div>
             <div class="form-check mb-3">
                 <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
-                <label class="form-check-label">Zapamatovat přihlášení</label>
+                <label class="form-check-label">@L["Login_Remember"]</label>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Přihlásit se</button>
+            <button type="submit" class="btn btn-primary w-100">@L["Login_Submit"]</button>
         </EditForm>
         <div class="mt-3 d-flex flex-column gap-1">
-            <a href="register">Vytvořit účet</a>
-            <a href="account/forgot-password">Zapomenuté heslo</a>
-            <a href="account/forgot-reactivation">Obnovit deaktivovaný účet</a>
+            <a href="register">@L["Login_CreateAccount"]</a>
+            <a href="account/forgot-password">@L["Login_ForgotPassword"]</a>
+            <a href="account/forgot-reactivation">@L["Login_Reactivate"]</a>
         </div>
     </div>
 </div>
@@ -66,9 +66,7 @@
             return;
         }
 
-        _errorMessage = result.IsLockedOut
-            ? "Účet je dočasně uzamčen."
-            : "Neplatný e-mail nebo heslo.";
+        _errorMessage = result.IsLockedOut ? L["Login_LockedOut"] : L["Login_Invalid"];
     }
 
     // Guards against open-redirect: only relative, non-protocol-relative paths are honoured.
@@ -84,11 +82,11 @@
 
     private sealed class InputModel
     {
-        [Required(ErrorMessage = "Zadejte e-mail.")]
-        [EmailAddress]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Required))]
+        [EmailAddress(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Invalid))]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Zadejte heslo.")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Password_Required))]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
