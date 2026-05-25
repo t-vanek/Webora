@@ -15,6 +15,8 @@ public interface ISiteSettingsService
 
     Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default);
 
+    Task<AccountResult> UpdateGeneralAsync(GeneralSettingsDto general, Guid actingUserId, CancellationToken cancellationToken = default);
+
     /// <summary>The configured canonical base URL (scheme://host[:port]), or null when no host is set.</summary>
     Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default);
 

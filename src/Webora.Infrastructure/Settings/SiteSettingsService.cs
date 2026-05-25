@@ -35,7 +35,8 @@ public sealed class SiteSettingsService(
 
         return new DomainPolicy(
             s.CanonicalHost, s.Port, s.ForceHttps, s.HstsEnabled,
-            s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases);
+            s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases,
+            s.LowercaseUrls, s.TrailingSlash);
     }
 
     public async Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -124,6 +125,15 @@ public sealed class SiteSettingsService(
     public async Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default) =>
         (await GetOrCreateAsync(cancellationToken)).DefaultRole;
 
+    public async Task<AccountResult> UpdateGeneralAsync(GeneralSettingsDto general, Guid actingUserId, CancellationToken cancellationToken = default)
+    {
+        var settings = await GetOrCreateAsync(cancellationToken);
+        settings.UpdateGeneral(general.LowercaseUrls, general.TrailingSlash);
+
+        await FinalizeAsync("General", $"lowercaseUrls={settings.LowercaseUrls} trailingSlash={settings.TrailingSlash}", actingUserId, cancellationToken);
+        return AccountResult.Success;
+    }
+
     public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) =>
         (await GetOrCreateAsync(cancellationToken)).PageCharset ?? DefaultCharset;
 
@@ -192,6 +202,7 @@ public sealed class SiteSettingsService(
             new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
             new EncodingSettingsDto(s.PageCharset, s.EmailCharset),
             new AccountsSettingsDto(s.DefaultRole),
+            new GeneralSettingsDto(s.LowercaseUrls, s.TrailingSlash),
             s.BaseUrl);
 
     private static string? InvalidCharset(string? charset)

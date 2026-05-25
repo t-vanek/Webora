@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Net.Http.Headers;
 using Webora.Application.Settings;
@@ -7,10 +8,11 @@ using Webora.Domain.Settings;
 namespace Webora.Web.Hosting;
 
 /// <summary>
-/// Applies the stored domain settings at runtime: redirects recognized hosts to the canonical host
-/// (aliases, www/non-www), upgrades to HTTPS when forced, and emits the HSTS header. Unrecognized
-/// hosts and localhost/IP literals are left untouched so misconfiguration cannot black-hole traffic.
-/// Intended to run behind a trusted proxy (see UseForwardedHeaders) and only outside Development.
+/// Applies the stored domain/URL settings at runtime: redirects recognized hosts to the canonical
+/// host (aliases, www/non-www), upgrades to HTTPS when forced, canonicalizes the URL path (lowercase
+/// and trailing slash), and emits the HSTS header. Unrecognized hosts and localhost/IP literals are
+/// left untouched so misconfiguration cannot black-hole traffic. Static assets, framework paths and
+/// the query string are never rewritten. Runs behind a trusted proxy and only outside Development.
 /// </summary>
 public sealed class CanonicalDomainMiddleware(RequestDelegate next)
 {
@@ -19,6 +21,15 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context, ISiteSettingsService settings, IMemoryCache cache)
     {
+        // Error/status-code re-executions run the whole pipeline again; don't rewrite them, so an
+        // error keeps its status instead of turning into a redirect.
+        if (context.Features.Get<IStatusCodeReExecuteFeature>() is not null ||
+            context.Features.Get<IExceptionHandlerPathFeature>() is not null)
+        {
+            await next(context);
+            return;
+        }
+
         var policy = (await cache.GetOrCreateAsync(CacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
@@ -46,10 +57,26 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
             context.Response.Headers[HeaderNames.StrictTransportSecurity] = value;
         }
 
-        if (ResolveRedirect(policy, scheme, host) is { } target)
+        // Leave infrastructure hosts (localhost, IP literals) completely untouched.
+        if (IsLocalOrIp(host))
         {
-            var portSuffix = target.Port is { } port && port != DefaultPort(target.Scheme) ? $":{port}" : string.Empty;
-            var location = $"{target.Scheme}://{target.Host}{portSuffix}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+            await next(context);
+            return;
+        }
+
+        var (targetScheme, targetHost, targetPort) = ResolveSchemeHost(policy, scheme, host);
+        var path = context.Request.Path.HasValue ? context.Request.Path.Value! : "/";
+        var canNormalizePath = HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method);
+        var targetPath = NormalizePath(policy, path, canNormalizePath);
+
+        var schemeChanged = !string.Equals(targetScheme, scheme, StringComparison.OrdinalIgnoreCase);
+        var hostChanged = !string.Equals(targetHost, host, StringComparison.OrdinalIgnoreCase);
+        var pathChanged = !string.Equals(targetPath, path, StringComparison.Ordinal);
+
+        if (schemeChanged || hostChanged || pathChanged)
+        {
+            var portSuffix = targetPort is { } port && port != DefaultPort(targetScheme) ? $":{port}" : string.Empty;
+            var location = $"{targetScheme}://{targetHost}{portSuffix}{context.Request.PathBase}{targetPath}{context.Request.QueryString}";
             context.Response.Redirect(location, permanent: true);
             return;
         }
@@ -57,13 +84,8 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
         await next(context);
     }
 
-    internal static (string Scheme, string Host, int? Port)? ResolveRedirect(DomainPolicy policy, string scheme, string host)
+    internal static (string Scheme, string Host, int? Port) ResolveSchemeHost(DomainPolicy policy, string scheme, string host)
     {
-        if (IsLocalOrIp(host))
-        {
-            return null;
-        }
-
         var targetScheme = policy.ForceHttps ? "https" : scheme;
         var targetHost = host;
 
@@ -86,19 +108,43 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
             targetHost = host[4..];
         }
 
-        var schemeChanged = !string.Equals(targetScheme, scheme, StringComparison.OrdinalIgnoreCase);
-        var hostChanged = !string.Equals(targetHost, host, StringComparison.OrdinalIgnoreCase);
-        if (!schemeChanged && !hostChanged)
-        {
-            return null;
-        }
-
         var port = !string.IsNullOrEmpty(policy.CanonicalHost)
             && string.Equals(targetHost, policy.CanonicalHost, StringComparison.OrdinalIgnoreCase)
                 ? policy.Port
                 : null;
 
         return (targetScheme, targetHost, port);
+    }
+
+    internal static string NormalizePath(DomainPolicy policy, string path, bool allow)
+    {
+        if (!allow || !IsNormalizablePath(path))
+        {
+            return path;
+        }
+
+        var result = policy.LowercaseUrls ? path.ToLowerInvariant() : path;
+        result = policy.TrailingSlash switch
+        {
+            TrailingSlashPolicy.Remove => result.TrimEnd('/'),
+            TrailingSlashPolicy.Add => result.EndsWith('/') ? result : result + "/",
+            _ => result,
+        };
+
+        return result.Length == 0 ? "/" : result;
+    }
+
+    // Skips the root, framework/Blazor paths (/_framework, /_content, /_blazor) and static files
+    // (a dot in the last segment) so asset URLs are never rewritten.
+    private static bool IsNormalizablePath(string path)
+    {
+        if (path.Length <= 1 || path.StartsWith("/_", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var lastSlash = path.LastIndexOf('/');
+        return path.IndexOf('.', lastSlash + 1) < 0;
     }
 
     private static bool IsWwwVariant(string host, string canonical) =>

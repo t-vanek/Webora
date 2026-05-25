@@ -77,6 +77,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.DefaultRole).HasMaxLength(256);
             settings.Property(s => s.Scheme).HasConversion<string>().HasMaxLength(8);
             settings.Property(s => s.WwwPreference).HasConversion<string>().HasMaxLength(16);
+            settings.Property(s => s.TrailingSlash).HasConversion<string>().HasMaxLength(16);
             settings.Property(s => s.Aliases)
                 .HasColumnType("text")
                 .HasConversion(

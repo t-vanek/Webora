@@ -259,4 +259,13 @@
   <data name="Settings_DefaultRole" xml:space="preserve"><value>Výchozí role nových účtů</value></data>
   <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automaticky přidělená nově zaregistrovaným účtům.</value></data>
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
+  <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
+  <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
+  <data name="Settings_UrlAppearance" xml:space="preserve"><value>Vzhled URL adres (kanonizace cesty).</value></data>
+  <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Malá písmena v URL</value></data>
+  <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Cesty s velkými písmeny se přesměrují na malá (query a soubory se nemění).</value></data>
+  <data name="Settings_TrailingSlash" xml:space="preserve"><value>Koncové lomítko</value></data>
+  <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>Beze změny</value></data>
+  <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Vždy přidat „/“</value></data>
+  <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Vždy odstranit „/“</value></data>
 </root>

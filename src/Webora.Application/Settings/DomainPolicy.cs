@@ -12,4 +12,6 @@ public sealed record DomainPolicy(
     bool HstsIncludeSubDomains,
     bool HstsPreload,
     WwwPreference Www,
-    IReadOnlyList<string> Aliases);
+    IReadOnlyList<string> Aliases,
+    bool LowercaseUrls,
+    TrailingSlashPolicy TrailingSlash);

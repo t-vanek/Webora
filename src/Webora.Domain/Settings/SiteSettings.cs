@@ -50,6 +50,12 @@ public class SiteSettings : Entity, IAggregateRoot
     /// <summary>Role automatically granted to newly self-registered accounts. Null = none.</summary>
     public string? DefaultRole { get; private set; }
 
+    /// <summary>Redirect URL paths to lowercase (e.g. /About → /about).</summary>
+    public bool LowercaseUrls { get; private set; }
+
+    /// <summary>How a trailing slash on the path is canonicalized.</summary>
+    public TrailingSlashPolicy TrailingSlash { get; private set; } = TrailingSlashPolicy.NoPreference;
+
     private SiteSettings() { }
 
     public static SiteSettings CreateDefault()
@@ -106,6 +112,12 @@ public class SiteSettings : Entity, IAggregateRoot
     public void UpdateAccounts(string? defaultRole)
     {
         DefaultRole = string.IsNullOrWhiteSpace(defaultRole) ? null : defaultRole.Trim();
+    }
+
+    public void UpdateGeneral(bool lowercaseUrls, TrailingSlashPolicy trailingSlash)
+    {
+        LowercaseUrls = lowercaseUrls;
+        TrailingSlash = trailingSlash;
     }
 
     /// <summary>The canonical base URL (scheme://host[:port]), or null when no host is configured.</summary>
