@@ -13,8 +13,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav_Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Nav_Counter" xml:space="preserve"><value>Counter</value></data>
-  <data name="Nav_Weather" xml:space="preserve"><value>Weather</value></data>
   <data name="Nav_Login" xml:space="preserve"><value>Sign in</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Register</value></data>
   <data name="Nav_Logout" xml:space="preserve"><value>Sign out</value></data>
