@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Webora.Domain.Accounts;
 using Webora.Domain.Authorization;
 
 namespace Webora.Infrastructure.Identity;
@@ -70,6 +71,7 @@ public class IdentitySeeder(
                 Email = seed.AdminEmail,
                 EmailConfirmed = true,
                 DisplayName = seed.AdminDisplayName,
+                Status = AccountStatus.Active,
             };
 
             var created = await userManager.CreateAsync(admin, seed.AdminPassword);
@@ -80,6 +82,11 @@ public class IdentitySeeder(
             }
 
             logger.LogInformation("Created admin account {Email}", seed.AdminEmail);
+        }
+        else if (admin.Status != AccountStatus.Active)
+        {
+            admin.Status = AccountStatus.Active;
+            await userManager.UpdateAsync(admin);
         }
 
         if (!await userManager.IsInRoleAsync(admin, Roles.Administrator))

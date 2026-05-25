@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Webora.Application.Accounts;
+using Webora.Infrastructure.Accounts;
 using Webora.Infrastructure.Email;
 using Webora.Infrastructure.Identity;
 using Webora.Infrastructure.Persistence;
@@ -17,6 +19,10 @@ public static class DependencyInjection
         AddCaching(services, configuration);
         AddOpenIddictCore(services);
         services.AddEmail(configuration);
+
+        services.AddSingleton(TimeProvider.System);
+        services.Configure<AccountOptions>(configuration.GetSection(AccountOptions.SectionName));
+        services.AddScoped<IAccountService, AccountService>();
 
         // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
         // host where the ASP.NET shared framework is available. Here we only provide the seeder

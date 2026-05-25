@@ -24,6 +24,7 @@ public static class DependencyInjection
                 options.SignIn.RequireConfirmedAccount = false;
             })
             .AddEntityFrameworkStores<WeboraDbContext>()
+            .AddSignInManager<Webora.Web.Identity.WeboraSignInManager>()
             .AddDefaultTokenProviders();
 
         // Route Identity's confirmation/reset emails through the application's email abstraction.

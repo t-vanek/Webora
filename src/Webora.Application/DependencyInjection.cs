@@ -12,7 +12,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         // Mapperly mappers are stateless and generated at compile time — register as singletons.
-        services.AddSingleton<SampleMapper>();
+        services.AddSingleton<AccountAuditMapper>();
 
         return services;
     }
