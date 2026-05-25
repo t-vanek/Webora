@@ -8,18 +8,24 @@
 
 <PageTitle>@L["Deactivate_Title"]</PageTitle>
 
-<h1>@L["Deactivate_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["Deactivate_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Deactivate_Intro"]</FluentLabel>
 
-<p>@L["Deactivate_Intro"]</p>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+            @_error
+        </FluentMessageBar>
+    }
 
-@if (!string.IsNullOrEmpty(_error))
-{
-    <div class="alert alert-danger" role="alert">@_error</div>
-}
-
-<EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="deactivate">
-    <button type="submit" class="btn btn-danger">@L["Deactivate_Submit"]</button>
-</EditForm>
+    <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="deactivate">
+        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Outline"
+                      Style="background:var(--error-rest);color:var(--neutral-fill-rest)">
+            @L["Deactivate_Submit"]
+        </FluentButton>
+    </EditForm>
+</FluentStack>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
