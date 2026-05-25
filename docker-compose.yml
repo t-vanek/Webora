@@ -39,5 +39,12 @@ services:
       timeout: 5s
       retries: 5
 
+  # Local SMTP catcher for development. Web UI/API at http://localhost:5099.
+  smtp4dev:
+    image: rnwood/smtp4dev:v3
+    ports:
+      - "2525:25"
+      - "5099:80"
+
 volumes:
   postgres-data:

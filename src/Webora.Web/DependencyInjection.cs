@@ -26,6 +26,9 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<WeboraDbContext>()
             .AddDefaultTokenProviders();
 
+        // Route Identity's confirmation/reset emails through the application's email abstraction.
+        services.AddScoped<IEmailSender<ApplicationUser>, Webora.Web.Email.IdentityEmailSender>();
+
         // Align Identity's claim types with what OpenIddict expects when it issues tokens.
         services.Configure<IdentityOptions>(options =>
         {
