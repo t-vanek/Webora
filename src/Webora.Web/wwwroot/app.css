@@ -1,5 +1,7 @@
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* Fluent's body-font token: Segoe UI Variable on Windows, system fallback elsewhere. The
+       explicit fallback chain catches the case where FluentDesignTheme hasn't applied yet. */
+    font-family: var(--body-font, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif);
     background-color: var(--neutral-layer-1);
     color: var(--neutral-foreground-rest);
     margin: 0;
