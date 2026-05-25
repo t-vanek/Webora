@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IStringLocalizer<SharedResource> L
 @inject ISiteSettingsService SiteSettings
 
@@ -12,8 +13,14 @@
         <FluentSpacer />
         <AuthorizeView>
             <NotAuthorized>
-                <a href="login" class="header-nav-link">@L["Nav_Login"]</a>
-                <a href="register" class="header-nav-link">@L["Nav_Register"]</a>
+                <a href="login" class="header-nav-link">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                    @L["Nav_Login"]
+                </a>
+                <a href="register" class="header-nav-link">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                    @L["Nav_Register"]
+                </a>
             </NotAuthorized>
         </AuthorizeView>
         <ThemeToggle @rendermode="InteractiveServer" />

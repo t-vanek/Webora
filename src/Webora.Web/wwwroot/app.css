@@ -33,12 +33,16 @@ h1:focus {
     }
 
 /* Login / Register links in the header for unauthenticated visitors. Same colour token as the
-   brand so they sit on the accent header readably; underline appears on hover. */
+   brand so they sit on the accent header readably; underline appears on hover. The flex layout
+   puts the FluentIcon next to the label with a small gap. */
 .header-nav-link {
     color: var(--foreground-on-accent-rest, white);
     text-decoration: none;
     font-size: 0.9rem;
     margin: 0 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
     .header-nav-link:hover {
