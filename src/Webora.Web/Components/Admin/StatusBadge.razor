@@ -1,17 +1,19 @@
 @inject IStringLocalizer<SharedResource> L
 
-<span class="badge @Css">@L[$"AccountStatus_{Status}"]</span>
+<FluentBadge Appearance="Appearance.Accent" Fill="@_fill">@L[$"AccountStatus_{Status}"]</FluentBadge>
 
 @code {
     [Parameter, EditorRequired] public AccountStatus Status { get; set; }
 
-    private string Css => Status switch
+    // Semantic colour mapping: success for active accounts, warning for paused/deactivated/suspended
+    // states the user can still recover, danger for blocked. The Fill string matches Fluent's
+    // accent-fill colour names.
+    private string _fill => Status switch
     {
-        AccountStatus.Active => "bg-success",
-        AccountStatus.PendingActivation => "bg-secondary",
-        AccountStatus.Deactivated => "bg-warning text-dark",
-        AccountStatus.Suspended => "bg-warning text-dark",
-        AccountStatus.Blocked => "bg-danger",
-        _ => "bg-secondary",
+        AccountStatus.Active => "success",
+        AccountStatus.Deactivated => "warning",
+        AccountStatus.Suspended => "warning",
+        AccountStatus.Blocked => "danger",
+        _ => "neutral",
     };
 }
