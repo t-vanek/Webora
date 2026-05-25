@@ -1,74 +1,65 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Navigation
-@inject ISiteSettingsService SiteSettings
 
-<div class="top-row">
-    <a class="navbar-brand" href="">@_siteName</a>
-</div>
+<FluentNavMenu Width="250" Collapsible="true" Title="@L["Nav_Menu"]">
+    <FluentNavLink Href="" Match="NavLinkMatch.All"
+                   Icon="@(new Icons.Regular.Size20.Home())">
+        @L["Nav_Home"]
+    </FluentNavLink>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <FluentNavMenu Width="250" Collapsible="false">
-        <FluentNavLink Href="" Match="NavLinkMatch.All"
-                       Icon="@(new Icons.Regular.Size20.Home())">
-            @L["Nav_Home"]
-        </FluentNavLink>
-
-        @if (_canAdminUsers || _canAdminRoles || _canSettings)
-        {
-            <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
-                @if (_canAdminUsers)
-                {
-                    <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
-                        @L["Nav_AdminUsers"]
-                    </FluentNavLink>
-                }
-                @if (_canAdminRoles)
-                {
-                    <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
-                        @L["Nav_AdminRoles"]
-                    </FluentNavLink>
-                }
-                @if (_canSettings)
-                {
-                    <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
-                        @L["Nav_AdminSettings"]
-                    </FluentNavLink>
-                }
-            </FluentNavGroup>
-        }
-
-        <AuthorizeView>
-            <Authorized>
-                <FluentNavLink Href="account/manage" Icon="@(new Icons.Regular.Size20.Person())">
-                    @context.User.Identity?.Name
+    @if (_canAdminUsers || _canAdminRoles || _canSettings)
+    {
+        <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
+            @if (_canAdminUsers)
+            {
+                <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
+                    @L["Nav_AdminUsers"]
                 </FluentNavLink>
-                <FluentNavLink Href="logout" Icon="@(new Icons.Regular.Size20.SignOut())">
-                    @L["Nav_Logout"]
+            }
+            @if (_canAdminRoles)
+            {
+                <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
+                    @L["Nav_AdminRoles"]
                 </FluentNavLink>
-            </Authorized>
-            <NotAuthorized>
-                <FluentNavLink Href="login" Icon="@(new Icons.Regular.Size20.PersonAccounts())">
-                    @L["Nav_Login"]
+            }
+            @if (_canSettings)
+            {
+                <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
+                    @L["Nav_AdminSettings"]
                 </FluentNavLink>
-                <FluentNavLink Href="register" Icon="@(new Icons.Regular.Size20.PersonAdd())">
-                    @L["Nav_Register"]
-                </FluentNavLink>
-            </NotAuthorized>
-        </AuthorizeView>
-    </FluentNavMenu>
+            }
+        </FluentNavGroup>
+    }
 
-    @* Language switcher stays as small links below the nav menu — Fluent doesn't have a great
-       slot for non-navigation footer items, and these are POST-cookie-and-redirect actions
-       handled by /culture/set, not real routes. *@
-    <div class="lang-switcher">
-        <small>@L["Language"]:</small>
-        <a href="@CultureUrl("cs")">CS</a>
-        <span>|</span>
-        <a href="@CultureUrl("en")">EN</a>
-    </div>
+    <AuthorizeView>
+        <Authorized>
+            <FluentNavLink Href="account/manage" Icon="@(new Icons.Regular.Size20.Person())">
+                @context.User.Identity?.Name
+            </FluentNavLink>
+            <FluentNavLink Href="logout" Icon="@(new Icons.Regular.Size20.SignOut())">
+                @L["Nav_Logout"]
+            </FluentNavLink>
+        </Authorized>
+        <NotAuthorized>
+            <FluentNavLink Href="login" Icon="@(new Icons.Regular.Size20.PersonAccounts())">
+                @L["Nav_Login"]
+            </FluentNavLink>
+            <FluentNavLink Href="register" Icon="@(new Icons.Regular.Size20.PersonAdd())">
+                @L["Nav_Register"]
+            </FluentNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</FluentNavMenu>
+
+@* Language switcher sits below the nav menu. FluentNavMenu doesn't have a dedicated footer slot
+   so it lives in a plain block — these are POST-cookie-and-redirect actions handled by
+   /culture/set rather than real routes. *@
+<div class="lang-switcher">
+    <small>@L["Language"]:</small>
+    <a href="@CultureUrl("cs")">CS</a>
+    <span>|</span>
+    <a href="@CultureUrl("en")">EN</a>
 </div>
 
 @code {
@@ -77,12 +68,9 @@
     private bool _canAdminUsers;
     private bool _canAdminRoles;
     private bool _canSettings;
-    private string _siteName = "Webora";
 
     protected override async Task OnInitializedAsync()
     {
-        _siteName = (await SiteSettings.GetIdentityAsync()).Name ?? "Webora";
-
         if (AuthState is not null)
         {
             var user = (await AuthState).User;

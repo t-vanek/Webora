@@ -1,29 +1,31 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject IStringLocalizer<SharedResource> L
+@inject ISiteSettingsService SiteSettings
 
-<div class="page">
-    <div class="sidebar">
+<FluentLayout>
+    <FluentHeader>
+        <FluentAnchor Href="" Appearance="Appearance.Hypertext" Style="color:var(--neutral-fill-stealth-rest); font-weight:600; font-size:1rem; text-decoration:none">
+            @_siteName
+        </FluentAnchor>
+        <FluentSpacer />
+        <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+        <FluentAnchor Href="https://learn.microsoft.com/aspnet/core/" Target="_blank" Appearance="Appearance.Hypertext" Style="color:var(--neutral-fill-stealth-rest)">
+            @L["Layout_About"]
+        </FluentAnchor>
+        <ThemeToggle @rendermode="InteractiveServer" />
+    </FluentHeader>
+
+    <FluentStack Class="main" Orientation="Orientation.Horizontal" Width="100%" Style="flex:1; overflow:hidden">
         <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row">
-            <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">@L["Layout_About"]</a>
-            <ThemeToggle @rendermode="InteractiveServer" />
-        </div>
-
-        <article class="content">
+        <FluentBodyContent Class="body-content" Style="padding:1.5rem; overflow:auto">
             @Body
-        </article>
-    </main>
-</div>
+        </FluentBodyContent>
+    </FluentStack>
+</FluentLayout>
 
-@* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when the
-   hosting page is statically rendered. Pages or admin forms that already run InteractiveServer can
-   call IDialogService / IToastService and the matching provider here will render the result. The
-   <ThemeToggle /> in the top-row also owns the FluentDesignTheme component that emits the design
-   tokens onto the document. *@
+@* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when
+   the hosting page is statically rendered. The <ThemeToggle /> in the header also owns the
+   FluentDesignTheme component that emits the design tokens onto the document. *@
 <FluentToastProvider @rendermode="InteractiveServer" />
 <FluentDialogProvider @rendermode="InteractiveServer" />
 <FluentTooltipProvider @rendermode="InteractiveServer" />
@@ -35,3 +37,10 @@
     <a href="." class="reload">@L["Layout_Reload"]</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private string _siteName = "Webora";
+
+    protected override async Task OnInitializedAsync() =>
+        _siteName = (await SiteSettings.GetIdentityAsync()).Name ?? "Webora";
+}
