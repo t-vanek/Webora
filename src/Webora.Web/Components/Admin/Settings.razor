@@ -1,0 +1,166 @@
+@page "/admin/settings"
+@attribute [HasPermission(Permissions.Settings.View)]
+@rendermode InteractiveServer
+@using Webora.Application.Settings
+@using Webora.Domain.Settings
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Settings_Title"]</PageTitle>
+
+<h1>@L["Settings_Title"]</h1>
+
+@if (_form is null)
+{
+    <p>@L["Admin_Loading"]</p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert alert-success" role="alert">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+
+    <h2 class="h5 mt-3">@L["Settings_DomainSection"]</h2>
+
+    <p>
+        <span class="text-muted">@L["Settings_BaseUrlPreview"]</span>
+        <code>@(_baseUrl ?? L["Settings_NotSet"])</code>
+    </p>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-8">
+            <label class="form-label" for="host">@L["Settings_CanonicalHost"]</label>
+            <input id="host" class="form-control" @bind="_form.CanonicalHost" placeholder="www.example.com" />
+            <div class="form-text">@L["Settings_CanonicalHostHelp"]</div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="scheme">@L["Settings_Scheme"]</label>
+            <select id="scheme" class="form-select" @bind="_form.Scheme">
+                <option value="@UrlScheme.Https">HTTPS</option>
+                <option value="@UrlScheme.Http">HTTP</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="port">@L["Settings_Port"]</label>
+            <input id="port" type="number" min="1" max="65535" class="form-control" @bind="_form.Port" />
+            <div class="form-text">@L["Settings_PortHelp"]</div>
+        </div>
+
+        <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="forceHttps" @bind="_form.ForceHttps" />
+                <label class="form-check-label" for="forceHttps">@L["Settings_ForceHttps"]</label>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">@L["Settings_Www"]</label>
+            <select class="form-select" style="max-width:280px" @bind="_form.WwwPreference">
+                <option value="@WwwPreference.NoPreference">@L["Settings_Www_NoPreference"]</option>
+                <option value="@WwwPreference.PreferWww">@L["Settings_Www_PreferWww"]</option>
+                <option value="@WwwPreference.PreferNonWww">@L["Settings_Www_PreferNonWww"]</option>
+            </select>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">@L["Settings_Hsts"]</label>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="hsts" @bind="_form.HstsEnabled" />
+                <label class="form-check-label" for="hsts">@L["Settings_HstsEnabled"]</label>
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-md-3">
+                    <label class="form-label" for="hstsAge">@L["Settings_HstsMaxAge"]</label>
+                    <input id="hstsAge" type="number" min="0" class="form-control" @bind="_form.HstsMaxAgeDays" disabled="@(!_form.HstsEnabled)" />
+                </div>
+                <div class="col-md-9 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="hstsSub" @bind="_form.HstsIncludeSubDomains" disabled="@(!_form.HstsEnabled)" />
+                        <label class="form-check-label" for="hstsSub">@L["Settings_HstsIncludeSubDomains"]</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label" for="aliases">@L["Settings_Aliases"]</label>
+            <textarea id="aliases" class="form-control" rows="3" @bind="_form.AliasesText" placeholder="example.com&#10;example.net"></textarea>
+            <div class="form-text">@L["Settings_AliasesHelp"]</div>
+        </div>
+    </div>
+
+    <p class="text-muted mt-3"><small>@L["Settings_EnforcementNote"]</small></p>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="save">
+        <button class="btn btn-primary" @onclick="SaveAsync">@L["Admin_Save"]</button>
+    </AuthorizeView>
+}
+
+@code {
+    private DomainForm? _form;
+    private string? _baseUrl;
+    private string? _message;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var dto = await SiteSettings.GetAsync();
+        _baseUrl = dto.CanonicalBaseUrl;
+        var d = dto.Domain;
+        _form = new DomainForm
+        {
+            CanonicalHost = d.CanonicalHost,
+            Scheme = d.Scheme,
+            Port = d.Port,
+            ForceHttps = d.ForceHttps,
+            HstsEnabled = d.HstsEnabled,
+            HstsMaxAgeDays = d.HstsMaxAgeDays,
+            HstsIncludeSubDomains = d.HstsIncludeSubDomains,
+            WwwPreference = d.WwwPreference,
+            AliasesText = string.Join('\n', d.Aliases),
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        _message = _error = null;
+        var aliases = (_form!.AliasesText ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var dto = new DomainSettingsDto(
+            _form.CanonicalHost, _form.Scheme, _form.Port, _form.ForceHttps,
+            _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
+            _form.WwwPreference, aliases);
+
+        var result = await SiteSettings.UpdateDomainAsync(dto);
+        if (result.Succeeded)
+        {
+            _message = L["Settings_Saved"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+
+    private sealed class DomainForm
+    {
+        public string? CanonicalHost { get; set; }
+        public UrlScheme Scheme { get; set; } = UrlScheme.Https;
+        public int? Port { get; set; }
+        public bool ForceHttps { get; set; } = true;
+        public bool HstsEnabled { get; set; }
+        public int HstsMaxAgeDays { get; set; } = 365;
+        public bool HstsIncludeSubDomains { get; set; }
+        public WwwPreference WwwPreference { get; set; } = WwwPreference.NoPreference;
+        public string AliasesText { get; set; } = string.Empty;
+    }
+}

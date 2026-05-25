@@ -213,4 +213,27 @@
   <data name="Reconnect_Paused" xml:space="preserve"><value>The session has been paused by the server.</value></data>
   <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Failed to resume the session.</value></data>
   <data name="Reconnect_Resume" xml:space="preserve"><value>Resume</value></data>
+  <data name="Nav_AdminSettings" xml:space="preserve"><value>Site settings</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Site settings</value></data>
+  <data name="Settings_DomainSection" xml:space="preserve"><value>Domain</value></data>
+  <data name="Settings_CanonicalHost" xml:space="preserve"><value>Canonical domain</value></data>
+  <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>E.g. www.example.com – used for absolute links (emails, canonical URLs).</value></data>
+  <data name="Settings_Scheme" xml:space="preserve"><value>Protocol</value></data>
+  <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Settings_PortHelp" xml:space="preserve"><value>Empty = default (80/443).</value></data>
+  <data name="Settings_ForceHttps" xml:space="preserve"><value>Force HTTPS (redirect HTTP→HTTPS)</value></data>
+  <data name="Settings_Www" xml:space="preserve"><value>www form</value></data>
+  <data name="Settings_Www_NoPreference" xml:space="preserve"><value>No preference</value></data>
+  <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Prefer www</value></data>
+  <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Prefer non-www</value></data>
+  <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
+  <data name="Settings_HstsEnabled" xml:space="preserve"><value>Enable HSTS</value></data>
+  <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Max age (days)</value></data>
+  <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Include subdomains</value></data>
+  <data name="Settings_Aliases" xml:space="preserve"><value>Domain aliases</value></data>
+  <data name="Settings_AliasesHelp" xml:space="preserve"><value>One domain name per line.</value></data>
+  <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Canonical URL:</value></data>
+  <data name="Settings_NotSet" xml:space="preserve"><value>not set</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Enforcement (HTTPS, HSTS, www, aliases) is currently only stored and not applied automatically.</value></data>
+  <data name="Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
 </root>

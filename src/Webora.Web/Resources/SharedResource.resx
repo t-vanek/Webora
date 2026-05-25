@@ -213,4 +213,27 @@
   <data name="Reconnect_Paused" xml:space="preserve"><value>Relace byla pozastavena serverem.</value></data>
   <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Obnovení relace se nezdařilo.</value></data>
   <data name="Reconnect_Resume" xml:space="preserve"><value>Pokračovat</value></data>
+  <data name="Nav_AdminSettings" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_DomainSection" xml:space="preserve"><value>Doména</value></data>
+  <data name="Settings_CanonicalHost" xml:space="preserve"><value>Kanonická doména</value></data>
+  <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>Např. www.example.com – použije se pro absolutní odkazy (e-maily, kanonické URL).</value></data>
+  <data name="Settings_Scheme" xml:space="preserve"><value>Protokol</value></data>
+  <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Settings_PortHelp" xml:space="preserve"><value>Prázdné = výchozí (80/443).</value></data>
+  <data name="Settings_ForceHttps" xml:space="preserve"><value>Vynutit HTTPS (přesměrovat HTTP→HTTPS)</value></data>
+  <data name="Settings_Www" xml:space="preserve"><value>Tvar www</value></data>
+  <data name="Settings_Www_NoPreference" xml:space="preserve"><value>Bez preference</value></data>
+  <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Preferovat www</value></data>
+  <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Preferovat bez www</value></data>
+  <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
+  <data name="Settings_HstsEnabled" xml:space="preserve"><value>Zapnout HSTS</value></data>
+  <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Platnost (dny)</value></data>
+  <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Včetně subdomén</value></data>
+  <data name="Settings_Aliases" xml:space="preserve"><value>Aliasy domén</value></data>
+  <data name="Settings_AliasesHelp" xml:space="preserve"><value>Jeden název domény na řádek.</value></data>
+  <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Kanonická URL:</value></data>
+  <data name="Settings_NotSet" xml:space="preserve"><value>nenastaveno</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se zatím pouze ukládá a neaplikuje se automaticky.</value></data>
+  <data name="Settings_Saved" xml:space="preserve"><value>Nastavení bylo uloženo.</value></data>
 </root>

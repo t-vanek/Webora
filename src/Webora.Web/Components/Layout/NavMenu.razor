@@ -17,7 +17,7 @@
             </NavLink>
         </div>
 
-        @if (_canAdminUsers || _canAdminRoles)
+        @if (_canAdminUsers || _canAdminRoles || _canSettings)
         {
             <div class="nav-item px-3 mt-2">
                 <small class="text-light text-uppercase">@L["Nav_Administration"]</small>
@@ -35,6 +35,14 @@
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/roles">
                         <span class="bi bi-shield-lock-nav-menu" aria-hidden="true"></span> @L["Nav_AdminRoles"]
+                    </NavLink>
+                </div>
+            }
+            @if (_canSettings)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/settings">
+                        <span class="bi bi-gear-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminSettings"]
                     </NavLink>
                 </div>
             }
@@ -81,6 +89,7 @@
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
+    private bool _canSettings;
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,6 +98,7 @@
             var user = (await AuthState).User;
             _canAdminUsers = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Users.View);
             _canAdminRoles = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Roles.View);
+            _canSettings = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Settings.View);
         }
     }
 

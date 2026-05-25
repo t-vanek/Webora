@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Webora.Domain.Accounts;
 using Webora.Domain.Notifications;
+using Webora.Domain.Settings;
 using Webora.Infrastructure.Identity;
 
 namespace Webora.Infrastructure.Persistence;
@@ -14,6 +16,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
     public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<NotificationPreferences> NotificationPreferences => Set<NotificationPreferences>();
+
+    public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -58,6 +62,27 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             prefs.HasKey(p => p.UserId);
             prefs.Property(p => p.UserId).ValueGeneratedNever();
             prefs.Property(p => p.Scope).HasConversion<string>().HasMaxLength(32);
+        });
+
+        builder.Entity<SiteSettings>(settings =>
+        {
+            settings.ToTable("SiteSettings");
+            settings.HasKey(s => s.Id);
+            settings.Property(s => s.Id).ValueGeneratedNever();
+            settings.Property(s => s.CanonicalHost).HasMaxLength(253);
+            settings.Property(s => s.Scheme).HasConversion<string>().HasMaxLength(8);
+            settings.Property(s => s.WwwPreference).HasConversion<string>().HasMaxLength(16);
+            settings.Property(s => s.Aliases)
+                .HasColumnType("text")
+                .HasConversion(
+                    list => string.Join('\n', list),
+                    value => value.Length == 0
+                        ? Array.Empty<string>()
+                        : value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    new ValueComparer<IReadOnlyList<string>>(
+                        (a, b) => a!.SequenceEqual(b!),
+                        v => v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                        v => v.ToArray()));
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

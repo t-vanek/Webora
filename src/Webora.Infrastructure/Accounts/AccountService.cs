@@ -7,6 +7,7 @@ using Webora.Application.Abstractions.Email;
 using Webora.Application.Accounts;
 using Webora.Application.Mapping;
 using Webora.Application.Notifications;
+using Webora.Application.Settings;
 using Webora.Domain.Accounts;
 using Webora.Domain.Notifications;
 using Webora.Infrastructure.Identity;
@@ -20,6 +21,7 @@ public sealed class AccountService(
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
     INotificationService notifications,
+    ISiteSettingsService siteSettings,
     IStringLocalizer<AccountMessages> messages,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider,
@@ -69,7 +71,7 @@ public sealed class AccountService(
     private async Task SendActivationEmailCoreAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-        var link = BuildLink("account/confirm-email", ("userId", user.Id.ToString()), ("token", token));
+        var link = await BuildLinkAsync("account/confirm-email", ("userId", user.Id.ToString()), ("token", token));
         await SendAsync(user, messages["Email_Activation_Subject"], messages["Email_Activation_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.ActivationRequested, "self", null, cancellationToken);
@@ -123,7 +125,7 @@ public sealed class AccountService(
         if (user is not null)
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            var link = BuildLink("account/reset-password", ("email", email), ("token", token));
+            var link = await BuildLinkAsync("account/reset-password", ("email", email), ("token", token));
             await SendAsync(user, messages["Email_Reset_Subject"], messages["Email_Reset_Body", link]);
             await AuditAsync(user.Id, AccountAuditEventType.PasswordResetRequested, "self", null, cancellationToken);
         }
@@ -160,7 +162,7 @@ public sealed class AccountService(
         }
 
         var token = await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
-        var link = BuildLink("account/confirm-email-change", ("userId", user.Id.ToString()), ("email", newEmail), ("token", token));
+        var link = await BuildLinkAsync("account/confirm-email-change", ("userId", user.Id.ToString()), ("email", newEmail), ("token", token));
         await SendToAsync(newEmail, user.DisplayName, messages["Email_EmailChange_Subject"], messages["Email_EmailChange_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChangeRequested, "self", newEmail, cancellationToken);
@@ -251,7 +253,7 @@ public sealed class AccountService(
         if (user is not null && user.Status is AccountStatus.Deactivated or AccountStatus.Suspended)
         {
             var token = await userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, ReactivateTokenPurpose);
-            var link = BuildLink("account/confirm-reactivation", ("userId", user.Id.ToString()), ("token", token));
+            var link = await BuildLinkAsync("account/confirm-reactivation", ("userId", user.Id.ToString()), ("token", token));
             await SendAsync(user, messages["Email_Reactivation_Subject"], messages["Email_Reactivation_Body", link]);
             await AuditAsync(user.Id, AccountAuditEventType.ReactivationRequested, "self", null, cancellationToken);
         }
@@ -291,7 +293,7 @@ public sealed class AccountService(
         }
 
         var token = await userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, SuspendTokenPurpose);
-        var link = BuildLink("account/confirm-suspend", ("userId", user.Id.ToString()), ("token", token));
+        var link = await BuildLinkAsync("account/confirm-suspend", ("userId", user.Id.ToString()), ("token", token));
         await SendAsync(user, messages["Email_Suspend_Subject"], messages["Email_Suspend_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.SuspendRequested, "self", null, cancellationToken);
@@ -416,9 +418,9 @@ public sealed class AccountService(
     private Task SendToAsync(string email, string? name, string subject, string html) =>
         emailSender.SendAsync(new EmailMessage { To = email, ToName = name, Subject = subject, HtmlBody = html });
 
-    private string BuildLink(string path, params (string Key, string Value)[] query)
+    private async Task<string> BuildLinkAsync(string path, params (string Key, string Value)[] query)
     {
-        var baseUrl = options.Value.BaseUrl.TrimEnd('/');
+        var baseUrl = (await siteSettings.GetCanonicalBaseUrlAsync() ?? options.Value.BaseUrl).TrimEnd('/');
         var queryString = string.Join('&', query.Select(q => $"{q.Key}={Uri.EscapeDataString(q.Value)}"));
         return $"{baseUrl}/{path}?{queryString}";
     }
