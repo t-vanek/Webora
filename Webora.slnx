@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Webora.Application/Webora.Application.csproj" />
+    <Project Path="src/Webora.Contracts/Webora.Contracts.csproj" />
     <Project Path="src/Webora.Domain/Webora.Domain.csproj" />
     <Project Path="src/Webora.Infrastructure/Webora.Infrastructure.csproj" />
     <Project Path="src/Webora.Web.Client/Webora.Web.Client.csproj" />

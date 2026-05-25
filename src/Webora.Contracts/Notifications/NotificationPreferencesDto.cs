@@ -1,6 +1,6 @@
 using Webora.Domain.Notifications;
 
-namespace Webora.Application.Notifications;
+namespace Webora.Contracts.Notifications;
 
 public sealed record NotificationPreferencesDto(
     bool Muted,

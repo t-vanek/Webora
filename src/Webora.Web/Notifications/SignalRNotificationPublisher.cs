@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Webora.Application.Notifications;
+using Webora.Contracts.Notifications;
 using Webora.Web.Hubs;
 
 namespace Webora.Web.Notifications;

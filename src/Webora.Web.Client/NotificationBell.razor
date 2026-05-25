@@ -1,9 +1,10 @@
-@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Localization
+@using Webora.Contracts.Notifications
+@using Webora.Web.Client.Api
 @implements IAsyncDisposable
-@inject HttpClient Http
+@inject NotificationsApiClient Api
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<ClientResource> L
@@ -38,10 +39,13 @@
                 {
                     @foreach (var n in _items)
                     {
-                        <div class="border-bottom py-1 @(n.IsRead ? "" : "fw-semibold")">
+                        <button type="button"
+                                class="btn btn-link text-start w-100 p-0 border-0 border-bottom py-1 @(n.IsRead ? "" : "fw-semibold")"
+                                @onclick="() => MarkRead(n.Id)"
+                                disabled="@n.IsRead">
                             <div class="small">@n.Title</div>
                             <div class="small text-muted">@n.Message</div>
-                        </div>
+                        </button>
                     }
                 }
             </div>
@@ -55,7 +59,7 @@
     private bool _open;
     private bool _muted;
     private int _unreadCount;
-    private List<ClientNotification> _items = [];
+    private List<NotificationDto> _items = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,9 +78,9 @@
     {
         try
         {
-            _unreadCount = await Http.GetFromJsonAsync<int>("api/notifications/unread-count");
-            _items = await Http.GetFromJsonAsync<List<ClientNotification>>("api/notifications?take=20") ?? [];
-            var prefs = await Http.GetFromJsonAsync<ClientPreferences>("api/notifications/preferences");
+            _unreadCount = await Api.GetUnreadCountAsync();
+            _items = [.. await Api.GetAsync(take: 20)];
+            var prefs = await Api.GetPreferencesAsync();
             _muted = prefs?.IsCurrentlyMuted ?? false;
         }
         catch (HttpRequestException)
@@ -92,7 +96,7 @@
             .WithAutomaticReconnect()
             .Build();
 
-        _hub.On<ClientNotification>("ReceiveNotification", notification =>
+        _hub.On<NotificationDto>("ReceiveNotification", notification =>
         {
             _items.Insert(0, notification);
             _unreadCount++;
@@ -111,14 +115,27 @@
 
     private void ToggleOpen() => _open = !_open;
 
+    private async Task MarkRead(Guid id)
+    {
+        var index = _items.FindIndex(n => n.Id == id);
+        if (index < 0 || _items[index].IsRead)
+        {
+            return;
+        }
+
+        await Api.MarkReadAsync(id);
+        _items[index] = _items[index] with { IsRead = true };
+        if (_unreadCount > 0)
+        {
+            _unreadCount--;
+        }
+    }
+
     private async Task MarkAllRead()
     {
-        await Http.PostAsync("api/notifications/read-all", null);
+        await Api.MarkAllReadAsync();
         _unreadCount = 0;
-        foreach (var item in _items)
-        {
-            item.IsRead = true;
-        }
+        _items = [.. _items.Select(n => n with { IsRead = true })];
     }
 
     public async ValueTask DisposeAsync()
@@ -127,20 +144,5 @@
         {
             await _hub.DisposeAsync();
         }
-    }
-
-    private sealed class ClientNotification
-    {
-        public Guid Id { get; set; }
-        public string Level { get; set; } = "Info";
-        public string Title { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public DateTimeOffset CreatedAtUtc { get; set; }
-        public bool IsRead { get; set; }
-    }
-
-    private sealed class ClientPreferences
-    {
-        public bool IsCurrentlyMuted { get; set; }
     }
 }

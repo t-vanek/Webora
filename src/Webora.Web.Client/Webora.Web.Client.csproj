@@ -17,4 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.Localization" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Webora.Contracts\Webora.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

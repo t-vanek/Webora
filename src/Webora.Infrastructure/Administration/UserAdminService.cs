@@ -13,7 +13,7 @@ namespace Webora.Infrastructure.Administration;
 
 public sealed class UserAdminService(
     UserManager<ApplicationUser> userManager,
-    WeboraDbContext dbContext,
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
     IStringLocalizer<AccountMessages> messages,
     TimeProvider timeProvider,
     ILogger<UserAdminService> logger) : IUserAdminService
@@ -22,6 +22,7 @@ public sealed class UserAdminService(
 
     public async Task<IReadOnlyList<UserSummary>> ListAsync(string? search, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var query = dbContext.Users.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -56,6 +57,7 @@ public sealed class UserAdminService(
 
     public async Task<UserDetail?> GetAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await dbContext.Users.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user is null)
@@ -87,7 +89,8 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_EmailExists"]);
         }
 
-        if (await ValidateRolesAsync(roles) is { } invalid)
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (await ValidateRolesAsync(dbContext, roles, cancellationToken) is { } invalid)
         {
             return invalid;
         }
@@ -117,7 +120,7 @@ public sealed class UserAdminService(
             }
         }
 
-        await AuditAsync(user.Id, AccountAuditEventType.Registered, adminId, $"created by admin; roles: {Join(roles)}", cancellationToken);
+        await AuditAsync(dbContext, user.Id, AccountAuditEventType.Registered, adminId, $"created by admin; roles: {Join(roles)}", cancellationToken);
         logger.LogInformation("Admin {AdminId} created account {UserId}", adminId, user.Id);
         return AccountResult.Success;
     }
@@ -134,7 +137,8 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_AccountNotFound"]);
         }
 
-        if (await ValidateRolesAsync(roles) is { } invalid)
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (await ValidateRolesAsync(dbContext, roles, cancellationToken) is { } invalid)
         {
             return invalid;
         }
@@ -150,7 +154,7 @@ public sealed class UserAdminService(
         }
 
         // Guard against locking everyone out of administration.
-        if (toRemove.Contains(Roles.Administrator, StringComparer.Ordinal) && await IsLastAdministratorAsync(user.Id))
+        if (toRemove.Contains(Roles.Administrator, StringComparer.Ordinal) && await IsLastAdministratorAsync(dbContext, cancellationToken))
         {
             return AccountResult.Failure(messages["Error_LastAdministrator"]);
         }
@@ -176,7 +180,7 @@ public sealed class UserAdminService(
         // Force the user's signed-in claims to be re-issued so role changes take effect promptly.
         await userManager.UpdateSecurityStampAsync(user);
 
-        await AuditAsync(user.Id, AccountAuditEventType.RolesChanged, adminId, Join(roles), cancellationToken);
+        await AuditAsync(dbContext, user.Id, AccountAuditEventType.RolesChanged, adminId, Join(roles), cancellationToken);
         logger.LogInformation("Admin {AdminId} set roles of {UserId} to [{Roles}]", adminId, user.Id, Join(roles));
         return AccountResult.Success;
     }
@@ -194,9 +198,13 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_AccountNotFound"]);
         }
 
-        if (await userManager.IsInRoleAsync(user, Roles.Administrator) && await IsLastAdministratorAsync(user.Id))
+        if (await userManager.IsInRoleAsync(user, Roles.Administrator))
         {
-            return AccountResult.Failure(messages["Error_LastAdministrator"]);
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (await IsLastAdministratorAsync(dbContext, cancellationToken))
+            {
+                return AccountResult.Failure(messages["Error_LastAdministrator"]);
+            }
         }
 
         var deleted = await userManager.DeleteAsync(user);
@@ -209,11 +217,11 @@ public sealed class UserAdminService(
         return AccountResult.Success;
     }
 
-    private async Task<AccountResult?> ValidateRolesAsync(IReadOnlyList<string> roles)
+    private async Task<AccountResult?> ValidateRolesAsync(WeboraDbContext dbContext, IReadOnlyList<string> roles, CancellationToken cancellationToken)
     {
         foreach (var role in roles)
         {
-            if (!await dbContext.Roles.AnyAsync(r => r.Name == role))
+            if (!await dbContext.Roles.AnyAsync(r => r.Name == role, cancellationToken))
             {
                 return AccountResult.Failure(messages["Error_UnknownRole", role]);
             }
@@ -222,18 +230,18 @@ public sealed class UserAdminService(
         return null;
     }
 
-    private async Task<bool> IsLastAdministratorAsync(Guid candidateUserId)
+    private static async Task<bool> IsLastAdministratorAsync(WeboraDbContext dbContext, CancellationToken cancellationToken)
     {
         var adminCount = await (from ur in dbContext.UserRoles
                                 join r in dbContext.Roles on ur.RoleId equals r.Id
                                 where r.Name == Roles.Administrator
-                                select ur.UserId).CountAsync();
+                                select ur.UserId).CountAsync(cancellationToken);
 
         // The candidate is currently an administrator; they're the last one if no one else is.
         return adminCount <= 1;
     }
 
-    private async Task AuditAsync(Guid userId, AccountAuditEventType type, Guid adminId, string? detail, CancellationToken cancellationToken)
+    private async Task AuditAsync(WeboraDbContext dbContext, Guid userId, AccountAuditEventType type, Guid adminId, string? detail, CancellationToken cancellationToken)
     {
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(userId, type, $"admin:{adminId}", detail, timeProvider.GetUtcNow()));
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -14,7 +14,7 @@ namespace Webora.Infrastructure.Administration;
 public sealed class RoleAdminService(
     RoleManager<ApplicationRole> roleManager,
     UserManager<ApplicationUser> userManager,
-    WeboraDbContext dbContext,
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
     IStringLocalizer<AccountMessages> messages,
     ILogger<RoleAdminService> logger) : IRoleAdminService
 {
@@ -22,6 +22,7 @@ public sealed class RoleAdminService(
 
     public async Task<IReadOnlyList<RoleSummary>> ListAsync(CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await dbContext.Roles.AsNoTracking()
             .OrderBy(r => r.Name)
             .Select(r => new
@@ -180,9 +181,12 @@ public sealed class RoleAdminService(
             return AccountResult.Failure(messages["Error_DefaultRoleProtected"]);
         }
 
-        if (await dbContext.UserRoles.AnyAsync(ur => ur.RoleId == roleId, cancellationToken))
+        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
         {
-            return AccountResult.Failure(messages["Error_RoleHasMembers"]);
+            if (await dbContext.UserRoles.AnyAsync(ur => ur.RoleId == roleId, cancellationToken))
+            {
+                return AccountResult.Failure(messages["Error_RoleHasMembers"]);
+            }
         }
 
         var deleted = await roleManager.DeleteAsync(role);
@@ -212,10 +216,14 @@ public sealed class RoleAdminService(
     // than only on next sign-in. Role membership is small in practice.
     private async Task InvalidateRoleMembersAsync(Guid roleId, CancellationToken cancellationToken)
     {
-        var memberIds = await dbContext.UserRoles
-            .Where(ur => ur.RoleId == roleId)
-            .Select(ur => ur.UserId)
-            .ToListAsync(cancellationToken);
+        List<Guid> memberIds;
+        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
+        {
+            memberIds = await dbContext.UserRoles
+                .Where(ur => ur.RoleId == roleId)
+                .Select(ur => ur.UserId)
+                .ToListAsync(cancellationToken);
+        }
 
         foreach (var id in memberIds)
         {
