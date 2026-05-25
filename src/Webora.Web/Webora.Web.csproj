@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
     <PackageReference Include="OpenIddict.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />
