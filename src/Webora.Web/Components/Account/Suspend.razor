@@ -6,24 +6,32 @@
 
 <PageTitle>@L["Suspend_Title"]</PageTitle>
 
-<h1>@L["Suspend_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["Suspend_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Suspend_Intro"]</FluentLabel>
 
-<p>@L["Suspend_Intro"]</p>
-
-@if (_submitted)
-{
-    <div class="alert alert-success" role="alert">@L["Suspend_Success"]</div>
-}
-else
-{
-    @if (!string.IsNullOrEmpty(_error))
+    @if (_submitted)
     {
-        <div class="alert alert-danger" role="alert">@_error</div>
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+            @L["Suspend_Success"]
+        </FluentMessageBar>
     }
-    <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="suspend">
-        <button type="submit" class="btn btn-warning">@L["Suspend_Submit"]</button>
-    </EditForm>
-}
+    else
+    {
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                @_error
+            </FluentMessageBar>
+        }
+        <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="suspend">
+            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Outline"
+                          Style="background:var(--warning-rest);color:var(--neutral-foreground-rest)">
+                @L["Suspend_Submit"]
+            </FluentButton>
+        </EditForm>
+    }
+</FluentStack>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }

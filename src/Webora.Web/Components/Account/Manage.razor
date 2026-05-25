@@ -5,29 +5,36 @@
 
 <PageTitle>@L["Manage_Title"]</PageTitle>
 
-<h1>@L["Manage_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Manage_Title"]</FluentLabel>
 
-@if (_user is not null)
-{
-    <dl class="row">
-        <dt class="col-sm-3">@L["Manage_Name"]</dt>
-        <dd class="col-sm-9">@_user.DisplayName</dd>
-        <dt class="col-sm-3">@L["Manage_Email"]</dt>
-        <dd class="col-sm-9">@_user.Email</dd>
-        <dt class="col-sm-3">@L["Manage_Phone"]</dt>
-        <dd class="col-sm-9">@(_user.PhoneNumber ?? "—")</dd>
-        <dt class="col-sm-3">@L["Manage_Status"]</dt>
-        <dd class="col-sm-9">@_user.Status</dd>
-    </dl>
+    @if (_user is not null)
+    {
+        <FluentCard Style="max-width:640px">
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="12" md="3"><strong>@L["Manage_Name"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@(string.IsNullOrWhiteSpace(_user.DisplayName) ? "—" : _user.DisplayName)</FluentGridItem>
 
-    <div class="list-group" style="max-width:420px;">
-        <a class="list-group-item list-group-item-action" href="account/change-password">@L["Manage_ChangePassword"]</a>
-        <a class="list-group-item list-group-item-action" href="account/change-email">@L["Manage_ChangeEmail"]</a>
-        <a class="list-group-item list-group-item-action" href="account/change-phone">@L["Manage_ChangePhone"]</a>
-        <a class="list-group-item list-group-item-action" href="account/suspend">@L["Manage_Suspend"]</a>
-        <a class="list-group-item list-group-item-action list-group-item-danger" href="account/deactivate">@L["Manage_Deactivate"]</a>
-    </div>
-}
+                <FluentGridItem xs="12" md="3"><strong>@L["Manage_Email"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@_user.Email</FluentGridItem>
+
+                <FluentGridItem xs="12" md="3"><strong>@L["Manage_Phone"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@(_user.PhoneNumber ?? "—")</FluentGridItem>
+
+                <FluentGridItem xs="12" md="3"><strong>@L["Manage_Status"]</strong></FluentGridItem>
+                <FluentGridItem xs="12" md="9">@_user.Status</FluentGridItem>
+            </FluentGrid>
+        </FluentCard>
+
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:420px">
+            <FluentAnchor Href="account/change-password" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePassword"]</FluentAnchor>
+            <FluentAnchor Href="account/change-email" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangeEmail"]</FluentAnchor>
+            <FluentAnchor Href="account/change-phone" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePhone"]</FluentAnchor>
+            <FluentAnchor Href="account/suspend" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_Suspend"]</FluentAnchor>
+            <FluentAnchor Href="account/deactivate" Appearance="Appearance.Outline" Style="width:100%">@L["Manage_Deactivate"]</FluentAnchor>
+        </FluentStack>
+    }
+</FluentStack>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
