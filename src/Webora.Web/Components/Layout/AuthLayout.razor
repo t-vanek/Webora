@@ -2,10 +2,11 @@
 @inject IStringLocalizer<SharedResource> L
 @inject ISiteSettingsService SiteSettings
 
+@*  AuthLayout is the no-sidebar variant of MainLayout used by the Login and Register pages.
+    The full sidebar makes no sense there — the user can't navigate anywhere useful before signing
+    in — so the layout collapses to just the header + the page body. The header keeps the brand and
+    a Login/Register switch so the two sister pages can still flip between each other.  *@
 <FluentLayout>
-    @*  FluentHeader paints itself with --accent-fill-rest, so the brand text needs a foreground
-        that reads against the accent (not the page neutral). --foreground-on-accent-rest is the
-        complementary token Fluent components use for the same purpose.  *@
     <FluentHeader>
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
@@ -15,21 +16,15 @@
                 <a href="register" class="header-nav-link">@L["Nav_Register"]</a>
             </NotAuthorized>
         </AuthorizeView>
-        <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
         <ThemeToggle @rendermode="InteractiveServer" />
     </FluentHeader>
 
-    <FluentStack Class="main" Orientation="Orientation.Horizontal" Width="100%" Style="flex:1; overflow:hidden">
-        <NavMenu />
-        <FluentBodyContent Class="body-content" Style="padding:1.5rem; overflow:auto">
-            @Body
-        </FluentBodyContent>
-    </FluentStack>
+    <FluentBodyContent Class="body-content" Style="padding:1.5rem; overflow:auto">
+        @Body
+    </FluentBodyContent>
 </FluentLayout>
 
-@* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when
-   the hosting page is statically rendered. The <ThemeToggle /> in the header also owns the
-   FluentDesignTheme component that emits the design tokens onto the document. *@
+@* Same provider set as MainLayout so dialogs/toasts/etc. still work from the auth pages. *@
 <FluentToastProvider @rendermode="InteractiveServer" />
 <FluentDialogProvider @rendermode="InteractiveServer" />
 <FluentTooltipProvider @rendermode="InteractiveServer" />
