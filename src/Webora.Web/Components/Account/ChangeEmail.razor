@@ -7,42 +7,40 @@
 
 <PageTitle>@L["ChangeEmail_Title"]</PageTitle>
 
-<div class="row">
-    <div class="col-md-5">
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-                <FluentLabel Typo="Typography.H3">@L["ChangeEmail_Title"]</FluentLabel>
+<FluentCard Style="max-width:480px">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentLabel Typo="Typography.H3">@L["ChangeEmail_Title"]</FluentLabel>
 
-                @if (_submitted)
+        @if (_submitted)
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+                @L["ChangeEmail_Success"]
+            </FluentMessageBar>
+        }
+        else
+        {
+            <EditForm Model="Input" method="post" OnValidSubmit="Submit" FormName="change-email">
+                <DataAnnotationsValidator />
+                @if (!string.IsNullOrEmpty(_error))
                 {
-                    <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-                        @L["ChangeEmail_Success"]
+                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @_error
                     </FluentMessageBar>
                 }
-                else
-                {
-                    <EditForm Model="Input" method="post" OnValidSubmit="Submit" FormName="change-email">
-                        <DataAnnotationsValidator />
-                        @if (!string.IsNullOrEmpty(_error))
-                        {
-                            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                                @_error
-                            </FluentMessageBar>
-                        }
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" placeholder="email@example.com" />
-                            <label>@L["Field_NewEmail"]</label>
-                            <ValidationMessage For="() => Input.NewEmail" />
-                        </div>
-                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
-                            @L["ChangeEmail_Submit"]
-                        </FluentButton>
-                    </EditForm>
-                }
-            </FluentStack>
-        </FluentCard>
-    </div>
-</div>
+                <FluentTextField Name="Input.NewEmail"
+                                 @bind-Value="Input.NewEmail"
+                                 Label="@L["Field_NewEmail"]"
+                                 AutoComplete="email"
+                                 Placeholder="email@example.com"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => Input.NewEmail" />
+                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
+                    @L["ChangeEmail_Submit"]
+                </FluentButton>
+            </EditForm>
+        }
+    </FluentStack>
+</FluentCard>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }

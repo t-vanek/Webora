@@ -20,12 +20,14 @@
         {
             <EditForm Model="Input" method="post" OnValidSubmit="Submit" FormName="forgot-reactivation">
                 <DataAnnotationsValidator />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                    <label>@L["Field_Email"]</label>
-                    <ValidationMessage For="() => Input.Email" />
-                </div>
-                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
+                <FluentTextField Name="Input.Email"
+                                 @bind-Value="Input.Email"
+                                 Label="@L["Field_Email"]"
+                                 AutoComplete="username"
+                                 Placeholder="email@example.com"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => Input.Email" />
+                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:12px">
                     @L["ForgotReactivation_Submit"]
                 </FluentButton>
             </EditForm>

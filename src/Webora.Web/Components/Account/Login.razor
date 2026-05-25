@@ -8,10 +8,11 @@
 
 <PageTitle>@L["Login_Title"]</PageTitle>
 
-@*  This page stays static SSR — SignInManager.PasswordSignInAsync writes the auth cookie via the
-    request HttpContext, which is only available during a real form post. Native <InputText> fields
-    are kept (rather than FluentTextField) so the form posts cleanly without web-component shadow-DOM
-    surprises; the visual chrome around them is Fluent.  *@
+@*  Static SSR — SignInManager.PasswordSignInAsync writes the auth cookie via the request
+    HttpContext, which is only available during a real form post. Fluent text fields work here
+    because they're form-associated custom elements; the explicit Name attribute on each one
+    tells the browser what key to submit under, matching the [SupplyParameterFromForm] property
+    paths.  *@
 <FluentCard Style="max-width:480px">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
         <FluentLabel Typo="Typography.H3">@L["Login_Title"]</FluentLabel>
@@ -24,16 +25,24 @@
                     @_errorMessage
                 </FluentMessageBar>
             }
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                <label>@L["Login_Email"]</label>
-                <ValidationMessage For="() => Input.Email" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" placeholder="heslo" />
-                <label>@L["Login_Password"]</label>
-                <ValidationMessage For="() => Input.Password" />
-            </div>
+            <FluentTextField Name="Input.Email"
+                             @bind-Value="Input.Email"
+                             Label="@L["Login_Email"]"
+                             AutoComplete="username"
+                             Placeholder="email@example.com"
+                             Style="width:100%" />
+            <ValidationMessage For="() => Input.Email" />
+            <FluentTextField Name="Input.Password"
+                             @bind-Value="Input.Password"
+                             Label="@L["Login_Password"]"
+                             TextFieldType="TextFieldType.Password"
+                             AutoComplete="current-password"
+                             Style="width:100%" />
+            <ValidationMessage For="() => Input.Password" />
+            @*  RememberMe stays an <InputCheckbox> for now: checkboxes have submit semantics
+                that are awkward to replicate with web components (unchecked sends nothing rather
+                than false), and InputCheckbox handles that with a hidden companion input. The
+                form-check Bootstrap class only provides label alignment and is cosmetic.  *@
             <div class="form-check mb-3">
                 <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
                 <label class="form-check-label">@L["Login_Remember"]</label>

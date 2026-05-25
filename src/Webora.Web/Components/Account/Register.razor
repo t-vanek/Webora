@@ -6,8 +6,6 @@
 
 <PageTitle>@L["Register_Title"]</PageTitle>
 
-@*  Static SSR form post: AccountService.RegisterAsync runs inside the request scope. Native
-    <InputText> fields are kept so the post round-trips cleanly; Fluent wraps the visual chrome.  *@
 <FluentCard Style="max-width:480px">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
         <FluentLabel Typo="Typography.H3">@L["Register_Title"]</FluentLabel>
@@ -28,25 +26,32 @@
                         @_error
                     </FluentMessageBar>
                 }
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="name" placeholder="Jméno" />
-                    <label>@L["Register_DisplayName"]</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                    <label>@L["Register_Email"]</label>
-                    <ValidationMessage For="() => Input.Email" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                    <label>@L["Register_Password"]</label>
-                    <ValidationMessage For="() => Input.Password" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                    <label>@L["Register_ConfirmPassword"]</label>
-                    <ValidationMessage For="() => Input.ConfirmPassword" />
-                </div>
+                <FluentTextField Name="Input.DisplayName"
+                                 @bind-Value="Input.DisplayName"
+                                 Label="@L["Register_DisplayName"]"
+                                 AutoComplete="name"
+                                 Style="width:100%" />
+                <FluentTextField Name="Input.Email"
+                                 @bind-Value="Input.Email"
+                                 Label="@L["Register_Email"]"
+                                 AutoComplete="username"
+                                 Placeholder="email@example.com"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => Input.Email" />
+                <FluentTextField Name="Input.Password"
+                                 @bind-Value="Input.Password"
+                                 Label="@L["Register_Password"]"
+                                 TextFieldType="TextFieldType.Password"
+                                 AutoComplete="new-password"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => Input.Password" />
+                <FluentTextField Name="Input.ConfirmPassword"
+                                 @bind-Value="Input.ConfirmPassword"
+                                 Label="@L["Register_ConfirmPassword"]"
+                                 TextFieldType="TextFieldType.Password"
+                                 AutoComplete="new-password"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => Input.ConfirmPassword" />
                 <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
                     @L["Register_Submit"]
                 </FluentButton>
