@@ -4,6 +4,7 @@
 @using Webora.Application.Settings
 @using Webora.Domain.Settings
 @inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Settings_Title"]</PageTitle>
@@ -169,14 +170,23 @@ else
     private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
     private static readonly string[] Charsets = ["utf-8", "iso-8859-2", "windows-1250", "iso-8859-1", "windows-1252"];
 
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
     private DomainForm? _form;
     private RegionalForm _regional = new();
     private EncodingForm _encoding = new();
     private string? _baseUrl;
     private string? _message;
     private string? _error;
+    private Guid _adminId;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var admin = await UserManager.GetUserAsync(state.User);
+        _adminId = admin?.Id ?? Guid.Empty;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -218,14 +228,14 @@ else
             _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
             _form.WwwPreference, aliases);
 
-        await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto));
+        await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto, _adminId));
     }
 
     private Task SaveRegionalAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId)));
+        ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId), _adminId));
 
     private Task SaveEncodingAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset)));
+        ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset), _adminId));
 
     private async Task ApplyAsync(Func<Task<AccountResult>> action)
     {

@@ -14,7 +14,7 @@ namespace Webora.Web.Hosting;
 /// </summary>
 public sealed class CanonicalDomainMiddleware(RequestDelegate next)
 {
-    private const string CacheKey = "webora:domain-policy";
+    private const string CacheKey = SettingsCacheKeys.DomainPolicy;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
     public async Task InvokeAsync(HttpContext context, ISiteSettingsService settings, IMemoryCache cache)

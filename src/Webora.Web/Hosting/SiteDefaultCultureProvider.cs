@@ -11,7 +11,7 @@ namespace Webora.Web.Hosting;
 /// </summary>
 public sealed class SiteDefaultCultureProvider : RequestCultureProvider
 {
-    private const string CacheKey = "webora:default-language";
+    private const string CacheKey = SettingsCacheKeys.DefaultLanguage;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
     public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)

@@ -1,8 +1,11 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Webora.Application.Accounts;
 using Webora.Application.Settings;
+using Webora.Domain.Accounts;
 using Webora.Domain.Settings;
 using Webora.Infrastructure.Persistence;
 
@@ -10,7 +13,10 @@ namespace Webora.Infrastructure.Settings;
 
 public sealed class SiteSettingsService(
     WeboraDbContext dbContext,
-    IStringLocalizer<AccountMessages> messages) : ISiteSettingsService
+    IMemoryCache cache,
+    IStringLocalizer<AccountMessages> messages,
+    TimeProvider timeProvider,
+    ILogger<SiteSettingsService> logger) : ISiteSettingsService
 {
     private const string DefaultCharset = "utf-8";
 
@@ -32,7 +38,7 @@ public sealed class SiteSettingsService(
             s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases);
     }
 
-    public async Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(domain.CanonicalHost) && !IsValidHost(domain.CanonicalHost))
         {
@@ -58,11 +64,13 @@ public sealed class SiteSettingsService(
             domain.HstsEnabled, domain.HstsMaxAgeDays, domain.HstsIncludeSubDomains,
             domain.WwwPreference, domain.Aliases);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var detail = $"host={settings.CanonicalHost ?? "-"} scheme={settings.Scheme} port={settings.Port?.ToString() ?? "-"} " +
+            $"forceHttps={settings.ForceHttps} hsts={settings.HstsEnabled} www={settings.WwwPreference} aliases={settings.Aliases.Count}";
+        await FinalizeAsync("Domain", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
-    public async Task<AccountResult> UpdateRegionalAsync(RegionalSettingsDto regional, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> UpdateRegionalAsync(RegionalSettingsDto regional, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(regional.DefaultTimeZoneId) &&
             !TimeZoneInfo.TryFindSystemTimeZoneById(regional.DefaultTimeZoneId, out _))
@@ -73,11 +81,12 @@ public sealed class SiteSettingsService(
         var settings = await GetOrCreateAsync(cancellationToken);
         settings.UpdateRegional(regional.DefaultLanguage, regional.DefaultTimeZoneId);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var detail = $"lang={settings.DefaultLanguage ?? "-"} tz={settings.DefaultTimeZoneId ?? "-"}";
+        await FinalizeAsync("Region", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
-    public async Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         if (InvalidCharset(encoding.PageCharset) is { } badPage)
         {
@@ -92,7 +101,8 @@ public sealed class SiteSettingsService(
         var settings = await GetOrCreateAsync(cancellationToken);
         settings.UpdateEncoding(encoding.PageCharset, encoding.EmailCharset);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var detail = $"page={settings.PageCharset ?? DefaultCharset} email={settings.EmailCharset ?? DefaultCharset}";
+        await FinalizeAsync("Encoding", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
@@ -112,6 +122,22 @@ public sealed class SiteSettingsService(
             && TimeZoneInfo.TryFindSystemTimeZoneById(settings.DefaultTimeZoneId, out var tz)
                 ? tz
                 : TimeZoneInfo.Local;
+    }
+
+    /// <summary>Persists the change with an audit record and evicts the runtime-read caches.</summary>
+    private async Task FinalizeAsync(string section, string detail, Guid actingUserId, CancellationToken cancellationToken)
+    {
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+            actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}", $"{section}: {detail}", timeProvider.GetUtcNow()));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var key in SettingsCacheKeys.All)
+        {
+            cache.Remove(key);
+        }
+
+        logger.LogInformation("Site settings ({Section}) changed by {AdminId}: {Detail}", section, actingUserId, detail);
     }
 
     private async Task<SiteSettings> GetOrCreateAsync(CancellationToken cancellationToken)

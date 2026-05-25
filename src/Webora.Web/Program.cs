@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
@@ -47,12 +48,38 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 
 // Honor the ingress-provided scheme/host so canonical-domain enforcement sees the public values
-// rather than the internal proxy connection. Assumes a trusted reverse proxy in front of the app.
+// rather than the internal proxy connection. By default only loopback is trusted; configure the
+// reverse proxy under "ForwardedHeaders" (KnownProxies/KnownNetworks, or TrustAllProxies).
+var forwardedHeaders = builder.Configuration.GetSection("ForwardedHeaders");
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    if (forwardedHeaders.GetValue<bool>("TrustAllProxies"))
+    {
+        // Accept forwarded headers from any proxy. Only safe behind a fully controlled ingress.
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+    else
+    {
+        // Keep the framework default (loopback only) and add explicitly trusted proxies/networks.
+        foreach (var proxy in forwardedHeaders.GetSection("KnownProxies").Get<string[]>() ?? [])
+        {
+            if (IPAddress.TryParse(proxy, out var ip))
+            {
+                options.KnownProxies.Add(ip);
+            }
+        }
+
+        foreach (var network in forwardedHeaders.GetSection("KnownNetworks").Get<string[]>() ?? [])
+        {
+            if (System.Net.IPNetwork.TryParse(network, out var ipNetwork))
+            {
+                options.KnownIPNetworks.Add(ipNetwork);
+            }
+        }
+    }
 });
 
 // Localization. Czech is the default; cultures are negotiated from the culture cookie (set by the

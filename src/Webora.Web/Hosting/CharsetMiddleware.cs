@@ -13,7 +13,7 @@ namespace Webora.Web.Hosting;
 public sealed class CharsetMiddleware(RequestDelegate next)
 {
     public const string HttpContextItemKey = "webora:page-charset";
-    private const string CacheKey = "webora:page-charset";
+    private const string CacheKey = SettingsCacheKeys.PageCharset;
     private const string Utf8 = "utf-8";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
