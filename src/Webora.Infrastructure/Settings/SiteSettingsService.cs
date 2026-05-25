@@ -12,7 +12,7 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Settings;
 
 public sealed class SiteSettingsService(
-    WeboraDbContext dbContext,
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
     IMemoryCache cache,
     IStringLocalizer<AccountMessages> messages,
     TimeProvider timeProvider,
@@ -20,15 +20,22 @@ public sealed class SiteSettingsService(
 {
     private const string DefaultCharset = "utf-8";
 
-    public async Task<SiteSettingsDto> GetAsync(CancellationToken cancellationToken = default) =>
-        ToDto(await GetOrCreateAsync(cancellationToken));
+    public async Task<SiteSettingsDto> GetAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return ToDto(await GetOrCreateAsync(dbContext, cancellationToken));
+    }
 
-    public async Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default) =>
-        (await GetOrCreateAsync(cancellationToken)).BaseUrl;
+    public async Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return (await GetOrCreateAsync(dbContext, cancellationToken)).BaseUrl;
+    }
 
     public async Task<DomainPolicy> GetDomainPolicyAsync(CancellationToken cancellationToken = default)
     {
         // A read-only path for the hot middleware: never creates or tracks a row.
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var s = await dbContext.SiteSettings.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == SiteSettings.SingletonId, cancellationToken)
             ?? SiteSettings.CreateDefault();
@@ -59,7 +66,8 @@ public sealed class SiteSettingsService(
             return AccountResult.Failure(messages["Error_InvalidPort"]);
         }
 
-        var settings = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.UpdateDomain(
             domain.CanonicalHost, domain.Scheme, domain.Port, domain.ForceHttps,
             domain.HstsEnabled, domain.HstsMaxAgeDays, domain.HstsIncludeSubDomains,
@@ -67,7 +75,7 @@ public sealed class SiteSettingsService(
 
         var detail = $"host={settings.CanonicalHost ?? "-"} scheme={settings.Scheme} port={settings.Port?.ToString() ?? "-"} " +
             $"forceHttps={settings.ForceHttps} hsts={settings.HstsEnabled} www={settings.WwwPreference} aliases={settings.Aliases.Count}";
-        await FinalizeAsync("Domain", detail, actingUserId, cancellationToken);
+        await FinalizeAsync(dbContext, "Domain", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
@@ -79,11 +87,12 @@ public sealed class SiteSettingsService(
             return AccountResult.Failure(messages["Error_InvalidTimeZone", regional.DefaultTimeZoneId]);
         }
 
-        var settings = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.UpdateRegional(regional.DefaultLanguage, regional.DefaultTimeZoneId);
 
         var detail = $"lang={settings.DefaultLanguage ?? "-"} tz={settings.DefaultTimeZoneId ?? "-"}";
-        await FinalizeAsync("Region", detail, actingUserId, cancellationToken);
+        await FinalizeAsync(dbContext, "Region", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
@@ -99,39 +108,45 @@ public sealed class SiteSettingsService(
             return AccountResult.Failure(messages["Error_InvalidCharset", badEmail]);
         }
 
-        var settings = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.UpdateEncoding(encoding.PageCharset, encoding.EmailCharset);
 
         var detail = $"page={settings.PageCharset ?? DefaultCharset} email={settings.EmailCharset ?? DefaultCharset}";
-        await FinalizeAsync("Encoding", detail, actingUserId, cancellationToken);
+        await FinalizeAsync(dbContext, "Encoding", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
     public async Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         if (!string.IsNullOrWhiteSpace(accounts.DefaultRole) &&
             !await dbContext.Roles.AnyAsync(r => r.Name == accounts.DefaultRole, cancellationToken))
         {
             return AccountResult.Failure(messages["Error_UnknownRole", accounts.DefaultRole]);
         }
 
-        var settings = await GetOrCreateAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.UpdateAccounts(accounts.DefaultRole);
 
-        await FinalizeAsync("Accounts", $"defaultRole={settings.DefaultRole ?? "-"}", actingUserId, cancellationToken);
+        await FinalizeAsync(dbContext, "Accounts", $"defaultRole={settings.DefaultRole ?? "-"}", actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
-    public async Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default) =>
-        (await GetOrCreateAsync(cancellationToken)).DefaultRole;
+    public async Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return (await GetOrCreateAsync(dbContext, cancellationToken)).DefaultRole;
+    }
 
     public async Task<AccountResult> UpdateGeneralAsync(GeneralSettingsDto general, Guid actingUserId, CancellationToken cancellationToken = default)
     {
-        var settings = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.UpdateGeneral(general.SiteName, general.SiteDescription, general.LowercaseUrls, general.TrailingSlash);
 
         var detail = $"name={settings.SiteName ?? "-"} lowercaseUrls={settings.LowercaseUrls} trailingSlash={settings.TrailingSlash}";
-        await FinalizeAsync("General", detail, actingUserId, cancellationToken);
+        await FinalizeAsync(dbContext, "General", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
     }
 
@@ -142,7 +157,8 @@ public sealed class SiteSettingsService(
             return identity;
         }
 
-        var s = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var s = await GetOrCreateAsync(dbContext, cancellationToken);
         identity = new SiteIdentityDto(s.SiteName, s.SiteDescription);
 
         using var entry = cache.CreateEntry(SettingsCacheKeys.Identity);
@@ -152,18 +168,28 @@ public sealed class SiteSettingsService(
         return identity;
     }
 
-    public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) =>
-        (await GetOrCreateAsync(cancellationToken)).PageCharset ?? DefaultCharset;
+    public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return (await GetOrCreateAsync(dbContext, cancellationToken)).PageCharset ?? DefaultCharset;
+    }
 
-    public async Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default) =>
-        (await GetOrCreateAsync(cancellationToken)).EmailCharset ?? DefaultCharset;
+    public async Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return (await GetOrCreateAsync(dbContext, cancellationToken)).EmailCharset ?? DefaultCharset;
+    }
 
-    public async Task<string?> GetDefaultLanguageAsync(CancellationToken cancellationToken = default) =>
-        (await GetOrCreateAsync(cancellationToken)).DefaultLanguage;
+    public async Task<string?> GetDefaultLanguageAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return (await GetOrCreateAsync(dbContext, cancellationToken)).DefaultLanguage;
+    }
 
     public async Task<TimeZoneInfo> GetTimeZoneAsync(CancellationToken cancellationToken = default)
     {
-        var settings = await GetOrCreateAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         return !string.IsNullOrEmpty(settings.DefaultTimeZoneId)
             && TimeZoneInfo.TryFindSystemTimeZoneById(settings.DefaultTimeZoneId, out var tz)
                 ? tz
@@ -171,7 +197,7 @@ public sealed class SiteSettingsService(
     }
 
     /// <summary>Persists the change with an audit record and evicts the runtime-read caches.</summary>
-    private async Task FinalizeAsync(string section, string detail, Guid actingUserId, CancellationToken cancellationToken)
+    private async Task FinalizeAsync(WeboraDbContext dbContext, string section, string detail, Guid actingUserId, CancellationToken cancellationToken)
     {
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}", $"{section}: {detail}", timeProvider.GetUtcNow()));
@@ -186,7 +212,7 @@ public sealed class SiteSettingsService(
         logger.LogInformation("Site settings ({Section}) changed by {AdminId}: {Detail}", section, actingUserId, detail);
     }
 
-    private async Task<SiteSettings> GetOrCreateAsync(CancellationToken cancellationToken)
+    private static async Task<SiteSettings> GetOrCreateAsync(WeboraDbContext dbContext, CancellationToken cancellationToken)
     {
         var settings = await dbContext.SiteSettings
             .FirstOrDefaultAsync(s => s.Id == SiteSettings.SingletonId, cancellationToken);

@@ -52,7 +52,13 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Postgres")
             ?? throw new InvalidOperationException("Connection string 'Postgres' is not configured.");
 
-        services.AddDbContext<WeboraDbContext>(options => options.UseNpgsql(connectionString));
+        // IDbContextFactory lets services create a fresh DbContext per operation, which is required
+        // for Blazor Server where concurrent component initialization can race on a shared scoped
+        // context. The scoped WeboraDbContext registration is kept (delegated to the factory) so
+        // ASP.NET Identity, OpenIddict, and other framework consumers continue to receive one
+        // tracked context per request as they expect.
+        services.AddDbContextFactory<WeboraDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<WeboraDbContext>>().CreateDbContext());
     }
 
     private static void AddCaching(IServiceCollection services, IConfiguration configuration)
