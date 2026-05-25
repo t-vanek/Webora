@@ -10,237 +10,245 @@
 
 <PageTitle>@L["Settings_Title"]</PageTitle>
 
-<h1>@L["Settings_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Settings_Title"]</FluentLabel>
 
-@if (_form is null)
-{
-    <p>@L["Admin_Loading"]</p>
-}
-else
-{
-    @if (!string.IsNullOrEmpty(_message))
+    @if (_form is null)
     {
-        <div class="alert alert-success" role="alert">@_message</div>
+        <FluentProgressRing />
     }
-    @if (!string.IsNullOrEmpty(_error))
+    else
     {
-        <div class="alert alert-danger" role="alert">@_error</div>
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+        }
+
+        <FluentTabs @bind-ActiveTabId="_activeTab">
+            <FluentTab Id="domain" Label="@L["Settings_DomainSection"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_BaseUrlPreview"]</FluentLabel>
+                        <code>@(_baseUrl ?? L["Settings_NotSet"])</code>
+                    </FluentStack>
+
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="8">
+                            <FluentTextField @bind-Value="_form.CanonicalHost"
+                                             Label="@L["Settings_CanonicalHost"]"
+                                             Placeholder="www.example.com"
+                                             Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_CanonicalHostHelp"]</FluentLabel>
+                        </FluentGridItem>
+                        <FluentGridItem xs="6" md="2">
+                            <FluentSelect TOption="UrlScheme"
+                                          Items="@(new[] { UrlScheme.Https, UrlScheme.Http })"
+                                          OptionText="@(s => s == UrlScheme.Https ? "HTTPS" : "HTTP")"
+                                          @bind-SelectedOption="_form.Scheme"
+                                          Label="@L["Settings_Scheme"]"
+                                          Style="width:100%" />
+                        </FluentGridItem>
+                        <FluentGridItem xs="6" md="2">
+                            <FluentNumberField TValue="int?" @bind-Value="_form.Port"
+                                               Label="@L["Settings_Port"]"
+                                               Min="1" Max="65535"
+                                               Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_PortHelp"]</FluentLabel>
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                        <FluentSwitch @bind-Value="_form.ForceHttps" Label="@L["Settings_ForceHttps"]" />
+                        @if (_form.ForceHttps && _form.Scheme == UrlScheme.Http)
+                        {
+                            <FluentLabel Typo="Typography.Body" Color="Color.Warning">@L["Settings_ForceHttpsSchemeWarning"]</FluentLabel>
+                        }
+                    </FluentStack>
+
+                    <FluentSelect TOption="WwwPreference"
+                                  Items="@(new[] { WwwPreference.NoPreference, WwwPreference.PreferWww, WwwPreference.PreferNonWww })"
+                                  OptionText="@(w => WwwLabel(w))"
+                                  @bind-SelectedOption="_form.WwwPreference"
+                                  Label="@L["Settings_Www"]"
+                                  Style="max-width:280px" />
+
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.Subject">@L["Settings_Hsts"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.HstsEnabled" Label="@L["Settings_HstsEnabled"]" />
+                        <FluentGrid Spacing="2">
+                            <FluentGridItem xs="12" md="3">
+                                <FluentNumberField @bind-Value="_form.HstsMaxAgeDays"
+                                                   Label="@L["Settings_HstsMaxAge"]"
+                                                   Min="0"
+                                                   Disabled="@(!_form.HstsEnabled)"
+                                                   Style="width:100%" />
+                            </FluentGridItem>
+                            <FluentGridItem xs="12" md="9">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="padding-top:24px">
+                                    <FluentSwitch @bind-Value="_form.HstsIncludeSubDomains"
+                                                  Label="@L["Settings_HstsIncludeSubDomains"]"
+                                                  Disabled="@(!_form.HstsEnabled)" />
+                                    <FluentSwitch @bind-Value="_form.HstsPreload"
+                                                  Label="@L["Settings_HstsPreload"]"
+                                                  Disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
+                                </FluentStack>
+                            </FluentGridItem>
+                        </FluentGrid>
+                        @if (_form.HstsEnabled && _form.HstsPreload)
+                        {
+                            <FluentLabel Typo="Typography.Body" Color="Color.Warning">@L["Settings_HstsPreloadWarning"]</FluentLabel>
+                        }
+                    </FluentStack>
+
+                    <div>
+                        <FluentTextArea @bind-Value="_form.AliasesText"
+                                        Label="@L["Settings_Aliases"]"
+                                        Rows="3"
+                                        Placeholder="example.com&#10;example.net"
+                                        Style="width:100%" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_AliasesHelp"]</FluentLabel>
+                    </div>
+
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Settings_EnforcementNote"]</small></FluentLabel>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveDomain">
+                        <FluentButton OnClick="SaveDomainAsync" Appearance="Appearance.Accent">@L["Settings_SaveDomain"]</FluentButton>
+                    </AuthorizeView>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="regional" Label="@L["Settings_RegionSection"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="4">
+                            <FluentSelect TOption="string"
+                                          Items="@LanguageOptions"
+                                          OptionText="@(c => string.IsNullOrEmpty(c) ? L["Settings_Automatic"] : CultureLabel(c))"
+                                          OptionValue="@(c => c)"
+                                          @bind-Value="_regional.DefaultLanguage"
+                                          Label="@L["Settings_DefaultLanguage"]"
+                                          Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultLanguageHelp"]</FluentLabel>
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="8">
+                            <FluentSelect TOption="string"
+                                          Items="@TimeZoneOptions"
+                                          OptionText="@(id => string.IsNullOrEmpty(id) ? L["Settings_ServerLocal"] : TimeZoneLabel(id))"
+                                          OptionValue="@(id => id)"
+                                          @bind-Value="_regional.DefaultTimeZoneId"
+                                          Label="@L["Settings_DefaultTimeZone"]"
+                                          Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultTimeZoneHelp"]</FluentLabel>
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveRegion">
+                        <FluentButton OnClick="SaveRegionalAsync" Appearance="Appearance.Accent">@L["Settings_SaveRegion"]</FluentButton>
+                    </AuthorizeView>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="encoding" Label="@L["Settings_EncodingSection"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentSelect TOption="string"
+                                          Items="@Charsets"
+                                          OptionText="@(c => c.ToUpperInvariant())"
+                                          OptionValue="@(c => c)"
+                                          @bind-Value="_encoding.PageCharset"
+                                          Label="@L["Settings_PageCharset"]"
+                                          Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_PageCharsetHelp"]</FluentLabel>
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <FluentSelect TOption="string"
+                                          Items="@Charsets"
+                                          OptionText="@(c => c.ToUpperInvariant())"
+                                          OptionValue="@(c => c)"
+                                          @bind-Value="_encoding.EmailCharset"
+                                          Label="@L["Settings_EmailCharset"]"
+                                          Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EmailCharsetHelp"]</FluentLabel>
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEncoding">
+                        <FluentButton OnClick="SaveEncodingAsync" Appearance="Appearance.Accent">@L["Settings_SaveEncoding"]</FluentButton>
+                    </AuthorizeView>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="accounts" Label="@L["Settings_AccountsSection"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <div style="max-width:480px">
+                        <FluentSelect TOption="string"
+                                      Items="@RoleOptions"
+                                      OptionText="@(r => string.IsNullOrEmpty(r) ? L["Settings_DefaultRole_None"] : r)"
+                                      OptionValue="@(r => r)"
+                                      @bind-Value="_accounts.DefaultRole"
+                                      Label="@L["Settings_DefaultRole"]"
+                                      Style="width:100%" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultRoleHelp"]</FluentLabel>
+                    </div>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveAccounts">
+                        <FluentButton OnClick="SaveAccountsAsync" Appearance="Appearance.Accent">@L["Settings_SaveAccounts"]</FluentButton>
+                    </AuthorizeView>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="general" Label="@L["Settings_GeneralSection"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_general.SiteName"
+                                             Label="@L["Settings_SiteName"]"
+                                             Placeholder="Webora"
+                                             Maxlength="128"
+                                             Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_SiteNameHelp"]</FluentLabel>
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_general.SiteDescription"
+                                             Label="@L["Settings_SiteDescription"]"
+                                             Maxlength="512"
+                                             Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_SiteDescriptionHelp"]</FluentLabel>
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Settings_UrlAppearance"]</small></FluentLabel>
+
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentSelect TOption="TrailingSlashPolicy"
+                                          Items="@(new[] { TrailingSlashPolicy.NoPreference, TrailingSlashPolicy.Add, TrailingSlashPolicy.Remove })"
+                                          OptionText="@(p => TrailingSlashLabel(p))"
+                                          @bind-SelectedOption="_general.TrailingSlash"
+                                          Label="@L["Settings_TrailingSlash"]"
+                                          Style="width:100%" />
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <div style="padding-top:24px">
+                                <FluentSwitch @bind-Value="_general.LowercaseUrls" Label="@L["Settings_LowercaseUrls"]" />
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_LowercaseUrlsHelp"]</FluentLabel>
+                            </div>
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveGeneral">
+                        <FluentButton OnClick="SaveGeneralAsync" Appearance="Appearance.Accent">@L["Settings_SaveGeneral"]</FluentButton>
+                    </AuthorizeView>
+                </FluentStack>
+            </FluentTab>
+        </FluentTabs>
     }
-
-    <h2 class="h5 mt-3">@L["Settings_DomainSection"]</h2>
-
-    <p>
-        <span class="text-muted">@L["Settings_BaseUrlPreview"]</span>
-        <code>@(_baseUrl ?? L["Settings_NotSet"])</code>
-    </p>
-
-    <div class="row g-3" style="max-width:720px">
-        <div class="col-md-8">
-            <label class="form-label" for="host">@L["Settings_CanonicalHost"]</label>
-            <input id="host" class="form-control" @bind="_form.CanonicalHost" placeholder="www.example.com" />
-            <div class="form-text">@L["Settings_CanonicalHostHelp"]</div>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label" for="scheme">@L["Settings_Scheme"]</label>
-            <select id="scheme" class="form-select" @bind="_form.Scheme">
-                <option value="@UrlScheme.Https">HTTPS</option>
-                <option value="@UrlScheme.Http">HTTP</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label" for="port">@L["Settings_Port"]</label>
-            <input id="port" type="number" min="1" max="65535" class="form-control" @bind="_form.Port" />
-            <div class="form-text">@L["Settings_PortHelp"]</div>
-        </div>
-
-        <div class="col-12">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="forceHttps" @bind="_form.ForceHttps" />
-                <label class="form-check-label" for="forceHttps">@L["Settings_ForceHttps"]</label>
-            </div>
-            @if (_form.ForceHttps && _form.Scheme == UrlScheme.Http)
-            {
-                <div class="text-warning small mt-1">@L["Settings_ForceHttpsSchemeWarning"]</div>
-            }
-        </div>
-
-        <div class="col-12">
-            <label class="form-label">@L["Settings_Www"]</label>
-            <select class="form-select" style="max-width:280px" @bind="_form.WwwPreference">
-                <option value="@WwwPreference.NoPreference">@L["Settings_Www_NoPreference"]</option>
-                <option value="@WwwPreference.PreferWww">@L["Settings_Www_PreferWww"]</option>
-                <option value="@WwwPreference.PreferNonWww">@L["Settings_Www_PreferNonWww"]</option>
-            </select>
-        </div>
-
-        <div class="col-12">
-            <label class="form-label">@L["Settings_Hsts"]</label>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="hsts" @bind="_form.HstsEnabled" />
-                <label class="form-check-label" for="hsts">@L["Settings_HstsEnabled"]</label>
-            </div>
-            <div class="row g-2 mt-1">
-                <div class="col-md-3">
-                    <label class="form-label" for="hstsAge">@L["Settings_HstsMaxAge"]</label>
-                    <input id="hstsAge" type="number" min="0" class="form-control" @bind="_form.HstsMaxAgeDays" disabled="@(!_form.HstsEnabled)" />
-                </div>
-                <div class="col-md-9 d-flex align-items-end">
-                    <div class="form-check me-3">
-                        <input class="form-check-input" type="checkbox" id="hstsSub" @bind="_form.HstsIncludeSubDomains" disabled="@(!_form.HstsEnabled)" />
-                        <label class="form-check-label" for="hstsSub">@L["Settings_HstsIncludeSubDomains"]</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="hstsPreload" @bind="_form.HstsPreload" disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
-                        <label class="form-check-label" for="hstsPreload">@L["Settings_HstsPreload"]</label>
-                    </div>
-                </div>
-            </div>
-            @if (_form.HstsEnabled && _form.HstsPreload)
-            {
-                <div class="text-warning small mt-1">@L["Settings_HstsPreloadWarning"]</div>
-            }
-        </div>
-
-        <div class="col-12">
-            <label class="form-label" for="aliases">@L["Settings_Aliases"]</label>
-            <textarea id="aliases" class="form-control" rows="3" @bind="_form.AliasesText" placeholder="example.com&#10;example.net"></textarea>
-            <div class="form-text">@L["Settings_AliasesHelp"]</div>
-        </div>
-    </div>
-
-    <p class="text-muted mt-3"><small>@L["Settings_EnforcementNote"]</small></p>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveDomain">
-        <button class="btn btn-primary" @onclick="SaveDomainAsync">@L["Settings_SaveDomain"]</button>
-    </AuthorizeView>
-
-    <hr class="my-4" />
-
-    <h2 class="h5">@L["Settings_RegionSection"]</h2>
-
-    <div class="row g-3" style="max-width:720px">
-        <div class="col-md-4">
-            <label class="form-label" for="lang">@L["Settings_DefaultLanguage"]</label>
-            <select id="lang" class="form-select" @bind="_regional.DefaultLanguage">
-                <option value="">@L["Settings_Automatic"]</option>
-                @foreach (var culture in SupportedCultures.All)
-                {
-                    <option value="@culture">@CultureLabel(culture)</option>
-                }
-            </select>
-            <div class="form-text">@L["Settings_DefaultLanguageHelp"]</div>
-        </div>
-        <div class="col-md-8">
-            <label class="form-label" for="tz">@L["Settings_DefaultTimeZone"]</label>
-            <select id="tz" class="form-select" @bind="_regional.DefaultTimeZoneId">
-                <option value="">@L["Settings_ServerLocal"]</option>
-                @foreach (var zone in TimeZones)
-                {
-                    <option value="@zone.Id">@zone.DisplayName</option>
-                }
-            </select>
-            <div class="form-text">@L["Settings_DefaultTimeZoneHelp"]</div>
-        </div>
-    </div>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveRegion">
-        <button class="btn btn-primary mt-3" @onclick="SaveRegionalAsync">@L["Settings_SaveRegion"]</button>
-    </AuthorizeView>
-
-    <hr class="my-4" />
-
-    <h2 class="h5">@L["Settings_EncodingSection"]</h2>
-
-    <div class="row g-3" style="max-width:720px">
-        <div class="col-md-6">
-            <label class="form-label" for="pageCharset">@L["Settings_PageCharset"]</label>
-            <select id="pageCharset" class="form-select" @bind="_encoding.PageCharset">
-                @foreach (var charset in Charsets)
-                {
-                    <option value="@charset">@charset.ToUpperInvariant()</option>
-                }
-            </select>
-            <div class="form-text">@L["Settings_PageCharsetHelp"]</div>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" for="emailCharset">@L["Settings_EmailCharset"]</label>
-            <select id="emailCharset" class="form-select" @bind="_encoding.EmailCharset">
-                @foreach (var charset in Charsets)
-                {
-                    <option value="@charset">@charset.ToUpperInvariant()</option>
-                }
-            </select>
-            <div class="form-text">@L["Settings_EmailCharsetHelp"]</div>
-        </div>
-    </div>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEncoding">
-        <button class="btn btn-primary mt-3" @onclick="SaveEncodingAsync">@L["Settings_SaveEncoding"]</button>
-    </AuthorizeView>
-
-    <hr class="my-4" />
-
-    <h2 class="h5">@L["Settings_AccountsSection"]</h2>
-
-    <div class="row g-3" style="max-width:720px">
-        <div class="col-md-6">
-            <label class="form-label" for="defaultRole">@L["Settings_DefaultRole"]</label>
-            <select id="defaultRole" class="form-select" @bind="_accounts.DefaultRole">
-                <option value="">@L["Settings_DefaultRole_None"]</option>
-                @foreach (var role in _roles)
-                {
-                    <option value="@role">@role</option>
-                }
-            </select>
-            <div class="form-text">@L["Settings_DefaultRoleHelp"]</div>
-        </div>
-    </div>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveAccounts">
-        <button class="btn btn-primary mt-3" @onclick="SaveAccountsAsync">@L["Settings_SaveAccounts"]</button>
-    </AuthorizeView>
-
-    <hr class="my-4" />
-
-    <h2 class="h5">@L["Settings_GeneralSection"]</h2>
-
-    <div class="row g-3 mb-2" style="max-width:720px">
-        <div class="col-md-6">
-            <label class="form-label" for="siteName">@L["Settings_SiteName"]</label>
-            <input id="siteName" class="form-control" maxlength="128" @bind="_general.SiteName" placeholder="Webora" />
-            <div class="form-text">@L["Settings_SiteNameHelp"]</div>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" for="siteDescription">@L["Settings_SiteDescription"]</label>
-            <input id="siteDescription" class="form-control" maxlength="512" @bind="_general.SiteDescription" />
-            <div class="form-text">@L["Settings_SiteDescriptionHelp"]</div>
-        </div>
-    </div>
-
-    <p class="text-muted"><small>@L["Settings_UrlAppearance"]</small></p>
-
-    <div class="row g-3" style="max-width:720px">
-        <div class="col-md-6">
-            <label class="form-label" for="trailingSlash">@L["Settings_TrailingSlash"]</label>
-            <select id="trailingSlash" class="form-select" @bind="_general.TrailingSlash">
-                <option value="@TrailingSlashPolicy.NoPreference">@L["Settings_TrailingSlash_None"]</option>
-                <option value="@TrailingSlashPolicy.Add">@L["Settings_TrailingSlash_Add"]</option>
-                <option value="@TrailingSlashPolicy.Remove">@L["Settings_TrailingSlash_Remove"]</option>
-            </select>
-        </div>
-        <div class="col-md-6 d-flex align-items-end">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="lowercaseUrls" @bind="_general.LowercaseUrls" />
-                <label class="form-check-label" for="lowercaseUrls">@L["Settings_LowercaseUrls"]</label>
-                <div class="form-text">@L["Settings_LowercaseUrlsHelp"]</div>
-            </div>
-        </div>
-    </div>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveGeneral">
-        <button class="btn btn-primary mt-3" @onclick="SaveGeneralAsync">@L["Settings_SaveGeneral"]</button>
-    </AuthorizeView>
-}
+</FluentStack>
 
 @code {
     private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
@@ -258,6 +266,12 @@ else
     private string? _message;
     private string? _error;
     private Guid _adminId;
+    private string _activeTab = "domain";
+
+    // Build option lists once; the empty leading entry stands for "automatic / default" in the UI.
+    private IEnumerable<string> LanguageOptions => new[] { string.Empty }.Concat(SupportedCultures.All);
+    private IEnumerable<string> TimeZoneOptions => new[] { string.Empty }.Concat(TimeZones.Select(t => t.Id));
+    private IEnumerable<string> RoleOptions => new[] { string.Empty }.Concat(_roles);
 
     protected override async Task OnInitializedAsync()
     {
@@ -363,6 +377,32 @@ else
             return culture;
         }
     }
+
+    private static string TimeZoneLabel(string id)
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(id).DisplayName;
+        }
+        catch
+        {
+            return id;
+        }
+    }
+
+    private string WwwLabel(WwwPreference value) => value switch
+    {
+        WwwPreference.PreferWww => L["Settings_Www_PreferWww"],
+        WwwPreference.PreferNonWww => L["Settings_Www_PreferNonWww"],
+        _ => L["Settings_Www_NoPreference"],
+    };
+
+    private string TrailingSlashLabel(TrailingSlashPolicy value) => value switch
+    {
+        TrailingSlashPolicy.Add => L["Settings_TrailingSlash_Add"],
+        TrailingSlashPolicy.Remove => L["Settings_TrailingSlash_Remove"],
+        _ => L["Settings_TrailingSlash_None"],
+    };
 
     private sealed class DomainForm
     {
