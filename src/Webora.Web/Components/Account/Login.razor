@@ -39,14 +39,17 @@
                              AutoComplete="current-password"
                              Style="width:100%" />
             <ValidationMessage For="() => Input.Password" />
-            @*  RememberMe stays an <InputCheckbox> for now: checkboxes have submit semantics
-                that are awkward to replicate with a web component (unchecked sends nothing rather
-                than false), and InputCheckbox handles that with a hidden companion input. Styling
-                is now inline so no Bootstrap form-check classes are needed.  *@
-            <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px; cursor:pointer">
-                <InputCheckbox @bind-Value="Input.RememberMe" />
-                <span>@L["Login_Remember"]</span>
-            </label>
+            @*  Experiment: FluentCheckbox on a static-SSR form. Unlike <InputCheckbox>, which
+                injects a hidden companion input so the false state always shows up in the form
+                data, a web-component checkbox submits its value only when checked. That's fine
+                here specifically because RememberMe defaults to false on the server: unchecked
+                → key absent from form data → Blazor binds false, which is exactly what we want.
+                Don't reuse this trick on forms where the default isn't false — those still need
+                <InputCheckbox> for the round-trip to work.  *@
+            <FluentCheckbox Name="Input.RememberMe"
+                            @bind-Value="Input.RememberMe"
+                            Label="@L["Login_Remember"]"
+                            Style="margin-bottom:12px" />
             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
                 @L["Login_Submit"]
             </FluentButton>
