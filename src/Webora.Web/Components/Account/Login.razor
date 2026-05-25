@@ -1,0 +1,92 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Webora.Infrastructure.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
+
+<PageTitle>Přihlášení</PageTitle>
+
+<h1>Přihlášení</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">@_errorMessage</div>
+            }
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
+                <label>E-mail</label>
+                <ValidationMessage For="() => Input.Email" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" placeholder="heslo" />
+                <label>Heslo</label>
+                <ValidationMessage For="() => Input.Password" />
+            </div>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
+                <label class="form-check-label">Zapamatovat přihlášení</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Přihlásit se</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    // Initializer is required so the form renders on GET; the form supplies a non-null value on POST.
+#pragma warning disable BL0008
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+#pragma warning restore BL0008
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? _errorMessage;
+
+    private async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User {Email} logged in.", Input.Email);
+            NavigationManager.NavigateTo(GetLocalReturnUrl());
+            return;
+        }
+
+        _errorMessage = result.IsLockedOut
+            ? "Účet je dočasně uzamčen."
+            : "Neplatný e-mail nebo heslo.";
+    }
+
+    // Guards against open-redirect: only relative, non-protocol-relative paths are honoured.
+    private string GetLocalReturnUrl()
+    {
+        if (string.IsNullOrEmpty(ReturnUrl) || ReturnUrl.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        return ReturnUrl.StartsWith('/') ? ReturnUrl : "/" + ReturnUrl;
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Zadejte e-mail.")]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Zadejte heslo.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

@@ -29,10 +29,16 @@ builder.Services.AddPermissionAuthorization();
 // Real-time messaging.
 builder.Services.AddSignalR();
 
+builder.Services.AddHttpContextAccessor();
+
+// Flow the authenticated user into Blazor components (and persist it to the WebAssembly client).
+builder.Services.AddCascadingAuthenticationState();
+
 // Blazor Web App with both interactive render modes.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveWebAssemblyComponents()
+    .AddAuthenticationStateSerialization(options => options.SerializeAllClaims = true);
 
 // Wolverine messaging: discovers handlers in the application assembly, integrates with EF Core
 // transactions, and (when configured) publishes/consumes over RabbitMQ.

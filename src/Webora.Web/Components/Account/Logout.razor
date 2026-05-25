@@ -1,0 +1,29 @@
+@page "/logout"
+@using Microsoft.AspNetCore.Identity
+@using Webora.Infrastructure.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Odhlášení</PageTitle>
+
+<h1>Odhlášení</h1>
+
+<AuthorizeView Context="auth">
+    <Authorized>
+        <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout">
+            <p>Opravdu se chcete odhlásit?</p>
+            <button type="submit" class="btn btn-primary">Odhlásit se</button>
+        </EditForm>
+    </Authorized>
+    <NotAuthorized>
+        <p>Nejste přihlášeni.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private async Task LogoutUser()
+    {
+        await SignInManager.SignOutAsync();
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

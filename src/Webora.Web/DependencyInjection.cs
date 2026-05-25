@@ -10,9 +10,10 @@ namespace Webora.Web;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Wires ASP.NET Core Identity with cookie sign-in, EF Core stores, the permission-aware
-    /// claims factory, and default token providers. This lives in the web host because
-    /// SignInManager/cookies require the ASP.NET Core shared framework.
+    /// Wires ASP.NET Core Identity with cookie sign-in, EF Core stores, and default token
+    /// providers. This lives in the web host because SignInManager/cookies require the ASP.NET
+    /// Core shared framework. The built-in role-aware claims factory already projects each role's
+    /// claims (our permissions) onto the signed-in principal, so no custom factory is needed.
     /// </summary>
     public static IServiceCollection AddWeboraIdentity(this IServiceCollection services)
     {
@@ -23,7 +24,6 @@ public static class DependencyInjection
                 options.SignIn.RequireConfirmedAccount = false;
             })
             .AddEntityFrameworkStores<WeboraDbContext>()
-            .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>()
             .AddDefaultTokenProviders();
 
         // Align Identity's claim types with what OpenIddict expects when it issues tokens.
