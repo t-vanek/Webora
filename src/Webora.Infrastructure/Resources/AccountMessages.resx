@@ -74,4 +74,13 @@
   <data name="Notif_Blocked_Body_Reason" xml:space="preserve"><value>Váš účet byl zablokován administrátorem: {0}</value></data>
   <data name="Notif_Unblocked_Title" xml:space="preserve"><value>Účet odblokován</value></data>
   <data name="Notif_Unblocked_Body" xml:space="preserve"><value>Váš účet byl odblokován.</value></data>
+  <data name="Error_CannotDeleteSelf" xml:space="preserve"><value>Nemůžete smazat vlastní účet.</value></data>
+  <data name="Error_LastAdministrator" xml:space="preserve"><value>Nelze odebrat posledního administrátora.</value></data>
+  <data name="Error_UnknownRole" xml:space="preserve"><value>Role „{0}" neexistuje.</value></data>
+  <data name="Error_RoleNotFound" xml:space="preserve"><value>Role nenalezena.</value></data>
+  <data name="Error_RoleNameRequired" xml:space="preserve"><value>Název role je povinný.</value></data>
+  <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Výchozí role nelze přejmenovat ani smazat.</value></data>
+  <data name="Error_RoleHasMembers" xml:space="preserve"><value>Roli nelze smazat, dokud má přiřazené uživatele.</value></data>
+  <data name="Error_AdministratorAllPermissions" xml:space="preserve"><value>Role Administrator má vždy všechna oprávnění a nelze ji upravovat.</value></data>
+  <data name="Error_UnknownPermission" xml:space="preserve"><value>Oprávnění „{0}" není v katalogu.</value></data>
 </root>

@@ -1,0 +1,37 @@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="row">
+    @foreach (var group in Catalog)
+    {
+        <div class="col-md-4 mb-3">
+            <h3 class="h6">@group.Name</h3>
+            @foreach (var permission in group.Permissions)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="@($"perm-{permission}")"
+                           checked="@Selected.Contains(permission)" disabled="@Disabled"
+                           @onchange="e => Toggle(permission, (bool)e.Value!)" />
+                    <label class="form-check-label" for="@($"perm-{permission}")">@permission</label>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PermissionGroup> Catalog { get; set; } = [];
+    [Parameter, EditorRequired] public HashSet<string> Selected { get; set; } = new(StringComparer.Ordinal);
+    [Parameter] public bool Disabled { get; set; }
+
+    private void Toggle(string permission, bool selected)
+    {
+        if (selected)
+        {
+            Selected.Add(permission);
+        }
+        else
+        {
+            Selected.Remove(permission);
+        }
+    }
+}

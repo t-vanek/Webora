@@ -3,8 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Webora.Application.Accounts;
+using Webora.Application.Administration;
 using Webora.Application.Notifications;
 using Webora.Infrastructure.Accounts;
+using Webora.Infrastructure.Administration;
 using Webora.Infrastructure.Email;
 using Webora.Infrastructure.Identity;
 using Webora.Infrastructure.Notifications;
@@ -26,6 +28,8 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.Configure<AccountOptions>(configuration.GetSection(AccountOptions.SectionName));
         services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IRoleAdminService, RoleAdminService>();
 
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.
         services.AddScoped<INotificationService, NotificationService>();
