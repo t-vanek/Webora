@@ -37,6 +37,8 @@
         </FluentNavGroup>
     }
 
+    @* Login / Register moved to the header in MainLayout — sidebar only shows account links
+       once the user is signed in. *@
     <AuthorizeView>
         <Authorized>
             <FluentNavLink Href="account/manage" Icon="@(new Icons.Regular.Size20.Person())">
@@ -46,14 +48,6 @@
                 @L["Nav_Logout"]
             </FluentNavLink>
         </Authorized>
-        <NotAuthorized>
-            <FluentNavLink Href="login" Icon="@(new Icons.Regular.Size20.PersonAccounts())">
-                @L["Nav_Login"]
-            </FluentNavLink>
-            <FluentNavLink Href="register" Icon="@(new Icons.Regular.Size20.PersonAdd())">
-                @L["Nav_Register"]
-            </FluentNavLink>
-        </NotAuthorized>
     </AuthorizeView>
 </FluentNavMenu>
 
