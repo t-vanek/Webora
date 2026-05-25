@@ -17,20 +17,28 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext()
     .WriteTo.Console());
 
-// Application + infrastructure layers (EF Core/Postgres, Redis, Identity, OpenIddict stores).
+// Application + infrastructure layers (EF Core/Postgres, Redis, OpenIddict stores, identity seeder).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// OpenIddict authorization server + validation.
+// ASP.NET Core Identity (cookie sign-in) + OpenIddict authorization server + permission-based RBAC.
+builder.Services.AddWeboraIdentity();
 builder.Services.AddIdentityServer();
+builder.Services.AddPermissionAuthorization();
 
 // Real-time messaging.
 builder.Services.AddSignalR();
 
+builder.Services.AddHttpContextAccessor();
+
+// Flow the authenticated user into Blazor components (and persist it to the WebAssembly client).
+builder.Services.AddCascadingAuthenticationState();
+
 // Blazor Web App with both interactive render modes.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveWebAssemblyComponents()
+    .AddAuthenticationStateSerialization(options => options.SerializeAllClaims = true);
 
 // Wolverine messaging: discovers handlers in the application assembly, integrates with EF Core
 // transactions, and (when configured) publishes/consumes over RabbitMQ.
@@ -75,5 +83,8 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Webora.Web.Client._Imports).Assembly);
 
 app.MapHub<NotificationsHub>(NotificationsHub.Path);
+
+// Apply migrations (development) and seed roles, permissions and the admin account.
+await app.SeedIdentityAsync();
 
 app.Run();

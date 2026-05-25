@@ -1,0 +1,43 @@
+@page "/account/confirm-email"
+@inject IAccountService AccountService
+
+<PageTitle>Aktivace účtu</PageTitle>
+
+<h1>Aktivace účtu</h1>
+
+@if (_succeeded is null)
+{
+    <p>Ověřuji…</p>
+}
+else if (_succeeded == true)
+{
+    <div class="alert alert-success" role="alert">
+        Účet byl aktivován. Nyní se můžete <a href="login">přihlásit</a>.
+    </div>
+}
+else
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+@code {
+    [SupplyParameterFromQuery] private Guid UserId { get; set; }
+    [SupplyParameterFromQuery] private string? Token { get; set; }
+
+    private bool? _succeeded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId == Guid.Empty || string.IsNullOrEmpty(Token))
+        {
+            _succeeded = false;
+            _error = "Neplatný aktivační odkaz.";
+            return;
+        }
+
+        var result = await AccountService.ConfirmEmailAsync(UserId, Token);
+        _succeeded = result.Succeeded;
+        _error = result.Succeeded ? null : string.Join(" ", result.Errors);
+    }
+}

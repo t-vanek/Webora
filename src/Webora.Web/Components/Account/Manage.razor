@@ -1,0 +1,41 @@
+@page "/account/manage"
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Můj účet</PageTitle>
+
+<h1>Můj účet</h1>
+
+@if (_user is not null)
+{
+    <dl class="row">
+        <dt class="col-sm-3">Jméno</dt>
+        <dd class="col-sm-9">@_user.DisplayName</dd>
+        <dt class="col-sm-3">E-mail</dt>
+        <dd class="col-sm-9">@_user.Email</dd>
+        <dt class="col-sm-3">Telefon</dt>
+        <dd class="col-sm-9">@(_user.PhoneNumber ?? "—")</dd>
+        <dt class="col-sm-3">Stav</dt>
+        <dd class="col-sm-9">@_user.Status</dd>
+    </dl>
+
+    <div class="list-group" style="max-width:420px;">
+        <a class="list-group-item list-group-item-action" href="account/change-password">Změnit heslo</a>
+        <a class="list-group-item list-group-item-action" href="account/change-email">Změnit e-mail</a>
+        <a class="list-group-item list-group-item-action" href="account/change-phone">Změnit telefon</a>
+        <a class="list-group-item list-group-item-action" href="account/suspend">Uspat účet</a>
+        <a class="list-group-item list-group-item-action list-group-item-danger" href="account/deactivate">Deaktivovat účet</a>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ApplicationUser? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _user = await UserManager.GetUserAsync(state.User);
+    }
+}

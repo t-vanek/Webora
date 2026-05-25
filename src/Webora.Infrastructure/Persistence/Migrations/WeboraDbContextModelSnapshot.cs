@@ -333,6 +333,39 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.ToTable("OpenIddictTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Webora.Domain.Accounts.AccountAuditEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "OccurredAtUtc");
+
+                    b.ToTable("AccountAuditEvents", (string)null);
+                });
+
             modelBuilder.Entity("Webora.Infrastructure.Identity.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -374,7 +407,8 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -408,6 +442,20 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("PendingActivation");
+
+                    b.Property<DateTimeOffset?>("StatusChangedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");

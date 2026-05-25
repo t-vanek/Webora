@@ -1,0 +1,20 @@
+@page "/account/profile"
+@attribute [Authorize]
+
+<PageTitle>Profil</PageTitle>
+
+<h1>Profil</h1>
+
+<AuthorizeView>
+    <Authorized>
+        <p>Přihlášen jako <strong>@context.User.Identity?.Name</strong></p>
+
+        <h2 class="h5 mt-4">Claims</h2>
+        <ul>
+            @foreach (var claim in context.User.Claims)
+            {
+                <li><code>@claim.Type</code> = @claim.Value</li>
+            }
+        </ul>
+    </Authorized>
+</AuthorizeView>

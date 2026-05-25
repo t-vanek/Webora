@@ -1,0 +1,51 @@
+@page "/account/deactivate"
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject IAccountService AccountService
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Deaktivace účtu</PageTitle>
+
+<h1>Deaktivace účtu</h1>
+
+<p>
+    Deaktivací se nebudete moci přihlásit. Účet později obnovíte přes
+    <a href="account/forgot-reactivation">obnovení účtu</a>.
+</p>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="deactivate">
+    <button type="submit" class="btn btn-danger">Deaktivovat účet</button>
+</EditForm>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? _error;
+
+    private async Task Submit()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is null)
+        {
+            _error = "Účet nenalezen.";
+            return;
+        }
+
+        var result = await AccountService.DeactivateAsync(user.Id, "self-service");
+        if (!result.Succeeded)
+        {
+            _error = string.Join(" ", result.Errors);
+            return;
+        }
+
+        await SignInManager.SignOutAsync();
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

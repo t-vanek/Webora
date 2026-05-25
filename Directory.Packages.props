@@ -4,7 +4,10 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="MailKit" Version="4.16.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
@@ -13,9 +16,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.8" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageVersion Include="OpenIddict.AspNetCore" Version="7.5.0" />
     <PackageVersion Include="OpenIddict.EntityFrameworkCore" Version="7.5.0" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="WolverineFx" Version="6.0.1" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.0.1" />
