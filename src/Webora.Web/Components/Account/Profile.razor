@@ -10,84 +10,113 @@
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
 
-<h1>@L["Profile_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Profile_Title"]</FluentLabel>
 
-<AuthorizeView Context="auth">
-    <Authorized>
-        <p>@L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong></p>
+    <AuthorizeView Context="auth">
+        <Authorized>
+            <FluentLabel Typo="Typography.Body">
+                @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
+            </FluentLabel>
 
-        <h2 class="h5 mt-4">@L["Profile_NotificationSettings"]</h2>
-        <div class="mb-2">
-            <span class="me-2">@L["Profile_Status"]:</span>
-            @if (_prefs.IsCurrentlyMuted)
+            <FluentLabel Typo="Typography.H4">@L["Profile_NotificationSettings"]</FluentLabel>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                <FluentLabel Typo="Typography.Body">@L["Profile_Status"]:</FluentLabel>
+                @if (_prefs.IsCurrentlyMuted)
+                {
+                    <FluentBadge Appearance="Appearance.Accent" Fill="warning">
+                        @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
+                    </FluentBadge>
+                }
+                else
+                {
+                    <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_StatusActive"]</FluentBadge>
+                }
+                <FluentLabel Typo="Typography.Body" Style="margin-left:12px">@L["Profile_Scope"]:</FluentLabel>
+                <FluentBadge Appearance="Appearance.Neutral">
+                    @(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])
+                </FluentBadge>
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]"
+                            OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
+                <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]"
+                            OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
+                <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]"
+                            OnSubmit="MuteUntilTomorrowAsync" />
+                <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]"
+                            Style="background:var(--warning-rest);color:var(--neutral-foreground-rest)"
+                            OnSubmit="MuteCompletelyAsync" />
+                @if (_prefs.IsCurrentlyMuted)
+                {
+                    <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]"
+                                Style="background:var(--success-rest);color:var(--neutral-fill-rest)"
+                                OnSubmit="UnmuteAsync" />
+                }
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]"
+                            Appearance="Appearance.Neutral"
+                            OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
+                <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]"
+                            Appearance="Appearance.Neutral"
+                            OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                <FluentLabel Typo="Typography.H4">@L["Profile_Notifications"]</FluentLabel>
+                @if (_notifications.Any(n => !n.IsRead))
+                {
+                    <FluentBadge Appearance="Appearance.Accent">
+                        @L["Profile_Unread", _notifications.Count(n => !n.IsRead)]
+                    </FluentBadge>
+                    <FluentSpacer />
+                    <MuteButton FormName="mark-all-read"
+                                Label="@L["Profile_MarkAllRead"]"
+                                Appearance="Appearance.Neutral"
+                                OnSubmit="MarkAllRead" />
+                }
+            </FluentStack>
+
+            @if (_notifications.Count == 0)
             {
-                <span class="badge bg-warning text-dark">
-                    @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
-                </span>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_NoNotifications"]</FluentLabel>
             }
             else
             {
-                <span class="badge bg-success">@L["Profile_StatusActive"]</span>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:640px">
+                    @foreach (var n in _notifications)
+                    {
+                        <FluentCard Style="@(n.IsRead ? null : "background:var(--neutral-layer-2)")">
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                                    <strong>@n.Title</strong>
+                                    @LevelBadge(n.Level)
+                                    <FluentSpacer />
+                                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                        <small>@Fmt(n.CreatedAtUtc)</small>
+                                    </FluentLabel>
+                                </FluentStack>
+                                <FluentLabel Typo="Typography.Body">@n.Message</FluentLabel>
+                            </FluentStack>
+                        </FluentCard>
+                    }
+                </FluentStack>
             }
-            <span class="ms-3 me-2">@L["Profile_Scope"]:</span>
-            <span class="badge bg-secondary">@(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])</span>
-        </div>
 
-        <div class="d-flex flex-wrap gap-2 mb-2">
-            <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
-            <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
-            <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]" OnSubmit="MuteUntilTomorrowAsync" />
-            <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]" Css="btn-warning" OnSubmit="MuteCompletelyAsync" />
-            @if (_prefs.IsCurrentlyMuted)
-            {
-                <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]" Css="btn-outline-success" OnSubmit="UnmuteAsync" />
-            }
-        </div>
-        <div class="d-flex flex-wrap gap-2 mb-2">
-            <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
-            <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
-        </div>
-
-        <div class="d-flex align-items-center gap-2 mt-4">
-            <h2 class="h5 mb-0">@L["Profile_Notifications"]</h2>
-            @if (_notifications.Any(n => !n.IsRead))
-            {
-                <span class="badge bg-primary">@L["Profile_Unread", _notifications.Count(n => !n.IsRead)]</span>
-                <EditForm Model="this" method="post" OnValidSubmit="MarkAllRead" FormName="mark-all-read" class="ms-auto">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">@L["Profile_MarkAllRead"]</button>
-                </EditForm>
-            }
-        </div>
-
-        @if (_notifications.Count == 0)
-        {
-            <p class="text-muted">@L["Profile_NoNotifications"]</p>
-        }
-        else
-        {
-            <ul class="list-group mt-2" style="max-width:640px;">
-                @foreach (var n in _notifications)
+            <FluentLabel Typo="Typography.H4">@L["Profile_Claims"]</FluentLabel>
+            <ul>
+                @foreach (var claim in auth.User.Claims)
                 {
-                    <li class="list-group-item @(n.IsRead ? "" : "list-group-item-light")">
-                        <div class="d-flex justify-content-between">
-                            <strong>@n.Title @LevelBadge(n.Level)</strong>
-                            <small class="text-muted">@Fmt(n.CreatedAtUtc)</small>
-                        </div>
-                        <div>@n.Message</div>
-                    </li>
+                    <li><code>@claim.Type</code> = @claim.Value</li>
                 }
             </ul>
-        }
-
-        <h2 class="h5 mt-4">@L["Profile_Claims"]</h2>
-        <ul>
-            @foreach (var claim in auth.User.Claims)
-            {
-                <li><code>@claim.Type</code> = @claim.Value</li>
-            }
-        </ul>
-    </Authorized>
-</AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+</FluentStack>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
@@ -175,14 +204,15 @@
         }
     }
 
-    private RenderFragment LevelBadge(NotificationLevel level) => builder =>
+    private RenderFragment LevelBadge(NotificationLevel level) => __builder =>
     {
-        var (css, key) = level switch
+        var (fill, key) = level switch
         {
-            NotificationLevel.Security => ("bg-danger", "Notification_Level_Security"),
-            NotificationLevel.Warning => ("bg-warning text-dark", "Notification_Level_Warning"),
-            _ => ("bg-secondary", "Notification_Level_Info"),
+            NotificationLevel.Security => ("danger", "Notification_Level_Security"),
+            NotificationLevel.Warning => ("warning", "Notification_Level_Warning"),
+            _ => ("neutral", "Notification_Level_Info"),
         };
-        builder.AddMarkupContent(0, $"<span class=\"badge {css} ms-1\">{System.Net.WebUtility.HtmlEncode(L[key])}</span>");
+
+        <FluentBadge Appearance="Appearance.Accent" Fill="@fill">@L[key]</FluentBadge>
     };
 }
