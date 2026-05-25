@@ -1,0 +1,17 @@
+@inject IStringLocalizer<SharedResource> L
+
+<span class="badge @Css">@L[$"AccountStatus_{Status}"]</span>
+
+@code {
+    [Parameter, EditorRequired] public AccountStatus Status { get; set; }
+
+    private string Css => Status switch
+    {
+        AccountStatus.Active => "bg-success",
+        AccountStatus.PendingActivation => "bg-secondary",
+        AccountStatus.Deactivated => "bg-warning text-dark",
+        AccountStatus.Suspended => "bg-warning text-dark",
+        AccountStatus.Blocked => "bg-danger",
+        _ => "bg-secondary",
+    };
+}

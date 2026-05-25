@@ -46,14 +46,32 @@ public static class Permissions
         public const string Edit = "Settings.Edit";
     }
 
-    private static readonly Lazy<IReadOnlyList<string>> AllPermissions = new(() =>
+    private static readonly Lazy<IReadOnlyList<PermissionGroup>> GroupedPermissions = new(() =>
         typeof(Permissions)
             .GetNestedTypes(BindingFlags.Public | BindingFlags.Static)
-            .SelectMany(group => group.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
-            .Where(field => field is { IsLiteral: true, IsInitOnly: false } && field.FieldType == typeof(string))
-            .Select(field => (string)field.GetRawConstantValue()!)
+            .Select(group => new PermissionGroup(
+                group.Name,
+                group.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                    .Where(field => field is { IsLiteral: true, IsInitOnly: false } && field.FieldType == typeof(string))
+                    .Select(field => (string)field.GetRawConstantValue()!)
+                    .ToArray()))
             .ToArray());
+
+    private static readonly Lazy<IReadOnlyList<string>> AllPermissions = new(() =>
+        GroupedPermissions.Value.SelectMany(group => group.Permissions).ToArray());
+
+    private static readonly Lazy<HashSet<string>> KnownPermissions = new(() =>
+        AllPermissions.Value.ToHashSet(StringComparer.Ordinal));
+
+    /// <summary>The permission catalog grouped by area (Users, Roles, Pages, …) for editor UIs.</summary>
+    public static IReadOnlyList<PermissionGroup> Groups => GroupedPermissions.Value;
 
     /// <summary>Every permission declared in the catalog.</summary>
     public static IReadOnlyList<string> All => AllPermissions.Value;
+
+    /// <summary>True when <paramref name="permission"/> is a known permission from the catalog.</summary>
+    public static bool IsKnown(string permission) => KnownPermissions.Value.Contains(permission);
 }
+
+/// <summary>A named group of related permissions (e.g. all "Users.*" permissions).</summary>
+public sealed record PermissionGroup(string Name, IReadOnlyList<string> Permissions);

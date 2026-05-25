@@ -1,0 +1,223 @@
+@page "/admin/users/{Id:guid}"
+@attribute [HasPermission(Permissions.Users.View)]
+@rendermode InteractiveServer
+@inject IUserAdminService UserAdmin
+@inject IRoleAdminService RoleAdmin
+@inject IAccountService AccountService
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_UserEdit_Title"]</PageTitle>
+
+<h1>@L["Admin_UserEdit_Title"]</h1>
+
+<p><a href="admin/users">&laquo; @L["Admin_Users_Title"]</a></p>
+
+@if (_detail is null)
+{
+    <p class="text-muted">@(_loaded ? L["Admin_Users_NotFound"] : L["Admin_Loading"])</p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert alert-success" role="alert">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-3">@L["Admin_Users_Email"]</dt>
+        <dd class="col-sm-9">@_detail.Email @(_detail.EmailConfirmed ? "" : $"({L["Admin_Users_Unconfirmed"]})")</dd>
+        <dt class="col-sm-3">@L["Admin_Users_Name"]</dt>
+        <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(_detail.DisplayName) ? "—" : _detail.DisplayName)</dd>
+        <dt class="col-sm-3">@L["Admin_Users_Phone"]</dt>
+        <dd class="col-sm-9">@(_detail.PhoneNumber ?? "—")</dd>
+        <dt class="col-sm-3">@L["Admin_Users_Status"]</dt>
+        <dd class="col-sm-9">
+            <StatusBadge Status="_detail.Status" />
+            @if (_detail.StatusChangedAtUtc is { } changed)
+            {
+                <small class="text-muted ms-2">@changed.LocalDateTime.ToString("g")</small>
+            }
+            @if (!string.IsNullOrWhiteSpace(_detail.StatusReason))
+            {
+                <div><small class="text-muted">@_detail.StatusReason</small></div>
+            }
+        </dd>
+    </dl>
+
+    <h2 class="h5 mt-4">@L["Admin_UserEdit_Roles"]</h2>
+    <div class="d-flex flex-wrap gap-3 mb-2">
+        @foreach (var role in _allRoles)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="@($"role-{role}")"
+                       checked="@_selectedRoles.Contains(role)"
+                       @onchange="e => ToggleRole(role, (bool)e.Value!)" />
+                <label class="form-check-label" for="@($"role-{role}")">@role</label>
+            </div>
+        }
+    </div>
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="editRoles">
+        <button class="btn btn-primary" @onclick="SaveRolesAsync">@L["Admin_Save"]</button>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="status">
+        <h2 class="h5 mt-4">@L["Admin_UserEdit_StatusActions"]</h2>
+        @if (_isSelf)
+        {
+            <p class="text-muted">@L["Admin_UserEdit_SelfNoStatus"]</p>
+        }
+        else if (_detail.Status == AccountStatus.Blocked)
+        {
+            <button class="btn btn-success" @onclick="UnblockAsync">@L["Admin_UserEdit_Unblock"]</button>
+        }
+        else
+        {
+            <div class="input-group mb-2" style="max-width:480px">
+                <input class="form-control" placeholder="@L["Admin_UserEdit_BlockReason"]" @bind="_blockReason" />
+                <button class="btn btn-danger" @onclick="BlockAsync">@L["Admin_UserEdit_Block"]</button>
+            </div>
+        }
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Delete)" Context="delete">
+        @if (!_isSelf)
+        {
+            <h2 class="h5 mt-4">@L["Admin_UserEdit_DangerZone"]</h2>
+            @if (_confirmDelete)
+            {
+                <div class="alert alert-danger">
+                    <p>@L["Admin_UserEdit_DeleteConfirm"]</p>
+                    <button class="btn btn-danger me-2" @onclick="DeleteAsync">@L["Admin_UserEdit_DeleteYes"]</button>
+                    <button class="btn btn-outline-secondary" @onclick="() => _confirmDelete = false">@L["Admin_Cancel"]</button>
+                </div>
+            }
+            else
+            {
+                <button class="btn btn-outline-danger" @onclick="() => _confirmDelete = true">@L["Admin_UserEdit_Delete"]</button>
+            }
+        }
+    </AuthorizeView>
+
+    <h2 class="h5 mt-4">@L["Admin_UserEdit_Audit"]</h2>
+    @if (_audit.Count == 0)
+    {
+        <p class="text-muted">@L["Admin_UserEdit_NoAudit"]</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@L["Admin_UserEdit_AuditWhen"]</th>
+                    <th>@L["Admin_UserEdit_AuditEvent"]</th>
+                    <th>@L["Admin_UserEdit_AuditActor"]</th>
+                    <th>@L["Admin_UserEdit_AuditDetail"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in _audit)
+                {
+                    <tr>
+                        <td>@entry.OccurredAtUtc.LocalDateTime.ToString("g")</td>
+                        <td>@entry.Type</td>
+                        <td>@entry.Actor</td>
+                        <td>@(entry.Detail ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private UserDetail? _detail;
+    private bool _loaded;
+    private Guid _adminId;
+    private bool _isSelf;
+    private IReadOnlyList<string> _allRoles = [];
+    private HashSet<string> _selectedRoles = new(StringComparer.Ordinal);
+    private IReadOnlyList<AccountAuditEntry> _audit = [];
+    private string? _blockReason;
+    private bool _confirmDelete;
+    private string? _message;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var admin = await UserManager.GetUserAsync(state.User);
+        _adminId = admin?.Id ?? Guid.Empty;
+        _allRoles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _detail = await UserAdmin.GetAsync(Id);
+        _loaded = true;
+        if (_detail is not null)
+        {
+            _isSelf = _detail.Id == _adminId;
+            _selectedRoles = _detail.Roles.ToHashSet(StringComparer.Ordinal);
+            _audit = await AccountService.GetAuditTrailAsync(Id);
+        }
+    }
+
+    private void ToggleRole(string role, bool selected)
+    {
+        if (selected)
+        {
+            _selectedRoles.Add(role);
+        }
+        else
+        {
+            _selectedRoles.Remove(role);
+        }
+    }
+
+    private async Task SaveRolesAsync() =>
+        await RunAsync(() => UserAdmin.SetRolesAsync(Id, _selectedRoles.ToArray(), _adminId), L["Admin_UserEdit_RolesSaved"]);
+
+    private async Task BlockAsync() =>
+        await RunAsync(() => AccountService.BlockAsync(Id, _adminId, string.IsNullOrWhiteSpace(_blockReason) ? null : _blockReason), L["Admin_UserEdit_Blocked"]);
+
+    private async Task UnblockAsync() =>
+        await RunAsync(() => AccountService.UnblockAsync(Id, _adminId), L["Admin_UserEdit_Unblocked"]);
+
+    private async Task DeleteAsync()
+    {
+        var result = await UserAdmin.DeleteAsync(Id, _adminId);
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo("admin/users");
+            return;
+        }
+
+        _confirmDelete = false;
+        _error = string.Join(" ", result.Errors);
+    }
+
+    private async Task RunAsync(Func<Task<AccountResult>> action, string successMessage)
+    {
+        _message = _error = null;
+        var result = await action();
+        if (result.Succeeded)
+        {
+            _message = successMessage;
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+}

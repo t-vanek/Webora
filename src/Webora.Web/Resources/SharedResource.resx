@@ -136,4 +136,63 @@
   <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifikace (ztlumeno)</value></data>
   <data name="Bell_MarkRead" xml:space="preserve"><value>Označit přečtené</value></data>
   <data name="Bell_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
+  <data name="Nav_AdminUsers" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Nav_AdminRoles" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Admin_Loading" xml:space="preserve"><value>Načítání…</value></data>
+  <data name="Admin_Search" xml:space="preserve"><value>Hledat</value></data>
+  <data name="Admin_Manage" xml:space="preserve"><value>Spravovat</value></data>
+  <data name="Admin_Save" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Admin_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="AccountStatus_PendingActivation" xml:space="preserve"><value>Čeká na aktivaci</value></data>
+  <data name="AccountStatus_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="AccountStatus_Deactivated" xml:space="preserve"><value>Deaktivován</value></data>
+  <data name="AccountStatus_Suspended" xml:space="preserve"><value>Uspán</value></data>
+  <data name="AccountStatus_Blocked" xml:space="preserve"><value>Zablokován</value></data>
+  <data name="Admin_Users_Title" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Hledat podle e-mailu nebo jména…</value></data>
+  <data name="Admin_Users_Create" xml:space="preserve"><value>Nový účet</value></data>
+  <data name="Admin_Users_None" xml:space="preserve"><value>Žádné účty.</value></data>
+  <data name="Admin_Users_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Admin_Users_Name" xml:space="preserve"><value>Jméno</value></data>
+  <data name="Admin_Users_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Admin_Users_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="Admin_Users_Phone" xml:space="preserve"><value>Telefon</value></data>
+  <data name="Admin_Users_Password" xml:space="preserve"><value>Heslo</value></data>
+  <data name="Admin_Users_NotFound" xml:space="preserve"><value>Účet nenalezen.</value></data>
+  <data name="Admin_Users_Unconfirmed" xml:space="preserve"><value>nepotvrzeno</value></data>
+  <data name="Admin_UserEdit_Title" xml:space="preserve"><value>Detail účtu</value></data>
+  <data name="Admin_UserEdit_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="Admin_UserEdit_StatusActions" xml:space="preserve"><value>Stav účtu</value></data>
+  <data name="Admin_UserEdit_SelfNoStatus" xml:space="preserve"><value>Stav vlastního účtu zde nelze měnit.</value></data>
+  <data name="Admin_UserEdit_Block" xml:space="preserve"><value>Zablokovat</value></data>
+  <data name="Admin_UserEdit_Unblock" xml:space="preserve"><value>Odblokovat</value></data>
+  <data name="Admin_UserEdit_BlockReason" xml:space="preserve"><value>Důvod (nepovinné)</value></data>
+  <data name="Admin_UserEdit_DangerZone" xml:space="preserve"><value>Nebezpečná zóna</value></data>
+  <data name="Admin_UserEdit_Delete" xml:space="preserve"><value>Smazat účet</value></data>
+  <data name="Admin_UserEdit_DeleteConfirm" xml:space="preserve"><value>Opravdu chcete tento účet trvale smazat?</value></data>
+  <data name="Admin_UserEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
+  <data name="Admin_UserEdit_Audit" xml:space="preserve"><value>Historie</value></data>
+  <data name="Admin_UserEdit_NoAudit" xml:space="preserve"><value>Žádné záznamy.</value></data>
+  <data name="Admin_UserEdit_AuditWhen" xml:space="preserve"><value>Kdy</value></data>
+  <data name="Admin_UserEdit_AuditEvent" xml:space="preserve"><value>Událost</value></data>
+  <data name="Admin_UserEdit_AuditActor" xml:space="preserve"><value>Provedl</value></data>
+  <data name="Admin_UserEdit_AuditDetail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Role byly uloženy.</value></data>
+  <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Účet byl zablokován.</value></data>
+  <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Účet byl odblokován.</value></data>
+  <data name="Admin_Roles_Title" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Admin_Roles_Create" xml:space="preserve"><value>Nová role</value></data>
+  <data name="Admin_Roles_Name" xml:space="preserve"><value>Název role</value></data>
+  <data name="Admin_Roles_Permissions" xml:space="preserve"><value>Oprávnění</value></data>
+  <data name="Admin_Roles_Users" xml:space="preserve"><value>Uživatelé</value></data>
+  <data name="Admin_Roles_Default" xml:space="preserve"><value>výchozí</value></data>
+  <data name="Admin_Roles_NotFound" xml:space="preserve"><value>Role nenalezena.</value></data>
+  <data name="Admin_RoleEdit_Title" xml:space="preserve"><value>Detail role</value></data>
+  <data name="Admin_RoleEdit_Rename" xml:space="preserve"><value>Přejmenovat</value></data>
+  <data name="Admin_RoleEdit_AdminAll" xml:space="preserve"><value>Role Administrator má vždy všechna oprávnění.</value></data>
+  <data name="Admin_RoleEdit_Delete" xml:space="preserve"><value>Smazat roli</value></data>
+  <data name="Admin_RoleEdit_DeleteConfirm" xml:space="preserve"><value>Opravdu chcete tuto roli smazat?</value></data>
+  <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
+  <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role byla přejmenována.</value></data>
+  <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
 </root>

@@ -12,6 +12,7 @@ public enum AccountAuditEventType
     Suspended,
     Blocked,
     Unblocked,
+    RolesChanged,
     PasswordChanged,
     PasswordResetRequested,
     PasswordReset,

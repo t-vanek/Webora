@@ -1,0 +1,46 @@
+@page "/admin/roles/create"
+@attribute [HasPermission(Permissions.Roles.Create)]
+@rendermode InteractiveServer
+@inject IRoleAdminService RoleAdmin
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_Roles_Create"]</PageTitle>
+
+<h1>@L["Admin_Roles_Create"]</h1>
+
+<p><a href="admin/roles">&laquo; @L["Admin_Roles_Title"]</a></p>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<div class="form-floating mb-3" style="max-width:480px">
+    <input class="form-control" id="role-name" placeholder="@L["Admin_Roles_Name"]" @bind="_name" />
+    <label for="role-name">@L["Admin_Roles_Name"]</label>
+</div>
+
+<h2 class="h5">@L["Admin_Roles_Permissions"]</h2>
+<PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" />
+
+<button class="btn btn-primary" @onclick="CreateAsync">@L["Admin_Roles_Create"]</button>
+
+@code {
+    private string? _name;
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private string? _error;
+
+    private async Task CreateAsync()
+    {
+        _error = null;
+        var result = await RoleAdmin.CreateAsync(_name ?? string.Empty, _selected.ToArray());
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo("admin/roles");
+            return;
+        }
+
+        _error = string.Join(" ", result.Errors);
+    }
+}

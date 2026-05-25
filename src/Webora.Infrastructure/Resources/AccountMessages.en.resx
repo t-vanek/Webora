@@ -74,4 +74,13 @@
   <data name="Notif_Blocked_Body_Reason" xml:space="preserve"><value>Your account has been blocked by an administrator: {0}</value></data>
   <data name="Notif_Unblocked_Title" xml:space="preserve"><value>Account unblocked</value></data>
   <data name="Notif_Unblocked_Body" xml:space="preserve"><value>Your account has been unblocked.</value></data>
+  <data name="Error_CannotDeleteSelf" xml:space="preserve"><value>You cannot delete your own account.</value></data>
+  <data name="Error_LastAdministrator" xml:space="preserve"><value>The last administrator cannot be removed.</value></data>
+  <data name="Error_UnknownRole" xml:space="preserve"><value>Role “{0}” does not exist.</value></data>
+  <data name="Error_RoleNotFound" xml:space="preserve"><value>Role not found.</value></data>
+  <data name="Error_RoleNameRequired" xml:space="preserve"><value>Role name is required.</value></data>
+  <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Built-in roles cannot be renamed or deleted.</value></data>
+  <data name="Error_RoleHasMembers" xml:space="preserve"><value>The role cannot be deleted while it has assigned users.</value></data>
+  <data name="Error_AdministratorAllPermissions" xml:space="preserve"><value>The Administrator role always has every permission and cannot be edited.</value></data>
+  <data name="Error_UnknownPermission" xml:space="preserve"><value>Permission “{0}” is not in the catalog.</value></data>
 </root>

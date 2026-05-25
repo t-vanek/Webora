@@ -136,4 +136,63 @@
   <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifications (muted)</value></data>
   <data name="Bell_MarkRead" xml:space="preserve"><value>Mark read</value></data>
   <data name="Bell_NoNotifications" xml:space="preserve"><value>No notifications.</value></data>
+  <data name="Nav_AdminUsers" xml:space="preserve"><value>User administration</value></data>
+  <data name="Nav_AdminRoles" xml:space="preserve"><value>Roles &amp; permissions</value></data>
+  <data name="Admin_Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Admin_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Admin_Manage" xml:space="preserve"><value>Manage</value></data>
+  <data name="Admin_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Admin_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="AccountStatus_PendingActivation" xml:space="preserve"><value>Pending activation</value></data>
+  <data name="AccountStatus_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="AccountStatus_Deactivated" xml:space="preserve"><value>Deactivated</value></data>
+  <data name="AccountStatus_Suspended" xml:space="preserve"><value>Suspended</value></data>
+  <data name="AccountStatus_Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Admin_Users_Title" xml:space="preserve"><value>User administration</value></data>
+  <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Search by email or name…</value></data>
+  <data name="Admin_Users_Create" xml:space="preserve"><value>New account</value></data>
+  <data name="Admin_Users_None" xml:space="preserve"><value>No accounts.</value></data>
+  <data name="Admin_Users_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Admin_Users_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Admin_Users_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Admin_Users_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Admin_Users_Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="Admin_Users_Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Admin_Users_NotFound" xml:space="preserve"><value>Account not found.</value></data>
+  <data name="Admin_Users_Unconfirmed" xml:space="preserve"><value>unconfirmed</value></data>
+  <data name="Admin_UserEdit_Title" xml:space="preserve"><value>Account detail</value></data>
+  <data name="Admin_UserEdit_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Admin_UserEdit_StatusActions" xml:space="preserve"><value>Account status</value></data>
+  <data name="Admin_UserEdit_SelfNoStatus" xml:space="preserve"><value>You cannot change the status of your own account here.</value></data>
+  <data name="Admin_UserEdit_Block" xml:space="preserve"><value>Block</value></data>
+  <data name="Admin_UserEdit_Unblock" xml:space="preserve"><value>Unblock</value></data>
+  <data name="Admin_UserEdit_BlockReason" xml:space="preserve"><value>Reason (optional)</value></data>
+  <data name="Admin_UserEdit_DangerZone" xml:space="preserve"><value>Danger zone</value></data>
+  <data name="Admin_UserEdit_Delete" xml:space="preserve"><value>Delete account</value></data>
+  <data name="Admin_UserEdit_DeleteConfirm" xml:space="preserve"><value>Do you really want to permanently delete this account?</value></data>
+  <data name="Admin_UserEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
+  <data name="Admin_UserEdit_Audit" xml:space="preserve"><value>History</value></data>
+  <data name="Admin_UserEdit_NoAudit" xml:space="preserve"><value>No records.</value></data>
+  <data name="Admin_UserEdit_AuditWhen" xml:space="preserve"><value>When</value></data>
+  <data name="Admin_UserEdit_AuditEvent" xml:space="preserve"><value>Event</value></data>
+  <data name="Admin_UserEdit_AuditActor" xml:space="preserve"><value>Actor</value></data>
+  <data name="Admin_UserEdit_AuditDetail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Roles saved.</value></data>
+  <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Account blocked.</value></data>
+  <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Account unblocked.</value></data>
+  <data name="Admin_Roles_Title" xml:space="preserve"><value>Roles &amp; permissions</value></data>
+  <data name="Admin_Roles_Create" xml:space="preserve"><value>New role</value></data>
+  <data name="Admin_Roles_Name" xml:space="preserve"><value>Role name</value></data>
+  <data name="Admin_Roles_Permissions" xml:space="preserve"><value>Permissions</value></data>
+  <data name="Admin_Roles_Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Admin_Roles_Default" xml:space="preserve"><value>built-in</value></data>
+  <data name="Admin_Roles_NotFound" xml:space="preserve"><value>Role not found.</value></data>
+  <data name="Admin_RoleEdit_Title" xml:space="preserve"><value>Role detail</value></data>
+  <data name="Admin_RoleEdit_Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="Admin_RoleEdit_AdminAll" xml:space="preserve"><value>The Administrator role always has every permission.</value></data>
+  <data name="Admin_RoleEdit_Delete" xml:space="preserve"><value>Delete role</value></data>
+  <data name="Admin_RoleEdit_DeleteConfirm" xml:space="preserve"><value>Do you really want to delete this role?</value></data>
+  <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
+  <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role renamed.</value></data>
+  <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Permissions saved.</value></data>
 </root>

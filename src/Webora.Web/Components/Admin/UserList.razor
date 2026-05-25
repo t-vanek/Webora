@@ -1,0 +1,72 @@
+@page "/admin/users"
+@attribute [HasPermission(Permissions.Users.View)]
+@rendermode InteractiveServer
+@inject IUserAdminService UserAdmin
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_Users_Title"]</PageTitle>
+
+<h1>@L["Admin_Users_Title"]</h1>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <input class="form-control" style="max-width:320px" placeholder="@L["Admin_Users_SearchPlaceholder"]"
+           @bind="_search" @bind:event="oninput" @onkeyup="OnKeyUp" />
+    <button class="btn btn-outline-secondary" @onclick="ReloadAsync">@L["Admin_Search"]</button>
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
+        <a class="btn btn-primary ms-auto" href="admin/users/create">@L["Admin_Users_Create"]</a>
+    </AuthorizeView>
+</div>
+
+@if (_users is null)
+{
+    <p>@L["Admin_Loading"]</p>
+}
+else if (_users.Count == 0)
+{
+    <p class="text-muted">@L["Admin_Users_None"]</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>@L["Admin_Users_Email"]</th>
+                <th>@L["Admin_Users_Name"]</th>
+                <th>@L["Admin_Users_Status"]</th>
+                <th>@L["Admin_Users_Roles"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in _users)
+            {
+                <tr>
+                    <td>@user.Email</td>
+                    <td>@(string.IsNullOrWhiteSpace(user.DisplayName) ? "—" : user.DisplayName)</td>
+                    <td><StatusBadge Status="user.Status" /></td>
+                    <td>@(user.Roles.Count == 0 ? "—" : string.Join(", ", user.Roles))</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" href="@($"admin/users/{user.Id}")">@L["Admin_Manage"]</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<UserSummary>? _users;
+    private string? _search;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync() => _users = await UserAdmin.ListAsync(_search);
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ReloadAsync();
+        }
+    }
+}
