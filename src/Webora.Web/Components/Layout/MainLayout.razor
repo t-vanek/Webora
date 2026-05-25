@@ -18,6 +18,15 @@
     </main>
 </div>
 
+@* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when the
+   hosting page is statically rendered. Pages or admin forms that already run InteractiveServer can
+   call IDialogService / IToastService and the matching provider here will render the result. *@
+<FluentToastProvider @rendermode="InteractiveServer" />
+<FluentDialogProvider @rendermode="InteractiveServer" />
+<FluentTooltipProvider @rendermode="InteractiveServer" />
+<FluentMessageBarProvider @rendermode="InteractiveServer" />
+<FluentMenuProvider @rendermode="InteractiveServer" />
+
 <div id="blazor-error-ui" data-nosnippet>
     @L["Layout_Error"]
     <a href="." class="reload">@L["Layout_Reload"]</a>

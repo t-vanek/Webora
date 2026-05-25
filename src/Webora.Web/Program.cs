@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Serilog;
 using Webora.Application;
 using Webora.Application.Notifications;
@@ -36,6 +37,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddWeboraIdentity();
 builder.Services.AddIdentityServer();
 builder.Services.AddPermissionAuthorization();
+
+// Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
+// and WebAssembly components — the WASM client also registers AddFluentUIComponents() in its host.
+builder.Services.AddFluentUIComponents();
 
 // Real-time messaging + per-user notification delivery over SignalR.
 builder.Services.AddSignalR();
