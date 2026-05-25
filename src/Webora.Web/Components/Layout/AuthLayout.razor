@@ -8,26 +8,31 @@
     in — so the layout collapses to just the header + the page body. The header keeps the brand and
     a Login/Register switch so the two sister pages can still flip between each other.  *@
 <FluentLayout>
-    <FluentHeader Style="gap: 12px; padding: 0 1.5rem">
+    @*  FluentHeader is a flex container, but FluentSpacer only reliably pushes content right when
+        it sits between exactly two flex children. Group everything that belongs on the right into
+        one wrapping FluentStack so the spacer has a clean "brand | (spacer) | tools" split.  *@
+    <FluentHeader Style="padding: 0 1.5rem">
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
-        <AuthorizeView>
-            <NotAuthorized>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center">
-                    <a href="login" class="header-nav-link">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Nav_Login"]
-                    </a>
-                    <a href="register" class="header-nav-link">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Nav_Register"]
-                    </a>
-                </FluentStack>
-                <div class="header-divider" aria-hidden="true"></div>
-            </NotAuthorized>
-        </AuthorizeView>
-        <LanguageSwitcher @rendermode="InteractiveServer" />
-        <ThemeToggle @rendermode="InteractiveServer" />
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+            <AuthorizeView>
+                <NotAuthorized>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+                        <a href="login" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Login"]
+                        </a>
+                        <a href="register" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Register"]
+                        </a>
+                    </FluentStack>
+                    <div class="header-divider" aria-hidden="true"></div>
+                </NotAuthorized>
+            </AuthorizeView>
+            <LanguageSwitcher @rendermode="InteractiveServer" />
+            <ThemeToggle @rendermode="InteractiveServer" />
+        </FluentStack>
     </FluentHeader>
 
     @*  The auth pages are single-card forms; the FluentStack centers them both horizontally and
