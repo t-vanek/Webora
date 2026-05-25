@@ -1,20 +1,93 @@
 @page "/account/profile"
 @attribute [Authorize]
+@using Webora.Application.Notifications
+@using Webora.Domain.Notifications
+@inject UserManager<ApplicationUser> UserManager
+@inject INotificationService NotificationService
 
 <PageTitle>Profil</PageTitle>
 
 <h1>Profil</h1>
 
-<AuthorizeView>
+<AuthorizeView Context="auth">
     <Authorized>
-        <p>Přihlášen jako <strong>@context.User.Identity?.Name</strong></p>
+        <p>Přihlášen jako <strong>@auth.User.Identity?.Name</strong></p>
+
+        <div class="d-flex align-items-center gap-2 mt-4">
+            <h2 class="h5 mb-0">Notifikace</h2>
+            @if (_notifications.Any(n => !n.IsRead))
+            {
+                <span class="badge bg-primary">@_notifications.Count(n => !n.IsRead) nepřečtených</span>
+                <EditForm Model="this" method="post" OnValidSubmit="MarkAllRead" FormName="mark-all-read" class="ms-auto">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Označit vše jako přečtené</button>
+                </EditForm>
+            }
+        </div>
+
+        @if (_notifications.Count == 0)
+        {
+            <p class="text-muted">Žádné notifikace.</p>
+        }
+        else
+        {
+            <ul class="list-group mt-2" style="max-width:640px;">
+                @foreach (var n in _notifications)
+                {
+                    <li class="list-group-item @(n.IsRead ? "" : "list-group-item-light")">
+                        <div class="d-flex justify-content-between">
+                            <strong>@n.Title @LevelBadge(n.Level)</strong>
+                            <small class="text-muted">@n.CreatedAtUtc.LocalDateTime.ToString("g")</small>
+                        </div>
+                        <div>@n.Message</div>
+                    </li>
+                }
+            </ul>
+        }
 
         <h2 class="h5 mt-4">Claims</h2>
         <ul>
-            @foreach (var claim in context.User.Claims)
+            @foreach (var claim in auth.User.Claims)
             {
                 <li><code>@claim.Type</code> = @claim.Value</li>
             }
         </ul>
     </Authorized>
 </AuthorizeView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private IReadOnlyList<NotificationDto> _notifications = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            _notifications = await NotificationService.GetAsync(user.Id);
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            await NotificationService.MarkAllReadAsync(user.Id);
+            _notifications = await NotificationService.GetAsync(user.Id);
+        }
+    }
+
+    private static RenderFragment LevelBadge(NotificationLevel level) => builder =>
+    {
+        var (css, text) = level switch
+        {
+            NotificationLevel.Security => ("bg-danger", "Bezpečnost"),
+            NotificationLevel.Warning => ("bg-warning text-dark", "Upozornění"),
+            _ => ("bg-secondary", "Info"),
+        };
+        builder.AddMarkupContent(0, $"<span class=\"badge {css} ms-1\">{text}</span>");
+    };
+}

@@ -1,0 +1,136 @@
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (_authenticated)
+{
+    <div class="dropdown">
+        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="Notifikace">
+            <span class="bi bi-bell" aria-hidden="true">🔔</span>
+            @if (_unreadCount > 0)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    @_unreadCount
+                </span>
+            }
+        </button>
+        @if (_open)
+        {
+            <div class="dropdown-menu show p-2" style="position:absolute; right:0; min-width:320px; max-height:420px; overflow:auto;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Notifikace</strong>
+                    @if (_unreadCount > 0)
+                    {
+                        <button class="btn btn-sm btn-link" @onclick="MarkAllRead">Označit přečtené</button>
+                    }
+                </div>
+                @if (_items.Count == 0)
+                {
+                    <p class="text-muted small mb-0">Žádné notifikace.</p>
+                }
+                else
+                {
+                    @foreach (var n in _items)
+                    {
+                        <div class="border-bottom py-1 @(n.IsRead ? "" : "fw-semibold")">
+                            <div class="small">@n.Title</div>
+                            <div class="small text-muted">@n.Message</div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private HubConnection? _hub;
+    private bool _authenticated;
+    private bool _open;
+    private int _unreadCount;
+    private List<ClientNotification> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        _authenticated = state.User.Identity?.IsAuthenticated == true;
+        if (!_authenticated)
+        {
+            return;
+        }
+
+        await RefreshAsync();
+        await ConnectAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _unreadCount = await Http.GetFromJsonAsync<int>("api/notifications/unread-count");
+            _items = await Http.GetFromJsonAsync<List<ClientNotification>>("api/notifications?take=20") ?? [];
+        }
+        catch (HttpRequestException)
+        {
+            // Not reachable / unauthorized — leave the bell empty.
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hubs/notifications"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<ClientNotification>("ReceiveNotification", notification =>
+        {
+            _items.Insert(0, notification);
+            _unreadCount++;
+            return InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            await _hub.StartAsync();
+        }
+        catch
+        {
+            // Real-time unavailable; the bell still works via the initial fetch.
+        }
+    }
+
+    private void ToggleOpen() => _open = !_open;
+
+    private async Task MarkAllRead()
+    {
+        await Http.PostAsync("api/notifications/read-all", null);
+        _unreadCount = 0;
+        foreach (var item in _items)
+        {
+            item.IsRead = true;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            await _hub.DisposeAsync();
+        }
+    }
+
+    private sealed class ClientNotification
+    {
+        public Guid Id { get; set; }
+        public string Level { get; set; } = "Info";
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAtUtc { get; set; }
+        public bool IsRead { get; set; }
+    }
+}

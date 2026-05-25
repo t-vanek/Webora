@@ -13,6 +13,7 @@ public static class DependencyInjection
     {
         // Mapperly mappers are stateless and generated at compile time — register as singletons.
         services.AddSingleton<AccountAuditMapper>();
+        services.AddSingleton<NotificationMapper>();
 
         return services;
     }

@@ -5,7 +5,9 @@ using Microsoft.Extensions.Options;
 using Webora.Application.Abstractions.Email;
 using Webora.Application.Accounts;
 using Webora.Application.Mapping;
+using Webora.Application.Notifications;
 using Webora.Domain.Accounts;
+using Webora.Domain.Notifications;
 using Webora.Infrastructure.Identity;
 using Webora.Infrastructure.Persistence;
 
@@ -16,6 +18,7 @@ public sealed class AccountService(
     WeboraDbContext dbContext,
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
+    INotificationService notifications,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider,
     ILogger<AccountService> logger) : IAccountService
@@ -109,6 +112,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordChanged, "self", null, cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "Heslo změněno",
+            "Heslo k vašemu účtu bylo změněno.", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -144,6 +149,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordReset, "self", null, cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "Heslo obnoveno",
+            "Heslo k vašemu účtu bylo obnoveno.", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -186,6 +193,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChanged, "self", newEmail, cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "E-mail změněn",
+            $"Přihlašovací e-mail byl změněn na {newEmail}.", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -220,6 +229,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PhoneChanged, "self", newPhoneNumber, cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationLevel.Info, "Telefon změněn",
+            $"Telefonní číslo bylo změněno na {newPhoneNumber}.", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -366,8 +377,29 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, auditType, actor, reason, cancellationToken);
+        await NotifyTransitionAsync(user.Id, auditType, reason, cancellationToken);
         logger.LogInformation("Account {UserId} transitioned to {Status} by {Actor}", user.Id, target, actor);
         return AccountResult.Success;
+    }
+
+    private async Task NotifyTransitionAsync(Guid userId, AccountAuditEventType type, string? reason, CancellationToken cancellationToken)
+    {
+        (NotificationLevel Level, string Title, string Message)? n = type switch
+        {
+            AccountAuditEventType.Activated => (NotificationLevel.Info, "Účet aktivován", "Váš účet byl aktivován."),
+            AccountAuditEventType.Deactivated => (NotificationLevel.Warning, "Účet deaktivován", "Váš účet byl deaktivován."),
+            AccountAuditEventType.Reactivated => (NotificationLevel.Info, "Účet obnoven", "Váš účet byl obnoven."),
+            AccountAuditEventType.Suspended => (NotificationLevel.Warning, "Účet uspán", "Váš účet byl uspán."),
+            AccountAuditEventType.Blocked => (NotificationLevel.Security, "Účet zablokován",
+                reason is null ? "Váš účet byl zablokován administrátorem." : $"Váš účet byl zablokován administrátorem: {reason}"),
+            AccountAuditEventType.Unblocked => (NotificationLevel.Info, "Účet odblokován", "Váš účet byl odblokován."),
+            _ => null,
+        };
+
+        if (n is { } notification)
+        {
+            await notifications.NotifyAsync(userId, notification.Level, notification.Title, notification.Message, cancellationToken);
+        }
     }
 
     private async Task AuditAsync(Guid userId, AccountAuditEventType type, string actor, string? detail, CancellationToken cancellationToken)

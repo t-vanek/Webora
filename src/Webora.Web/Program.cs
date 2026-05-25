@@ -1,10 +1,15 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using Webora.Application;
+using Webora.Application.Notifications;
 using Webora.Infrastructure;
 using Webora.Web;
 using Webora.Web.Client.Pages;
 using Webora.Web.Components;
 using Webora.Web.Hubs;
+using Webora.Web.Identity;
+using Webora.Web.Notifications;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -26,8 +31,12 @@ builder.Services.AddWeboraIdentity();
 builder.Services.AddIdentityServer();
 builder.Services.AddPermissionAuthorization();
 
-// Real-time messaging.
+// Real-time messaging + per-user notification delivery over SignalR.
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
+builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationPublisher>();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddHttpContextAccessor();
 
@@ -83,6 +92,7 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Webora.Web.Client._Imports).Assembly);
 
 app.MapHub<NotificationsHub>(NotificationsHub.Path);
+app.MapNotificationApi();
 
 // Apply migrations (development) and seed roles, permissions and the admin account.
 await app.SeedIdentityAsync();
