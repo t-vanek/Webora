@@ -26,8 +26,12 @@
         <ThemeToggle @rendermode="InteractiveServer" />
     </FluentHeader>
 
-    <FluentBodyContent Class="body-content" Style="padding:1.5rem; overflow:auto">
-        @Body
+    @*  The auth pages are single-card forms; the .auth-body-wrap div centers them both
+        horizontally and vertically inside the available body area. *@
+    <FluentBodyContent Class="body-content" Style="overflow:auto">
+        <div class="auth-body-wrap">
+            @Body
+        </div>
     </FluentBodyContent>
 </FluentLayout>
 
