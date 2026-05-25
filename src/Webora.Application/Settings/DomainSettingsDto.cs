@@ -29,10 +29,17 @@ public sealed record EncodingSettingsDto(
 public sealed record AccountsSettingsDto(
     string? DefaultRole);
 
-/// <summary>The general section of the site settings (URL appearance).</summary>
+/// <summary>The general section of the site settings (site identity and URL appearance).</summary>
 public sealed record GeneralSettingsDto(
+    string? SiteName,
+    string? SiteDescription,
     bool LowercaseUrls,
     TrailingSlashPolicy TrailingSlash);
+
+/// <summary>Cached public site identity used by the layout and document head.</summary>
+public sealed record SiteIdentityDto(
+    string? Name,
+    string? Description);
 
 /// <summary>The full site settings read model. New sections are added alongside the existing ones.</summary>
 public sealed record SiteSettingsDto(

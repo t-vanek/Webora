@@ -261,6 +261,10 @@
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>None</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>General</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Save general</value></data>
+  <data name="Settings_SiteName" xml:space="preserve"><value>Site name</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Shown as the brand in the navigation. Empty = “Webora”.</value></data>
+  <data name="Settings_SiteDescription" xml:space="preserve"><value>Site description</value></data>
+  <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Used as the default page meta description.</value></data>
   <data name="Settings_UrlAppearance" xml:space="preserve"><value>URL appearance (path canonicalization).</value></data>
   <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Lowercase URLs</value></data>
   <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Paths with uppercase letters are redirected to lowercase (query and files are left as-is).</value></data>

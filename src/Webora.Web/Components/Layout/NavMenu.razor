@@ -1,9 +1,10 @@
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Navigation
+@inject ISiteSettingsService SiteSettings
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Webora.Web</a>
+        <a class="navbar-brand" href="">@_siteName</a>
     </div>
 </div>
 
@@ -90,9 +91,12 @@
     private bool _canAdminUsers;
     private bool _canAdminRoles;
     private bool _canSettings;
+    private string _siteName = "Webora";
 
     protected override async Task OnInitializedAsync()
     {
+        _siteName = (await SiteSettings.GetIdentityAsync()).Name ?? "Webora";
+
         if (AuthState is not null)
         {
             var user = (await AuthState).User;

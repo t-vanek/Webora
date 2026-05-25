@@ -56,6 +56,12 @@ public class SiteSettings : Entity, IAggregateRoot
     /// <summary>How a trailing slash on the path is canonicalized.</summary>
     public TrailingSlashPolicy TrailingSlash { get; private set; } = TrailingSlashPolicy.NoPreference;
 
+    /// <summary>Public site name shown as the brand. Null = fall back to the application name.</summary>
+    public string? SiteName { get; private set; }
+
+    /// <summary>Short site description used as the default meta description.</summary>
+    public string? SiteDescription { get; private set; }
+
     private SiteSettings() { }
 
     public static SiteSettings CreateDefault()
@@ -114,8 +120,10 @@ public class SiteSettings : Entity, IAggregateRoot
         DefaultRole = string.IsNullOrWhiteSpace(defaultRole) ? null : defaultRole.Trim();
     }
 
-    public void UpdateGeneral(bool lowercaseUrls, TrailingSlashPolicy trailingSlash)
+    public void UpdateGeneral(string? siteName, string? siteDescription, bool lowercaseUrls, TrailingSlashPolicy trailingSlash)
     {
+        SiteName = string.IsNullOrWhiteSpace(siteName) ? null : siteName.Trim();
+        SiteDescription = string.IsNullOrWhiteSpace(siteDescription) ? null : siteDescription.Trim();
         LowercaseUrls = lowercaseUrls;
         TrailingSlash = trailingSlash;
     }

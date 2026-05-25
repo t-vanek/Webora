@@ -37,4 +37,7 @@ public interface ISiteSettingsService
 
     /// <summary>The role automatically granted to newly self-registered accounts, or null when none.</summary>
     Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The public site identity (name, description), cached for the layout and document head.</summary>
+    Task<SiteIdentityDto> GetIdentityAsync(CancellationToken cancellationToken = default);
 }

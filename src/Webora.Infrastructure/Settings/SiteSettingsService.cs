@@ -128,10 +128,28 @@ public sealed class SiteSettingsService(
     public async Task<AccountResult> UpdateGeneralAsync(GeneralSettingsDto general, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         var settings = await GetOrCreateAsync(cancellationToken);
-        settings.UpdateGeneral(general.LowercaseUrls, general.TrailingSlash);
+        settings.UpdateGeneral(general.SiteName, general.SiteDescription, general.LowercaseUrls, general.TrailingSlash);
 
-        await FinalizeAsync("General", $"lowercaseUrls={settings.LowercaseUrls} trailingSlash={settings.TrailingSlash}", actingUserId, cancellationToken);
+        var detail = $"name={settings.SiteName ?? "-"} lowercaseUrls={settings.LowercaseUrls} trailingSlash={settings.TrailingSlash}";
+        await FinalizeAsync("General", detail, actingUserId, cancellationToken);
         return AccountResult.Success;
+    }
+
+    public async Task<SiteIdentityDto> GetIdentityAsync(CancellationToken cancellationToken = default)
+    {
+        if (cache.TryGetValue(SettingsCacheKeys.Identity, out var cached) && cached is SiteIdentityDto identity)
+        {
+            return identity;
+        }
+
+        var s = await GetOrCreateAsync(cancellationToken);
+        identity = new SiteIdentityDto(s.SiteName, s.SiteDescription);
+
+        using var entry = cache.CreateEntry(SettingsCacheKeys.Identity);
+        entry.Value = identity;
+        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+
+        return identity;
     }
 
     public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) =>
@@ -202,7 +220,7 @@ public sealed class SiteSettingsService(
             new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
             new EncodingSettingsDto(s.PageCharset, s.EmailCharset),
             new AccountsSettingsDto(s.DefaultRole),
-            new GeneralSettingsDto(s.LowercaseUrls, s.TrailingSlash),
+            new GeneralSettingsDto(s.SiteName, s.SiteDescription, s.LowercaseUrls, s.TrailingSlash),
             s.BaseUrl);
 
     private static string? InvalidCharset(string? charset)

@@ -203,6 +203,20 @@ else
     <hr class="my-4" />
 
     <h2 class="h5">@L["Settings_GeneralSection"]</h2>
+
+    <div class="row g-3 mb-2" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="siteName">@L["Settings_SiteName"]</label>
+            <input id="siteName" class="form-control" maxlength="128" @bind="_general.SiteName" placeholder="Webora" />
+            <div class="form-text">@L["Settings_SiteNameHelp"]</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="siteDescription">@L["Settings_SiteDescription"]</label>
+            <input id="siteDescription" class="form-control" maxlength="512" @bind="_general.SiteDescription" />
+            <div class="form-text">@L["Settings_SiteDescriptionHelp"]</div>
+        </div>
+    </div>
+
     <p class="text-muted"><small>@L["Settings_UrlAppearance"]</small></p>
 
     <div class="row g-3" style="max-width:720px">
@@ -288,6 +302,8 @@ else
         };
         _general = new GeneralForm
         {
+            SiteName = dto.General.SiteName,
+            SiteDescription = dto.General.SiteDescription,
             LowercaseUrls = dto.General.LowercaseUrls,
             TrailingSlash = dto.General.TrailingSlash,
         };
@@ -317,7 +333,8 @@ else
         ApplyAsync(() => SiteSettings.UpdateAccountsAsync(new AccountsSettingsDto(_accounts.DefaultRole), _adminId));
 
     private Task SaveGeneralAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateGeneralAsync(new GeneralSettingsDto(_general.LowercaseUrls, _general.TrailingSlash), _adminId));
+        ApplyAsync(() => SiteSettings.UpdateGeneralAsync(
+            new GeneralSettingsDto(_general.SiteName, _general.SiteDescription, _general.LowercaseUrls, _general.TrailingSlash), _adminId));
 
     private async Task ApplyAsync(Func<Task<AccountResult>> action)
     {
@@ -380,6 +397,8 @@ else
 
     private sealed class GeneralForm
     {
+        public string? SiteName { get; set; }
+        public string? SiteDescription { get; set; }
         public bool LowercaseUrls { get; set; }
         public TrailingSlashPolicy TrailingSlash { get; set; } = TrailingSlashPolicy.NoPreference;
     }

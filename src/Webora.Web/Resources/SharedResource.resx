@@ -261,6 +261,10 @@
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
+  <data name="Settings_SiteName" xml:space="preserve"><value>Název webu</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Zobrazí se jako značka v navigaci. Prázdné = „Webora“.</value></data>
+  <data name="Settings_SiteDescription" xml:space="preserve"><value>Popis webu</value></data>
+  <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Použije se jako výchozí meta description stránek.</value></data>
   <data name="Settings_UrlAppearance" xml:space="preserve"><value>Vzhled URL adres (kanonizace cesty).</value></data>
   <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Malá písmena v URL</value></data>
   <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Cesty s velkými písmeny se přesměrují na malá (query a soubory se nemění).</value></data>

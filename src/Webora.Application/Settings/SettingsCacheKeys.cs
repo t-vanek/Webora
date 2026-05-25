@@ -9,6 +9,7 @@ public static class SettingsCacheKeys
     public const string DomainPolicy = "webora:domain-policy";
     public const string DefaultLanguage = "webora:default-language";
     public const string PageCharset = "webora:page-charset";
+    public const string Identity = "webora:site-identity";
 
-    public static readonly IReadOnlyList<string> All = [DomainPolicy, DefaultLanguage, PageCharset];
+    public static readonly IReadOnlyList<string> All = [DomainPolicy, DefaultLanguage, PageCharset, Identity];
 }
