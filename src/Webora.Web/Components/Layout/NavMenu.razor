@@ -2,6 +2,11 @@
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Navigation
 
+@*  Wrap the menu + lang-switcher in a flex column so they stay stacked vertically as a single
+    item inside MainLayout's horizontal FluentStack. Without this wrapper Blazor would emit the
+    FluentNavMenu and the lang-switcher div as siblings of <FluentBodyContent>, and the language
+    switcher would render to the right of the menu instead of below it.  *@
+<div class="nav-column">
 <FluentNavMenu Width="250" Collapsible="true" Title="@L["Nav_Menu"]">
     <FluentNavLink Href="" Match="NavLinkMatch.All"
                    Icon="@(new Icons.Regular.Size20.Home())">
@@ -60,6 +65,7 @@
     <a href="@CultureUrl("cs")">CS</a>
     <span>|</span>
     <a href="@CultureUrl("en")">EN</a>
+</div>
 </div>
 
 @code {

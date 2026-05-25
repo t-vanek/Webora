@@ -1,5 +1,11 @@
-/* FluentNavMenu owns the sidebar layout, collapse toggle and scrolling. The only thing this
-   stylesheet still does is the language switcher block below the menu. */
+/* FluentNavMenu owns the sidebar layout, collapse toggle and scrolling. The wrapper below keeps
+   the menu and the language switcher stacked vertically as one column of MainLayout's horizontal
+   FluentStack. */
+
+.nav-column {
+    display: flex;
+    flex-direction: column;
+}
 
 .lang-switcher {
     padding: 0.5rem 1rem 1rem 1rem;
