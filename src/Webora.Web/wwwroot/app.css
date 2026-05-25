@@ -61,24 +61,6 @@ h1:focus {
     opacity: 0.3;
 }
 
-/* AuthLayout body wrapper — centers the single-card auth forms (Login, Register, …) both
-   horizontally and vertically inside the available body area. Pairs with FluentBodyContent's
-   display:flex; flex-direction:column override in AuthLayout: that makes this wrapper a flex
-   child, and flex:1 stretches it to fill the body's full computed height. That's more reliable
-   than min-height: calc(100vh - 3.5rem) was — Fluent's FluentHeader is taller than 3.5rem
-   once its 0 1.5rem padding is in play, so the old calc was off by a dozen-ish pixels and the
-   card sat below true center. With flex:1 the wrapper just fills whatever the body actually
-   has, no header-height assumption needed. */
-.auth-body-wrap {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    padding: 1.5rem;
-    box-sizing: border-box;
-}
-
 /* Blazor framework error bar — shown when the SignalR circuit drops with no recovery. Stays
    bright lightyellow (color-scheme: light only) so it's hard to miss regardless of theme. */
 #blazor-error-ui {

@@ -35,20 +35,20 @@
         </FluentStack>
     </FluentHeader>
 
-    @*  The auth pages are single-card forms; a plain flex div centers them both horizontally and
-        vertically inside the available body area. FluentStack was tempting here but it doesn't
-        default to full-width, so HorizontalAlignment.Center only centers children within the
-        stack's own (intrinsic) width — i.e. it stays left-anchored. A flex container with
-        width:100% gives predictable "center inside the whole body" behavior.
+    @*  Center the single-card auth pages (Login, Register) both horizontally and vertically
+        inside the body area.
 
-        Make FluentBodyContent itself a flex column so .auth-body-wrap can flex:1 into its full
-        height, instead of guessing the header height with min-height: calc(100vh - 3.5rem) —
-        Fluent's header is actually taller than 3.5rem once its inner padding is applied, which
-        was leaving the card a dozen-or-so pixels below true center.  *@
-    <FluentBodyContent Class="body-content" Style="display:flex; flex-direction:column; overflow:auto">
-        <div class="auth-body-wrap">
-            @Body
-        </div>
+        FluentLayout is a flex column (not a grid as I assumed earlier): FluentHeader is the
+        first row, but the next child only fills the remaining vertical space if it has flex:1
+        on itself. MainLayout achieves that with a FluentStack wrapping the body. Without a
+        sidebar we don't need a wrapping stack, so the flex:1 goes straight on FluentBodyContent
+        — that makes it span from below the header to the bottom of the viewport regardless of
+        the header's actual rendered height. Then display:flex with align-items / justify-content
+        center on the same element centers @Body inside it. No min-height calc, no header-height
+        assumption, no inner wrapper div needed.  *@
+    <FluentBodyContent Class="body-content"
+                       Style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem; overflow:auto">
+        @Body
     </FluentBodyContent>
 </FluentLayout>
 
