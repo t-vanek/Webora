@@ -1,0 +1,25 @@
+# Build output (must be excluded so host artifacts don't clobber the in-container restore)
+**/bin/
+**/obj/
+out/
+publish/
+artifacts/
+
+# VCS & IDE
+.git/
+.gitignore
+.vs/
+.idea/
+.vscode/
+*.user
+
+# Docker & docs (not needed inside the image)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+README.md
+LICENSE
+
+# OS
+.DS_Store
+Thumbs.db

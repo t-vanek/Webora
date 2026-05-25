@@ -1,4 +1,31 @@
 services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Development applies EF migrations automatically on startup and seeds the admin account.
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      # Point the connection strings at the compose service names (override the localhost defaults).
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=webora;Username=webora;Password=webora"
+      ConnectionStrings__Redis: "redis:6379"
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+      Smtp__Host: "smtp4dev"
+      Smtp__Port: "25"
+      Account__BaseUrl: "http://localhost:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      smtp4dev:
+        condition: service_started
+
   postgres:
     image: postgres:17-alpine
     environment:
