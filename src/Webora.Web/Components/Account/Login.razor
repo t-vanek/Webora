@@ -12,48 +12,44 @@
     request HttpContext, which is only available during a real form post. Native <InputText> fields
     are kept (rather than FluentTextField) so the form posts cleanly without web-component shadow-DOM
     surprises; the visual chrome around them is Fluent.  *@
-<div class="row">
-    <div class="col-md-5">
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-                <FluentLabel Typo="Typography.H3">@L["Login_Title"]</FluentLabel>
+<FluentCard Style="max-width:480px">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentLabel Typo="Typography.H3">@L["Login_Title"]</FluentLabel>
 
-                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                    <DataAnnotationsValidator />
-                    @if (!string.IsNullOrEmpty(_errorMessage))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                            @_errorMessage
-                        </FluentMessageBar>
-                    }
-                    <div class="form-floating mb-3">
-                        <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                        <label>@L["Login_Email"]</label>
-                        <ValidationMessage For="() => Input.Email" />
-                    </div>
-                    <div class="form-floating mb-3">
-                        <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" placeholder="heslo" />
-                        <label>@L["Login_Password"]</label>
-                        <ValidationMessage For="() => Input.Password" />
-                    </div>
-                    <div class="form-check mb-3">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
-                        <label class="form-check-label">@L["Login_Remember"]</label>
-                    </div>
-                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
-                        @L["Login_Submit"]
-                    </FluentButton>
-                </EditForm>
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                    @_errorMessage
+                </FluentMessageBar>
+            }
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
+                <label>@L["Login_Email"]</label>
+                <ValidationMessage For="() => Input.Email" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" placeholder="heslo" />
+                <label>@L["Login_Password"]</label>
+                <ValidationMessage For="() => Input.Password" />
+            </div>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
+                <label class="form-check-label">@L["Login_Remember"]</label>
+            </div>
+            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
+                @L["Login_Submit"]
+            </FluentButton>
+        </EditForm>
 
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                    <FluentAnchor Href="register" Appearance="Appearance.Hypertext">@L["Login_CreateAccount"]</FluentAnchor>
-                    <FluentAnchor Href="account/forgot-password" Appearance="Appearance.Hypertext">@L["Login_ForgotPassword"]</FluentAnchor>
-                    <FluentAnchor Href="account/forgot-reactivation" Appearance="Appearance.Hypertext">@L["Login_Reactivate"]</FluentAnchor>
-                </FluentStack>
-            </FluentStack>
-        </FluentCard>
-    </div>
-</div>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+            <FluentAnchor Href="register" Appearance="Appearance.Hypertext">@L["Login_CreateAccount"]</FluentAnchor>
+            <FluentAnchor Href="account/forgot-password" Appearance="Appearance.Hypertext">@L["Login_ForgotPassword"]</FluentAnchor>
+            <FluentAnchor Href="account/forgot-reactivation" Appearance="Appearance.Hypertext">@L["Login_Reactivate"]</FluentAnchor>
+        </FluentStack>
+    </FluentStack>
+</FluentCard>
 
 @code {
     // Initializer is required so the form renders on GET; the form supplies a non-null value on POST.
