@@ -6,6 +6,8 @@ public class Notification : Entity
 {
     public Guid UserId { get; private set; }
 
+    public NotificationCategory Category { get; private set; }
+
     public NotificationLevel Level { get; private set; }
 
     public string Title { get; private set; } = string.Empty;
@@ -20,9 +22,10 @@ public class Notification : Entity
 
     private Notification() { }
 
-    public Notification(Guid userId, NotificationLevel level, string title, string message, DateTimeOffset createdAtUtc)
+    public Notification(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, DateTimeOffset createdAtUtc)
     {
         UserId = userId;
+        Category = category;
         Level = level;
         Title = title;
         Message = message;

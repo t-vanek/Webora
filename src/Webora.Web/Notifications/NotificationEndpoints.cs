@@ -26,6 +26,14 @@ public static class NotificationEndpoints
                 : Results.Ok(await service.GetUnreadCountAsync(userId.Value, ct));
         });
 
+        group.MapGet("/preferences", async (ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
+        {
+            var userId = GetUserId(user);
+            return userId is null
+                ? Results.Unauthorized()
+                : Results.Ok(await service.GetPreferencesAsync(userId.Value, ct));
+        });
+
         group.MapPost("/{id:guid}/read", async (Guid id, ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
         {
             var userId = GetUserId(user);

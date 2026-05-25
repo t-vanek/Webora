@@ -12,13 +12,25 @@ public sealed class NotificationService(
     INotificationRealtimePublisher publisher,
     TimeProvider timeProvider) : INotificationService
 {
-    public async Task NotifyAsync(Guid userId, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default)
+    public async Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default)
     {
-        var notification = new Notification(userId, level, title, message, timeProvider.GetUtcNow());
+        var preferences = await GetOrCreatePreferencesAsync(userId, cancellationToken);
+
+        // Category scope decides whether the notification is created at all.
+        if (!preferences.Allows(category))
+        {
+            return;
+        }
+
+        var notification = new Notification(userId, category, level, title, message, timeProvider.GetUtcNow());
         dbContext.Notifications.Add(notification);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+        // Muting suppresses only the live push; the notification is still stored.
+        if (!preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()))
+        {
+            await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+        }
     }
 
     public async Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default)
@@ -56,4 +68,60 @@ public sealed class NotificationService(
             .Where(n => n.UserId == userId && n.ReadAtUtc == null)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.ReadAtUtc, now), cancellationToken);
     }
+
+    public async Task<NotificationPreferencesDto> GetPreferencesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var preferences = await dbContext.NotificationPreferences
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+
+        return preferences is null
+            ? new NotificationPreferencesDto(false, null, false, NotificationScope.All)
+            : ToDto(preferences);
+    }
+
+    public async Task MuteAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var preferences = await GetOrCreatePreferencesAsync(userId, cancellationToken);
+        preferences.MuteIndefinitely();
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task MuteUntilAsync(Guid userId, DateTimeOffset untilUtc, CancellationToken cancellationToken = default)
+    {
+        var preferences = await GetOrCreatePreferencesAsync(userId, cancellationToken);
+        preferences.MuteUntil(untilUtc);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UnmuteAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var preferences = await GetOrCreatePreferencesAsync(userId, cancellationToken);
+        preferences.Unmute();
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetScopeAsync(Guid userId, NotificationScope scope, CancellationToken cancellationToken = default)
+    {
+        var preferences = await GetOrCreatePreferencesAsync(userId, cancellationToken);
+        preferences.SetScope(scope);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<NotificationPreferences> GetOrCreatePreferencesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        // FindAsync consults the change tracker first, so a row created earlier in the same
+        // request (and not yet saved) is reused rather than added twice.
+        var preferences = await dbContext.NotificationPreferences.FindAsync([userId], cancellationToken);
+        if (preferences is null)
+        {
+            preferences = new NotificationPreferences(userId);
+            dbContext.NotificationPreferences.Add(preferences);
+        }
+
+        return preferences;
+    }
+
+    private NotificationPreferencesDto ToDto(NotificationPreferences preferences) =>
+        new(preferences.Muted, preferences.MutedUntilUtc, preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()), preferences.Scope);
 }

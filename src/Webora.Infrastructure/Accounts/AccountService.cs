@@ -112,7 +112,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordChanged, "self", null, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "Heslo změněno",
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Heslo změněno",
             "Heslo k vašemu účtu bylo změněno.", cancellationToken);
         return AccountResult.Success;
     }
@@ -149,7 +149,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordReset, "self", null, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "Heslo obnoveno",
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Heslo obnoveno",
             "Heslo k vašemu účtu bylo obnoveno.", cancellationToken);
         return AccountResult.Success;
     }
@@ -193,7 +193,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChanged, "self", newEmail, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationLevel.Security, "E-mail změněn",
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "E-mail změněn",
             $"Přihlašovací e-mail byl změněn na {newEmail}.", cancellationToken);
         return AccountResult.Success;
     }
@@ -229,7 +229,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PhoneChanged, "self", newPhoneNumber, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationLevel.Info, "Telefon změněn",
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Info, "Telefon změněn",
             $"Telefonní číslo bylo změněno na {newPhoneNumber}.", cancellationToken);
         return AccountResult.Success;
     }
@@ -377,12 +377,12 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, auditType, actor, reason, cancellationToken);
-        await NotifyTransitionAsync(user.Id, auditType, reason, cancellationToken);
+        await NotifyTransitionAsync(user.Id, auditType, actor, reason, cancellationToken);
         logger.LogInformation("Account {UserId} transitioned to {Status} by {Actor}", user.Id, target, actor);
         return AccountResult.Success;
     }
 
-    private async Task NotifyTransitionAsync(Guid userId, AccountAuditEventType type, string? reason, CancellationToken cancellationToken)
+    private async Task NotifyTransitionAsync(Guid userId, AccountAuditEventType type, string actor, string? reason, CancellationToken cancellationToken)
     {
         (NotificationLevel Level, string Title, string Message)? n = type switch
         {
@@ -398,7 +398,11 @@ public sealed class AccountService(
 
         if (n is { } notification)
         {
-            await notifications.NotifyAsync(userId, notification.Level, notification.Title, notification.Message, cancellationToken);
+            // Admin-driven transitions are Administrative; user-driven ones are SelfService.
+            var category = actor.StartsWith("admin:", StringComparison.Ordinal)
+                ? NotificationCategory.Administrative
+                : NotificationCategory.SelfService;
+            await notifications.NotifyAsync(userId, category, notification.Level, notification.Title, notification.Message, cancellationToken);
         }
     }
 

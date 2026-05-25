@@ -9,8 +9,8 @@
 @if (_authenticated)
 {
     <div class="dropdown">
-        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="Notifikace">
-            <span class="bi bi-bell" aria-hidden="true">🔔</span>
+        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="@(_muted ? "Notifikace (ztlumeno)" : "Notifikace")">
+            <span aria-hidden="true">@(_muted ? "🔕" : "🔔")</span>
             @if (_unreadCount > 0)
             {
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -51,6 +51,7 @@
     private HubConnection? _hub;
     private bool _authenticated;
     private bool _open;
+    private bool _muted;
     private int _unreadCount;
     private List<ClientNotification> _items = [];
 
@@ -73,6 +74,8 @@
         {
             _unreadCount = await Http.GetFromJsonAsync<int>("api/notifications/unread-count");
             _items = await Http.GetFromJsonAsync<List<ClientNotification>>("api/notifications?take=20") ?? [];
+            var prefs = await Http.GetFromJsonAsync<ClientPreferences>("api/notifications/preferences");
+            _muted = prefs?.IsCurrentlyMuted ?? false;
         }
         catch (HttpRequestException)
         {
@@ -132,5 +135,10 @@
         public string Message { get; set; } = string.Empty;
         public DateTimeOffset CreatedAtUtc { get; set; }
         public bool IsRead { get; set; }
+    }
+
+    private sealed class ClientPreferences
+    {
+        public bool IsCurrentlyMuted { get; set; }
     }
 }

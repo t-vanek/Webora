@@ -13,6 +13,38 @@
     <Authorized>
         <p>Přihlášen jako <strong>@auth.User.Identity?.Name</strong></p>
 
+        <h2 class="h5 mt-4">Nastavení notifikací</h2>
+        <div class="mb-2">
+            <span class="me-2">Stav:</span>
+            @if (_prefs.IsCurrentlyMuted)
+            {
+                <span class="badge bg-warning text-dark">
+                    @(_prefs.Muted ? "Ztlumeno" : $"Ztlumeno do {_prefs.MutedUntilUtc?.LocalDateTime:g}")
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-success">Aktivní</span>
+            }
+            <span class="ms-3 me-2">Rozsah:</span>
+            <span class="badge bg-secondary">@(_prefs.Scope == NotificationScope.SelfServiceOnly ? "Pouze self-service" : "Všechny")</span>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <MuteButton FormName="mute-1h" Label="Ztlumit 1 h" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
+            <MuteButton FormName="mute-8h" Label="8 h" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
+            <MuteButton FormName="mute-tomorrow" Label="Do zítřka" OnSubmit="MuteUntilTomorrowAsync" />
+            <MuteButton FormName="mute-all" Label="Úplně" Css="btn-warning" OnSubmit="MuteCompletelyAsync" />
+            @if (_prefs.IsCurrentlyMuted)
+            {
+                <MuteButton FormName="unmute" Label="Zrušit ztlumení" Css="btn-outline-success" OnSubmit="UnmuteAsync" />
+            }
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <MuteButton FormName="scope-self" Label="Jen self-service" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
+            <MuteButton FormName="scope-all" Label="Všechny notifikace" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
+        </div>
+
         <div class="d-flex align-items-center gap-2 mt-4">
             <h2 class="h5 mb-0">Notifikace</h2>
             @if (_notifications.Any(n => !n.IsRead))
@@ -58,25 +90,78 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private IReadOnlyList<NotificationDto> _notifications = [];
+    private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task<Guid?> CurrentUserIdAsync()
     {
         var state = await AuthState!;
         var user = await UserManager.GetUserAsync(state.User);
-        if (user is not null)
+        return user?.Id;
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
         {
-            _notifications = await NotificationService.GetAsync(user.Id);
+            _notifications = await NotificationService.GetAsync(userId);
+            _prefs = await NotificationService.GetPreferencesAsync(userId);
         }
     }
 
     private async Task MarkAllRead()
     {
-        var state = await AuthState!;
-        var user = await UserManager.GetUserAsync(state.User);
-        if (user is not null)
+        if (await CurrentUserIdAsync() is { } userId)
         {
-            await NotificationService.MarkAllReadAsync(user.Id);
-            _notifications = await NotificationService.GetAsync(user.Id);
+            await NotificationService.MarkAllReadAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteForAsync(TimeSpan duration)
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.MuteUntilAsync(userId, DateTimeOffset.UtcNow.Add(duration));
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteUntilTomorrowAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            var tomorrow = new DateTimeOffset(DateTime.Today.AddDays(1), DateTimeOffset.Now.Offset);
+            await NotificationService.MuteUntilAsync(userId, tomorrow);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteCompletelyAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.MuteAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task UnmuteAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.UnmuteAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task SetScopeAsync(NotificationScope scope)
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.SetScopeAsync(userId, scope);
+            await ReloadAsync();
         }
     }
 
