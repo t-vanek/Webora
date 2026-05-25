@@ -4,20 +4,29 @@
 
 <PageTitle>@L["ConfirmEmailChange_Title"]</PageTitle>
 
-<h1>@L["ConfirmEmailChange_Title"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["ConfirmEmailChange_Title"]</FluentLabel>
 
-@if (_succeeded is null)
-{
-    <p>@L["Common_Verifying"]</p>
-}
-else if (_succeeded == true)
-{
-    <div class="alert alert-success" role="alert">@L["ConfirmEmailChange_Success", Email!]</div>
-}
-else
-{
-    <div class="alert alert-danger" role="alert">@_error</div>
-}
+    @if (_succeeded is null)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+            <FluentProgressRing />
+            <FluentLabel Typo="Typography.Body">@L["Common_Verifying"]</FluentLabel>
+        </FluentStack>
+    }
+    else if (_succeeded == true)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+            @L["ConfirmEmailChange_Success", Email!]
+        </FluentMessageBar>
+    }
+    else
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+            @_error
+        </FluentMessageBar>
+    }
+</FluentStack>
 
 @code {
     [SupplyParameterFromQuery] private Guid UserId { get; set; }

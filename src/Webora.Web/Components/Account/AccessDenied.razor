@@ -3,8 +3,10 @@
 
 <PageTitle>@L["Auth_AccessDenied_Title"]</PageTitle>
 
-<h1>@L["Auth_AccessDenied_Title"]</h1>
-
-<p role="alert">@L["Auth_AccessDenied_Message"]</p>
-
-<a href="">@L["NotFound_Home"]</a>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["Auth_AccessDenied_Title"]</FluentLabel>
+    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+        @L["Auth_AccessDenied_Message"]
+    </FluentMessageBar>
+    <FluentAnchor Href="" Appearance="Appearance.Hypertext">@L["NotFound_Home"]</FluentAnchor>
+</FluentStack>
