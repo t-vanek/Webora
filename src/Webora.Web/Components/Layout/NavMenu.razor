@@ -1,13 +1,6 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IStringLocalizer<SharedResource> L
-@inject NavigationManager Navigation
 
-@*  Wrap the menu + lang-switcher in a FluentStack so they stay stacked vertically as a single
-    item inside MainLayout's horizontal FluentStack. Without this wrapper Blazor would emit the
-    FluentNavMenu and the lang-switcher div as siblings of <FluentBodyContent>, and the language
-    switcher would render to the right of the menu instead of below it. The Width="auto" stops the
-    stack from stretching past the FluentNavMenu's own 250px width.  *@
-<FluentStack Orientation="Orientation.Vertical" Width="auto">
 <FluentNavMenu Width="250" Collapsible="true" Title="@L["Nav_Menu"]">
     <FluentNavLink Href="" Match="NavLinkMatch.All"
                    Icon="@(new Icons.Regular.Size20.Home())">
@@ -52,17 +45,6 @@
     </AuthorizeView>
 </FluentNavMenu>
 
-@* Language switcher sits below the nav menu. FluentNavMenu doesn't have a dedicated footer slot
-   so it lives in a plain block — these are POST-cookie-and-redirect actions handled by
-   /culture/set rather than real routes. *@
-<div class="lang-switcher">
-    <small>@L["Language"]:</small>
-    <a href="@CultureUrl("cs")">CS</a>
-    <span>|</span>
-    <a href="@CultureUrl("en")">EN</a>
-</div>
-</FluentStack>
-
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -79,11 +61,5 @@
             _canAdminRoles = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Roles.View);
             _canSettings = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Settings.View);
         }
-    }
-
-    private string CultureUrl(string culture)
-    {
-        var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
-        return $"/culture/set?culture={culture}&redirectUri={Uri.EscapeDataString(relative)}";
     }
 }

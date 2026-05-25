@@ -23,6 +23,7 @@
             </NotAuthorized>
         </AuthorizeView>
         <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+        <LanguageSwitcher @rendermode="InteractiveServer" />
         <ThemeToggle @rendermode="InteractiveServer" />
     </FluentHeader>
 
