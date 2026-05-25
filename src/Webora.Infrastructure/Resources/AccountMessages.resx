@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Error_AccountNotFound" xml:space="preserve"><value>Účet nenalezen.</value></data>
+  <data name="Error_EmailExists" xml:space="preserve"><value>Účet s tímto e-mailem již existuje.</value></data>
+  <data name="Error_InvalidPasswordReset" xml:space="preserve"><value>Neplatný požadavek na obnovení hesla.</value></data>
+  <data name="Error_SuspendOnlyActive" xml:space="preserve"><value>Uspat lze jen aktivní účet.</value></data>
+  <data name="Error_InvalidSuspendToken" xml:space="preserve"><value>Neplatný nebo prošlý potvrzovací token.</value></data>
+  <data name="Error_InvalidReactivationToken" xml:space="preserve"><value>Neplatný nebo prošlý odkaz pro obnovení účtu.</value></data>
+  <data name="Error_TransitionNotAllowed" xml:space="preserve"><value>Přechod ze stavu „{0}" do „{1}" není povolen.</value></data>
+  <data name="Email_Activation_Subject" xml:space="preserve"><value>Aktivace účtu</value></data>
+  <data name="Email_Activation_Body" xml:space="preserve"><value>&lt;p&gt;Aktivujte svůj účet kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Aktivovat účet&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Reset_Subject" xml:space="preserve"><value>Obnovení hesla</value></data>
+  <data name="Email_Reset_Body" xml:space="preserve"><value>&lt;p&gt;Pro nastavení nového hesla klikněte na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Obnovit heslo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Pokud jste o obnovení nežádali, e-mail ignorujte.&lt;/p&gt;</value></data>
+  <data name="Email_EmailChange_Subject" xml:space="preserve"><value>Potvrzení změny e-mailu</value></data>
+  <data name="Email_EmailChange_Body" xml:space="preserve"><value>&lt;p&gt;Potvrďte změnu e-mailu kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Potvrdit nový e-mail&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Phone_Subject" xml:space="preserve"><value>Kód pro změnu telefonu</value></data>
+  <data name="Email_Phone_Body" xml:space="preserve"><value>&lt;p&gt;Váš ověřovací kód pro změnu telefonního čísla je:&lt;/p&gt;&lt;p style="font-size:1.25rem;"&gt;&lt;strong&gt;{0}&lt;/strong&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Suspend_Subject" xml:space="preserve"><value>Potvrzení uspání účtu</value></data>
+  <data name="Email_Suspend_Body" xml:space="preserve"><value>&lt;p&gt;Uspání účtu potvrďte kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Uspat účet&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Reactivation_Subject" xml:space="preserve"><value>Obnovení účtu</value></data>
+  <data name="Email_Reactivation_Body" xml:space="preserve"><value>&lt;p&gt;Obnovte svůj účet kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Obnovit účet&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Notif_PasswordChanged_Title" xml:space="preserve"><value>Heslo změněno</value></data>
+  <data name="Notif_PasswordChanged_Body" xml:space="preserve"><value>Heslo k vašemu účtu bylo změněno.</value></data>
+  <data name="Notif_PasswordReset_Title" xml:space="preserve"><value>Heslo obnoveno</value></data>
+  <data name="Notif_PasswordReset_Body" xml:space="preserve"><value>Heslo k vašemu účtu bylo obnoveno.</value></data>
+  <data name="Notif_EmailChanged_Title" xml:space="preserve"><value>E-mail změněn</value></data>
+  <data name="Notif_EmailChanged_Body" xml:space="preserve"><value>Přihlašovací e-mail byl změněn na {0}.</value></data>
+  <data name="Notif_PhoneChanged_Title" xml:space="preserve"><value>Telefon změněn</value></data>
+  <data name="Notif_PhoneChanged_Body" xml:space="preserve"><value>Telefonní číslo bylo změněno na {0}.</value></data>
+  <data name="Notif_Activated_Title" xml:space="preserve"><value>Účet aktivován</value></data>
+  <data name="Notif_Activated_Body" xml:space="preserve"><value>Váš účet byl aktivován.</value></data>
+  <data name="Notif_Deactivated_Title" xml:space="preserve"><value>Účet deaktivován</value></data>
+  <data name="Notif_Deactivated_Body" xml:space="preserve"><value>Váš účet byl deaktivován.</value></data>
+  <data name="Notif_Reactivated_Title" xml:space="preserve"><value>Účet obnoven</value></data>
+  <data name="Notif_Reactivated_Body" xml:space="preserve"><value>Váš účet byl obnoven.</value></data>
+  <data name="Notif_Suspended_Title" xml:space="preserve"><value>Účet uspán</value></data>
+  <data name="Notif_Suspended_Body" xml:space="preserve"><value>Váš účet byl uspán.</value></data>
+  <data name="Notif_Blocked_Title" xml:space="preserve"><value>Účet zablokován</value></data>
+  <data name="Notif_Blocked_Body" xml:space="preserve"><value>Váš účet byl zablokován administrátorem.</value></data>
+  <data name="Notif_Blocked_Body_Reason" xml:space="preserve"><value>Váš účet byl zablokován administrátorem: {0}</value></data>
+  <data name="Notif_Unblocked_Title" xml:space="preserve"><value>Účet odblokován</value></data>
+  <data name="Notif_Unblocked_Body" xml:space="preserve"><value>Váš účet byl odblokován.</value></data>
+</root>

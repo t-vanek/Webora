@@ -17,6 +17,9 @@ public static class ValidationMessages
     public static string Password_Required => Get();
     public static string Password_Length => Get();
     public static string ConfirmPassword_Mismatch => Get();
+    public static string Phone_Required => Get();
+    public static string Phone_Invalid => Get();
+    public static string Code_Required => Get();
 
     private static string Get([System.Runtime.CompilerServices.CallerMemberName] string key = "") =>
         ResourceManager.GetString(key, CultureInfo.CurrentUICulture) ?? key;

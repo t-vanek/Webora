@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Error_AccountNotFound" xml:space="preserve"><value>Account not found.</value></data>
+  <data name="Error_EmailExists" xml:space="preserve"><value>An account with this email already exists.</value></data>
+  <data name="Error_InvalidPasswordReset" xml:space="preserve"><value>Invalid password reset request.</value></data>
+  <data name="Error_SuspendOnlyActive" xml:space="preserve"><value>Only an active account can be suspended.</value></data>
+  <data name="Error_InvalidSuspendToken" xml:space="preserve"><value>Invalid or expired confirmation token.</value></data>
+  <data name="Error_InvalidReactivationToken" xml:space="preserve"><value>Invalid or expired account restore link.</value></data>
+  <data name="Error_TransitionNotAllowed" xml:space="preserve"><value>Transition from “{0}” to “{1}” is not allowed.</value></data>
+  <data name="Email_Activation_Subject" xml:space="preserve"><value>Account activation</value></data>
+  <data name="Email_Activation_Body" xml:space="preserve"><value>&lt;p&gt;Activate your account by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Activate account&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Reset_Subject" xml:space="preserve"><value>Password reset</value></data>
+  <data name="Email_Reset_Body" xml:space="preserve"><value>&lt;p&gt;To set a new password, click the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Reset password&lt;/a&gt;&lt;/p&gt;&lt;p&gt;If you didn't request this, ignore the email.&lt;/p&gt;</value></data>
+  <data name="Email_EmailChange_Subject" xml:space="preserve"><value>Confirm email change</value></data>
+  <data name="Email_EmailChange_Body" xml:space="preserve"><value>&lt;p&gt;Confirm the email change by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Confirm new email&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Phone_Subject" xml:space="preserve"><value>Phone change code</value></data>
+  <data name="Email_Phone_Body" xml:space="preserve"><value>&lt;p&gt;Your verification code for the phone number change is:&lt;/p&gt;&lt;p style="font-size:1.25rem;"&gt;&lt;strong&gt;{0}&lt;/strong&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Suspend_Subject" xml:space="preserve"><value>Confirm account suspension</value></data>
+  <data name="Email_Suspend_Body" xml:space="preserve"><value>&lt;p&gt;Confirm the account suspension by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Suspend account&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_Reactivation_Subject" xml:space="preserve"><value>Account restore</value></data>
+  <data name="Email_Reactivation_Body" xml:space="preserve"><value>&lt;p&gt;Restore your account by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Restore account&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Notif_PasswordChanged_Title" xml:space="preserve"><value>Password changed</value></data>
+  <data name="Notif_PasswordChanged_Body" xml:space="preserve"><value>Your account password has been changed.</value></data>
+  <data name="Notif_PasswordReset_Title" xml:space="preserve"><value>Password reset</value></data>
+  <data name="Notif_PasswordReset_Body" xml:space="preserve"><value>Your account password has been reset.</value></data>
+  <data name="Notif_EmailChanged_Title" xml:space="preserve"><value>Email changed</value></data>
+  <data name="Notif_EmailChanged_Body" xml:space="preserve"><value>Your sign-in email has been changed to {0}.</value></data>
+  <data name="Notif_PhoneChanged_Title" xml:space="preserve"><value>Phone changed</value></data>
+  <data name="Notif_PhoneChanged_Body" xml:space="preserve"><value>Your phone number has been changed to {0}.</value></data>
+  <data name="Notif_Activated_Title" xml:space="preserve"><value>Account activated</value></data>
+  <data name="Notif_Activated_Body" xml:space="preserve"><value>Your account has been activated.</value></data>
+  <data name="Notif_Deactivated_Title" xml:space="preserve"><value>Account deactivated</value></data>
+  <data name="Notif_Deactivated_Body" xml:space="preserve"><value>Your account has been deactivated.</value></data>
+  <data name="Notif_Reactivated_Title" xml:space="preserve"><value>Account restored</value></data>
+  <data name="Notif_Reactivated_Body" xml:space="preserve"><value>Your account has been restored.</value></data>
+  <data name="Notif_Suspended_Title" xml:space="preserve"><value>Account suspended</value></data>
+  <data name="Notif_Suspended_Body" xml:space="preserve"><value>Your account has been suspended.</value></data>
+  <data name="Notif_Blocked_Title" xml:space="preserve"><value>Account blocked</value></data>
+  <data name="Notif_Blocked_Body" xml:space="preserve"><value>Your account has been blocked by an administrator.</value></data>
+  <data name="Notif_Blocked_Body_Reason" xml:space="preserve"><value>Your account has been blocked by an administrator: {0}</value></data>
+  <data name="Notif_Unblocked_Title" xml:space="preserve"><value>Account unblocked</value></data>
+  <data name="Notif_Unblocked_Body" xml:space="preserve"><value>Your account has been unblocked.</value></data>
+</root>

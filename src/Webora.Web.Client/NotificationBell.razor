@@ -1,15 +1,17 @@
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Localization
 @implements IAsyncDisposable
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IStringLocalizer<ClientResource> L
 
 @if (_authenticated)
 {
     <div class="dropdown">
-        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="@(_muted ? "Notifikace (ztlumeno)" : "Notifikace")">
+        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="@(_muted ? L["Bell_TitleMuted"] : L["Bell_Title"])">
             <span aria-hidden="true">@(_muted ? "🔕" : "🔔")</span>
             @if (_unreadCount > 0)
             {
@@ -22,15 +24,15 @@
         {
             <div class="dropdown-menu show p-2" style="position:absolute; right:0; min-width:320px; max-height:420px; overflow:auto;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>Notifikace</strong>
+                    <strong>@L["Bell_Title"]</strong>
                     @if (_unreadCount > 0)
                     {
-                        <button class="btn btn-sm btn-link" @onclick="MarkAllRead">Označit přečtené</button>
+                        <button class="btn btn-sm btn-link" @onclick="MarkAllRead">@L["Bell_MarkRead"]</button>
                     }
                 </div>
                 @if (_items.Count == 0)
                 {
-                    <p class="text-muted small mb-0">Žádné notifikace.</p>
+                    <p class="text-muted small mb-0">@L["Bell_NoNotifications"]</p>
                 }
                 else
                 {

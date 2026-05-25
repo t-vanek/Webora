@@ -1,18 +1,19 @@
 @page "/account/confirm-email"
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Aktivace účtu</PageTitle>
+<PageTitle>@L["ConfirmEmail_Title"]</PageTitle>
 
-<h1>Aktivace účtu</h1>
+<h1>@L["ConfirmEmail_Title"]</h1>
 
 @if (_succeeded is null)
 {
-    <p>Ověřuji…</p>
+    <p>@L["Common_Verifying"]</p>
 }
 else if (_succeeded == true)
 {
     <div class="alert alert-success" role="alert">
-        Účet byl aktivován. Nyní se můžete <a href="login">přihlásit</a>.
+        @L["ConfirmEmail_Success"] <a href="login">@L["Common_SignIn"]</a>.
     </div>
 }
 else
@@ -32,7 +33,7 @@ else
         if (UserId == Guid.Empty || string.IsNullOrEmpty(Token))
         {
             _succeeded = false;
-            _error = "Neplatný aktivační odkaz.";
+            _error = L["ConfirmEmail_Invalid"];
             return;
         }
 

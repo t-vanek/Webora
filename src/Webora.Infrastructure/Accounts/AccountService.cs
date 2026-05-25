@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Webora.Application.Abstractions.Email;
@@ -19,6 +20,7 @@ public sealed class AccountService(
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
     INotificationService notifications,
+    IStringLocalizer<AccountMessages> messages,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider,
     ILogger<AccountService> logger) : IAccountService
@@ -30,7 +32,7 @@ public sealed class AccountService(
     {
         if (await userManager.FindByEmailAsync(email) is not null)
         {
-            return AccountResult.Failure("Účet s tímto e-mailem již existuje.");
+            return AccountResult.Failure(messages["Error_EmailExists"]);
         }
 
         var user = new ApplicationUser
@@ -68,8 +70,7 @@ public sealed class AccountService(
     {
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
         var link = BuildLink("account/confirm-email", ("userId", user.Id.ToString()), ("token", token));
-        await SendAsync(user, "Aktivace účtu",
-            $"<p>Aktivujte svůj účet kliknutím na odkaz:</p><p><a href=\"{link}\">Aktivovat účet</a></p>");
+        await SendAsync(user, messages["Email_Activation_Subject"], messages["Email_Activation_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.ActivationRequested, "self", null, cancellationToken);
     }
@@ -112,8 +113,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordChanged, "self", null, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Heslo změněno",
-            "Heslo k vašemu účtu bylo změněno.", cancellationToken);
+        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordChanged_Title", "Notif_PasswordChanged_Body", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -124,9 +124,7 @@ public sealed class AccountService(
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var link = BuildLink("account/reset-password", ("email", email), ("token", token));
-            await SendAsync(user, "Obnovení hesla",
-                $"<p>Pro nastavení nového hesla klikněte na odkaz:</p><p><a href=\"{link}\">Obnovit heslo</a></p>" +
-                "<p>Pokud jste o obnovení nežádali, e-mail ignorujte.</p>");
+            await SendAsync(user, messages["Email_Reset_Subject"], messages["Email_Reset_Body", link]);
             await AuditAsync(user.Id, AccountAuditEventType.PasswordResetRequested, "self", null, cancellationToken);
         }
 
@@ -139,7 +137,7 @@ public sealed class AccountService(
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
-            return AccountResult.Failure("Neplatný požadavek na obnovení hesla.");
+            return AccountResult.Failure(messages["Error_InvalidPasswordReset"]);
         }
 
         var result = await userManager.ResetPasswordAsync(user, token, newPassword);
@@ -149,8 +147,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordReset, "self", null, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Heslo obnoveno",
-            "Heslo k vašemu účtu bylo obnoveno.", cancellationToken);
+        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordReset_Title", "Notif_PasswordReset_Body", cancellationToken);
         return AccountResult.Success;
     }
 
@@ -164,8 +161,7 @@ public sealed class AccountService(
 
         var token = await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
         var link = BuildLink("account/confirm-email-change", ("userId", user.Id.ToString()), ("email", newEmail), ("token", token));
-        await SendToAsync(newEmail, user.DisplayName, "Potvrzení změny e-mailu",
-            $"<p>Potvrďte změnu e-mailu kliknutím na odkaz:</p><p><a href=\"{link}\">Potvrdit nový e-mail</a></p>");
+        await SendToAsync(newEmail, user.DisplayName, messages["Email_EmailChange_Subject"], messages["Email_EmailChange_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChangeRequested, "self", newEmail, cancellationToken);
         return AccountResult.Success;
@@ -193,8 +189,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChanged, "self", newEmail, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "E-mail změněn",
-            $"Přihlašovací e-mail byl změněn na {newEmail}.", cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security,
+            messages["Notif_EmailChanged_Title"], messages["Notif_EmailChanged_Body", newEmail], cancellationToken);
         return AccountResult.Success;
     }
 
@@ -207,8 +203,7 @@ public sealed class AccountService(
         }
 
         var code = await userManager.GenerateChangePhoneNumberTokenAsync(user, newPhoneNumber);
-        await SendAsync(user, "Kód pro změnu telefonu",
-            $"<p>Váš ověřovací kód pro změnu telefonního čísla je:</p><p style=\"font-size:1.25rem;\"><strong>{code}</strong></p>");
+        await SendAsync(user, messages["Email_Phone_Subject"], messages["Email_Phone_Body", code]);
 
         await AuditAsync(user.Id, AccountAuditEventType.PhoneChangeRequested, "self", newPhoneNumber, cancellationToken);
         return AccountResult.Success;
@@ -229,8 +224,8 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PhoneChanged, "self", newPhoneNumber, cancellationToken);
-        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Info, "Telefon změněn",
-            $"Telefonní číslo bylo změněno na {newPhoneNumber}.", cancellationToken);
+        await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Info,
+            messages["Notif_PhoneChanged_Title"], messages["Notif_PhoneChanged_Body", newPhoneNumber], cancellationToken);
         return AccountResult.Success;
     }
 
@@ -257,8 +252,7 @@ public sealed class AccountService(
         {
             var token = await userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, ReactivateTokenPurpose);
             var link = BuildLink("account/confirm-reactivation", ("userId", user.Id.ToString()), ("token", token));
-            await SendAsync(user, "Obnovení účtu",
-                $"<p>Obnovte svůj účet kliknutím na odkaz:</p><p><a href=\"{link}\">Obnovit účet</a></p>");
+            await SendAsync(user, messages["Email_Reactivation_Subject"], messages["Email_Reactivation_Body", link]);
             await AuditAsync(user.Id, AccountAuditEventType.ReactivationRequested, "self", null, cancellationToken);
         }
 
@@ -277,7 +271,7 @@ public sealed class AccountService(
         var valid = await userManager.VerifyUserTokenAsync(user, TokenOptions.DefaultProvider, ReactivateTokenPurpose, token);
         if (!valid)
         {
-            return AccountResult.Failure("Neplatný nebo prošlý odkaz pro obnovení účtu.");
+            return AccountResult.Failure(messages["Error_InvalidReactivationToken"]);
         }
 
         return await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Reactivated, cancellationToken);
@@ -293,13 +287,12 @@ public sealed class AccountService(
 
         if (user.Status != AccountStatus.Active)
         {
-            return AccountResult.Failure("Uspat lze jen aktivní účet.");
+            return AccountResult.Failure(messages["Error_SuspendOnlyActive"]);
         }
 
         var token = await userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, SuspendTokenPurpose);
         var link = BuildLink("account/confirm-suspend", ("userId", user.Id.ToString()), ("token", token));
-        await SendAsync(user, "Potvrzení uspání účtu",
-            $"<p>Uspání účtu potvrďte kliknutím na odkaz:</p><p><a href=\"{link}\">Uspat účet</a></p>");
+        await SendAsync(user, messages["Email_Suspend_Subject"], messages["Email_Suspend_Body", link]);
 
         await AuditAsync(user.Id, AccountAuditEventType.SuspendRequested, "self", null, cancellationToken);
         return AccountResult.Success;
@@ -316,7 +309,7 @@ public sealed class AccountService(
         var valid = await userManager.VerifyUserTokenAsync(user, TokenOptions.DefaultProvider, SuspendTokenPurpose, token);
         if (!valid)
         {
-            return AccountResult.Failure("Neplatný nebo prošlý potvrzovací token.");
+            return AccountResult.Failure(messages["Error_InvalidSuspendToken"]);
         }
 
         return await TransitionAsync(user, AccountStatus.Suspended, "self", null, AccountAuditEventType.Suspended, cancellationToken);
@@ -363,7 +356,7 @@ public sealed class AccountService(
 
         if (!AccountStatusTransitions.IsAllowed(user.Status, target))
         {
-            return AccountResult.Failure($"Přechod ze stavu '{user.Status}' do '{target}' není povolen.");
+            return AccountResult.Failure(messages["Error_TransitionNotAllowed", user.Status, target]);
         }
 
         user.Status = target;
@@ -384,15 +377,15 @@ public sealed class AccountService(
 
     private async Task NotifyTransitionAsync(Guid userId, AccountAuditEventType type, string actor, string? reason, CancellationToken cancellationToken)
     {
-        (NotificationLevel Level, string Title, string Message)? n = type switch
+        (NotificationLevel Level, string Title, string Body)? n = type switch
         {
-            AccountAuditEventType.Activated => (NotificationLevel.Info, "Účet aktivován", "Váš účet byl aktivován."),
-            AccountAuditEventType.Deactivated => (NotificationLevel.Warning, "Účet deaktivován", "Váš účet byl deaktivován."),
-            AccountAuditEventType.Reactivated => (NotificationLevel.Info, "Účet obnoven", "Váš účet byl obnoven."),
-            AccountAuditEventType.Suspended => (NotificationLevel.Warning, "Účet uspán", "Váš účet byl uspán."),
-            AccountAuditEventType.Blocked => (NotificationLevel.Security, "Účet zablokován",
-                reason is null ? "Váš účet byl zablokován administrátorem." : $"Váš účet byl zablokován administrátorem: {reason}"),
-            AccountAuditEventType.Unblocked => (NotificationLevel.Info, "Účet odblokován", "Váš účet byl odblokován."),
+            AccountAuditEventType.Activated => (NotificationLevel.Info, messages["Notif_Activated_Title"], messages["Notif_Activated_Body"]),
+            AccountAuditEventType.Deactivated => (NotificationLevel.Warning, messages["Notif_Deactivated_Title"], messages["Notif_Deactivated_Body"]),
+            AccountAuditEventType.Reactivated => (NotificationLevel.Info, messages["Notif_Reactivated_Title"], messages["Notif_Reactivated_Body"]),
+            AccountAuditEventType.Suspended => (NotificationLevel.Warning, messages["Notif_Suspended_Title"], messages["Notif_Suspended_Body"]),
+            AccountAuditEventType.Blocked => (NotificationLevel.Security, messages["Notif_Blocked_Title"],
+                reason is null ? messages["Notif_Blocked_Body"] : messages["Notif_Blocked_Body_Reason", reason]),
+            AccountAuditEventType.Unblocked => (NotificationLevel.Info, messages["Notif_Unblocked_Title"], messages["Notif_Unblocked_Body"]),
             _ => null,
         };
 
@@ -402,9 +395,12 @@ public sealed class AccountService(
             var category = actor.StartsWith("admin:", StringComparison.Ordinal)
                 ? NotificationCategory.Administrative
                 : NotificationCategory.SelfService;
-            await notifications.NotifyAsync(userId, category, notification.Level, notification.Title, notification.Message, cancellationToken);
+            await notifications.NotifyAsync(userId, category, notification.Level, notification.Title, notification.Body, cancellationToken);
         }
     }
+
+    private Task NotifyKeysAsync(Guid userId, NotificationCategory category, NotificationLevel level, string titleKey, string bodyKey, CancellationToken cancellationToken) =>
+        notifications.NotifyAsync(userId, category, level, messages[titleKey], messages[bodyKey], cancellationToken);
 
     private async Task AuditAsync(Guid userId, AccountAuditEventType type, string actor, string? detail, CancellationToken cancellationToken)
     {
@@ -427,7 +423,7 @@ public sealed class AccountService(
         return $"{baseUrl}/{path}?{queryString}";
     }
 
-    private static AccountResult NotFound() => AccountResult.Failure("Účet nenalezen.");
+    private AccountResult NotFound() => AccountResult.Failure(messages["Error_AccountNotFound"]);
 
     private static AccountResult ToFailure(IdentityResult result) =>
         AccountResult.Failure(result.Errors.Select(e => e.Description).ToArray());

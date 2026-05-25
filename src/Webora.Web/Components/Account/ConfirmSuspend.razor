@@ -1,19 +1,20 @@
 @page "/account/confirm-suspend"
 @inject IAccountService AccountService
 @inject SignInManager<ApplicationUser> SignInManager
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Uspání účtu</PageTitle>
+<PageTitle>@L["ConfirmSuspend_Title"]</PageTitle>
 
-<h1>Uspání účtu</h1>
+<h1>@L["ConfirmSuspend_Title"]</h1>
 
 @if (_succeeded is null)
 {
-    <p>Ověřuji…</p>
+    <p>@L["Common_Verifying"]</p>
 }
 else if (_succeeded == true)
 {
     <div class="alert alert-success" role="alert">
-        Účet byl uspán. Obnovit jej můžete přes <a href="account/forgot-reactivation">obnovení účtu</a>.
+        @L["ConfirmSuspend_Success"] <a href="account/forgot-reactivation">@L["Common_RestoreLink"]</a>.
     </div>
 }
 else
@@ -33,7 +34,7 @@ else
         if (UserId == Guid.Empty || string.IsNullOrEmpty(Token))
         {
             _succeeded = false;
-            _error = "Neplatný odkaz pro uspání účtu.";
+            _error = L["ConfirmSuspend_Invalid"];
             return;
         }
 

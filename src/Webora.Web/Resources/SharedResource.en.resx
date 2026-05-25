@@ -20,6 +20,21 @@
   <data name="Nav_Logout" xml:space="preserve"><value>Sign out</value></data>
   <data name="Nav_MyAccount" xml:space="preserve"><value>My account</value></data>
   <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Layout_About" xml:space="preserve"><value>About</value></data>
+  <data name="Layout_Error" xml:space="preserve"><value>An unexpected error has occurred.</value></data>
+  <data name="Layout_Reload" xml:space="preserve"><value>Reload</value></data>
+  <data name="Common_SignIn" xml:space="preserve"><value>sign in</value></data>
+  <data name="Common_Verifying" xml:space="preserve"><value>Verifying…</value></data>
+  <data name="Common_RestoreLink" xml:space="preserve"><value>account restore</value></data>
+  <data name="Common_AccountNotFound" xml:space="preserve"><value>Account not found.</value></data>
+  <data name="Field_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Field_NewEmail" xml:space="preserve"><value>New email</value></data>
+  <data name="Field_Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Field_NewPassword" xml:space="preserve"><value>New password</value></data>
+  <data name="Field_ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="Field_CurrentPassword" xml:space="preserve"><value>Current password</value></data>
+  <data name="Field_NewPhone" xml:space="preserve"><value>New phone number</value></data>
+  <data name="Field_Code" xml:space="preserve"><value>Verification code</value></data>
   <data name="Login_Title" xml:space="preserve"><value>Sign in</value></data>
   <data name="Login_Email" xml:space="preserve"><value>Email</value></data>
   <data name="Login_Password" xml:space="preserve"><value>Password</value></data>
@@ -37,4 +52,88 @@
   <data name="Register_ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
   <data name="Register_Submit" xml:space="preserve"><value>Create account</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Your account has been created. We sent an activation link to the address you provided — confirm it to sign in.</value></data>
+  <data name="ForgotPassword_Title" xml:space="preserve"><value>Forgot password</value></data>
+  <data name="ForgotPassword_Submit" xml:space="preserve"><value>Send link</value></data>
+  <data name="ForgotPassword_Success" xml:space="preserve"><value>If an account with this address exists, we've sent it a password reset link.</value></data>
+  <data name="ResetPassword_Title" xml:space="preserve"><value>Reset password</value></data>
+  <data name="ResetPassword_Submit" xml:space="preserve"><value>Change password</value></data>
+  <data name="ResetPassword_Success" xml:space="preserve"><value>Your password has been changed.</value></data>
+  <data name="ResetPassword_Invalid" xml:space="preserve"><value>Invalid password reset link.</value></data>
+  <data name="ForgotReactivation_Title" xml:space="preserve"><value>Account restore</value></data>
+  <data name="ForgotReactivation_Intro" xml:space="preserve"><value>If you deactivated or suspended your account, we'll send you a link to restore it.</value></data>
+  <data name="ForgotReactivation_Submit" xml:space="preserve"><value>Send link</value></data>
+  <data name="ForgotReactivation_Success" xml:space="preserve"><value>If the account can be restored, we've sent a restore link to it.</value></data>
+  <data name="ConfirmEmail_Title" xml:space="preserve"><value>Account activation</value></data>
+  <data name="ConfirmEmail_Success" xml:space="preserve"><value>Your account has been activated.</value></data>
+  <data name="ConfirmEmail_Invalid" xml:space="preserve"><value>Invalid activation link.</value></data>
+  <data name="ConfirmEmailChange_Title" xml:space="preserve"><value>Email change</value></data>
+  <data name="ConfirmEmailChange_Success" xml:space="preserve"><value>Your email has been changed to {0}.</value></data>
+  <data name="ConfirmEmailChange_Invalid" xml:space="preserve"><value>Invalid email change link.</value></data>
+  <data name="ConfirmReactivation_Title" xml:space="preserve"><value>Account restore</value></data>
+  <data name="ConfirmReactivation_Success" xml:space="preserve"><value>Your account has been restored.</value></data>
+  <data name="ConfirmReactivation_Invalid" xml:space="preserve"><value>Invalid account restore link.</value></data>
+  <data name="ConfirmSuspend_Title" xml:space="preserve"><value>Account suspension</value></data>
+  <data name="ConfirmSuspend_Success" xml:space="preserve"><value>Your account has been suspended.</value></data>
+  <data name="ConfirmSuspend_Invalid" xml:space="preserve"><value>Invalid suspension link.</value></data>
+  <data name="Manage_Title" xml:space="preserve"><value>My account</value></data>
+  <data name="Manage_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Manage_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Manage_Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="Manage_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Manage_ChangePassword" xml:space="preserve"><value>Change password</value></data>
+  <data name="Manage_ChangeEmail" xml:space="preserve"><value>Change email</value></data>
+  <data name="Manage_ChangePhone" xml:space="preserve"><value>Change phone</value></data>
+  <data name="Manage_Suspend" xml:space="preserve"><value>Suspend account</value></data>
+  <data name="Manage_Deactivate" xml:space="preserve"><value>Deactivate account</value></data>
+  <data name="ChangePassword_Title" xml:space="preserve"><value>Change password</value></data>
+  <data name="ChangePassword_Submit" xml:space="preserve"><value>Change password</value></data>
+  <data name="ChangePassword_Success" xml:space="preserve"><value>Your password has been changed.</value></data>
+  <data name="ChangeEmail_Title" xml:space="preserve"><value>Change email</value></data>
+  <data name="ChangeEmail_Submit" xml:space="preserve"><value>Send confirmation</value></data>
+  <data name="ChangeEmail_Success" xml:space="preserve"><value>We've sent a confirmation link to the new address. The change takes effect once confirmed.</value></data>
+  <data name="ChangePhone_Title" xml:space="preserve"><value>Change phone</value></data>
+  <data name="ChangePhone_RequestSubmit" xml:space="preserve"><value>Send verification code</value></data>
+  <data name="ChangePhone_CodeSent" xml:space="preserve"><value>We've sent a verification code to your email.</value></data>
+  <data name="ChangePhone_ConfirmSubmit" xml:space="preserve"><value>Confirm change</value></data>
+  <data name="ChangePhone_Success" xml:space="preserve"><value>Your phone number has been changed.</value></data>
+  <data name="Deactivate_Title" xml:space="preserve"><value>Deactivate account</value></data>
+  <data name="Deactivate_Intro" xml:space="preserve"><value>After deactivation you won't be able to sign in. You can restore the account later via account restore.</value></data>
+  <data name="Deactivate_Submit" xml:space="preserve"><value>Deactivate account</value></data>
+  <data name="Suspend_Title" xml:space="preserve"><value>Suspend account</value></data>
+  <data name="Suspend_Intro" xml:space="preserve"><value>Suspension is temporary. We'll email you to confirm; the account is suspended only after confirmation.</value></data>
+  <data name="Suspend_Submit" xml:space="preserve"><value>Suspend account</value></data>
+  <data name="Suspend_Success" xml:space="preserve"><value>We've sent you a confirmation email. Click the link in it to complete the suspension.</value></data>
+  <data name="Logout_Title" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Logout_Confirm" xml:space="preserve"><value>Do you really want to sign out?</value></data>
+  <data name="Logout_Submit" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Logout_NotSignedIn" xml:space="preserve"><value>You are not signed in.</value></data>
+  <data name="Profile_Title" xml:space="preserve"><value>Profile</value></data>
+  <data name="Profile_SignedInAs" xml:space="preserve"><value>Signed in as</value></data>
+  <data name="Profile_NotificationSettings" xml:space="preserve"><value>Notification settings</value></data>
+  <data name="Profile_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Profile_StatusMuted" xml:space="preserve"><value>Muted</value></data>
+  <data name="Profile_StatusMutedUntil" xml:space="preserve"><value>Muted until {0}</value></data>
+  <data name="Profile_StatusActive" xml:space="preserve"><value>Active</value></data>
+  <data name="Profile_Scope" xml:space="preserve"><value>Scope</value></data>
+  <data name="Profile_ScopeSelfService" xml:space="preserve"><value>Self-service only</value></data>
+  <data name="Profile_ScopeAll" xml:space="preserve"><value>All</value></data>
+  <data name="Profile_Mute1h" xml:space="preserve"><value>Mute 1 h</value></data>
+  <data name="Profile_Mute8h" xml:space="preserve"><value>8 h</value></data>
+  <data name="Profile_MuteTomorrow" xml:space="preserve"><value>Until tomorrow</value></data>
+  <data name="Profile_MuteCompletely" xml:space="preserve"><value>Completely</value></data>
+  <data name="Profile_Unmute" xml:space="preserve"><value>Unmute</value></data>
+  <data name="Profile_ScopeSetSelf" xml:space="preserve"><value>Self-service only</value></data>
+  <data name="Profile_ScopeSetAll" xml:space="preserve"><value>All notifications</value></data>
+  <data name="Profile_Notifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="Profile_Unread" xml:space="preserve"><value>{0} unread</value></data>
+  <data name="Profile_MarkAllRead" xml:space="preserve"><value>Mark all as read</value></data>
+  <data name="Profile_NoNotifications" xml:space="preserve"><value>No notifications.</value></data>
+  <data name="Profile_Claims" xml:space="preserve"><value>Claims</value></data>
+  <data name="Notification_Level_Security" xml:space="preserve"><value>Security</value></data>
+  <data name="Notification_Level_Warning" xml:space="preserve"><value>Warning</value></data>
+  <data name="Notification_Level_Info" xml:space="preserve"><value>Info</value></data>
+  <data name="Bell_Title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifications (muted)</value></data>
+  <data name="Bell_MarkRead" xml:space="preserve"><value>Mark read</value></data>
+  <data name="Bell_NoNotifications" xml:space="preserve"><value>No notifications.</value></data>
 </root>

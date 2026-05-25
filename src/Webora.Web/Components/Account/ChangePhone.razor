@@ -3,14 +3,15 @@
 @using System.ComponentModel.DataAnnotations
 @inject UserManager<ApplicationUser> UserManager
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Změna telefonu</PageTitle>
+<PageTitle>@L["ChangePhone_Title"]</PageTitle>
 
-<h1>Změna telefonu</h1>
+<h1>@L["ChangePhone_Title"]</h1>
 
 @if (_done)
 {
-    <div class="alert alert-success" role="alert">Telefonní číslo bylo změněno.</div>
+    <div class="alert alert-success" role="alert">@L["ChangePhone_Success"]</div>
 }
 else
 {
@@ -25,25 +26,25 @@ else
                 <DataAnnotationsValidator />
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="RequestInput.NewPhoneNumber" class="form-control" autocomplete="tel" placeholder="+420…" />
-                    <label>Nové telefonní číslo</label>
+                    <label>@L["Field_NewPhone"]</label>
                     <ValidationMessage For="() => RequestInput.NewPhoneNumber" />
                 </div>
-                <button type="submit" class="btn btn-secondary">Poslat ověřovací kód</button>
+                <button type="submit" class="btn btn-secondary">@L["ChangePhone_RequestSubmit"]</button>
             </EditForm>
 
             @if (_codeSent || !string.IsNullOrEmpty(ConfirmInput.NewPhoneNumber))
             {
                 <hr />
-                <p class="text-muted">Ověřovací kód jsme poslali na váš e-mail.</p>
+                <p class="text-muted">@L["ChangePhone_CodeSent"]</p>
                 <EditForm Model="ConfirmInput" method="post" OnValidSubmit="ConfirmCode" FormName="phone-confirm">
                     <DataAnnotationsValidator />
                     <input type="hidden" name="ConfirmInput.NewPhoneNumber" value="@ConfirmInput.NewPhoneNumber" />
                     <div class="form-floating mb-3">
                         <InputText @bind-Value="ConfirmInput.Code" class="form-control" placeholder="kód" />
-                        <label>Ověřovací kód</label>
+                        <label>@L["Field_Code"]</label>
                         <ValidationMessage For="() => ConfirmInput.Code" />
                     </div>
-                    <button type="submit" class="btn btn-primary">Potvrdit změnu</button>
+                    <button type="submit" class="btn btn-primary">@L["ChangePhone_ConfirmSubmit"]</button>
                 </EditForm>
             }
         </div>
@@ -76,7 +77,7 @@ else
         var user = await CurrentUserAsync();
         if (user is null)
         {
-            _error = "Účet nenalezen.";
+            _error = L["Common_AccountNotFound"];
             return;
         }
 
@@ -96,7 +97,7 @@ else
         var user = await CurrentUserAsync();
         if (user is null)
         {
-            _error = "Účet nenalezen.";
+            _error = L["Common_AccountNotFound"];
             return;
         }
 
@@ -112,8 +113,8 @@ else
 
     private sealed class RequestModel
     {
-        [Required(ErrorMessage = "Zadejte telefonní číslo.")]
-        [Phone]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Phone_Required))]
+        [Phone(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Phone_Invalid))]
         public string NewPhoneNumber { get; set; } = string.Empty;
     }
 
@@ -121,7 +122,7 @@ else
     {
         public string NewPhoneNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Zadejte ověřovací kód.")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Code_Required))]
         public string Code { get; set; } = string.Empty;
     }
 }

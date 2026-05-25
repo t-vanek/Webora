@@ -4,61 +4,62 @@
 @using Webora.Domain.Notifications
 @inject UserManager<ApplicationUser> UserManager
 @inject INotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Profil</PageTitle>
+<PageTitle>@L["Profile_Title"]</PageTitle>
 
-<h1>Profil</h1>
+<h1>@L["Profile_Title"]</h1>
 
 <AuthorizeView Context="auth">
     <Authorized>
-        <p>Přihlášen jako <strong>@auth.User.Identity?.Name</strong></p>
+        <p>@L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong></p>
 
-        <h2 class="h5 mt-4">Nastavení notifikací</h2>
+        <h2 class="h5 mt-4">@L["Profile_NotificationSettings"]</h2>
         <div class="mb-2">
-            <span class="me-2">Stav:</span>
+            <span class="me-2">@L["Profile_Status"]:</span>
             @if (_prefs.IsCurrentlyMuted)
             {
                 <span class="badge bg-warning text-dark">
-                    @(_prefs.Muted ? "Ztlumeno" : $"Ztlumeno do {_prefs.MutedUntilUtc?.LocalDateTime:g}")
+                    @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc?.LocalDateTime.ToString("g") ?? ""])
                 </span>
             }
             else
             {
-                <span class="badge bg-success">Aktivní</span>
+                <span class="badge bg-success">@L["Profile_StatusActive"]</span>
             }
-            <span class="ms-3 me-2">Rozsah:</span>
-            <span class="badge bg-secondary">@(_prefs.Scope == NotificationScope.SelfServiceOnly ? "Pouze self-service" : "Všechny")</span>
+            <span class="ms-3 me-2">@L["Profile_Scope"]:</span>
+            <span class="badge bg-secondary">@(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])</span>
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-2">
-            <MuteButton FormName="mute-1h" Label="Ztlumit 1 h" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
-            <MuteButton FormName="mute-8h" Label="8 h" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
-            <MuteButton FormName="mute-tomorrow" Label="Do zítřka" OnSubmit="MuteUntilTomorrowAsync" />
-            <MuteButton FormName="mute-all" Label="Úplně" Css="btn-warning" OnSubmit="MuteCompletelyAsync" />
+            <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
+            <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]" OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
+            <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]" OnSubmit="MuteUntilTomorrowAsync" />
+            <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]" Css="btn-warning" OnSubmit="MuteCompletelyAsync" />
             @if (_prefs.IsCurrentlyMuted)
             {
-                <MuteButton FormName="unmute" Label="Zrušit ztlumení" Css="btn-outline-success" OnSubmit="UnmuteAsync" />
+                <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]" Css="btn-outline-success" OnSubmit="UnmuteAsync" />
             }
         </div>
         <div class="d-flex flex-wrap gap-2 mb-2">
-            <MuteButton FormName="scope-self" Label="Jen self-service" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
-            <MuteButton FormName="scope-all" Label="Všechny notifikace" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
+            <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
+            <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]" Css="btn-outline-secondary" OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
         </div>
 
         <div class="d-flex align-items-center gap-2 mt-4">
-            <h2 class="h5 mb-0">Notifikace</h2>
+            <h2 class="h5 mb-0">@L["Profile_Notifications"]</h2>
             @if (_notifications.Any(n => !n.IsRead))
             {
-                <span class="badge bg-primary">@_notifications.Count(n => !n.IsRead) nepřečtených</span>
+                <span class="badge bg-primary">@L["Profile_Unread", _notifications.Count(n => !n.IsRead)]</span>
                 <EditForm Model="this" method="post" OnValidSubmit="MarkAllRead" FormName="mark-all-read" class="ms-auto">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">Označit vše jako přečtené</button>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">@L["Profile_MarkAllRead"]</button>
                 </EditForm>
             }
         </div>
 
         @if (_notifications.Count == 0)
         {
-            <p class="text-muted">Žádné notifikace.</p>
+            <p class="text-muted">@L["Profile_NoNotifications"]</p>
         }
         else
         {
@@ -76,7 +77,7 @@
             </ul>
         }
 
-        <h2 class="h5 mt-4">Claims</h2>
+        <h2 class="h5 mt-4">@L["Profile_Claims"]</h2>
         <ul>
             @foreach (var claim in auth.User.Claims)
             {
@@ -165,14 +166,14 @@
         }
     }
 
-    private static RenderFragment LevelBadge(NotificationLevel level) => builder =>
+    private RenderFragment LevelBadge(NotificationLevel level) => builder =>
     {
-        var (css, text) = level switch
+        var (css, key) = level switch
         {
-            NotificationLevel.Security => ("bg-danger", "Bezpečnost"),
-            NotificationLevel.Warning => ("bg-warning text-dark", "Upozornění"),
-            _ => ("bg-secondary", "Info"),
+            NotificationLevel.Security => ("bg-danger", "Notification_Level_Security"),
+            NotificationLevel.Warning => ("bg-warning text-dark", "Notification_Level_Warning"),
+            _ => ("bg-secondary", "Notification_Level_Info"),
         };
-        builder.AddMarkupContent(0, $"<span class=\"badge {css} ms-1\">{text}</span>");
+        builder.AddMarkupContent(0, $"<span class=\"badge {css} ms-1\">{System.Net.WebUtility.HtmlEncode(L[key])}</span>");
     };
 }

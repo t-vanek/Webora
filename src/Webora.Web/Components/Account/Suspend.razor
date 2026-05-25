@@ -2,18 +2,17 @@
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Uspání účtu</PageTitle>
+<PageTitle>@L["Suspend_Title"]</PageTitle>
 
-<h1>Uspání účtu</h1>
+<h1>@L["Suspend_Title"]</h1>
 
-<p>Uspání je dočasné. Pro potvrzení vám pošleme e-mail; účet se uspí až po potvrzení.</p>
+<p>@L["Suspend_Intro"]</p>
 
 @if (_submitted)
 {
-    <div class="alert alert-success" role="alert">
-        Poslali jsme vám potvrzovací e-mail. Uspání dokončíte kliknutím na odkaz v něm.
-    </div>
+    <div class="alert alert-success" role="alert">@L["Suspend_Success"]</div>
 }
 else
 {
@@ -22,7 +21,7 @@ else
         <div class="alert alert-danger" role="alert">@_error</div>
     }
     <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="suspend">
-        <button type="submit" class="btn btn-warning">Uspat účet</button>
+        <button type="submit" class="btn btn-warning">@L["Suspend_Submit"]</button>
     </EditForm>
 }
 
@@ -38,7 +37,7 @@ else
         var user = await UserManager.GetUserAsync(state.User);
         if (user is null)
         {
-            _error = "Účet nenalezen.";
+            _error = L["Common_AccountNotFound"];
             return;
         }
 
