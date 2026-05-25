@@ -1,5 +1,10 @@
+@*  Wrapper that turns each action into its own static-SSR EditForm post. The page can therefore
+    sit at the default render mode (no SignalR circuit), and each button has its own [SupplyParameterFromForm]
+    handler via FormName. FluentButton with Type="Submit" triggers the parent form's native POST.  *@
 <EditForm Model="this" method="post" OnValidSubmit="OnSubmit" FormName="@FormName">
-    <button type="submit" class="btn btn-sm @Css">@Label</button>
+    <FluentButton Type="ButtonType.Submit" Appearance="@Appearance" Style="@Style">
+        @Label
+    </FluentButton>
 </EditForm>
 
 @code {
@@ -7,7 +12,9 @@
 
     [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
 
-    [Parameter] public string Css { get; set; } = "btn-outline-primary";
+    [Parameter] public Appearance Appearance { get; set; } = Appearance.Outline;
+
+    [Parameter] public string? Style { get; set; }
 
     [Parameter] public EventCallback OnSubmit { get; set; }
 }
