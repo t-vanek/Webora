@@ -62,19 +62,19 @@ h1:focus {
 }
 
 /* AuthLayout body wrapper — centers the single-card auth forms (Login, Register, …) both
-   horizontally and vertically inside the available body area. Used in place of FluentStack
-   because FluentStack doesn't default to width:100%, so its HorizontalAlignment.Center centers
-   children within the stack's intrinsic width rather than the body's width — visually the card
-   stays anchored to the left. A plain flex container with width:100% gives predictable
-   centering regardless of card size. min-height: calc(100vh - 3.5rem) subtracts FluentHeader's
-   height so short forms float in the middle of the visible viewport instead of clinging
-   to the top. */
+   horizontally and vertically inside the available body area. Pairs with FluentBodyContent's
+   display:flex; flex-direction:column override in AuthLayout: that makes this wrapper a flex
+   child, and flex:1 stretches it to fill the body's full computed height. That's more reliable
+   than min-height: calc(100vh - 3.5rem) was — Fluent's FluentHeader is taller than 3.5rem
+   once its 0 1.5rem padding is in play, so the old calc was off by a dozen-ish pixels and the
+   card sat below true center. With flex:1 the wrapper just fills whatever the body actually
+   has, no header-height assumption needed. */
 .auth-body-wrap {
+    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
-    min-height: calc(100vh - 3.5rem);
     padding: 1.5rem;
     box-sizing: border-box;
 }

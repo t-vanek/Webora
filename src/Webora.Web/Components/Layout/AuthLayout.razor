@@ -39,11 +39,13 @@
         vertically inside the available body area. FluentStack was tempting here but it doesn't
         default to full-width, so HorizontalAlignment.Center only centers children within the
         stack's own (intrinsic) width — i.e. it stays left-anchored. A flex container with
-        width:100% gives us the predictable "center inside the whole body" behavior.
-        min-height: calc(100vh - 3.5rem) anchors against the visible viewport minus the
-        FluentHeader height so short forms float in the middle of the screen instead of clinging
-        to the top.  *@
-    <FluentBodyContent Class="body-content" Style="overflow:auto">
+        width:100% gives predictable "center inside the whole body" behavior.
+
+        Make FluentBodyContent itself a flex column so .auth-body-wrap can flex:1 into its full
+        height, instead of guessing the header height with min-height: calc(100vh - 3.5rem) —
+        Fluent's header is actually taller than 3.5rem once its inner padding is applied, which
+        was leaving the card a dozen-or-so pixels below true center.  *@
+    <FluentBodyContent Class="body-content" Style="display:flex; flex-direction:column; overflow:auto">
         <div class="auth-body-wrap">
             @Body
         </div>
