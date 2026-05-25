@@ -33,13 +33,17 @@ h1:focus {
     }
 
 /* Login / Register links in the header for unauthenticated visitors. Same colour token as the
-   brand so they sit on the accent header readably; underline appears on hover. The flex layout
-   puts the FluentIcon next to the label with a small gap. */
-.header-nav-link {
+   brand so they sit on the accent header readably. Underline only on hover — :link / :visited /
+   :active explicitly opted out so browsers don't add their own. The inline-flex + gap places the
+   FluentIcon next to the label; outer spacing between this link and its neighbours is supplied
+   by the parent FluentStack / FluentHeader gap (not by margins here). */
+.header-nav-link,
+.header-nav-link:link,
+.header-nav-link:visited,
+.header-nav-link:active {
     color: var(--foreground-on-accent-rest, white);
     text-decoration: none;
     font-size: 0.9rem;
-    margin: 0 0.4rem;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -48,6 +52,14 @@ h1:focus {
     .header-nav-link:hover {
         text-decoration: underline;
     }
+
+/* Thin vertical line that separates the auth links from the icon-button cluster in the header. */
+.header-divider {
+    width: 1px;
+    height: 1.5rem;
+    background-color: var(--foreground-on-accent-rest, white);
+    opacity: 0.3;
+}
 
 /* Blazor framework error bar — shown when the SignalR circuit drops with no recovery. Stays
    bright lightyellow (color-scheme: light only) so it's hard to miss regardless of theme. */
