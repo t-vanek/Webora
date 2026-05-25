@@ -1,3 +1,4 @@
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Localization
@@ -11,44 +12,60 @@
 
 @if (_authenticated)
 {
-    <div class="dropdown">
-        <button class="btn btn-dark position-relative" type="button" @onclick="ToggleOpen" title="@(_muted ? L["Bell_TitleMuted"] : L["Bell_Title"])">
-            <span aria-hidden="true">@(_muted ? "🔕" : "🔔")</span>
+    <div style="position:relative">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="ToggleOpen"
+                      Title="@(_muted ? L["Bell_TitleMuted"] : L["Bell_Title"])"
+                      Style="position:relative">
+            <FluentIcon Value="@(_muted
+                ? (Icon)new Icons.Regular.Size24.AlertOff()
+                : new Icons.Regular.Size24.Alert())" />
             @if (_unreadCount > 0)
             {
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <FluentBadge Appearance="Appearance.Accent" Fill="danger"
+                             Style="position:absolute; top:-2px; right:-2px; min-width:18px; padding:0 4px; font-size:0.7rem">
                     @_unreadCount
-                </span>
+                </FluentBadge>
             }
-        </button>
+        </FluentButton>
+
         @if (_open)
         {
-            <div class="dropdown-menu show p-2" style="position:absolute; right:0; min-width:320px; max-height:420px; overflow:auto;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>@L["Bell_Title"]</strong>
-                    @if (_unreadCount > 0)
+            <FluentCard Style="position:absolute; right:0; top:100%; margin-top:4px; min-width:320px; max-width:420px; max-height:420px; overflow:auto; z-index:1000">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Subject">@L["Bell_Title"]</FluentLabel>
+                        @if (_unreadCount > 0)
+                        {
+                            <FluentSpacer />
+                            <FluentButton Appearance="Appearance.Hypertext" OnClick="MarkAllRead">
+                                @L["Bell_MarkRead"]
+                            </FluentButton>
+                        }
+                    </FluentStack>
+
+                    @if (_items.Count == 0)
                     {
-                        <button class="btn btn-sm btn-link" @onclick="MarkAllRead">@L["Bell_MarkRead"]</button>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Bell_NoNotifications"]</FluentLabel>
                     }
-                </div>
-                @if (_items.Count == 0)
-                {
-                    <p class="text-muted small mb-0">@L["Bell_NoNotifications"]</p>
-                }
-                else
-                {
-                    @foreach (var n in _items)
+                    else
                     {
-                        <button type="button"
-                                class="btn btn-link text-start w-100 p-0 border-0 border-bottom py-1 @(n.IsRead ? "" : "fw-semibold")"
-                                @onclick="() => MarkRead(n.Id)"
-                                disabled="@n.IsRead">
-                            <div class="small">@n.Title</div>
-                            <div class="small text-muted">@n.Message</div>
-                        </button>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                            @foreach (var n in _items)
+                            {
+                                <FluentButton Appearance="Appearance.Stealth"
+                                              OnClick="@(() => MarkRead(n.Id))"
+                                              Disabled="@n.IsRead"
+                                              Style="@($"width:100%; text-align:left; padding:6px 8px; border-bottom:1px solid var(--neutral-stroke-divider-rest); justify-content:flex-start; {(n.IsRead ? "" : "font-weight:600")}")">
+                                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" Style="width:100%">
+                                        <span style="font-size:0.85rem">@n.Title</span>
+                                        <span style="font-size:0.8rem; color:var(--neutral-foreground-hint)">@n.Message</span>
+                                    </FluentStack>
+                                </FluentButton>
+                            }
+                        </FluentStack>
                     }
-                }
-            </div>
+                </FluentStack>
+            </FluentCard>
         }
     </div>
 }
