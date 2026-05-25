@@ -7,27 +7,32 @@
     @*  FluentHeader paints itself with --accent-fill-rest, so the brand text needs a foreground
         that reads against the accent (not the page neutral). --foreground-on-accent-rest is the
         complementary token Fluent components use for the same purpose.  *@
-    <FluentHeader Style="gap: 12px; padding: 0 1.5rem">
+    @*  FluentHeader is a flex container, but FluentSpacer only reliably pushes content right when
+        it sits between exactly two flex children. Group everything that belongs on the right into
+        one wrapping FluentStack so the spacer has a clean "brand | (spacer) | tools" split.  *@
+    <FluentHeader Style="padding: 0 1.5rem">
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
-        <AuthorizeView>
-            <NotAuthorized>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center">
-                    <a href="login" class="header-nav-link">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Nav_Login"]
-                    </a>
-                    <a href="register" class="header-nav-link">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Nav_Register"]
-                    </a>
-                </FluentStack>
-                <div class="header-divider" aria-hidden="true"></div>
-            </NotAuthorized>
-        </AuthorizeView>
-        <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-        <LanguageSwitcher @rendermode="InteractiveServer" />
-        <ThemeToggle @rendermode="InteractiveServer" />
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+            <AuthorizeView>
+                <NotAuthorized>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+                        <a href="login" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Login"]
+                        </a>
+                        <a href="register" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Register"]
+                        </a>
+                    </FluentStack>
+                    <div class="header-divider" aria-hidden="true"></div>
+                </NotAuthorized>
+            </AuthorizeView>
+            <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+            <LanguageSwitcher @rendermode="InteractiveServer" />
+            <ThemeToggle @rendermode="InteractiveServer" />
+        </FluentStack>
     </FluentHeader>
 
     <FluentStack Class="main" Orientation="Orientation.Horizontal" Width="100%" Style="flex:1; overflow:hidden">
