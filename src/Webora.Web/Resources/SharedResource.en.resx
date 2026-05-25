@@ -40,6 +40,8 @@
   <data name="Login_Password" xml:space="preserve"><value>Password</value></data>
   <data name="Login_Remember" xml:space="preserve"><value>Remember me</value></data>
   <data name="Login_Submit" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Login_Subtitle" xml:space="preserve"><value>Sign in to your account</value></data>
+  <data name="Login_NoAccount" xml:space="preserve"><value>Don't have an account?</value></data>
   <data name="Login_Invalid" xml:space="preserve"><value>Invalid email or password.</value></data>
   <data name="Login_LockedOut" xml:space="preserve"><value>The account is temporarily locked.</value></data>
   <data name="Login_CreateAccount" xml:space="preserve"><value>Create an account</value></data>
@@ -51,6 +53,9 @@
   <data name="Register_Password" xml:space="preserve"><value>Password</value></data>
   <data name="Register_ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
   <data name="Register_Submit" xml:space="preserve"><value>Create account</value></data>
+  <data name="Register_Subtitle" xml:space="preserve"><value>Create a new account</value></data>
+  <data name="Register_HaveAccount" xml:space="preserve"><value>Already have an account?</value></data>
+  <data name="Register_SignIn" xml:space="preserve"><value>Sign in</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Your account has been created. We sent an activation link to the address you provided — confirm it to sign in.</value></data>
   <data name="ForgotPassword_Title" xml:space="preserve"><value>Forgot password</value></data>
   <data name="ForgotPassword_Submit" xml:space="preserve"><value>Send link</value></data>

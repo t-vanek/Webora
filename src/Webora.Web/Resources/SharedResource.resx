@@ -40,6 +40,8 @@
   <data name="Login_Password" xml:space="preserve"><value>Heslo</value></data>
   <data name="Login_Remember" xml:space="preserve"><value>Zapamatovat přihlášení</value></data>
   <data name="Login_Submit" xml:space="preserve"><value>Přihlásit se</value></data>
+  <data name="Login_Subtitle" xml:space="preserve"><value>Přihlaste se ke svému účtu</value></data>
+  <data name="Login_NoAccount" xml:space="preserve"><value>Nemáte účet?</value></data>
   <data name="Login_Invalid" xml:space="preserve"><value>Neplatný e-mail nebo heslo.</value></data>
   <data name="Login_LockedOut" xml:space="preserve"><value>Účet je dočasně uzamčen.</value></data>
   <data name="Login_CreateAccount" xml:space="preserve"><value>Vytvořit účet</value></data>
@@ -51,6 +53,9 @@
   <data name="Register_Password" xml:space="preserve"><value>Heslo</value></data>
   <data name="Register_ConfirmPassword" xml:space="preserve"><value>Heslo znovu</value></data>
   <data name="Register_Submit" xml:space="preserve"><value>Vytvořit účet</value></data>
+  <data name="Register_Subtitle" xml:space="preserve"><value>Vytvořte si nový účet</value></data>
+  <data name="Register_HaveAccount" xml:space="preserve"><value>Už máte účet?</value></data>
+  <data name="Register_SignIn" xml:space="preserve"><value>Přihlásit se</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Účet byl vytvořen. Na zadanou adresu jsme poslali aktivační odkaz — po jeho potvrzení se budete moci přihlásit.</value></data>
   <data name="ForgotPassword_Title" xml:space="preserve"><value>Zapomenuté heslo</value></data>
   <data name="ForgotPassword_Submit" xml:space="preserve"><value>Poslat odkaz</value></data>
