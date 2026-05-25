@@ -1,3 +1,4 @@
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Navigation
 @inject ISiteSettingsService SiteSettings
@@ -11,78 +12,65 @@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @L["Nav_Home"]
-            </NavLink>
-        </div>
+    <FluentNavMenu Width="250" Collapsible="false">
+        <FluentNavLink Href="" Match="NavLinkMatch.All"
+                       Icon="@(new Icons.Regular.Size20.Home())">
+            @L["Nav_Home"]
+        </FluentNavLink>
 
         @if (_canAdminUsers || _canAdminRoles || _canSettings)
         {
-            <div class="nav-item px-3 mt-2">
-                <small class="text-light text-uppercase">@L["Nav_Administration"]</small>
-            </div>
-            @if (_canAdminUsers)
-            {
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="admin/users">
-                        <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminUsers"]
-                    </NavLink>
-                </div>
-            }
-            @if (_canAdminRoles)
-            {
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="admin/roles">
-                        <span class="bi bi-shield-lock-nav-menu" aria-hidden="true"></span> @L["Nav_AdminRoles"]
-                    </NavLink>
-                </div>
-            }
-            @if (_canSettings)
-            {
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="admin/settings">
-                        <span class="bi bi-gear-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminSettings"]
-                    </NavLink>
-                </div>
-            }
+            <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
+                @if (_canAdminUsers)
+                {
+                    <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
+                        @L["Nav_AdminUsers"]
+                    </FluentNavLink>
+                }
+                @if (_canAdminRoles)
+                {
+                    <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
+                        @L["Nav_AdminRoles"]
+                    </FluentNavLink>
+                }
+                @if (_canSettings)
+                {
+                    <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
+                        @L["Nav_AdminSettings"]
+                    </FluentNavLink>
+                }
+            </FluentNavGroup>
         }
 
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="account/manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logout">
-                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> @L["Nav_Logout"]
-                    </NavLink>
-                </div>
+                <FluentNavLink Href="account/manage" Icon="@(new Icons.Regular.Size20.Person())">
+                    @context.User.Identity?.Name
+                </FluentNavLink>
+                <FluentNavLink Href="logout" Icon="@(new Icons.Regular.Size20.SignOut())">
+                    @L["Nav_Logout"]
+                </FluentNavLink>
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> @L["Nav_Login"]
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="register">
-                        <span class="bi bi-person-plus-nav-menu" aria-hidden="true"></span> @L["Nav_Register"]
-                    </NavLink>
-                </div>
+                <FluentNavLink Href="login" Icon="@(new Icons.Regular.Size20.PersonAccounts())">
+                    @L["Nav_Login"]
+                </FluentNavLink>
+                <FluentNavLink Href="register" Icon="@(new Icons.Regular.Size20.PersonAdd())">
+                    @L["Nav_Register"]
+                </FluentNavLink>
             </NotAuthorized>
         </AuthorizeView>
+    </FluentNavMenu>
 
-        <div class="nav-item px-3 mt-2">
-            <small class="text-light">@L["Language"]:</small>
-            <a class="nav-link d-inline p-0 ms-1" href="@CultureUrl("cs")">CS</a>
-            <span class="text-light">|</span>
-            <a class="nav-link d-inline p-0" href="@CultureUrl("en")">EN</a>
-        </div>
-    </nav>
+    @* Language switcher stays as small links below the nav menu — Fluent doesn't have a great
+       slot for non-navigation footer items, and these are POST-cookie-and-redirect actions
+       handled by /culture/set, not real routes. *@
+    <div class="nav-item px-3 mt-2">
+        <small class="text-light">@L["Language"]:</small>
+        <a class="nav-link d-inline p-0 ms-1" href="@CultureUrl("cs")">CS</a>
+        <span class="text-light">|</span>
+        <a class="nav-link d-inline p-0" href="@CultureUrl("en")">EN</a>
+    </div>
 </div>
 
 @code {
