@@ -35,6 +35,10 @@
                     </FluentMessageBar>
                 }
                 <div>
+                    @*  FluentTextField in v4 doesn't expose an IconStart parameter; instead it
+                        forwards child content into the underlying <fluent-text-field> web
+                        component, which has a `start` slot for leading content. The slot=
+                        attribute on FluentIcon routes its rendered <svg> there.  *@
                     <FluentTextField Name="Input.Email"
                                      @bind-Value="Input.Email"
                                      Label="@L["Login_Email"]"
@@ -42,8 +46,9 @@
                                      Required="true"
                                      AutoComplete="username"
                                      Placeholder="email@example.com"
-                                     IconStart="@(new Icons.Regular.Size20.Mail())"
-                                     Style="width:100%" />
+                                     Style="width:100%">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" slot="start" />
+                    </FluentTextField>
                     <ValidationMessage For="() => Input.Email" />
                 </div>
                 <div>
@@ -53,8 +58,9 @@
                                      TextFieldType="TextFieldType.Password"
                                      Required="true"
                                      AutoComplete="current-password"
-                                     IconStart="@(new Icons.Regular.Size20.LockClosed())"
-                                     Style="width:100%" />
+                                     Style="width:100%">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
+                    </FluentTextField>
                     <ValidationMessage For="() => Input.Password" />
                 </div>
                 @*  RememberMe defaults to false on the server, so a checkbox that submits nothing
