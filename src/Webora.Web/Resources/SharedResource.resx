@@ -245,4 +245,10 @@
   <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
   <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Použije se pro zobrazování časů (audit, notifikace).</value></data>
   <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
+  <data name="Settings_EncodingSection" xml:space="preserve"><value>Kódování</value></data>
+  <data name="Settings_SaveEncoding" xml:space="preserve"><value>Uložit kódování</value></data>
+  <data name="Settings_PageCharset" xml:space="preserve"><value>Kódování stránek</value></data>
+  <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Znaková sada HTML stránek. Doporučeno UTF-8; jiné hodnoty způsobí překódování odpovědí.</value></data>
+  <data name="Settings_EmailCharset" xml:space="preserve"><value>Kódování e-mailů</value></data>
+  <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Znaková sada těla odchozích e-mailů.</value></data>
 </root>

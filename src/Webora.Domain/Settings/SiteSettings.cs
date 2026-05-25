@@ -38,6 +38,12 @@ public class SiteSettings : Entity, IAggregateRoot
     /// <summary>System time zone id (e.g. "Europe/Prague") used to display times. Null = server local.</summary>
     public string? DefaultTimeZoneId { get; private set; }
 
+    /// <summary>Charset declared for served HTML pages. Null = UTF-8.</summary>
+    public string? PageCharset { get; private set; }
+
+    /// <summary>Charset used to encode outgoing email bodies. Null = UTF-8.</summary>
+    public string? EmailCharset { get; private set; }
+
     private SiteSettings() { }
 
     public static SiteSettings CreateDefault()
@@ -78,6 +84,15 @@ public class SiteSettings : Entity, IAggregateRoot
     {
         DefaultLanguage = string.IsNullOrWhiteSpace(defaultLanguage) ? null : defaultLanguage.Trim();
         DefaultTimeZoneId = string.IsNullOrWhiteSpace(defaultTimeZoneId) ? null : defaultTimeZoneId.Trim();
+    }
+
+    public void UpdateEncoding(string? pageCharset, string? emailCharset)
+    {
+        PageCharset = Normalize(pageCharset);
+        EmailCharset = Normalize(emailCharset);
+
+        static string? Normalize(string? charset) =>
+            string.IsNullOrWhiteSpace(charset) ? null : charset.Trim().ToLowerInvariant();
     }
 
     /// <summary>The canonical base URL (scheme://host[:port]), or null when no host is configured.</summary>

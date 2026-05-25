@@ -132,13 +132,46 @@ else
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveRegion">
         <button class="btn btn-primary mt-3" @onclick="SaveRegionalAsync">@L["Settings_SaveRegion"]</button>
     </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_EncodingSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="pageCharset">@L["Settings_PageCharset"]</label>
+            <select id="pageCharset" class="form-select" @bind="_encoding.PageCharset">
+                @foreach (var charset in Charsets)
+                {
+                    <option value="@charset">@charset.ToUpperInvariant()</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_PageCharsetHelp"]</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="emailCharset">@L["Settings_EmailCharset"]</label>
+            <select id="emailCharset" class="form-select" @bind="_encoding.EmailCharset">
+                @foreach (var charset in Charsets)
+                {
+                    <option value="@charset">@charset.ToUpperInvariant()</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_EmailCharsetHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEncoding">
+        <button class="btn btn-primary mt-3" @onclick="SaveEncodingAsync">@L["Settings_SaveEncoding"]</button>
+    </AuthorizeView>
 }
 
 @code {
     private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
+    private static readonly string[] Charsets = ["utf-8", "iso-8859-2", "windows-1250", "iso-8859-1", "windows-1252"];
 
     private DomainForm? _form;
     private RegionalForm _regional = new();
+    private EncodingForm _encoding = new();
     private string? _baseUrl;
     private string? _message;
     private string? _error;
@@ -167,6 +200,11 @@ else
             DefaultLanguage = dto.Regional.DefaultLanguage ?? string.Empty,
             DefaultTimeZoneId = dto.Regional.DefaultTimeZoneId ?? string.Empty,
         };
+        _encoding = new EncodingForm
+        {
+            PageCharset = dto.Encoding.PageCharset ?? "utf-8",
+            EmailCharset = dto.Encoding.EmailCharset ?? "utf-8",
+        };
     }
 
     private async Task SaveDomainAsync()
@@ -185,6 +223,9 @@ else
 
     private Task SaveRegionalAsync() =>
         ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId)));
+
+    private Task SaveEncodingAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset)));
 
     private async Task ApplyAsync(Func<Task<AccountResult>> action)
     {
@@ -231,5 +272,11 @@ else
     {
         public string? DefaultLanguage { get; set; }
         public string? DefaultTimeZoneId { get; set; }
+    }
+
+    private sealed class EncodingForm
+    {
+        public string? PageCharset { get; set; }
+        public string? EmailCharset { get; set; }
     }
 }

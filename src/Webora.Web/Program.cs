@@ -16,6 +16,9 @@ using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
 
+// Enable legacy single-byte charsets (e.g. windows-1250, iso-8859-2) for page/email encoding.
+System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -103,6 +106,9 @@ else
 }
 
 app.UseForwardedHeaders();
+
+// Applies the configured page charset (re-encodes text/html when it is not UTF-8).
+app.UsePageCharset();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 

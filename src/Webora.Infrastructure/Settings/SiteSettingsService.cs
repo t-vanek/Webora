@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Webora.Application.Accounts;
@@ -11,6 +12,8 @@ public sealed class SiteSettingsService(
     WeboraDbContext dbContext,
     IStringLocalizer<AccountMessages> messages) : ISiteSettingsService
 {
+    private const string DefaultCharset = "utf-8";
+
     public async Task<SiteSettingsDto> GetAsync(CancellationToken cancellationToken = default) =>
         ToDto(await GetOrCreateAsync(cancellationToken));
 
@@ -74,6 +77,31 @@ public sealed class SiteSettingsService(
         return AccountResult.Success;
     }
 
+    public async Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, CancellationToken cancellationToken = default)
+    {
+        if (InvalidCharset(encoding.PageCharset) is { } badPage)
+        {
+            return AccountResult.Failure(messages["Error_InvalidCharset", badPage]);
+        }
+
+        if (InvalidCharset(encoding.EmailCharset) is { } badEmail)
+        {
+            return AccountResult.Failure(messages["Error_InvalidCharset", badEmail]);
+        }
+
+        var settings = await GetOrCreateAsync(cancellationToken);
+        settings.UpdateEncoding(encoding.PageCharset, encoding.EmailCharset);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return AccountResult.Success;
+    }
+
+    public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) =>
+        (await GetOrCreateAsync(cancellationToken)).PageCharset ?? DefaultCharset;
+
+    public async Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default) =>
+        (await GetOrCreateAsync(cancellationToken)).EmailCharset ?? DefaultCharset;
+
     public async Task<string?> GetDefaultLanguageAsync(CancellationToken cancellationToken = default) =>
         (await GetOrCreateAsync(cancellationToken)).DefaultLanguage;
 
@@ -107,7 +135,26 @@ public sealed class SiteSettingsService(
                 s.CanonicalHost, s.Scheme, s.Port, s.ForceHttps, s.HstsEnabled,
                 s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases),
             new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
+            new EncodingSettingsDto(s.PageCharset, s.EmailCharset),
             s.BaseUrl);
+
+    private static string? InvalidCharset(string? charset)
+    {
+        if (string.IsNullOrWhiteSpace(charset))
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = Encoding.GetEncoding(charset.Trim());
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return charset.Trim();
+        }
+    }
 
     private static bool IsValidHost(string value)
     {

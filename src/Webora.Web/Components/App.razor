@@ -1,8 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@using Webora.Web.Hosting
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!DOCTYPE html>
 <html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="@PageCharset" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <ResourcePreloader />
@@ -30,3 +33,8 @@
 </body>
 
 </html>
+
+@code {
+    private string PageCharset =>
+        HttpContextAccessor.HttpContext?.Items[CharsetMiddleware.HttpContextItemKey] as string ?? "utf-8";
+}

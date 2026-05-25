@@ -86,4 +86,5 @@
   <data name="Error_InvalidHost" xml:space="preserve"><value>Název domény „{0}" je neplatný.</value></data>
   <data name="Error_InvalidPort" xml:space="preserve"><value>Port musí být v rozsahu 1–65535.</value></data>
   <data name="Error_InvalidTimeZone" xml:space="preserve"><value>Časové pásmo „{0}" není platné.</value></data>
+  <data name="Error_InvalidCharset" xml:space="preserve"><value>Kódování „{0}" není platné.</value></data>
 </root>

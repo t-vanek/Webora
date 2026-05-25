@@ -11,6 +11,8 @@ public interface ISiteSettingsService
 
     Task<AccountResult> UpdateRegionalAsync(RegionalSettingsDto regional, CancellationToken cancellationToken = default);
 
+    Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, CancellationToken cancellationToken = default);
+
     /// <summary>The configured canonical base URL (scheme://host[:port]), or null when no host is set.</summary>
     Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default);
 
@@ -22,4 +24,10 @@ public interface ISiteSettingsService
 
     /// <summary>The configured display time zone, falling back to the server local zone when unset.</summary>
     Task<TimeZoneInfo> GetTimeZoneAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The charset declared for served HTML pages (defaults to "utf-8").</summary>
+    Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The charset used to encode outgoing email bodies (defaults to "utf-8").</summary>
+    Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default);
 }

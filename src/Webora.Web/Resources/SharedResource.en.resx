@@ -245,4 +245,10 @@
   <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Default time zone</value></data>
   <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Used to display times (audit, notifications).</value></data>
   <data name="Settings_ServerLocal" xml:space="preserve"><value>Server local time</value></data>
+  <data name="Settings_EncodingSection" xml:space="preserve"><value>Encoding</value></data>
+  <data name="Settings_SaveEncoding" xml:space="preserve"><value>Save encoding</value></data>
+  <data name="Settings_PageCharset" xml:space="preserve"><value>Page charset</value></data>
+  <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Character set of HTML pages. UTF-8 recommended; other values cause responses to be re-encoded.</value></data>
+  <data name="Settings_EmailCharset" xml:space="preserve"><value>Email charset</value></data>
+  <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Character set of outgoing email bodies.</value></data>
 </root>
