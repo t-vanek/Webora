@@ -10,6 +10,7 @@
         <div class="top-row px-4 d-flex align-items-center gap-3">
             <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">@L["Layout_About"]</a>
+            <ThemeToggle @rendermode="InteractiveServer" />
         </div>
 
         <article class="content px-4">
@@ -18,15 +19,11 @@
     </main>
 </div>
 
-@* Emits the Fluent design token CSS variables (--accent-fill-*, --neutral-*, typography, etc.) on
-   the document so any Fluent component on the page resolves them. Without it components render
-   with their fallback styles. Theme/mode stay at defaults — switch them later by binding Mode and
-   CustomColor. *@
-<FluentDesignTheme StorageName="theme" @rendermode="InteractiveServer" />
-
 @* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when the
    hosting page is statically rendered. Pages or admin forms that already run InteractiveServer can
-   call IDialogService / IToastService and the matching provider here will render the result. *@
+   call IDialogService / IToastService and the matching provider here will render the result. The
+   <ThemeToggle /> in the top-row also owns the FluentDesignTheme component that emits the design
+   tokens onto the document. *@
 <FluentToastProvider @rendermode="InteractiveServer" />
 <FluentDialogProvider @rendermode="InteractiveServer" />
 <FluentTooltipProvider @rendermode="InteractiveServer" />

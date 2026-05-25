@@ -21,6 +21,8 @@
   <data name="Layout_About" xml:space="preserve"><value>O aplikaci</value></data>
   <data name="Layout_Error" xml:space="preserve"><value>Došlo k neočekávané chybě.</value></data>
   <data name="Layout_Reload" xml:space="preserve"><value>Znovu načíst</value></data>
+  <data name="Layout_ThemeSwitchToDark" xml:space="preserve"><value>Přepnout na tmavý režim</value></data>
+  <data name="Layout_ThemeSwitchToLight" xml:space="preserve"><value>Přepnout na světlý režim</value></data>
   <data name="Common_SignIn" xml:space="preserve"><value>přihlásit se</value></data>
   <data name="Common_Verifying" xml:space="preserve"><value>Ověřuji…</value></data>
   <data name="Common_RestoreLink" xml:space="preserve"><value>obnovení účtu</value></data>
