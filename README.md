@@ -17,19 +17,43 @@ The dependency flow is `Domain ← Application ← Infrastructure ← Web`.
 
 ## Getting started
 
-Prerequisites: .NET 10 SDK and Docker.
+Prerequisites: Docker. (The .NET 10 SDK is only needed for the host-side workflow below.)
+
+### Run everything in Docker
 
 ```bash
-# 1. Start Postgres, Redis, RabbitMQ and smtp4dev
-docker compose up -d
+docker compose up --build
+```
 
-# 2. Apply the database schema (Identity + OpenIddict tables)
+This builds the app image and starts it next to Postgres, Redis, RabbitMQ and smtp4dev. The
+container runs in the `Development` environment, so on startup it applies the EF migrations and
+seeds the admin account. Once it's up:
+
+- App: http://localhost:8080
+- Captured email (smtp4dev): http://localhost:5099
+- RabbitMQ management: http://localhost:15672 (`guest` / `guest`)
+
+Default admin sign-in is `admin@webora.local` / `Admin123$` (see the `IdentitySeed` section in
+`src/Webora.Web/appsettings.json`).
+
+### Run the app on the host
+
+Start only the backing services and run the engine with the SDK — handy for debugging:
+
+```bash
+# 1. Backing services only
+docker compose up -d postgres redis rabbitmq smtp4dev
+
+# 2. Run the engine (Development auto-applies migrations and seeds the admin account)
+dotnet run --project src/Webora.Web
+```
+
+To apply the database schema manually (e.g. outside the Development environment):
+
+```bash
 dotnet dotnet-ef database update \
   --project src/Webora.Infrastructure \
   --startup-project src/Webora.Infrastructure
-
-# 3. Run the engine
-dotnet run --project src/Webora.Web
 ```
 
 Backing services are configured via `ConnectionStrings` in `src/Webora.Web/appsettings.json`
