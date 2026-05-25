@@ -35,12 +35,17 @@
                             @_error
                         </FluentMessageBar>
                     }
+                    @*  FluentTextField in v4 doesn't expose an IconStart parameter; instead it
+                        forwards child content into the underlying <fluent-text-field> web
+                        component, which has a `start` slot for leading content. The slot=
+                        attribute on FluentIcon routes its rendered <svg> there.  *@
                     <FluentTextField Name="Input.DisplayName"
                                      @bind-Value="Input.DisplayName"
                                      Label="@L["Register_DisplayName"]"
                                      AutoComplete="name"
-                                     IconStart="@(new Icons.Regular.Size20.Person())"
-                                     Style="width:100%" />
+                                     Style="width:100%">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Person())" slot="start" />
+                    </FluentTextField>
                     <div>
                         <FluentTextField Name="Input.Email"
                                          @bind-Value="Input.Email"
@@ -49,8 +54,9 @@
                                          Required="true"
                                          AutoComplete="username"
                                          Placeholder="email@example.com"
-                                         IconStart="@(new Icons.Regular.Size20.Mail())"
-                                         Style="width:100%" />
+                                         Style="width:100%">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" slot="start" />
+                        </FluentTextField>
                         <ValidationMessage For="() => Input.Email" />
                     </div>
                     <div>
@@ -60,8 +66,9 @@
                                          TextFieldType="TextFieldType.Password"
                                          Required="true"
                                          AutoComplete="new-password"
-                                         IconStart="@(new Icons.Regular.Size20.LockClosed())"
-                                         Style="width:100%" />
+                                         Style="width:100%">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
+                        </FluentTextField>
                         <ValidationMessage For="() => Input.Password" />
                     </div>
                     <div>
@@ -71,8 +78,9 @@
                                          TextFieldType="TextFieldType.Password"
                                          Required="true"
                                          AutoComplete="new-password"
-                                         IconStart="@(new Icons.Regular.Size20.LockClosed())"
-                                         Style="width:100%" />
+                                         Style="width:100%">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
+                        </FluentTextField>
                         <ValidationMessage For="() => Input.ConfirmPassword" />
                     </div>
                     <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:4px">
