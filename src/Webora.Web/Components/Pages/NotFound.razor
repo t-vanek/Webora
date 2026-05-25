@@ -4,8 +4,8 @@
 
 <PageTitle>@L["NotFound_Title"]</PageTitle>
 
-<h1>@L["NotFound_Title"]</h1>
-
-<p>@L["NotFound_Message"]</p>
-
-<a href="">@L["NotFound_Home"]</a>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["NotFound_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["NotFound_Message"]</FluentLabel>
+    <FluentAnchor Href="" Appearance="Appearance.Hypertext">@L["NotFound_Home"]</FluentAnchor>
+</FluentStack>

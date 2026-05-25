@@ -4,15 +4,17 @@
 
 <PageTitle>@L["ErrorPage_Title"]</PageTitle>
 
-<h1 class="text-danger">@L["ErrorPage_Title"]</h1>
-<h2 class="text-danger">@L["ErrorPage_Heading"]</h2>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle" Color="Color.Error">@L["ErrorPage_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.H3" Color="Color.Error">@L["ErrorPage_Heading"]</FluentLabel>
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>@L["ErrorPage_RequestId"]</strong> <code>@RequestId</code>
-    </p>
-}
+    @if (ShowRequestId)
+    {
+        <FluentLabel Typo="Typography.Body">
+            <strong>@L["ErrorPage_RequestId"]</strong> <code>@RequestId</code>
+        </FluentLabel>
+    }
+</FluentStack>
 
 @code{
     [CascadingParameter]
