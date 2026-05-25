@@ -7,63 +7,65 @@
 
 <PageTitle>@L["ChangePhone_Title"]</PageTitle>
 
-<div class="row">
-    <div class="col-md-5">
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-                <FluentLabel Typo="Typography.H3">@L["ChangePhone_Title"]</FluentLabel>
+<FluentCard Style="max-width:480px">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentLabel Typo="Typography.H3">@L["ChangePhone_Title"]</FluentLabel>
 
-                @if (_done)
-                {
-                    <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-                        @L["ChangePhone_Success"]
-                    </FluentMessageBar>
-                }
-                else
-                {
-                    @if (!string.IsNullOrEmpty(_error))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                            @_error
-                        </FluentMessageBar>
-                    }
+        @if (_done)
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+                @L["ChangePhone_Success"]
+            </FluentMessageBar>
+        }
+        else
+        {
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                    @_error
+                </FluentMessageBar>
+            }
 
-                    <EditForm Model="RequestInput" method="post" OnValidSubmit="RequestCode" FormName="phone-request">
-                        <DataAnnotationsValidator />
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="RequestInput.NewPhoneNumber" class="form-control" autocomplete="tel" placeholder="+420…" />
-                            <label>@L["Field_NewPhone"]</label>
-                            <ValidationMessage For="() => RequestInput.NewPhoneNumber" />
-                        </div>
-                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Outline">
-                            @L["ChangePhone_RequestSubmit"]
-                        </FluentButton>
-                    </EditForm>
+            <EditForm Model="RequestInput" method="post" OnValidSubmit="RequestCode" FormName="phone-request">
+                <DataAnnotationsValidator />
+                <FluentTextField Name="RequestInput.NewPhoneNumber"
+                                 @bind-Value="RequestInput.NewPhoneNumber"
+                                 Label="@L["Field_NewPhone"]"
+                                 AutoComplete="tel"
+                                 Placeholder="+420…"
+                                 Style="width:100%" />
+                <ValidationMessage For="() => RequestInput.NewPhoneNumber" />
+                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Outline" Style="margin-top:12px">
+                    @L["ChangePhone_RequestSubmit"]
+                </FluentButton>
+            </EditForm>
 
-                    @if (_codeSent || !string.IsNullOrEmpty(ConfirmInput.NewPhoneNumber))
-                    {
-                        <FluentDivider />
-                        <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
-                            @L["ChangePhone_CodeSent"]
-                        </FluentMessageBar>
-                        <EditForm Model="ConfirmInput" method="post" OnValidSubmit="ConfirmCode" FormName="phone-confirm">
-                            <DataAnnotationsValidator />
-                            <input type="hidden" name="ConfirmInput.NewPhoneNumber" value="@ConfirmInput.NewPhoneNumber" />
-                            <div class="form-floating mb-3">
-                                <InputText @bind-Value="ConfirmInput.Code" class="form-control" placeholder="kód" />
-                                <label>@L["Field_Code"]</label>
-                                <ValidationMessage For="() => ConfirmInput.Code" />
-                            </div>
-                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
-                                @L["ChangePhone_ConfirmSubmit"]
-                            </FluentButton>
-                        </EditForm>
-                    }
-                }
-            </FluentStack>
-        </FluentCard>
-    </div>
-</div>
+            @if (_codeSent || !string.IsNullOrEmpty(ConfirmInput.NewPhoneNumber))
+            {
+                <FluentDivider />
+                <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                    @L["ChangePhone_CodeSent"]
+                </FluentMessageBar>
+                <EditForm Model="ConfirmInput" method="post" OnValidSubmit="ConfirmCode" FormName="phone-confirm">
+                    <DataAnnotationsValidator />
+                    @*  Hidden plumbing: the second EditForm needs to know which phone the
+                        confirmation code applies to. The hidden input survives the round-trip
+                        because static-SSR form binding only cares about the name attribute.  *@
+                    <input type="hidden" name="ConfirmInput.NewPhoneNumber" value="@ConfirmInput.NewPhoneNumber" />
+                    <FluentTextField Name="ConfirmInput.Code"
+                                     @bind-Value="ConfirmInput.Code"
+                                     Label="@L["Field_Code"]"
+                                     Placeholder="kód"
+                                     Style="width:100%" />
+                    <ValidationMessage For="() => ConfirmInput.Code" />
+                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:12px">
+                        @L["ChangePhone_ConfirmSubmit"]
+                    </FluentButton>
+                </EditForm>
+            }
+        }
+    </FluentStack>
+</FluentCard>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
