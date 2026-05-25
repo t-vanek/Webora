@@ -195,4 +195,24 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role renamed.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Permissions saved.</value></data>
+  <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
+  <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>A lightweight system for building simple web presentations.</value></data>
+  <data name="NotFound_Title" xml:space="preserve"><value>Page not found</value></data>
+  <data name="NotFound_Message" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
+  <data name="NotFound_Home" xml:space="preserve"><value>Back to home</value></data>
+  <data name="ErrorPage_Title" xml:space="preserve"><value>Error</value></data>
+  <data name="ErrorPage_Heading" xml:space="preserve"><value>An error occurred while processing your request.</value></data>
+  <data name="ErrorPage_RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="Auth_AccessDenied_Title" xml:space="preserve"><value>Access denied</value></data>
+  <data name="Auth_AccessDenied_Message" xml:space="preserve"><value>You don't have permission to view this page.</value></data>
+  <data name="Reconnect_Rejoining" xml:space="preserve"><value>Rejoining the server…</value></data>
+  <data name="Reconnect_RetryBefore" xml:space="preserve"><value>Rejoin failed, trying again in</value></data>
+  <data name="Reconnect_RetryAfter" xml:space="preserve"><value>s.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Failed to rejoin.</value></data>
+  <data name="Reconnect_FailedHint" xml:space="preserve"><value>Please retry or reload the page.</value></data>
+  <data name="Reconnect_Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Reconnect_Paused" xml:space="preserve"><value>The session has been paused by the server.</value></data>
+  <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Failed to resume the session.</value></data>
+  <data name="Reconnect_Resume" xml:space="preserve"><value>Resume</value></data>
 </root>

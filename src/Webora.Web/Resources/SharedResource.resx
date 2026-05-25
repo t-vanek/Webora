@@ -195,4 +195,24 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role byla přejmenována.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
+  <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
+  <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>Lehký prezentační systém pro tvorbu jednoduchých webů.</value></data>
+  <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
+  <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
+  <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>
+  <data name="ErrorPage_Title" xml:space="preserve"><value>Chyba</value></data>
+  <data name="ErrorPage_Heading" xml:space="preserve"><value>Při zpracování požadavku došlo k chybě.</value></data>
+  <data name="ErrorPage_RequestId" xml:space="preserve"><value>ID požadavku:</value></data>
+  <data name="Auth_AccessDenied_Title" xml:space="preserve"><value>Přístup odepřen</value></data>
+  <data name="Auth_AccessDenied_Message" xml:space="preserve"><value>Nemáte oprávnění k zobrazení této stránky.</value></data>
+  <data name="Reconnect_Rejoining" xml:space="preserve"><value>Obnovuji spojení se serverem…</value></data>
+  <data name="Reconnect_RetryBefore" xml:space="preserve"><value>Spojení se nezdařilo, další pokus za</value></data>
+  <data name="Reconnect_RetryAfter" xml:space="preserve"><value>s.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Spojení se nepodařilo obnovit.</value></data>
+  <data name="Reconnect_FailedHint" xml:space="preserve"><value>Zkuste to znovu nebo načtěte stránku.</value></data>
+  <data name="Reconnect_Retry" xml:space="preserve"><value>Zkusit znovu</value></data>
+  <data name="Reconnect_Paused" xml:space="preserve"><value>Relace byla pozastavena serverem.</value></data>
+  <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Obnovení relace se nezdařilo.</value></data>
+  <data name="Reconnect_Resume" xml:space="preserve"><value>Pokračovat</value></data>
 </root>
