@@ -1,0 +1,62 @@
+@using System.Globalization
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+@*  Globe-icon button that opens a FluentMenu with the supported cultures. The current culture is
+    marked as disabled in the menu so it reads as the active selection. Picking another option
+    POSTs through /culture/set which writes the .AspNetCore.Culture cookie and redirects back to
+    the page the user came from — a forceLoad navigation so the cookie is applied on the next
+    server response.
+
+    Needs @rendermode="InteractiveServer" on the consumer because FluentMenu uses JS interop to
+    show/hide. *@
+
+<FluentButton id="@_buttonId"
+              Appearance="Appearance.Stealth"
+              OnClick="ToggleMenu"
+              Title="@L["Language"]">
+    <FluentIcon Value="@(new Icons.Regular.Size20.LocalLanguage())"
+                Color="Color.Custom"
+                CustomColor="currentColor" />
+</FluentButton>
+
+<FluentMenu Anchor="@_buttonId" @bind-Open="_open" VerticalThreshold="170">
+    @foreach (var culture in SupportedCultures.All)
+    {
+        var isCurrent = string.Equals(culture, _currentCulture, StringComparison.OrdinalIgnoreCase);
+        <FluentMenuItem OnClick="@(() => Switch(culture))"
+                        Disabled="@isCurrent">
+            @CultureLabel(culture)
+        </FluentMenuItem>
+    }
+</FluentMenu>
+
+@code {
+    private readonly string _buttonId = $"lang-{Guid.NewGuid():N}";
+    private bool _open;
+    private string _currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+    private void ToggleMenu() => _open = !_open;
+
+    private void Switch(string culture)
+    {
+        _open = false;
+        var relative = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateTo($"/culture/set?culture={culture}&redirectUri={Uri.EscapeDataString(relative)}",
+            forceLoad: true);
+    }
+
+    private static string CultureLabel(string culture)
+    {
+        try
+        {
+            var info = CultureInfo.GetCultureInfo(culture);
+            return $"{culture.ToUpperInvariant()} — {info.NativeName}";
+        }
+        catch (CultureNotFoundException)
+        {
+            return culture.ToUpperInvariant();
+        }
+    }
+}
