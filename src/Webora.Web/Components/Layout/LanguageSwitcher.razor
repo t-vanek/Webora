@@ -10,7 +10,14 @@
     server response.
 
     Needs @rendermode="InteractiveServer" on the consumer because FluentMenu uses JS interop to
-    show/hide. *@
+    show/hide.
+
+    The FluentMenuProvider lives INSIDE this component, not at the layout level. When the page
+    is statically rendered and the layout's provider sits in its own InteractiveServer island,
+    a sibling InteractiveServer island (this one) can't see its IMenuService — Blazor's
+    interactive components have separate DI scopes per island. Hosting the provider here puts it
+    in the same scope as the FluentMenu that needs it. *@
+<FluentMenuProvider />
 
 <FluentButton id="@_buttonId"
               Appearance="Appearance.Stealth"
