@@ -1,9 +1,12 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--neutral-layer-1);
+    color: var(--neutral-foreground-rest);
+    margin: 0;
 }
 
 a {
-    color: #006bb7;
+    color: var(--accent-foreground-rest, #006bb7);
 }
 
 .content {
