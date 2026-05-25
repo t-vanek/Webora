@@ -19,7 +19,6 @@
   <data name="Nav_Logout" xml:space="preserve"><value>Sign out</value></data>
   <data name="Nav_MyAccount" xml:space="preserve"><value>My account</value></data>
   <data name="Language" xml:space="preserve"><value>Language</value></data>
-  <data name="Layout_About" xml:space="preserve"><value>About</value></data>
   <data name="Layout_Error" xml:space="preserve"><value>An unexpected error has occurred.</value></data>
   <data name="Layout_Reload" xml:space="preserve"><value>Reload</value></data>
   <data name="Layout_ThemeSwitchToDark" xml:space="preserve"><value>Switch to dark mode</value></data>

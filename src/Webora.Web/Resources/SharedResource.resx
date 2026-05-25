@@ -19,7 +19,6 @@
   <data name="Nav_Logout" xml:space="preserve"><value>Odhlásit</value></data>
   <data name="Nav_MyAccount" xml:space="preserve"><value>Můj účet</value></data>
   <data name="Language" xml:space="preserve"><value>Jazyk</value></data>
-  <data name="Layout_About" xml:space="preserve"><value>O aplikaci</value></data>
   <data name="Layout_Error" xml:space="preserve"><value>Došlo k neočekávané chybě.</value></data>
   <data name="Layout_Reload" xml:space="preserve"><value>Znovu načíst</value></data>
   <data name="Layout_ThemeSwitchToDark" xml:space="preserve"><value>Přepnout na tmavý režim</value></data>
