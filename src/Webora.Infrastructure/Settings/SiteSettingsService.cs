@@ -35,7 +35,7 @@ public sealed class SiteSettingsService(
 
         return new DomainPolicy(
             s.CanonicalHost, s.Port, s.ForceHttps, s.HstsEnabled,
-            s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases);
+            s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases);
     }
 
     public async Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -62,7 +62,7 @@ public sealed class SiteSettingsService(
         settings.UpdateDomain(
             domain.CanonicalHost, domain.Scheme, domain.Port, domain.ForceHttps,
             domain.HstsEnabled, domain.HstsMaxAgeDays, domain.HstsIncludeSubDomains,
-            domain.WwwPreference, domain.Aliases);
+            domain.HstsPreload, domain.WwwPreference, domain.Aliases);
 
         var detail = $"host={settings.CanonicalHost ?? "-"} scheme={settings.Scheme} port={settings.Port?.ToString() ?? "-"} " +
             $"forceHttps={settings.ForceHttps} hsts={settings.HstsEnabled} www={settings.WwwPreference} aliases={settings.Aliases.Count}";
@@ -145,21 +145,32 @@ public sealed class SiteSettingsService(
         var settings = await dbContext.SiteSettings
             .FirstOrDefaultAsync(s => s.Id == SiteSettings.SingletonId, cancellationToken);
 
-        if (settings is null)
+        if (settings is not null)
         {
-            settings = SiteSettings.CreateDefault();
-            dbContext.SiteSettings.Add(settings);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            return settings;
         }
 
-        return settings;
+        settings = SiteSettings.CreateDefault();
+        dbContext.SiteSettings.Add(settings);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return settings;
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request created the singleton first; discard our insert and reload it.
+            dbContext.Entry(settings).State = EntityState.Detached;
+            return await dbContext.SiteSettings.FirstAsync(s => s.Id == SiteSettings.SingletonId, cancellationToken);
+        }
     }
 
     private static SiteSettingsDto ToDto(SiteSettings s) =>
         new(
             new DomainSettingsDto(
                 s.CanonicalHost, s.Scheme, s.Port, s.ForceHttps, s.HstsEnabled,
-                s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases),
+                s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases),
             new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
             new EncodingSettingsDto(s.PageCharset, s.EmailCharset),
             s.BaseUrl);

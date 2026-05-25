@@ -11,6 +11,7 @@ public sealed record DomainSettingsDto(
     bool HstsEnabled,
     int HstsMaxAgeDays,
     bool HstsIncludeSubDomains,
+    bool HstsPreload,
     WwwPreference WwwPreference,
     IReadOnlyList<string> Aliases);
 

@@ -230,6 +230,9 @@
   <data name="Settings_HstsEnabled" xml:space="preserve"><value>Enable HSTS</value></data>
   <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Max age (days)</value></data>
   <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Include subdomains</value></data>
+  <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Warning: joining the HSTS preload list is hard to reverse and forces HTTPS for all subdomains for a long time.</value></data>
+  <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protocol is set to HTTP but Force HTTPS is on — redirects will target HTTPS.</value></data>
   <data name="Settings_Aliases" xml:space="preserve"><value>Domain aliases</value></data>
   <data name="Settings_AliasesHelp" xml:space="preserve"><value>One domain name per line.</value></data>
   <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Canonical URL:</value></data>

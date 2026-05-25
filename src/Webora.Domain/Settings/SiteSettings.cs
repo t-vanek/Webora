@@ -27,6 +27,9 @@ public class SiteSettings : Entity, IAggregateRoot
 
     public bool HstsIncludeSubDomains { get; private set; }
 
+    /// <summary>Adds the "preload" directive to the HSTS header (only meaningful with a long max-age and subdomains).</summary>
+    public bool HstsPreload { get; private set; }
+
     public WwwPreference WwwPreference { get; private set; } = WwwPreference.NoPreference;
 
     /// <summary>Additional hostnames that should resolve to the canonical host.</summary>
@@ -61,6 +64,7 @@ public class SiteSettings : Entity, IAggregateRoot
         bool hstsEnabled,
         int hstsMaxAgeDays,
         bool hstsIncludeSubDomains,
+        bool hstsPreload,
         WwwPreference wwwPreference,
         IReadOnlyList<string> aliases)
     {
@@ -71,10 +75,11 @@ public class SiteSettings : Entity, IAggregateRoot
         HstsEnabled = hstsEnabled;
         HstsMaxAgeDays = hstsMaxAgeDays < 0 ? 0 : hstsMaxAgeDays;
         HstsIncludeSubDomains = hstsIncludeSubDomains;
+        HstsPreload = hstsPreload;
         WwwPreference = wwwPreference;
         Aliases = aliases
             .Select(NormalizeHost)
-            .Where(host => host is not null)
+            .Where(host => host is not null && !string.Equals(host, CanonicalHost, StringComparison.OrdinalIgnoreCase))
             .Select(host => host!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();

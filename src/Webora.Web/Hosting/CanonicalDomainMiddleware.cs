@@ -31,8 +31,19 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
         if (policy.HstsEnabled && IsHttps(scheme) && !IsLocalOrIp(host))
         {
             var maxAgeSeconds = Math.Max(0, policy.HstsMaxAgeDays) * 86_400L;
-            context.Response.Headers[HeaderNames.StrictTransportSecurity] =
-                policy.HstsIncludeSubDomains ? $"max-age={maxAgeSeconds}; includeSubDomains" : $"max-age={maxAgeSeconds}";
+            var value = $"max-age={maxAgeSeconds}";
+            if (policy.HstsIncludeSubDomains)
+            {
+                value += "; includeSubDomains";
+            }
+
+            // "preload" is only honored together with includeSubDomains.
+            if (policy.HstsPreload && policy.HstsIncludeSubDomains)
+            {
+                value += "; preload";
+            }
+
+            context.Response.Headers[HeaderNames.StrictTransportSecurity] = value;
         }
 
         if (ResolveRedirect(policy, scheme, host) is { } target)

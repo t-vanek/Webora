@@ -230,6 +230,9 @@
   <data name="Settings_HstsEnabled" xml:space="preserve"><value>Zapnout HSTS</value></data>
   <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Platnost (dny)</value></data>
   <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Včetně subdomén</value></data>
+  <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Pozor: zařazení do HSTS preload seznamu je obtížné vrátit zpět a vynutí HTTPS i pro všechny subdomény na dlouhou dobu.</value></data>
+  <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protokol je nastaven na HTTP, ale vynucení HTTPS je zapnuté – přesměrování bude směřovat na HTTPS.</value></data>
   <data name="Settings_Aliases" xml:space="preserve"><value>Aliasy domén</value></data>
   <data name="Settings_AliasesHelp" xml:space="preserve"><value>Jeden název domény na řádek.</value></data>
   <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Kanonická URL:</value></data>

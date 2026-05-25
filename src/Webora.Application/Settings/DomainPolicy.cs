@@ -10,5 +10,6 @@ public sealed record DomainPolicy(
     bool HstsEnabled,
     int HstsMaxAgeDays,
     bool HstsIncludeSubDomains,
+    bool HstsPreload,
     WwwPreference Www,
     IReadOnlyList<string> Aliases);

@@ -57,6 +57,10 @@ else
                 <input class="form-check-input" type="checkbox" id="forceHttps" @bind="_form.ForceHttps" />
                 <label class="form-check-label" for="forceHttps">@L["Settings_ForceHttps"]</label>
             </div>
+            @if (_form.ForceHttps && _form.Scheme == UrlScheme.Http)
+            {
+                <div class="text-warning small mt-1">@L["Settings_ForceHttpsSchemeWarning"]</div>
+            }
         </div>
 
         <div class="col-12">
@@ -80,12 +84,20 @@ else
                     <input id="hstsAge" type="number" min="0" class="form-control" @bind="_form.HstsMaxAgeDays" disabled="@(!_form.HstsEnabled)" />
                 </div>
                 <div class="col-md-9 d-flex align-items-end">
-                    <div class="form-check">
+                    <div class="form-check me-3">
                         <input class="form-check-input" type="checkbox" id="hstsSub" @bind="_form.HstsIncludeSubDomains" disabled="@(!_form.HstsEnabled)" />
                         <label class="form-check-label" for="hstsSub">@L["Settings_HstsIncludeSubDomains"]</label>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="hstsPreload" @bind="_form.HstsPreload" disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
+                        <label class="form-check-label" for="hstsPreload">@L["Settings_HstsPreload"]</label>
+                    </div>
                 </div>
             </div>
+            @if (_form.HstsEnabled && _form.HstsPreload)
+            {
+                <div class="text-warning small mt-1">@L["Settings_HstsPreloadWarning"]</div>
+            }
         </div>
 
         <div class="col-12">
@@ -202,6 +214,7 @@ else
             HstsEnabled = d.HstsEnabled,
             HstsMaxAgeDays = d.HstsMaxAgeDays,
             HstsIncludeSubDomains = d.HstsIncludeSubDomains,
+            HstsPreload = d.HstsPreload,
             WwwPreference = d.WwwPreference,
             AliasesText = string.Join('\n', d.Aliases),
         };
@@ -226,7 +239,7 @@ else
         var dto = new DomainSettingsDto(
             _form.CanonicalHost, _form.Scheme, _form.Port, _form.ForceHttps,
             _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
-            _form.WwwPreference, aliases);
+            _form.HstsPreload, _form.WwwPreference, aliases);
 
         await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto, _adminId));
     }
@@ -274,6 +287,7 @@ else
         public bool HstsEnabled { get; set; }
         public int HstsMaxAgeDays { get; set; } = 365;
         public bool HstsIncludeSubDomains { get; set; }
+        public bool HstsPreload { get; set; }
         public WwwPreference WwwPreference { get; set; } = WwwPreference.NoPreference;
         public string AliasesText { get; set; } = string.Empty;
     }
