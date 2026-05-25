@@ -8,19 +8,22 @@
     in — so the layout collapses to just the header + the page body. The header keeps the brand and
     a Login/Register switch so the two sister pages can still flip between each other.  *@
 <FluentLayout>
-    <FluentHeader>
+    <FluentHeader Style="gap: 12px; padding: 0 1.5rem">
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
         <AuthorizeView>
             <NotAuthorized>
-                <a href="login" class="header-nav-link">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
-                    @L["Nav_Login"]
-                </a>
-                <a href="register" class="header-nav-link">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
-                    @L["Nav_Register"]
-                </a>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center">
+                    <a href="login" class="header-nav-link">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                        @L["Nav_Login"]
+                    </a>
+                    <a href="register" class="header-nav-link">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                        @L["Nav_Register"]
+                    </a>
+                </FluentStack>
+                <div class="header-divider" aria-hidden="true"></div>
             </NotAuthorized>
         </AuthorizeView>
         <LanguageSwitcher @rendermode="InteractiveServer" />
