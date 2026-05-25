@@ -6,6 +6,9 @@ namespace Webora.Application.Accounts;
 /// </summary>
 public interface IAccountService
 {
+    // Registration.
+    Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default);
+
     // Activation (email confirmation).
     Task<AccountResult> SendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<AccountResult> ConfirmEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default);
@@ -26,6 +29,8 @@ public interface IAccountService
     // Self-service lifecycle.
     Task<AccountResult> DeactivateAsync(Guid userId, string? reason, CancellationToken cancellationToken = default);
     Task<AccountResult> ReactivateAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<AccountResult> RequestReactivationAsync(string email, CancellationToken cancellationToken = default);
+    Task<AccountResult> ConfirmReactivationAsync(Guid userId, string token, CancellationToken cancellationToken = default);
     Task<AccountResult> RequestSuspendAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<AccountResult> ConfirmSuspendAsync(Guid userId, string token, CancellationToken cancellationToken = default);
 

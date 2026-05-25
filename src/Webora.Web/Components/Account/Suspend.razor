@@ -1,0 +1,54 @@
+@page "/account/suspend"
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject IAccountService AccountService
+
+<PageTitle>Uspání účtu</PageTitle>
+
+<h1>Uspání účtu</h1>
+
+<p>Uspání je dočasné. Pro potvrzení vám pošleme e-mail; účet se uspí až po potvrzení.</p>
+
+@if (_submitted)
+{
+    <div class="alert alert-success" role="alert">
+        Poslali jsme vám potvrzovací e-mail. Uspání dokončíte kliknutím na odkaz v něm.
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+    <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="suspend">
+        <button type="submit" class="btn btn-warning">Uspat účet</button>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _submitted;
+    private string? _error;
+
+    private async Task Submit()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is null)
+        {
+            _error = "Účet nenalezen.";
+            return;
+        }
+
+        var result = await AccountService.RequestSuspendAsync(user.Id);
+        if (result.Succeeded)
+        {
+            _submitted = true;
+            return;
+        }
+
+        _error = string.Join(" ", result.Errors);
+    }
+}

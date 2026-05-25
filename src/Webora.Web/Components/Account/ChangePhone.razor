@@ -1,0 +1,127 @@
+@page "/account/change-phone"
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject IAccountService AccountService
+
+<PageTitle>Změna telefonu</PageTitle>
+
+<h1>Změna telefonu</h1>
+
+@if (_done)
+{
+    <div class="alert alert-success" role="alert">Telefonní číslo bylo změněno.</div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm Model="RequestInput" method="post" OnValidSubmit="RequestCode" FormName="phone-request">
+                <DataAnnotationsValidator />
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="RequestInput.NewPhoneNumber" class="form-control" autocomplete="tel" placeholder="+420…" />
+                    <label>Nové telefonní číslo</label>
+                    <ValidationMessage For="() => RequestInput.NewPhoneNumber" />
+                </div>
+                <button type="submit" class="btn btn-secondary">Poslat ověřovací kód</button>
+            </EditForm>
+
+            @if (_codeSent || !string.IsNullOrEmpty(ConfirmInput.NewPhoneNumber))
+            {
+                <hr />
+                <p class="text-muted">Ověřovací kód jsme poslali na váš e-mail.</p>
+                <EditForm Model="ConfirmInput" method="post" OnValidSubmit="ConfirmCode" FormName="phone-confirm">
+                    <DataAnnotationsValidator />
+                    <input type="hidden" name="ConfirmInput.NewPhoneNumber" value="@ConfirmInput.NewPhoneNumber" />
+                    <div class="form-floating mb-3">
+                        <InputText @bind-Value="ConfirmInput.Code" class="form-control" placeholder="kód" />
+                        <label>Ověřovací kód</label>
+                        <ValidationMessage For="() => ConfirmInput.Code" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Potvrdit změnu</button>
+                </EditForm>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+#pragma warning disable BL0008
+    [SupplyParameterFromForm(FormName = "phone-request")]
+    private RequestModel RequestInput { get; set; } = new();
+
+    [SupplyParameterFromForm(FormName = "phone-confirm")]
+    private ConfirmModel ConfirmInput { get; set; } = new();
+#pragma warning restore BL0008
+
+    private bool _codeSent;
+    private bool _done;
+    private string? _error;
+
+    private async Task<ApplicationUser?> CurrentUserAsync()
+    {
+        var state = await AuthState!;
+        return await UserManager.GetUserAsync(state.User);
+    }
+
+    private async Task RequestCode()
+    {
+        var user = await CurrentUserAsync();
+        if (user is null)
+        {
+            _error = "Účet nenalezen.";
+            return;
+        }
+
+        var result = await AccountService.RequestPhoneChangeAsync(user.Id, RequestInput.NewPhoneNumber);
+        if (result.Succeeded)
+        {
+            ConfirmInput.NewPhoneNumber = RequestInput.NewPhoneNumber;
+            _codeSent = true;
+            return;
+        }
+
+        _error = string.Join(" ", result.Errors);
+    }
+
+    private async Task ConfirmCode()
+    {
+        var user = await CurrentUserAsync();
+        if (user is null)
+        {
+            _error = "Účet nenalezen.";
+            return;
+        }
+
+        var result = await AccountService.ConfirmPhoneChangeAsync(user.Id, ConfirmInput.NewPhoneNumber, ConfirmInput.Code);
+        if (result.Succeeded)
+        {
+            _done = true;
+            return;
+        }
+
+        _error = string.Join(" ", result.Errors);
+    }
+
+    private sealed class RequestModel
+    {
+        [Required(ErrorMessage = "Zadejte telefonní číslo.")]
+        [Phone]
+        public string NewPhoneNumber { get; set; } = string.Empty;
+    }
+
+    private sealed class ConfirmModel
+    {
+        public string NewPhoneNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Zadejte ověřovací kód.")]
+        public string Code { get; set; } = string.Empty;
+    }
+}

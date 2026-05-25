@@ -21,6 +21,33 @@ public sealed class AccountService(
     ILogger<AccountService> logger) : IAccountService
 {
     private const string SuspendTokenPurpose = "SuspendAccount";
+    private const string ReactivateTokenPurpose = "ReactivateAccount";
+
+    public async Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default)
+    {
+        if (await userManager.FindByEmailAsync(email) is not null)
+        {
+            return AccountResult.Failure("Účet s tímto e-mailem již existuje.");
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            DisplayName = displayName,
+            Status = AccountStatus.PendingActivation,
+        };
+
+        var created = await userManager.CreateAsync(user, password);
+        if (!created.Succeeded)
+        {
+            return ToFailure(created);
+        }
+
+        await AuditAsync(user.Id, AccountAuditEventType.Registered, "self", null, cancellationToken);
+        await SendActivationEmailCoreAsync(user, cancellationToken);
+        return AccountResult.Success;
+    }
 
     public async Task<AccountResult> SendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -30,13 +57,18 @@ public sealed class AccountService(
             return NotFound();
         }
 
+        await SendActivationEmailCoreAsync(user, cancellationToken);
+        return AccountResult.Success;
+    }
+
+    private async Task SendActivationEmailCoreAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
         var link = BuildLink("account/confirm-email", ("userId", user.Id.ToString()), ("token", token));
         await SendAsync(user, "Aktivace účtu",
             $"<p>Aktivujte svůj účet kliknutím na odkaz:</p><p><a href=\"{link}\">Aktivovat účet</a></p>");
 
         await AuditAsync(user.Id, AccountAuditEventType.ActivationRequested, "self", null, cancellationToken);
-        return AccountResult.Success;
     }
 
     public async Task<AccountResult> ConfirmEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default)
@@ -205,6 +237,39 @@ public sealed class AccountService(
         return user is null
             ? NotFound()
             : await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Reactivated, cancellationToken);
+    }
+
+    public async Task<AccountResult> RequestReactivationAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is not null && user.Status is AccountStatus.Deactivated or AccountStatus.Suspended)
+        {
+            var token = await userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, ReactivateTokenPurpose);
+            var link = BuildLink("account/confirm-reactivation", ("userId", user.Id.ToString()), ("token", token));
+            await SendAsync(user, "Obnovení účtu",
+                $"<p>Obnovte svůj účet kliknutím na odkaz:</p><p><a href=\"{link}\">Obnovit účet</a></p>");
+            await AuditAsync(user.Id, AccountAuditEventType.ReactivationRequested, "self", null, cancellationToken);
+        }
+
+        // Always report success so the endpoint does not reveal whether the address exists.
+        return AccountResult.Success;
+    }
+
+    public async Task<AccountResult> ConfirmReactivationAsync(Guid userId, string token, CancellationToken cancellationToken = default)
+    {
+        var user = await FindAsync(userId);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        var valid = await userManager.VerifyUserTokenAsync(user, TokenOptions.DefaultProvider, ReactivateTokenPurpose, token);
+        if (!valid)
+        {
+            return AccountResult.Failure("Neplatný nebo prošlý odkaz pro obnovení účtu.");
+        }
+
+        return await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Reactivated, cancellationToken);
     }
 
     public async Task<AccountResult> RequestSuspendAsync(Guid userId, CancellationToken cancellationToken = default)

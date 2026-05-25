@@ -6,6 +6,7 @@ public enum AccountAuditEventType
     ActivationRequested,
     Activated,
     Deactivated,
+    ReactivationRequested,
     Reactivated,
     SuspendRequested,
     Suspended,
