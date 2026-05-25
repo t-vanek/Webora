@@ -47,6 +47,9 @@ public class SiteSettings : Entity, IAggregateRoot
     /// <summary>Charset used to encode outgoing email bodies. Null = UTF-8.</summary>
     public string? EmailCharset { get; private set; }
 
+    /// <summary>Role automatically granted to newly self-registered accounts. Null = none.</summary>
+    public string? DefaultRole { get; private set; }
+
     private SiteSettings() { }
 
     public static SiteSettings CreateDefault()
@@ -98,6 +101,11 @@ public class SiteSettings : Entity, IAggregateRoot
 
         static string? Normalize(string? charset) =>
             string.IsNullOrWhiteSpace(charset) ? null : charset.Trim().ToLowerInvariant();
+    }
+
+    public void UpdateAccounts(string? defaultRole)
+    {
+        DefaultRole = string.IsNullOrWhiteSpace(defaultRole) ? null : defaultRole.Trim();
     }
 
     /// <summary>The canonical base URL (scheme://host[:port]), or null when no host is configured.</summary>

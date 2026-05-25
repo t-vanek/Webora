@@ -254,4 +254,9 @@
   <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Character set of HTML pages. UTF-8 recommended; other values cause responses to be re-encoded.</value></data>
   <data name="Settings_EmailCharset" xml:space="preserve"><value>Email charset</value></data>
   <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Character set of outgoing email bodies.</value></data>
+  <data name="Settings_AccountsSection" xml:space="preserve"><value>Accounts</value></data>
+  <data name="Settings_SaveAccounts" xml:space="preserve"><value>Save accounts</value></data>
+  <data name="Settings_DefaultRole" xml:space="preserve"><value>Default role for new accounts</value></data>
+  <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automatically granted to newly registered accounts.</value></data>
+  <data name="Settings_DefaultRole_None" xml:space="preserve"><value>None</value></data>
 </root>

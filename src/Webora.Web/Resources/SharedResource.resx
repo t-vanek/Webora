@@ -254,4 +254,9 @@
   <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Znaková sada HTML stránek. Doporučeno UTF-8; jiné hodnoty způsobí překódování odpovědí.</value></data>
   <data name="Settings_EmailCharset" xml:space="preserve"><value>Kódování e-mailů</value></data>
   <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Znaková sada těla odchozích e-mailů.</value></data>
+  <data name="Settings_AccountsSection" xml:space="preserve"><value>Účty</value></data>
+  <data name="Settings_SaveAccounts" xml:space="preserve"><value>Uložit účty</value></data>
+  <data name="Settings_DefaultRole" xml:space="preserve"><value>Výchozí role nových účtů</value></data>
+  <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automaticky přidělená nově zaregistrovaným účtům.</value></data>
+  <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
 </root>

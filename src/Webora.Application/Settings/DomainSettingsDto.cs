@@ -25,9 +25,14 @@ public sealed record EncodingSettingsDto(
     string? PageCharset,
     string? EmailCharset);
 
+/// <summary>The accounts section of the site settings.</summary>
+public sealed record AccountsSettingsDto(
+    string? DefaultRole);
+
 /// <summary>The full site settings read model. New sections are added alongside the existing ones.</summary>
 public sealed record SiteSettingsDto(
     DomainSettingsDto Domain,
     RegionalSettingsDto Regional,
     EncodingSettingsDto Encoding,
+    AccountsSettingsDto Accounts,
     string? CanonicalBaseUrl);

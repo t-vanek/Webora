@@ -17,6 +17,7 @@ namespace Webora.Infrastructure.Accounts;
 
 public sealed class AccountService(
     UserManager<ApplicationUser> userManager,
+    RoleManager<ApplicationRole> roleManager,
     WeboraDbContext dbContext,
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
@@ -52,8 +53,35 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.Registered, "self", null, cancellationToken);
+        await AssignDefaultRoleAsync(user, cancellationToken);
         await SendActivationEmailCoreAsync(user, cancellationToken);
         return AccountResult.Success;
+    }
+
+    private async Task AssignDefaultRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var role = await siteSettings.GetDefaultRoleAsync(cancellationToken);
+        if (string.IsNullOrEmpty(role))
+        {
+            return;
+        }
+
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            logger.LogWarning("Configured default role {Role} does not exist; skipping assignment for {UserId}", role, user.Id);
+            return;
+        }
+
+        var result = await userManager.AddToRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            await AuditAsync(user.Id, AccountAuditEventType.RolesChanged, "self", $"default role: {role}", cancellationToken);
+        }
+        else
+        {
+            logger.LogWarning("Failed to assign default role {Role} to {UserId}: {Errors}", role, user.Id,
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
     }
 
     public async Task<AccountResult> SendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)

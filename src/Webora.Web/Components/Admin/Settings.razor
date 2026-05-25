@@ -4,6 +4,7 @@
 @using Webora.Application.Settings
 @using Webora.Domain.Settings
 @inject ISiteSettingsService SiteSettings
+@inject IRoleAdminService RoleAdmin
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -176,6 +177,28 @@ else
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEncoding">
         <button class="btn btn-primary mt-3" @onclick="SaveEncodingAsync">@L["Settings_SaveEncoding"]</button>
     </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_AccountsSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="defaultRole">@L["Settings_DefaultRole"]</label>
+            <select id="defaultRole" class="form-select" @bind="_accounts.DefaultRole">
+                <option value="">@L["Settings_DefaultRole_None"]</option>
+                @foreach (var role in _roles)
+                {
+                    <option value="@role">@role</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultRoleHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveAccounts">
+        <button class="btn btn-primary mt-3" @onclick="SaveAccountsAsync">@L["Settings_SaveAccounts"]</button>
+    </AuthorizeView>
 }
 
 @code {
@@ -187,6 +210,8 @@ else
     private DomainForm? _form;
     private RegionalForm _regional = new();
     private EncodingForm _encoding = new();
+    private AccountsForm _accounts = new();
+    private IReadOnlyList<string> _roles = [];
     private string? _baseUrl;
     private string? _message;
     private string? _error;
@@ -197,6 +222,7 @@ else
         var state = await AuthState!;
         var admin = await UserManager.GetUserAsync(state.User);
         _adminId = admin?.Id ?? Guid.Empty;
+        _roles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
         await LoadAsync();
     }
 
@@ -228,6 +254,10 @@ else
             PageCharset = dto.Encoding.PageCharset ?? "utf-8",
             EmailCharset = dto.Encoding.EmailCharset ?? "utf-8",
         };
+        _accounts = new AccountsForm
+        {
+            DefaultRole = dto.Accounts.DefaultRole ?? string.Empty,
+        };
     }
 
     private async Task SaveDomainAsync()
@@ -249,6 +279,9 @@ else
 
     private Task SaveEncodingAsync() =>
         ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset), _adminId));
+
+    private Task SaveAccountsAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateAccountsAsync(new AccountsSettingsDto(_accounts.DefaultRole), _adminId));
 
     private async Task ApplyAsync(Func<Task<AccountResult>> action)
     {
@@ -302,5 +335,10 @@ else
     {
         public string? PageCharset { get; set; }
         public string? EmailCharset { get; set; }
+    }
+
+    private sealed class AccountsForm
+    {
+        public string? DefaultRole { get; set; }
     }
 }

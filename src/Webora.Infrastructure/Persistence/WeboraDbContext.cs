@@ -74,6 +74,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.DefaultTimeZoneId).HasMaxLength(64);
             settings.Property(s => s.PageCharset).HasMaxLength(32);
             settings.Property(s => s.EmailCharset).HasMaxLength(32);
+            settings.Property(s => s.DefaultRole).HasMaxLength(256);
             settings.Property(s => s.Scheme).HasConversion<string>().HasMaxLength(8);
             settings.Property(s => s.WwwPreference).HasConversion<string>().HasMaxLength(16);
             settings.Property(s => s.Aliases)

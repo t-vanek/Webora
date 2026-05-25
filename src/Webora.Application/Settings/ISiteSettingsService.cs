@@ -13,6 +13,8 @@ public interface ISiteSettingsService
 
     Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, Guid actingUserId, CancellationToken cancellationToken = default);
 
+    Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default);
+
     /// <summary>The configured canonical base URL (scheme://host[:port]), or null when no host is set.</summary>
     Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default);
 
@@ -30,4 +32,7 @@ public interface ISiteSettingsService
 
     /// <summary>The charset used to encode outgoing email bodies (defaults to "utf-8").</summary>
     Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The role automatically granted to newly self-registered accounts, or null when none.</summary>
+    Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default);
 }

@@ -106,6 +106,24 @@ public sealed class SiteSettingsService(
         return AccountResult.Success;
     }
 
+    public async Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(accounts.DefaultRole) &&
+            !await dbContext.Roles.AnyAsync(r => r.Name == accounts.DefaultRole, cancellationToken))
+        {
+            return AccountResult.Failure(messages["Error_UnknownRole", accounts.DefaultRole]);
+        }
+
+        var settings = await GetOrCreateAsync(cancellationToken);
+        settings.UpdateAccounts(accounts.DefaultRole);
+
+        await FinalizeAsync("Accounts", $"defaultRole={settings.DefaultRole ?? "-"}", actingUserId, cancellationToken);
+        return AccountResult.Success;
+    }
+
+    public async Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default) =>
+        (await GetOrCreateAsync(cancellationToken)).DefaultRole;
+
     public async Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) =>
         (await GetOrCreateAsync(cancellationToken)).PageCharset ?? DefaultCharset;
 
@@ -173,6 +191,7 @@ public sealed class SiteSettingsService(
                 s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases),
             new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
             new EncodingSettingsDto(s.PageCharset, s.EmailCharset),
+            new AccountsSettingsDto(s.DefaultRole),
             s.BaseUrl);
 
     private static string? InvalidCharset(string? charset)
