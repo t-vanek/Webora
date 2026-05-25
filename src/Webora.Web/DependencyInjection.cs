@@ -1,10 +1,52 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Webora.Infrastructure.Identity;
+using Webora.Infrastructure.Persistence;
+using Webora.Web.Authorization;
+using static OpenIddict.Abstractions.OpenIddictConstants;
+
 namespace Webora.Web;
 
 public static class DependencyInjection
 {
     /// <summary>
-    /// Adds the OpenIddict authorization server and token validation. The OpenIddict EF
-    /// stores themselves are registered by the infrastructure layer (AddCore).
+    /// Wires ASP.NET Core Identity with cookie sign-in, EF Core stores, the permission-aware
+    /// claims factory, and default token providers. This lives in the web host because
+    /// SignInManager/cookies require the ASP.NET Core shared framework.
+    /// </summary>
+    public static IServiceCollection AddWeboraIdentity(this IServiceCollection services)
+    {
+        services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+                options.Password.RequiredLength = 8;
+                options.SignIn.RequireConfirmedAccount = false;
+            })
+            .AddEntityFrameworkStores<WeboraDbContext>()
+            .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>()
+            .AddDefaultTokenProviders();
+
+        // Align Identity's claim types with what OpenIddict expects when it issues tokens.
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.ClaimsIdentity.UserIdClaimType = Claims.Subject;
+            options.ClaimsIdentity.UserNameClaimType = Claims.Name;
+            options.ClaimsIdentity.RoleClaimType = Claims.Role;
+        });
+
+        services.ConfigureApplicationCookie(options =>
+        {
+            options.LoginPath = "/login";
+            options.LogoutPath = "/logout";
+            options.AccessDeniedPath = "/access-denied";
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the OpenIddict authorization server and token validation. The OpenIddict EF stores
+    /// themselves are registered by the infrastructure layer (AddCore).
     /// </summary>
     public static IServiceCollection AddIdentityServer(this IServiceCollection services)
     {
@@ -34,7 +76,15 @@ public static class DependencyInjection
                 options.UseAspNetCore();
             });
 
+        return services;
+    }
+
+    /// <summary>Registers permission-based authorization (role → permission claims, checked via policies).</summary>
+    public static IServiceCollection AddPermissionAuthorization(this IServiceCollection services)
+    {
         services.AddAuthorization();
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         return services;
     }

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +14,13 @@ public static class DependencyInjection
     {
         AddPersistence(services, configuration);
         AddCaching(services, configuration);
-        AddIdentity(services);
         AddOpenIddictCore(services);
+
+        // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
+        // host where the ASP.NET shared framework is available. Here we only provide the seeder
+        // and its options.
+        services.Configure<IdentitySeedOptions>(configuration.GetSection(IdentitySeedOptions.SectionName));
+        services.AddScoped<IdentitySeeder>();
 
         return services;
     }
@@ -42,18 +46,6 @@ public static class DependencyInjection
             options.Configuration = redisConnection;
             options.InstanceName = "webora:";
         });
-    }
-
-    private static void AddIdentity(IServiceCollection services)
-    {
-        services
-            .AddIdentityCore<ApplicationUser>(options =>
-            {
-                options.User.RequireUniqueEmail = true;
-                options.Password.RequiredLength = 8;
-            })
-            .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<WeboraDbContext>();
     }
 
     private static void AddOpenIddictCore(IServiceCollection services)
