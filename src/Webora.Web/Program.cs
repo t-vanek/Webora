@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
@@ -6,14 +8,17 @@ using Webora.Application;
 using Webora.Application.Notifications;
 using Webora.Infrastructure;
 using Webora.Web;
-using Webora.Web.Client.Pages;
 using Webora.Web.Components;
+using Webora.Web.Hosting;
 using Webora.Web.Hubs;
 using Webora.Web.Identity;
 using Webora.Web.Notifications;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
+
+// Enable legacy single-byte charsets (e.g. windows-1250, iso-8859-2) for page/email encoding.
+System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +45,42 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+
+// Honor the ingress-provided scheme/host so canonical-domain enforcement sees the public values
+// rather than the internal proxy connection. By default only loopback is trusted; configure the
+// reverse proxy under "ForwardedHeaders" (KnownProxies/KnownNetworks, or TrustAllProxies).
+var forwardedHeaders = builder.Configuration.GetSection("ForwardedHeaders");
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+
+    if (forwardedHeaders.GetValue<bool>("TrustAllProxies"))
+    {
+        // Accept forwarded headers from any proxy. Only safe behind a fully controlled ingress.
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+    else
+    {
+        // Keep the framework default (loopback only) and add explicitly trusted proxies/networks.
+        foreach (var proxy in forwardedHeaders.GetSection("KnownProxies").Get<string[]>() ?? [])
+        {
+            if (IPAddress.TryParse(proxy, out var ip))
+            {
+                options.KnownProxies.Add(ip);
+            }
+        }
+
+        foreach (var network in forwardedHeaders.GetSection("KnownNetworks").Get<string[]>() ?? [])
+        {
+            if (System.Net.IPNetwork.TryParse(network, out var ipNetwork))
+            {
+                options.KnownIPNetworks.Add(ipNetwork);
+            }
+        }
+    }
+});
 
 // Localization. Czech is the default; cultures are negotiated from the culture cookie (set by the
 // language switcher) and then the browser's Accept-Language header.
@@ -49,6 +90,10 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SetDefaultCulture(SupportedCultures.Default);
     options.AddSupportedCultures(SupportedCultures.All);
     options.AddSupportedUICultures(SupportedCultures.All);
+
+    // Fall back to the site's configured default language (after cookie/Accept-Language) before
+    // the static default culture.
+    options.RequestCultureProviders.Add(new SiteDefaultCultureProvider());
 });
 
 // Flow the authenticated user into Blazor components (and persist it to the WebAssembly client).
@@ -85,11 +130,21 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
 }
 
+app.UseForwardedHeaders();
+
+// Applies the configured page charset (re-encodes text/html when it is not UTF-8).
+app.UsePageCharset();
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+// Canonical host/scheme redirects and HSTS, driven by the stored site settings. Skipped in
+// Development so local http://localhost runs untouched.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseDomainEnforcement();
+}
 
 app.UseRequestLocalization();
 

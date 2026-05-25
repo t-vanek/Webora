@@ -1,0 +1,405 @@
+@page "/admin/settings"
+@attribute [HasPermission(Permissions.Settings.View)]
+@rendermode InteractiveServer
+@using Webora.Application.Settings
+@using Webora.Domain.Settings
+@inject ISiteSettingsService SiteSettings
+@inject IRoleAdminService RoleAdmin
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Settings_Title"]</PageTitle>
+
+<h1>@L["Settings_Title"]</h1>
+
+@if (_form is null)
+{
+    <p>@L["Admin_Loading"]</p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert alert-success" role="alert">@_message</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+
+    <h2 class="h5 mt-3">@L["Settings_DomainSection"]</h2>
+
+    <p>
+        <span class="text-muted">@L["Settings_BaseUrlPreview"]</span>
+        <code>@(_baseUrl ?? L["Settings_NotSet"])</code>
+    </p>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-8">
+            <label class="form-label" for="host">@L["Settings_CanonicalHost"]</label>
+            <input id="host" class="form-control" @bind="_form.CanonicalHost" placeholder="www.example.com" />
+            <div class="form-text">@L["Settings_CanonicalHostHelp"]</div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="scheme">@L["Settings_Scheme"]</label>
+            <select id="scheme" class="form-select" @bind="_form.Scheme">
+                <option value="@UrlScheme.Https">HTTPS</option>
+                <option value="@UrlScheme.Http">HTTP</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="port">@L["Settings_Port"]</label>
+            <input id="port" type="number" min="1" max="65535" class="form-control" @bind="_form.Port" />
+            <div class="form-text">@L["Settings_PortHelp"]</div>
+        </div>
+
+        <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="forceHttps" @bind="_form.ForceHttps" />
+                <label class="form-check-label" for="forceHttps">@L["Settings_ForceHttps"]</label>
+            </div>
+            @if (_form.ForceHttps && _form.Scheme == UrlScheme.Http)
+            {
+                <div class="text-warning small mt-1">@L["Settings_ForceHttpsSchemeWarning"]</div>
+            }
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">@L["Settings_Www"]</label>
+            <select class="form-select" style="max-width:280px" @bind="_form.WwwPreference">
+                <option value="@WwwPreference.NoPreference">@L["Settings_Www_NoPreference"]</option>
+                <option value="@WwwPreference.PreferWww">@L["Settings_Www_PreferWww"]</option>
+                <option value="@WwwPreference.PreferNonWww">@L["Settings_Www_PreferNonWww"]</option>
+            </select>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">@L["Settings_Hsts"]</label>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="hsts" @bind="_form.HstsEnabled" />
+                <label class="form-check-label" for="hsts">@L["Settings_HstsEnabled"]</label>
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-md-3">
+                    <label class="form-label" for="hstsAge">@L["Settings_HstsMaxAge"]</label>
+                    <input id="hstsAge" type="number" min="0" class="form-control" @bind="_form.HstsMaxAgeDays" disabled="@(!_form.HstsEnabled)" />
+                </div>
+                <div class="col-md-9 d-flex align-items-end">
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="hstsSub" @bind="_form.HstsIncludeSubDomains" disabled="@(!_form.HstsEnabled)" />
+                        <label class="form-check-label" for="hstsSub">@L["Settings_HstsIncludeSubDomains"]</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="hstsPreload" @bind="_form.HstsPreload" disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
+                        <label class="form-check-label" for="hstsPreload">@L["Settings_HstsPreload"]</label>
+                    </div>
+                </div>
+            </div>
+            @if (_form.HstsEnabled && _form.HstsPreload)
+            {
+                <div class="text-warning small mt-1">@L["Settings_HstsPreloadWarning"]</div>
+            }
+        </div>
+
+        <div class="col-12">
+            <label class="form-label" for="aliases">@L["Settings_Aliases"]</label>
+            <textarea id="aliases" class="form-control" rows="3" @bind="_form.AliasesText" placeholder="example.com&#10;example.net"></textarea>
+            <div class="form-text">@L["Settings_AliasesHelp"]</div>
+        </div>
+    </div>
+
+    <p class="text-muted mt-3"><small>@L["Settings_EnforcementNote"]</small></p>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveDomain">
+        <button class="btn btn-primary" @onclick="SaveDomainAsync">@L["Settings_SaveDomain"]</button>
+    </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_RegionSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-4">
+            <label class="form-label" for="lang">@L["Settings_DefaultLanguage"]</label>
+            <select id="lang" class="form-select" @bind="_regional.DefaultLanguage">
+                <option value="">@L["Settings_Automatic"]</option>
+                @foreach (var culture in SupportedCultures.All)
+                {
+                    <option value="@culture">@CultureLabel(culture)</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultLanguageHelp"]</div>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="tz">@L["Settings_DefaultTimeZone"]</label>
+            <select id="tz" class="form-select" @bind="_regional.DefaultTimeZoneId">
+                <option value="">@L["Settings_ServerLocal"]</option>
+                @foreach (var zone in TimeZones)
+                {
+                    <option value="@zone.Id">@zone.DisplayName</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultTimeZoneHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveRegion">
+        <button class="btn btn-primary mt-3" @onclick="SaveRegionalAsync">@L["Settings_SaveRegion"]</button>
+    </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_EncodingSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="pageCharset">@L["Settings_PageCharset"]</label>
+            <select id="pageCharset" class="form-select" @bind="_encoding.PageCharset">
+                @foreach (var charset in Charsets)
+                {
+                    <option value="@charset">@charset.ToUpperInvariant()</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_PageCharsetHelp"]</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="emailCharset">@L["Settings_EmailCharset"]</label>
+            <select id="emailCharset" class="form-select" @bind="_encoding.EmailCharset">
+                @foreach (var charset in Charsets)
+                {
+                    <option value="@charset">@charset.ToUpperInvariant()</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_EmailCharsetHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEncoding">
+        <button class="btn btn-primary mt-3" @onclick="SaveEncodingAsync">@L["Settings_SaveEncoding"]</button>
+    </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_AccountsSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="defaultRole">@L["Settings_DefaultRole"]</label>
+            <select id="defaultRole" class="form-select" @bind="_accounts.DefaultRole">
+                <option value="">@L["Settings_DefaultRole_None"]</option>
+                @foreach (var role in _roles)
+                {
+                    <option value="@role">@role</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultRoleHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveAccounts">
+        <button class="btn btn-primary mt-3" @onclick="SaveAccountsAsync">@L["Settings_SaveAccounts"]</button>
+    </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_GeneralSection"]</h2>
+
+    <div class="row g-3 mb-2" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="siteName">@L["Settings_SiteName"]</label>
+            <input id="siteName" class="form-control" maxlength="128" @bind="_general.SiteName" placeholder="Webora" />
+            <div class="form-text">@L["Settings_SiteNameHelp"]</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="siteDescription">@L["Settings_SiteDescription"]</label>
+            <input id="siteDescription" class="form-control" maxlength="512" @bind="_general.SiteDescription" />
+            <div class="form-text">@L["Settings_SiteDescriptionHelp"]</div>
+        </div>
+    </div>
+
+    <p class="text-muted"><small>@L["Settings_UrlAppearance"]</small></p>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-6">
+            <label class="form-label" for="trailingSlash">@L["Settings_TrailingSlash"]</label>
+            <select id="trailingSlash" class="form-select" @bind="_general.TrailingSlash">
+                <option value="@TrailingSlashPolicy.NoPreference">@L["Settings_TrailingSlash_None"]</option>
+                <option value="@TrailingSlashPolicy.Add">@L["Settings_TrailingSlash_Add"]</option>
+                <option value="@TrailingSlashPolicy.Remove">@L["Settings_TrailingSlash_Remove"]</option>
+            </select>
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="lowercaseUrls" @bind="_general.LowercaseUrls" />
+                <label class="form-check-label" for="lowercaseUrls">@L["Settings_LowercaseUrls"]</label>
+                <div class="form-text">@L["Settings_LowercaseUrlsHelp"]</div>
+            </div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveGeneral">
+        <button class="btn btn-primary mt-3" @onclick="SaveGeneralAsync">@L["Settings_SaveGeneral"]</button>
+    </AuthorizeView>
+}
+
+@code {
+    private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
+    private static readonly string[] Charsets = ["utf-8", "iso-8859-2", "windows-1250", "iso-8859-1", "windows-1252"];
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private DomainForm? _form;
+    private RegionalForm _regional = new();
+    private EncodingForm _encoding = new();
+    private AccountsForm _accounts = new();
+    private GeneralForm _general = new();
+    private IReadOnlyList<string> _roles = [];
+    private string? _baseUrl;
+    private string? _message;
+    private string? _error;
+    private Guid _adminId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var admin = await UserManager.GetUserAsync(state.User);
+        _adminId = admin?.Id ?? Guid.Empty;
+        _roles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var dto = await SiteSettings.GetAsync();
+        _baseUrl = dto.CanonicalBaseUrl;
+        var d = dto.Domain;
+        _form = new DomainForm
+        {
+            CanonicalHost = d.CanonicalHost,
+            Scheme = d.Scheme,
+            Port = d.Port,
+            ForceHttps = d.ForceHttps,
+            HstsEnabled = d.HstsEnabled,
+            HstsMaxAgeDays = d.HstsMaxAgeDays,
+            HstsIncludeSubDomains = d.HstsIncludeSubDomains,
+            HstsPreload = d.HstsPreload,
+            WwwPreference = d.WwwPreference,
+            AliasesText = string.Join('\n', d.Aliases),
+        };
+        _regional = new RegionalForm
+        {
+            DefaultLanguage = dto.Regional.DefaultLanguage ?? string.Empty,
+            DefaultTimeZoneId = dto.Regional.DefaultTimeZoneId ?? string.Empty,
+        };
+        _encoding = new EncodingForm
+        {
+            PageCharset = dto.Encoding.PageCharset ?? "utf-8",
+            EmailCharset = dto.Encoding.EmailCharset ?? "utf-8",
+        };
+        _accounts = new AccountsForm
+        {
+            DefaultRole = dto.Accounts.DefaultRole ?? string.Empty,
+        };
+        _general = new GeneralForm
+        {
+            SiteName = dto.General.SiteName,
+            SiteDescription = dto.General.SiteDescription,
+            LowercaseUrls = dto.General.LowercaseUrls,
+            TrailingSlash = dto.General.TrailingSlash,
+        };
+    }
+
+    private async Task SaveDomainAsync()
+    {
+        _message = _error = null;
+        var aliases = (_form!.AliasesText ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var dto = new DomainSettingsDto(
+            _form.CanonicalHost, _form.Scheme, _form.Port, _form.ForceHttps,
+            _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
+            _form.HstsPreload, _form.WwwPreference, aliases);
+
+        await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto, _adminId));
+    }
+
+    private Task SaveRegionalAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId), _adminId));
+
+    private Task SaveEncodingAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset), _adminId));
+
+    private Task SaveAccountsAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateAccountsAsync(new AccountsSettingsDto(_accounts.DefaultRole), _adminId));
+
+    private Task SaveGeneralAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateGeneralAsync(
+            new GeneralSettingsDto(_general.SiteName, _general.SiteDescription, _general.LowercaseUrls, _general.TrailingSlash), _adminId));
+
+    private async Task ApplyAsync(Func<Task<AccountResult>> action)
+    {
+        _message = _error = null;
+        var result = await action();
+        if (result.Succeeded)
+        {
+            _message = L["Settings_Saved"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+
+    private static string CultureLabel(string culture)
+    {
+        try
+        {
+            var info = System.Globalization.CultureInfo.GetCultureInfo(culture);
+            return $"{info.NativeName} ({culture})";
+        }
+        catch (System.Globalization.CultureNotFoundException)
+        {
+            return culture;
+        }
+    }
+
+    private sealed class DomainForm
+    {
+        public string? CanonicalHost { get; set; }
+        public UrlScheme Scheme { get; set; } = UrlScheme.Https;
+        public int? Port { get; set; }
+        public bool ForceHttps { get; set; } = true;
+        public bool HstsEnabled { get; set; }
+        public int HstsMaxAgeDays { get; set; } = 365;
+        public bool HstsIncludeSubDomains { get; set; }
+        public bool HstsPreload { get; set; }
+        public WwwPreference WwwPreference { get; set; } = WwwPreference.NoPreference;
+        public string AliasesText { get; set; } = string.Empty;
+    }
+
+    private sealed class RegionalForm
+    {
+        public string? DefaultLanguage { get; set; }
+        public string? DefaultTimeZoneId { get; set; }
+    }
+
+    private sealed class EncodingForm
+    {
+        public string? PageCharset { get; set; }
+        public string? EmailCharset { get; set; }
+    }
+
+    private sealed class AccountsForm
+    {
+        public string? DefaultRole { get; set; }
+    }
+
+    private sealed class GeneralForm
+    {
+        public string? SiteName { get; set; }
+        public string? SiteDescription { get; set; }
+        public bool LowercaseUrls { get; set; }
+        public TrailingSlashPolicy TrailingSlash { get; set; } = TrailingSlashPolicy.NoPreference;
+    }
+}

@@ -1,9 +1,18 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Webora.Web.Hosting
+@using Webora.Application.Settings
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ISiteSettingsService SiteSettings
+
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="@PageCharset" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @if (!string.IsNullOrWhiteSpace(_description))
+    {
+        <meta name="description" content="@_description" />
+    }
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
@@ -30,3 +39,13 @@
 </body>
 
 </html>
+
+@code {
+    private string? _description;
+
+    protected override async Task OnInitializedAsync() =>
+        _description = (await SiteSettings.GetIdentityAsync()).Description;
+
+    private string PageCharset =>
+        HttpContextAccessor.HttpContext?.Items[CharsetMiddleware.HttpContextItemKey] as string ?? "utf-8";
+}

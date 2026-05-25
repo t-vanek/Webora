@@ -1,9 +1,10 @@
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Navigation
+@inject ISiteSettingsService SiteSettings
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Webora.Web</a>
+        <a class="navbar-brand" href="">@_siteName</a>
     </div>
 </div>
 
@@ -17,32 +18,36 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> @L["Nav_Counter"]
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> @L["Nav_Weather"]
-            </NavLink>
-        </div>
-
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.View)" Context="adminUsers">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/users">
-                    <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminUsers"]
-                </NavLink>
+        @if (_canAdminUsers || _canAdminRoles || _canSettings)
+        {
+            <div class="nav-item px-3 mt-2">
+                <small class="text-light text-uppercase">@L["Nav_Administration"]</small>
             </div>
-        </AuthorizeView>
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.View)" Context="adminRoles">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/roles">
-                    <span class="bi bi-shield-lock-nav-menu" aria-hidden="true"></span> @L["Nav_AdminRoles"]
-                </NavLink>
-            </div>
-        </AuthorizeView>
+            @if (_canAdminUsers)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/users">
+                        <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminUsers"]
+                    </NavLink>
+                </div>
+            }
+            @if (_canAdminRoles)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/roles">
+                        <span class="bi bi-shield-lock-nav-menu" aria-hidden="true"></span> @L["Nav_AdminRoles"]
+                    </NavLink>
+                </div>
+            }
+            @if (_canSettings)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/settings">
+                        <span class="bi bi-gear-fill-nav-menu" aria-hidden="true"></span> @L["Nav_AdminSettings"]
+                    </NavLink>
+                </div>
+            }
+        }
 
         <AuthorizeView>
             <Authorized>
@@ -81,6 +86,26 @@
 </div>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _canAdminUsers;
+    private bool _canAdminRoles;
+    private bool _canSettings;
+    private string _siteName = "Webora";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _siteName = (await SiteSettings.GetIdentityAsync()).Name ?? "Webora";
+
+        if (AuthState is not null)
+        {
+            var user = (await AuthState).User;
+            _canAdminUsers = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Users.View);
+            _canAdminRoles = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Roles.View);
+            _canSettings = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Settings.View);
+        }
+    }
+
     private string CultureUrl(string culture)
     {
         var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);

@@ -83,4 +83,8 @@
   <data name="Error_RoleHasMembers" xml:space="preserve"><value>The role cannot be deleted while it has assigned users.</value></data>
   <data name="Error_AdministratorAllPermissions" xml:space="preserve"><value>The Administrator role always has every permission and cannot be edited.</value></data>
   <data name="Error_UnknownPermission" xml:space="preserve"><value>Permission “{0}” is not in the catalog.</value></data>
+  <data name="Error_InvalidHost" xml:space="preserve"><value>The domain name “{0}” is invalid.</value></data>
+  <data name="Error_InvalidPort" xml:space="preserve"><value>The port must be between 1 and 65535.</value></data>
+  <data name="Error_InvalidTimeZone" xml:space="preserve"><value>The time zone “{0}” is invalid.</value></data>
+  <data name="Error_InvalidCharset" xml:space="preserve"><value>The encoding “{0}” is invalid.</value></data>
 </root>

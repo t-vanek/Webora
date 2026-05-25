@@ -1,4 +1,6 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }" NotFoundPage="typeof(Pages.NotFound)">
+﻿@inject IStringLocalizer<SharedResource> L
+
+<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
@@ -8,7 +10,9 @@
                 }
                 else
                 {
-                    <p role="alert">Nemáte oprávnění k zobrazení této stránky.</p>
+                    <h1>@L["Auth_AccessDenied_Title"]</h1>
+                    <p role="alert">@L["Auth_AccessDenied_Message"]</p>
+                    <a href="">@L["NotFound_Home"]</a>
                 }
             </NotAuthorized>
         </AuthorizeRouteView>

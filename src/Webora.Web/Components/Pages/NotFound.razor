@@ -1,5 +1,11 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
+@inject IStringLocalizer<SharedResource> L
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>@L["NotFound_Title"]</PageTitle>
+
+<h1>@L["NotFound_Title"]</h1>
+
+<p>@L["NotFound_Message"]</p>
+
+<a href="">@L["NotFound_Home"]</a>

@@ -13,8 +13,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav_Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Nav_Counter" xml:space="preserve"><value>Counter</value></data>
-  <data name="Nav_Weather" xml:space="preserve"><value>Weather</value></data>
   <data name="Nav_Login" xml:space="preserve"><value>Sign in</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Register</value></data>
   <data name="Nav_Logout" xml:space="preserve"><value>Sign out</value></data>
@@ -195,4 +193,83 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role renamed.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Permissions saved.</value></data>
+  <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
+  <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>A lightweight system for building simple web presentations.</value></data>
+  <data name="NotFound_Title" xml:space="preserve"><value>Page not found</value></data>
+  <data name="NotFound_Message" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
+  <data name="NotFound_Home" xml:space="preserve"><value>Back to home</value></data>
+  <data name="ErrorPage_Title" xml:space="preserve"><value>Error</value></data>
+  <data name="ErrorPage_Heading" xml:space="preserve"><value>An error occurred while processing your request.</value></data>
+  <data name="ErrorPage_RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="Auth_AccessDenied_Title" xml:space="preserve"><value>Access denied</value></data>
+  <data name="Auth_AccessDenied_Message" xml:space="preserve"><value>You don't have permission to view this page.</value></data>
+  <data name="Reconnect_Rejoining" xml:space="preserve"><value>Rejoining the server…</value></data>
+  <data name="Reconnect_RetryBefore" xml:space="preserve"><value>Rejoin failed, trying again in</value></data>
+  <data name="Reconnect_RetryAfter" xml:space="preserve"><value>s.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Failed to rejoin.</value></data>
+  <data name="Reconnect_FailedHint" xml:space="preserve"><value>Please retry or reload the page.</value></data>
+  <data name="Reconnect_Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Reconnect_Paused" xml:space="preserve"><value>The session has been paused by the server.</value></data>
+  <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Failed to resume the session.</value></data>
+  <data name="Reconnect_Resume" xml:space="preserve"><value>Resume</value></data>
+  <data name="Nav_AdminSettings" xml:space="preserve"><value>Site settings</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Site settings</value></data>
+  <data name="Settings_DomainSection" xml:space="preserve"><value>Domain</value></data>
+  <data name="Settings_CanonicalHost" xml:space="preserve"><value>Canonical domain</value></data>
+  <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>E.g. www.example.com – used for absolute links (emails, canonical URLs).</value></data>
+  <data name="Settings_Scheme" xml:space="preserve"><value>Protocol</value></data>
+  <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Settings_PortHelp" xml:space="preserve"><value>Empty = default (80/443).</value></data>
+  <data name="Settings_ForceHttps" xml:space="preserve"><value>Force HTTPS (redirect HTTP→HTTPS)</value></data>
+  <data name="Settings_Www" xml:space="preserve"><value>www form</value></data>
+  <data name="Settings_Www_NoPreference" xml:space="preserve"><value>No preference</value></data>
+  <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Prefer www</value></data>
+  <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Prefer non-www</value></data>
+  <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
+  <data name="Settings_HstsEnabled" xml:space="preserve"><value>Enable HSTS</value></data>
+  <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Max age (days)</value></data>
+  <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Include subdomains</value></data>
+  <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Warning: joining the HSTS preload list is hard to reverse and forces HTTPS for all subdomains for a long time.</value></data>
+  <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protocol is set to HTTP but Force HTTPS is on — redirects will target HTTPS.</value></data>
+  <data name="Settings_Aliases" xml:space="preserve"><value>Domain aliases</value></data>
+  <data name="Settings_AliasesHelp" xml:space="preserve"><value>One domain name per line.</value></data>
+  <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Canonical URL:</value></data>
+  <data name="Settings_NotSet" xml:space="preserve"><value>not set</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Enforcement (HTTPS, HSTS, www, aliases) is applied outside the Development environment; unrecognized domains and localhost are left untouched.</value></data>
+  <data name="Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="Settings_SaveDomain" xml:space="preserve"><value>Save domain</value></data>
+  <data name="Settings_SaveRegion" xml:space="preserve"><value>Save region</value></data>
+  <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
+  <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Default language</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Used when the visitor has no language preference of their own.</value></data>
+  <data name="Settings_Automatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Default time zone</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Used to display times (audit, notifications).</value></data>
+  <data name="Settings_ServerLocal" xml:space="preserve"><value>Server local time</value></data>
+  <data name="Settings_EncodingSection" xml:space="preserve"><value>Encoding</value></data>
+  <data name="Settings_SaveEncoding" xml:space="preserve"><value>Save encoding</value></data>
+  <data name="Settings_PageCharset" xml:space="preserve"><value>Page charset</value></data>
+  <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Character set of HTML pages. UTF-8 recommended; other values cause responses to be re-encoded.</value></data>
+  <data name="Settings_EmailCharset" xml:space="preserve"><value>Email charset</value></data>
+  <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Character set of outgoing email bodies.</value></data>
+  <data name="Settings_AccountsSection" xml:space="preserve"><value>Accounts</value></data>
+  <data name="Settings_SaveAccounts" xml:space="preserve"><value>Save accounts</value></data>
+  <data name="Settings_DefaultRole" xml:space="preserve"><value>Default role for new accounts</value></data>
+  <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automatically granted to newly registered accounts.</value></data>
+  <data name="Settings_DefaultRole_None" xml:space="preserve"><value>None</value></data>
+  <data name="Settings_GeneralSection" xml:space="preserve"><value>General</value></data>
+  <data name="Settings_SaveGeneral" xml:space="preserve"><value>Save general</value></data>
+  <data name="Settings_SiteName" xml:space="preserve"><value>Site name</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Shown as the brand in the navigation. Empty = “Webora”.</value></data>
+  <data name="Settings_SiteDescription" xml:space="preserve"><value>Site description</value></data>
+  <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Used as the default page meta description.</value></data>
+  <data name="Settings_UrlAppearance" xml:space="preserve"><value>URL appearance (path canonicalization).</value></data>
+  <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Lowercase URLs</value></data>
+  <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Paths with uppercase letters are redirected to lowercase (query and files are left as-is).</value></data>
+  <data name="Settings_TrailingSlash" xml:space="preserve"><value>Trailing slash</value></data>
+  <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>No change</value></data>
+  <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Always add “/”</value></data>
+  <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Always remove “/”</value></data>
 </root>

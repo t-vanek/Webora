@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Webora.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    partial class WeboraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260525122816_SiteSettings")]
+    partial class SiteSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -444,22 +447,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasMaxLength(253)
                         .HasColumnType("character varying(253)");
 
-                    b.Property<string>("DefaultLanguage")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<string>("DefaultRole")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("DefaultTimeZoneId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("EmailCharset")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
                     b.Property<bool>("ForceHttps")
                         .HasColumnType("boolean");
 
@@ -472,16 +459,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<int>("HstsMaxAgeDays")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("HstsPreload")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("LowercaseUrls")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PageCharset")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
                     b.Property<int?>("Port")
                         .HasColumnType("integer");
 
@@ -489,19 +466,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
-
-                    b.Property<string>("SiteDescription")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("SiteName")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("TrailingSlash")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("WwwPreference")
                         .IsRequired()

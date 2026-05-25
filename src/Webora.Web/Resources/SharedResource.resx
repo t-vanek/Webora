@@ -13,8 +13,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav_Home" xml:space="preserve"><value>Domů</value></data>
-  <data name="Nav_Counter" xml:space="preserve"><value>Počítadlo</value></data>
-  <data name="Nav_Weather" xml:space="preserve"><value>Počasí</value></data>
   <data name="Nav_Login" xml:space="preserve"><value>Přihlásit</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Registrace</value></data>
   <data name="Nav_Logout" xml:space="preserve"><value>Odhlásit</value></data>
@@ -195,4 +193,83 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role byla přejmenována.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
+  <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
+  <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>Lehký prezentační systém pro tvorbu jednoduchých webů.</value></data>
+  <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
+  <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
+  <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>
+  <data name="ErrorPage_Title" xml:space="preserve"><value>Chyba</value></data>
+  <data name="ErrorPage_Heading" xml:space="preserve"><value>Při zpracování požadavku došlo k chybě.</value></data>
+  <data name="ErrorPage_RequestId" xml:space="preserve"><value>ID požadavku:</value></data>
+  <data name="Auth_AccessDenied_Title" xml:space="preserve"><value>Přístup odepřen</value></data>
+  <data name="Auth_AccessDenied_Message" xml:space="preserve"><value>Nemáte oprávnění k zobrazení této stránky.</value></data>
+  <data name="Reconnect_Rejoining" xml:space="preserve"><value>Obnovuji spojení se serverem…</value></data>
+  <data name="Reconnect_RetryBefore" xml:space="preserve"><value>Spojení se nezdařilo, další pokus za</value></data>
+  <data name="Reconnect_RetryAfter" xml:space="preserve"><value>s.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Spojení se nepodařilo obnovit.</value></data>
+  <data name="Reconnect_FailedHint" xml:space="preserve"><value>Zkuste to znovu nebo načtěte stránku.</value></data>
+  <data name="Reconnect_Retry" xml:space="preserve"><value>Zkusit znovu</value></data>
+  <data name="Reconnect_Paused" xml:space="preserve"><value>Relace byla pozastavena serverem.</value></data>
+  <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Obnovení relace se nezdařilo.</value></data>
+  <data name="Reconnect_Resume" xml:space="preserve"><value>Pokračovat</value></data>
+  <data name="Nav_AdminSettings" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_DomainSection" xml:space="preserve"><value>Doména</value></data>
+  <data name="Settings_CanonicalHost" xml:space="preserve"><value>Kanonická doména</value></data>
+  <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>Např. www.example.com – použije se pro absolutní odkazy (e-maily, kanonické URL).</value></data>
+  <data name="Settings_Scheme" xml:space="preserve"><value>Protokol</value></data>
+  <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Settings_PortHelp" xml:space="preserve"><value>Prázdné = výchozí (80/443).</value></data>
+  <data name="Settings_ForceHttps" xml:space="preserve"><value>Vynutit HTTPS (přesměrovat HTTP→HTTPS)</value></data>
+  <data name="Settings_Www" xml:space="preserve"><value>Tvar www</value></data>
+  <data name="Settings_Www_NoPreference" xml:space="preserve"><value>Bez preference</value></data>
+  <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Preferovat www</value></data>
+  <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Preferovat bez www</value></data>
+  <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
+  <data name="Settings_HstsEnabled" xml:space="preserve"><value>Zapnout HSTS</value></data>
+  <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Platnost (dny)</value></data>
+  <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Včetně subdomén</value></data>
+  <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Pozor: zařazení do HSTS preload seznamu je obtížné vrátit zpět a vynutí HTTPS i pro všechny subdomény na dlouhou dobu.</value></data>
+  <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protokol je nastaven na HTTP, ale vynucení HTTPS je zapnuté – přesměrování bude směřovat na HTTPS.</value></data>
+  <data name="Settings_Aliases" xml:space="preserve"><value>Aliasy domén</value></data>
+  <data name="Settings_AliasesHelp" xml:space="preserve"><value>Jeden název domény na řádek.</value></data>
+  <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Kanonická URL:</value></data>
+  <data name="Settings_NotSet" xml:space="preserve"><value>nenastaveno</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se aplikuje mimo vývojové prostředí; nerozpoznané domény a localhost zůstávají beze změny.</value></data>
+  <data name="Settings_Saved" xml:space="preserve"><value>Nastavení bylo uloženo.</value></data>
+  <data name="Settings_SaveDomain" xml:space="preserve"><value>Uložit doménu</value></data>
+  <data name="Settings_SaveRegion" xml:space="preserve"><value>Uložit region</value></data>
+  <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
+  <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Výchozí jazyk</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se, když návštěvník nemá vlastní volbu jazyka.</value></data>
+  <data name="Settings_Automatic" xml:space="preserve"><value>Automaticky</value></data>
+  <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Použije se pro zobrazování časů (audit, notifikace).</value></data>
+  <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
+  <data name="Settings_EncodingSection" xml:space="preserve"><value>Kódování</value></data>
+  <data name="Settings_SaveEncoding" xml:space="preserve"><value>Uložit kódování</value></data>
+  <data name="Settings_PageCharset" xml:space="preserve"><value>Kódování stránek</value></data>
+  <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Znaková sada HTML stránek. Doporučeno UTF-8; jiné hodnoty způsobí překódování odpovědí.</value></data>
+  <data name="Settings_EmailCharset" xml:space="preserve"><value>Kódování e-mailů</value></data>
+  <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Znaková sada těla odchozích e-mailů.</value></data>
+  <data name="Settings_AccountsSection" xml:space="preserve"><value>Účty</value></data>
+  <data name="Settings_SaveAccounts" xml:space="preserve"><value>Uložit účty</value></data>
+  <data name="Settings_DefaultRole" xml:space="preserve"><value>Výchozí role nových účtů</value></data>
+  <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automaticky přidělená nově zaregistrovaným účtům.</value></data>
+  <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
+  <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
+  <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
+  <data name="Settings_SiteName" xml:space="preserve"><value>Název webu</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Zobrazí se jako značka v navigaci. Prázdné = „Webora“.</value></data>
+  <data name="Settings_SiteDescription" xml:space="preserve"><value>Popis webu</value></data>
+  <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Použije se jako výchozí meta description stránek.</value></data>
+  <data name="Settings_UrlAppearance" xml:space="preserve"><value>Vzhled URL adres (kanonizace cesty).</value></data>
+  <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Malá písmena v URL</value></data>
+  <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Cesty s velkými písmeny se přesměrují na malá (query a soubory se nemění).</value></data>
+  <data name="Settings_TrailingSlash" xml:space="preserve"><value>Koncové lomítko</value></data>
+  <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>Beze změny</value></data>
+  <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Vždy přidat „/“</value></data>
+  <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Vždy odstranit „/“</value></data>
 </root>
