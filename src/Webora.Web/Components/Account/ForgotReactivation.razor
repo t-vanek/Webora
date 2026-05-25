@@ -5,30 +5,37 @@
 
 <PageTitle>@L["ForgotReactivation_Title"]</PageTitle>
 
-<h1>@L["ForgotReactivation_Title"]</h1>
+<div class="row">
+    <div class="col-md-5">
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+                <FluentLabel Typo="Typography.H3">@L["ForgotReactivation_Title"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body">@L["ForgotReactivation_Intro"]</FluentLabel>
 
-<p>@L["ForgotReactivation_Intro"]</p>
-
-@if (_submitted)
-{
-    <div class="alert alert-success" role="alert">@L["ForgotReactivation_Success"]</div>
-}
-else
-{
-    <div class="row">
-        <div class="col-md-4">
-            <EditForm Model="Input" method="post" OnValidSubmit="Submit" FormName="forgot-reactivation">
-                <DataAnnotationsValidator />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                    <label>@L["Field_Email"]</label>
-                    <ValidationMessage For="() => Input.Email" />
-                </div>
-                <button type="submit" class="btn btn-primary w-100">@L["ForgotReactivation_Submit"]</button>
-            </EditForm>
-        </div>
+                @if (_submitted)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @L["ForgotReactivation_Success"]
+                    </FluentMessageBar>
+                }
+                else
+                {
+                    <EditForm Model="Input" method="post" OnValidSubmit="Submit" FormName="forgot-reactivation">
+                        <DataAnnotationsValidator />
+                        <div class="form-floating mb-3">
+                            <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
+                            <label>@L["Field_Email"]</label>
+                            <ValidationMessage For="() => Input.Email" />
+                        </div>
+                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
+                            @L["ForgotReactivation_Submit"]
+                        </FluentButton>
+                    </EditForm>
+                }
+            </FluentStack>
+        </FluentCard>
     </div>
-}
+</div>
 
 @code {
 #pragma warning disable BL0008
