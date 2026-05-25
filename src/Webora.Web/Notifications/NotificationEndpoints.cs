@@ -44,7 +44,7 @@ public static class NotificationEndpoints
 
             await service.MarkReadAsync(userId.Value, id, ct);
             return Results.NoContent();
-        }).DisableAntiforgery();
+        });
 
         group.MapPost("/read-all", async (ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
         {
@@ -56,7 +56,7 @@ public static class NotificationEndpoints
 
             await service.MarkAllReadAsync(userId.Value, ct);
             return Results.NoContent();
-        }).DisableAntiforgery();
+        });
 
         return app;
     }

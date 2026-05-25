@@ -1,3 +1,5 @@
+using Webora.Contracts.Notifications;
+
 namespace Webora.Application.Notifications;
 
 /// <summary>Pushes a freshly created notification to the user in real time. Implemented over SignalR in the web host.</summary>

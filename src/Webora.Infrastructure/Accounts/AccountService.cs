@@ -18,7 +18,7 @@ namespace Webora.Infrastructure.Accounts;
 public sealed class AccountService(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
-    WeboraDbContext dbContext,
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
     INotificationService notifications,
@@ -363,6 +363,7 @@ public sealed class AccountService(
 
     public async Task<IReadOnlyList<AccountAuditEntry>> GetAuditTrailAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var query = dbContext.AccountAuditEvents
             .AsNoTracking()
             .Where(e => e.UserId == userId)
@@ -434,6 +435,7 @@ public sealed class AccountService(
 
     private async Task AuditAsync(Guid userId, AccountAuditEventType type, string actor, string? detail, CancellationToken cancellationToken)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(userId, type, actor, detail, timeProvider.GetUtcNow()));
         await dbContext.SaveChangesAsync(cancellationToken);
     }

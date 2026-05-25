@@ -1,3 +1,4 @@
+using Webora.Contracts.Notifications;
 using Webora.Domain.Notifications;
 
 namespace Webora.Application.Notifications;

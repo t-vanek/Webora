@@ -162,6 +162,15 @@ app.MapRazorComponents<App>()
 app.MapHub<NotificationsHub>(NotificationsHub.Path);
 app.MapNotificationApi();
 
+// Antiforgery token endpoint for the WASM client. The client fetches the token once and attaches
+// it as the RequestVerificationToken header on every POST/PUT/DELETE, so cookie-auth POSTs are
+// protected against CSRF in addition to the default SameSite=Lax cookie defense.
+app.MapGet("/api/antiforgery/token", (HttpContext context, Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery) =>
+{
+    var tokens = antiforgery.GetAndStoreTokens(context);
+    return Results.Ok(new { token = tokens.RequestToken });
+}).RequireAuthorization();
+
 // Language switcher: persists the chosen culture in a cookie and returns to the page.
 app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext context) =>
 {

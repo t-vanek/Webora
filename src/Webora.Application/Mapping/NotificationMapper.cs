@@ -1,5 +1,5 @@
 using Riok.Mapperly.Abstractions;
-using Webora.Application.Notifications;
+using Webora.Contracts.Notifications;
 using Webora.Domain.Notifications;
 
 namespace Webora.Application.Mapping;
