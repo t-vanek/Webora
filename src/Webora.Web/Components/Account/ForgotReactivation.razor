@@ -1,18 +1,17 @@
 @page "/account/forgot-reactivation"
 @using System.ComponentModel.DataAnnotations
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Obnovení účtu</PageTitle>
+<PageTitle>@L["ForgotReactivation_Title"]</PageTitle>
 
-<h1>Obnovení účtu</h1>
+<h1>@L["ForgotReactivation_Title"]</h1>
 
-<p>Pokud jste svůj účet deaktivovali nebo uspali, pošleme vám odkaz pro jeho obnovení.</p>
+<p>@L["ForgotReactivation_Intro"]</p>
 
 @if (_submitted)
 {
-    <div class="alert alert-success" role="alert">
-        Pokud účet s touto adresou lze obnovit, poslali jsme na něj odkaz pro obnovení.
-    </div>
+    <div class="alert alert-success" role="alert">@L["ForgotReactivation_Success"]</div>
 }
 else
 {
@@ -22,10 +21,10 @@ else
                 <DataAnnotationsValidator />
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                    <label>E-mail</label>
+                    <label>@L["Field_Email"]</label>
                     <ValidationMessage For="() => Input.Email" />
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Poslat odkaz</button>
+                <button type="submit" class="btn btn-primary w-100">@L["ForgotReactivation_Submit"]</button>
             </EditForm>
         </div>
     </div>
@@ -47,8 +46,8 @@ else
 
     private sealed class InputModel
     {
-        [Required(ErrorMessage = "Zadejte e-mail.")]
-        [EmailAddress]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Required))]
+        [EmailAddress(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Invalid))]
         public string Email { get; set; } = string.Empty;
     }
 }

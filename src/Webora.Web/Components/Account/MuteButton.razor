@@ -1,0 +1,13 @@
+<EditForm Model="this" method="post" OnValidSubmit="OnSubmit" FormName="@FormName">
+    <button type="submit" class="btn btn-sm @Css">@Label</button>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public string FormName { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    [Parameter] public string Css { get; set; } = "btn-outline-primary";
+
+    [Parameter] public EventCallback OnSubmit { get; set; }
+}

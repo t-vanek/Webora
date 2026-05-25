@@ -3,16 +3,15 @@
 @using System.ComponentModel.DataAnnotations
 @inject UserManager<ApplicationUser> UserManager
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Změna e-mailu</PageTitle>
+<PageTitle>@L["ChangeEmail_Title"]</PageTitle>
 
-<h1>Změna e-mailu</h1>
+<h1>@L["ChangeEmail_Title"]</h1>
 
 @if (_submitted)
 {
-    <div class="alert alert-success" role="alert">
-        Na adresu <strong>@Input.NewEmail</strong> jsme poslali potvrzovací odkaz. Změna se projeví po jeho potvrzení.
-    </div>
+    <div class="alert alert-success" role="alert">@L["ChangeEmail_Success"]</div>
 }
 else
 {
@@ -26,10 +25,10 @@ else
                 }
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" placeholder="email@example.com" />
-                    <label>Nový e-mail</label>
+                    <label>@L["Field_NewEmail"]</label>
                     <ValidationMessage For="() => Input.NewEmail" />
                 </div>
-                <button type="submit" class="btn btn-primary">Poslat potvrzení</button>
+                <button type="submit" class="btn btn-primary">@L["ChangeEmail_Submit"]</button>
             </EditForm>
         </div>
     </div>
@@ -52,7 +51,7 @@ else
         var user = await UserManager.GetUserAsync(state.User);
         if (user is null)
         {
-            _error = "Účet nenalezen.";
+            _error = L["Common_AccountNotFound"];
             return;
         }
 
@@ -68,8 +67,8 @@ else
 
     private sealed class InputModel
     {
-        [Required(ErrorMessage = "Zadejte nový e-mail.")]
-        [EmailAddress]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Required))]
+        [EmailAddress(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Invalid))]
         public string NewEmail { get; set; } = string.Empty;
     }
 }

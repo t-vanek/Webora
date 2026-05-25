@@ -1,19 +1,18 @@
 @page "/account/confirm-email-change"
 @inject IAccountService AccountService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Změna e-mailu</PageTitle>
+<PageTitle>@L["ConfirmEmailChange_Title"]</PageTitle>
 
-<h1>Změna e-mailu</h1>
+<h1>@L["ConfirmEmailChange_Title"]</h1>
 
 @if (_succeeded is null)
 {
-    <p>Ověřuji…</p>
+    <p>@L["Common_Verifying"]</p>
 }
 else if (_succeeded == true)
 {
-    <div class="alert alert-success" role="alert">
-        E-mail byl změněn na <strong>@Email</strong>.
-    </div>
+    <div class="alert alert-success" role="alert">@L["ConfirmEmailChange_Success", Email!]</div>
 }
 else
 {
@@ -33,7 +32,7 @@ else
         if (UserId == Guid.Empty || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Token))
         {
             _succeeded = false;
-            _error = "Neplatný odkaz pro změnu e-mailu.";
+            _error = L["ConfirmEmailChange_Invalid"];
             return;
         }
 

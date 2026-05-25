@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Webora.Application.Accounts;
+using Webora.Application.Notifications;
 using Webora.Infrastructure.Accounts;
 using Webora.Infrastructure.Email;
 using Webora.Infrastructure.Identity;
+using Webora.Infrastructure.Notifications;
 using Webora.Infrastructure.Persistence;
 
 namespace Webora.Infrastructure;
@@ -23,6 +26,10 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.Configure<AccountOptions>(configuration.GetSection(AccountOptions.SectionName));
         services.AddScoped<IAccountService, AccountService>();
+
+        // In-app notifications. The web host replaces the publisher with a SignalR implementation.
+        services.AddScoped<INotificationService, NotificationService>();
+        services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
 
         // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
         // host where the ASP.NET shared framework is available. Here we only provide the seeder

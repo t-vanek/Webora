@@ -25,6 +25,7 @@ public static class DependencyInjection
             })
             .AddEntityFrameworkStores<WeboraDbContext>()
             .AddSignInManager<Webora.Web.Identity.WeboraSignInManager>()
+            .AddErrorDescriber<Webora.Infrastructure.Identity.LocalizedIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
 
         // Route Identity's confirmation/reset emails through the application's email abstraction.

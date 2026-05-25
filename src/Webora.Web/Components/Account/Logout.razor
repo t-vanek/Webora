@@ -1,22 +1,22 @@
 @page "/logout"
-@using Microsoft.AspNetCore.Identity
 @using Webora.Infrastructure.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Odhlášení</PageTitle>
+<PageTitle>@L["Logout_Title"]</PageTitle>
 
-<h1>Odhlášení</h1>
+<h1>@L["Logout_Title"]</h1>
 
 <AuthorizeView Context="auth">
     <Authorized>
         <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout">
-            <p>Opravdu se chcete odhlásit?</p>
-            <button type="submit" class="btn btn-primary">Odhlásit se</button>
+            <p>@L["Logout_Confirm"]</p>
+            <button type="submit" class="btn btn-primary">@L["Logout_Submit"]</button>
         </EditForm>
     </Authorized>
     <NotAuthorized>
-        <p>Nejste přihlášeni.</p>
+        <p>@L["Logout_NotSignedIn"]</p>
     </NotAuthorized>
 </AuthorizeView>
 

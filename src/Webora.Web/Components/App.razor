@@ -17,6 +17,15 @@
 <body>
     <Routes />
     <ReconnectModal />
+    <script>
+        window.weboraGetCulture = () => {
+            const match = document.cookie.match(/\.AspNetCore\.Culture=([^;]+)/);
+            if (!match) return null;
+            const value = decodeURIComponent(match[1]);
+            const uic = value.split('|').find(part => part.startsWith('uic='));
+            return uic ? uic.substring(4) : null;
+        };
+    </script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

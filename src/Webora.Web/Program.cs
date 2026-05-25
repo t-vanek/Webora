@@ -1,10 +1,16 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using Webora.Application;
+using Webora.Application.Notifications;
 using Webora.Infrastructure;
 using Webora.Web;
 using Webora.Web.Client.Pages;
 using Webora.Web.Components;
 using Webora.Web.Hubs;
+using Webora.Web.Identity;
+using Webora.Web.Notifications;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -26,10 +32,24 @@ builder.Services.AddWeboraIdentity();
 builder.Services.AddIdentityServer();
 builder.Services.AddPermissionAuthorization();
 
-// Real-time messaging.
+// Real-time messaging + per-user notification delivery over SignalR.
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
+builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationPublisher>();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddHttpContextAccessor();
+
+// Localization. Czech is the default; cultures are negotiated from the culture cookie (set by the
+// language switcher) and then the browser's Accept-Language header.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.SetDefaultCulture(SupportedCultures.Default);
+    options.AddSupportedCultures(SupportedCultures.All);
+    options.AddSupportedUICultures(SupportedCultures.All);
+});
 
 // Flow the authenticated user into Blazor components (and persist it to the WebAssembly client).
 builder.Services.AddCascadingAuthenticationState();
@@ -71,6 +91,8 @@ else
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseRequestLocalization();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -83,6 +105,21 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Webora.Web.Client._Imports).Assembly);
 
 app.MapHub<NotificationsHub>(NotificationsHub.Path);
+app.MapNotificationApi();
+
+// Language switcher: persists the chosen culture in a cookie and returns to the page.
+app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext context) =>
+{
+    if (SupportedCultures.All.Contains(culture))
+    {
+        context.Response.Cookies.Append(
+            CookieRequestCultureProvider.DefaultCookieName,
+            CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(culture)),
+            new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/" });
+    }
+
+    return Results.LocalRedirect(string.IsNullOrEmpty(redirectUri) ? "/" : redirectUri);
+});
 
 // Apply migrations (development) and seed roles, permissions and the admin account.
 await app.SeedIdentityAsync();

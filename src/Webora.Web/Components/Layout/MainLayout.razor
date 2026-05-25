@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> L
 
 <div class="page">
     <div class="sidebar">
@@ -6,8 +7,9 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-4 d-flex align-items-center gap-3">
+            <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">@L["Layout_About"]</a>
         </div>
 
         <article class="content px-4">
@@ -17,7 +19,7 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    @L["Layout_Error"]
+    <a href="." class="reload">@L["Layout_Reload"]</a>
     <span class="dismiss">🗙</span>
 </div>
