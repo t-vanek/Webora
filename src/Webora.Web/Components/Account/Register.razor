@@ -8,56 +8,52 @@
 
 @*  Static SSR form post: AccountService.RegisterAsync runs inside the request scope. Native
     <InputText> fields are kept so the post round-trips cleanly; Fluent wraps the visual chrome.  *@
-<div class="row">
-    <div class="col-md-5">
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-                <FluentLabel Typo="Typography.H3">@L["Register_Title"]</FluentLabel>
+<FluentCard Style="max-width:480px">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentLabel Typo="Typography.H3">@L["Register_Title"]</FluentLabel>
 
-                @if (_registered)
+        @if (_registered)
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
+                @L["Register_Success"]
+            </FluentMessageBar>
+        }
+        else
+        {
+            <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+                <DataAnnotationsValidator />
+                @if (!string.IsNullOrEmpty(_error))
                 {
-                    <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-                        @L["Register_Success"]
+                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @_error
                     </FluentMessageBar>
                 }
-                else
-                {
-                    <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-                        <DataAnnotationsValidator />
-                        @if (!string.IsNullOrEmpty(_error))
-                        {
-                            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                                @_error
-                            </FluentMessageBar>
-                        }
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="name" placeholder="Jméno" />
-                            <label>@L["Register_DisplayName"]</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
-                            <label>@L["Register_Email"]</label>
-                            <ValidationMessage For="() => Input.Email" />
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                            <label>@L["Register_Password"]</label>
-                            <ValidationMessage For="() => Input.Password" />
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                            <label>@L["Register_ConfirmPassword"]</label>
-                            <ValidationMessage For="() => Input.ConfirmPassword" />
-                        </div>
-                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
-                            @L["Register_Submit"]
-                        </FluentButton>
-                    </EditForm>
-                }
-            </FluentStack>
-        </FluentCard>
-    </div>
-</div>
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="name" placeholder="Jméno" />
+                    <label>@L["Register_DisplayName"]</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" placeholder="email@example.com" />
+                    <label>@L["Register_Email"]</label>
+                    <ValidationMessage For="() => Input.Email" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="heslo" />
+                    <label>@L["Register_Password"]</label>
+                    <ValidationMessage For="() => Input.Password" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="heslo" />
+                    <label>@L["Register_ConfirmPassword"]</label>
+                    <ValidationMessage For="() => Input.ConfirmPassword" />
+                </div>
+                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%">
+                    @L["Register_Submit"]
+                </FluentButton>
+            </EditForm>
+        }
+    </FluentStack>
+</FluentCard>
 
 @code {
 #pragma warning disable BL0008
