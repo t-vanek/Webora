@@ -26,12 +26,17 @@
         <ThemeToggle @rendermode="InteractiveServer" />
     </FluentHeader>
 
-    @*  The auth pages are single-card forms; the .auth-body-wrap div centers them both
-        horizontally and vertically inside the available body area. *@
+    @*  The auth pages are single-card forms; the FluentStack centers them both horizontally and
+        vertically inside the available body area. min-height: calc(100vh - 3.5rem) anchors against
+        the visible viewport minus the FluentHeader height so short forms float in the middle of
+        the screen instead of clinging to the top.  *@
     <FluentBodyContent Class="body-content" Style="overflow:auto">
-        <div class="auth-body-wrap">
+        <FluentStack Orientation="Orientation.Vertical"
+                     HorizontalAlignment="HorizontalAlignment.Center"
+                     VerticalAlignment="VerticalAlignment.Center"
+                     Style="min-height: calc(100vh - 3.5rem); padding: 1.5rem; box-sizing: border-box">
             @Body
-        </div>
+        </FluentStack>
     </FluentBodyContent>
 </FluentLayout>
 

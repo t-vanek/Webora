@@ -32,18 +32,6 @@ h1:focus {
         opacity: 0.85;
     }
 
-/* AuthLayout body wrapper — centers the single sign-in / sign-up card both horizontally and
-   vertically inside the available body area. min-height fills the viewport minus the header
-   (3.5rem) so the centering anchors against the full visible page even on short forms. */
-.auth-body-wrap {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 3.5rem);
-    padding: 1.5rem;
-    box-sizing: border-box;
-}
-
 /* Login / Register links in the header for unauthenticated visitors. Same colour token as the
    brand so they sit on the accent header readably; underline appears on hover. The flex layout
    puts the FluentIcon next to the label with a small gap. */
