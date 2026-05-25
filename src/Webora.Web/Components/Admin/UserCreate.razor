@@ -10,50 +10,49 @@
 
 <PageTitle>@L["Admin_Users_Create"]</PageTitle>
 
-<h1>@L["Admin_Users_Create"]</h1>
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Create"]</FluentLabel>
+    <FluentAnchor Href="admin/users" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Users_Title"]</FluentAnchor>
 
-<p><a href="admin/users">&laquo; @L["Admin_Users_Title"]</a></p>
-
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="Input" OnValidSubmit="CreateAsync">
-            <DataAnnotationsValidator />
+    <EditForm Model="Input" OnValidSubmit="CreateAsync">
+        <DataAnnotationsValidator />
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             @if (!string.IsNullOrEmpty(_error))
             {
-                <div class="alert alert-danger" role="alert">@_error</div>
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                    @_error
+                </FluentMessageBar>
             }
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.DisplayName" class="form-control" placeholder="Jméno" />
-                <label>@L["Admin_Users_Name"]</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="off" placeholder="email@example.com" />
-                <label>@L["Admin_Users_Email"]</label>
+
+            <FluentTextField @bind-Value="Input.DisplayName" Label="@L["Admin_Users_Name"]" Style="width:100%" />
+
+            <div>
+                <FluentTextField @bind-Value="Input.Email" Label="@L["Admin_Users_Email"]"
+                                 Required="true" AutoComplete="off" Style="width:100%" />
                 <ValidationMessage For="() => Input.Email" />
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" placeholder="heslo" />
-                <label>@L["Admin_Users_Password"]</label>
+
+            <div>
+                <FluentTextField @bind-Value="Input.Password" Label="@L["Admin_Users_Password"]"
+                                 TextFieldType="TextFieldType.Password" Required="true"
+                                 AutoComplete="new-password" Style="width:100%" />
                 <ValidationMessage For="() => Input.Password" />
             </div>
 
-            <h2 class="h6">@L["Admin_UserEdit_Roles"]</h2>
-            <div class="d-flex flex-wrap gap-3 mb-3">
+            <FluentLabel Typo="Typography.Subject">@L["Admin_UserEdit_Roles"]</FluentLabel>
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
                 @foreach (var role in _allRoles)
                 {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="@($"newrole-{role}")"
-                               checked="@_selectedRoles.Contains(role)"
-                               @onchange="e => ToggleRole(role, (bool)e.Value!)" />
-                        <label class="form-check-label" for="@($"newrole-{role}")">@role</label>
-                    </div>
+                    <FluentCheckbox Label="@role"
+                                    Value="@_selectedRoles.Contains(role)"
+                                    ValueChanged="@(c => ToggleRole(role, c))" />
                 }
-            </div>
+            </FluentStack>
 
-            <button type="submit" class="btn btn-primary">@L["Admin_Users_Create"]</button>
-        </EditForm>
-    </div>
-</div>
+            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentButton>
+        </FluentStack>
+    </EditForm>
+</FluentStack>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }

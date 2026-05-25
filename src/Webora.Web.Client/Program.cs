@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Webora.Web.Client.Api;
 
@@ -7,6 +8,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // HttpClient pointed at the host so client components can call the notification API.
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+// Fluent UI services for WASM-rendered components. Mirrors the server registration.
+builder.Services.AddFluentUIComponents();
 
 // Typed API clients keep the HTTP plumbing out of components; AntiforgeryTokenProvider fetches and
 // caches the RequestVerificationToken used on unsafe verbs.

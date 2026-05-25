@@ -1,22 +1,22 @@
 @inject IStringLocalizer<SharedResource> L
 
-<div class="row">
+<FluentGrid Spacing="3">
     @foreach (var group in Catalog)
     {
-        <div class="col-md-4 mb-3">
-            <h3 class="h6">@group.Name</h3>
-            @foreach (var permission in group.Permissions)
-            {
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="@($"perm-{permission}")"
-                           checked="@Selected.Contains(permission)" disabled="@Disabled"
-                           @onchange="e => Toggle(permission, (bool)e.Value!)" />
-                    <label class="form-check-label" for="@($"perm-{permission}")">@permission</label>
-                </div>
-            }
-        </div>
+        <FluentGridItem xs="12" md="4">
+            <FluentLabel Typo="Typography.Subject">@group.Name</FluentLabel>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                @foreach (var permission in group.Permissions)
+                {
+                    <FluentCheckbox Label="@permission"
+                                    Value="@Selected.Contains(permission)"
+                                    ValueChanged="@(c => Toggle(permission, c))"
+                                    Disabled="@Disabled" />
+                }
+            </FluentStack>
+        </FluentGridItem>
     }
-</div>
+</FluentGrid>
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<PermissionGroup> Catalog { get; set; } = [];
