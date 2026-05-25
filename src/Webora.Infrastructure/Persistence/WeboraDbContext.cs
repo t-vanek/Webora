@@ -70,6 +70,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.HasKey(s => s.Id);
             settings.Property(s => s.Id).ValueGeneratedNever();
             settings.Property(s => s.CanonicalHost).HasMaxLength(253);
+            settings.Property(s => s.DefaultLanguage).HasMaxLength(16);
+            settings.Property(s => s.DefaultTimeZoneId).HasMaxLength(64);
             settings.Property(s => s.Scheme).HasConversion<string>().HasMaxLength(8);
             settings.Property(s => s.WwwPreference).HasConversion<string>().HasMaxLength(16);
             settings.Property(s => s.Aliases)

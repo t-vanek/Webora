@@ -14,7 +14,13 @@ public sealed record DomainSettingsDto(
     WwwPreference WwwPreference,
     IReadOnlyList<string> Aliases);
 
-/// <summary>The full site settings read model. New sections are added alongside <see cref="Domain"/>.</summary>
+/// <summary>The regional section of the site settings.</summary>
+public sealed record RegionalSettingsDto(
+    string? DefaultLanguage,
+    string? DefaultTimeZoneId);
+
+/// <summary>The full site settings read model. New sections are added alongside the existing ones.</summary>
 public sealed record SiteSettingsDto(
     DomainSettingsDto Domain,
+    RegionalSettingsDto Regional,
     string? CanonicalBaseUrl);

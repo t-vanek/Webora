@@ -96,13 +96,49 @@ else
 
     <p class="text-muted mt-3"><small>@L["Settings_EnforcementNote"]</small></p>
 
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="save">
-        <button class="btn btn-primary" @onclick="SaveAsync">@L["Admin_Save"]</button>
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveDomain">
+        <button class="btn btn-primary" @onclick="SaveDomainAsync">@L["Settings_SaveDomain"]</button>
+    </AuthorizeView>
+
+    <hr class="my-4" />
+
+    <h2 class="h5">@L["Settings_RegionSection"]</h2>
+
+    <div class="row g-3" style="max-width:720px">
+        <div class="col-md-4">
+            <label class="form-label" for="lang">@L["Settings_DefaultLanguage"]</label>
+            <select id="lang" class="form-select" @bind="_regional.DefaultLanguage">
+                <option value="">@L["Settings_Automatic"]</option>
+                @foreach (var culture in SupportedCultures.All)
+                {
+                    <option value="@culture">@CultureLabel(culture)</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultLanguageHelp"]</div>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="tz">@L["Settings_DefaultTimeZone"]</label>
+            <select id="tz" class="form-select" @bind="_regional.DefaultTimeZoneId">
+                <option value="">@L["Settings_ServerLocal"]</option>
+                @foreach (var zone in TimeZones)
+                {
+                    <option value="@zone.Id">@zone.DisplayName</option>
+                }
+            </select>
+            <div class="form-text">@L["Settings_DefaultTimeZoneHelp"]</div>
+        </div>
+    </div>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveRegion">
+        <button class="btn btn-primary mt-3" @onclick="SaveRegionalAsync">@L["Settings_SaveRegion"]</button>
     </AuthorizeView>
 }
 
 @code {
+    private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
+
     private DomainForm? _form;
+    private RegionalForm _regional = new();
     private string? _baseUrl;
     private string? _message;
     private string? _error;
@@ -126,9 +162,14 @@ else
             WwwPreference = d.WwwPreference,
             AliasesText = string.Join('\n', d.Aliases),
         };
+        _regional = new RegionalForm
+        {
+            DefaultLanguage = dto.Regional.DefaultLanguage ?? string.Empty,
+            DefaultTimeZoneId = dto.Regional.DefaultTimeZoneId ?? string.Empty,
+        };
     }
 
-    private async Task SaveAsync()
+    private async Task SaveDomainAsync()
     {
         _message = _error = null;
         var aliases = (_form!.AliasesText ?? string.Empty)
@@ -139,7 +180,16 @@ else
             _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
             _form.WwwPreference, aliases);
 
-        var result = await SiteSettings.UpdateDomainAsync(dto);
+        await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto));
+    }
+
+    private Task SaveRegionalAsync() =>
+        ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId)));
+
+    private async Task ApplyAsync(Func<Task<AccountResult>> action)
+    {
+        _message = _error = null;
+        var result = await action();
         if (result.Succeeded)
         {
             _message = L["Settings_Saved"];
@@ -148,6 +198,19 @@ else
         else
         {
             _error = string.Join(" ", result.Errors);
+        }
+    }
+
+    private static string CultureLabel(string culture)
+    {
+        try
+        {
+            var info = System.Globalization.CultureInfo.GetCultureInfo(culture);
+            return $"{info.NativeName} ({culture})";
+        }
+        catch (System.Globalization.CultureNotFoundException)
+        {
+            return culture;
         }
     }
 
@@ -162,5 +225,11 @@ else
         public bool HstsIncludeSubDomains { get; set; }
         public WwwPreference WwwPreference { get; set; } = WwwPreference.NoPreference;
         public string AliasesText { get; set; } = string.Empty;
+    }
+
+    private sealed class RegionalForm
+    {
+        public string? DefaultLanguage { get; set; }
+        public string? DefaultTimeZoneId { get; set; }
     }
 }

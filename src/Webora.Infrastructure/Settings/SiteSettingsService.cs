@@ -59,6 +59,33 @@ public sealed class SiteSettingsService(
         return AccountResult.Success;
     }
 
+    public async Task<AccountResult> UpdateRegionalAsync(RegionalSettingsDto regional, CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(regional.DefaultTimeZoneId) &&
+            !TimeZoneInfo.TryFindSystemTimeZoneById(regional.DefaultTimeZoneId, out _))
+        {
+            return AccountResult.Failure(messages["Error_InvalidTimeZone", regional.DefaultTimeZoneId]);
+        }
+
+        var settings = await GetOrCreateAsync(cancellationToken);
+        settings.UpdateRegional(regional.DefaultLanguage, regional.DefaultTimeZoneId);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return AccountResult.Success;
+    }
+
+    public async Task<string?> GetDefaultLanguageAsync(CancellationToken cancellationToken = default) =>
+        (await GetOrCreateAsync(cancellationToken)).DefaultLanguage;
+
+    public async Task<TimeZoneInfo> GetTimeZoneAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = await GetOrCreateAsync(cancellationToken);
+        return !string.IsNullOrEmpty(settings.DefaultTimeZoneId)
+            && TimeZoneInfo.TryFindSystemTimeZoneById(settings.DefaultTimeZoneId, out var tz)
+                ? tz
+                : TimeZoneInfo.Local;
+    }
+
     private async Task<SiteSettings> GetOrCreateAsync(CancellationToken cancellationToken)
     {
         var settings = await dbContext.SiteSettings
@@ -79,6 +106,7 @@ public sealed class SiteSettingsService(
             new DomainSettingsDto(
                 s.CanonicalHost, s.Scheme, s.Port, s.ForceHttps, s.HstsEnabled,
                 s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.WwwPreference, s.Aliases),
+            new RegionalSettingsDto(s.DefaultLanguage, s.DefaultTimeZoneId),
             s.BaseUrl);
 
     private static bool IsValidHost(string value)

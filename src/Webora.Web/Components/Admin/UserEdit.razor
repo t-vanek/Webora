@@ -5,6 +5,7 @@
 @inject IRoleAdminService RoleAdmin
 @inject IAccountService AccountService
 @inject UserManager<ApplicationUser> UserManager
+@inject ISiteSettingsService SiteSettings
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
@@ -41,7 +42,7 @@ else
             <StatusBadge Status="_detail.Status" />
             @if (_detail.StatusChangedAtUtc is { } changed)
             {
-                <small class="text-muted ms-2">@changed.LocalDateTime.ToString("g")</small>
+                <small class="text-muted ms-2">@Fmt(changed)</small>
             }
             @if (!string.IsNullOrWhiteSpace(_detail.StatusReason))
             {
@@ -124,7 +125,7 @@ else
                 @foreach (var entry in _audit)
                 {
                     <tr>
-                        <td>@entry.OccurredAtUtc.LocalDateTime.ToString("g")</td>
+                        <td>@Fmt(entry.OccurredAtUtc)</td>
                         <td>@entry.Type</td>
                         <td>@entry.Actor</td>
                         <td>@(entry.Detail ?? "—")</td>
@@ -150,6 +151,7 @@ else
     private bool _confirmDelete;
     private string? _message;
     private string? _error;
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,8 +159,11 @@ else
         var admin = await UserManager.GetUserAsync(state.User);
         _adminId = admin?.Id ?? Guid.Empty;
         _allRoles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
+        _tz = await SiteSettings.GetTimeZoneAsync();
         await LoadAsync();
     }
+
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
 
     private async Task LoadAsync()
     {

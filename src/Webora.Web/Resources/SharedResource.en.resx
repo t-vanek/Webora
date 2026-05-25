@@ -236,4 +236,13 @@
   <data name="Settings_NotSet" xml:space="preserve"><value>not set</value></data>
   <data name="Settings_EnforcementNote" xml:space="preserve"><value>Enforcement (HTTPS, HSTS, www, aliases) is applied outside the Development environment; unrecognized domains and localhost are left untouched.</value></data>
   <data name="Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="Settings_SaveDomain" xml:space="preserve"><value>Save domain</value></data>
+  <data name="Settings_SaveRegion" xml:space="preserve"><value>Save region</value></data>
+  <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
+  <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Default language</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Used when the visitor has no language preference of their own.</value></data>
+  <data name="Settings_Automatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Default time zone</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Used to display times (audit, notifications).</value></data>
+  <data name="Settings_ServerLocal" xml:space="preserve"><value>Server local time</value></data>
 </root>

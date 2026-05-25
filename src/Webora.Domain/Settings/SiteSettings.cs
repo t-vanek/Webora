@@ -32,6 +32,12 @@ public class SiteSettings : Entity, IAggregateRoot
     /// <summary>Additional hostnames that should resolve to the canonical host.</summary>
     public IReadOnlyList<string> Aliases { get; private set; } = [];
 
+    /// <summary>Fallback UI culture (e.g. "cs") used when the visitor expresses no supported preference.</summary>
+    public string? DefaultLanguage { get; private set; }
+
+    /// <summary>System time zone id (e.g. "Europe/Prague") used to display times. Null = server local.</summary>
+    public string? DefaultTimeZoneId { get; private set; }
+
     private SiteSettings() { }
 
     public static SiteSettings CreateDefault()
@@ -66,6 +72,12 @@ public class SiteSettings : Entity, IAggregateRoot
             .Select(host => host!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    public void UpdateRegional(string? defaultLanguage, string? defaultTimeZoneId)
+    {
+        DefaultLanguage = string.IsNullOrWhiteSpace(defaultLanguage) ? null : defaultLanguage.Trim();
+        DefaultTimeZoneId = string.IsNullOrWhiteSpace(defaultTimeZoneId) ? null : defaultTimeZoneId.Trim();
     }
 
     /// <summary>The canonical base URL (scheme://host[:port]), or null when no host is configured.</summary>

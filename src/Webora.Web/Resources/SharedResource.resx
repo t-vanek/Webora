@@ -236,4 +236,13 @@
   <data name="Settings_NotSet" xml:space="preserve"><value>nenastaveno</value></data>
   <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se aplikuje mimo vývojové prostředí; nerozpoznané domény a localhost zůstávají beze změny.</value></data>
   <data name="Settings_Saved" xml:space="preserve"><value>Nastavení bylo uloženo.</value></data>
+  <data name="Settings_SaveDomain" xml:space="preserve"><value>Uložit doménu</value></data>
+  <data name="Settings_SaveRegion" xml:space="preserve"><value>Uložit region</value></data>
+  <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
+  <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Výchozí jazyk</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se, když návštěvník nemá vlastní volbu jazyka.</value></data>
+  <data name="Settings_Automatic" xml:space="preserve"><value>Automaticky</value></data>
+  <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Použije se pro zobrazování časů (audit, notifikace).</value></data>
+  <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
 </root>

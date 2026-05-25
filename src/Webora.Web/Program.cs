@@ -60,6 +60,10 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SetDefaultCulture(SupportedCultures.Default);
     options.AddSupportedCultures(SupportedCultures.All);
     options.AddSupportedUICultures(SupportedCultures.All);
+
+    // Fall back to the site's configured default language (after cookie/Accept-Language) before
+    // the static default culture.
+    options.RequestCultureProviders.Add(new SiteDefaultCultureProvider());
 });
 
 // Flow the authenticated user into Blazor components (and persist it to the WebAssembly client).

@@ -4,6 +4,7 @@
 @using Webora.Domain.Notifications
 @inject UserManager<ApplicationUser> UserManager
 @inject INotificationService NotificationService
+@inject ISiteSettingsService SiteSettings
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
@@ -20,7 +21,7 @@
             @if (_prefs.IsCurrentlyMuted)
             {
                 <span class="badge bg-warning text-dark">
-                    @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc?.LocalDateTime.ToString("g") ?? ""])
+                    @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
                 </span>
             }
             else
@@ -69,7 +70,7 @@
                     <li class="list-group-item @(n.IsRead ? "" : "list-group-item-light")">
                         <div class="d-flex justify-content-between">
                             <strong>@n.Title @LevelBadge(n.Level)</strong>
-                            <small class="text-muted">@n.CreatedAtUtc.LocalDateTime.ToString("g")</small>
+                            <small class="text-muted">@Fmt(n.CreatedAtUtc)</small>
                         </div>
                         <div>@n.Message</div>
                     </li>
@@ -92,8 +93,15 @@
 
     private IReadOnlyList<NotificationDto> _notifications = [];
     private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
-    protected override async Task OnInitializedAsync() => await ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        await ReloadAsync();
+    }
+
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
 
     private async Task<Guid?> CurrentUserIdAsync()
     {
