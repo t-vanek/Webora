@@ -8,6 +8,7 @@ WORKDIR /src
 # independently of source edits. Central package management requires the root props files.
 COPY Directory.Build.props Directory.Packages.props ./
 COPY src/Webora.Domain/Webora.Domain.csproj                 src/Webora.Domain/
+COPY src/Webora.Contracts/Webora.Contracts.csproj            src/Webora.Contracts/
 COPY src/Webora.Application/Webora.Application.csproj        src/Webora.Application/
 COPY src/Webora.Infrastructure/Webora.Infrastructure.csproj src/Webora.Infrastructure/
 COPY src/Webora.Web.Client/Webora.Web.Client.csproj         src/Webora.Web.Client/
