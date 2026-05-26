@@ -50,10 +50,29 @@ public static class DependencyInjection
         services.AddScoped<IResidentSpotService, ResidentSpotService>();
         services.AddScoped<IUserLocationService, UserLocationService>();
 
-        // Distance scaling for the shared-spot reward. Haversine works offline; a driving-distance
-        // provider can replace IDistanceProvider, and the geocoder base URL is configurable.
+        // Distance scaling for the shared-spot reward. Haversine works offline; switch to the OSRM
+        // driving-distance provider via config ("Distance:Provider": "Osrm") — it falls back to
+        // haversine if the routing service is unreachable. The geocoder base URL is configurable too.
         services.Configure<GeocodingOptions>(configuration.GetSection(GeocodingOptions.SectionName));
-        services.AddSingleton<IDistanceProvider, HaversineDistanceProvider>();
+        services.Configure<DistanceOptions>(configuration.GetSection(DistanceOptions.SectionName));
+        services.AddSingleton<HaversineDistanceProvider>();
+
+        var distanceOptions = configuration.GetSection(DistanceOptions.SectionName).Get<DistanceOptions>() ?? new DistanceOptions();
+        if (distanceOptions.UseOsrm)
+        {
+            var osrmBase = distanceOptions.OsrmBaseUrl.EndsWith('/') ? distanceOptions.OsrmBaseUrl : distanceOptions.OsrmBaseUrl + "/";
+            services.AddHttpClient<OsrmDistanceProvider>(client =>
+            {
+                client.BaseAddress = new Uri(osrmBase);
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
+            services.AddScoped<IDistanceProvider>(sp => sp.GetRequiredService<OsrmDistanceProvider>());
+        }
+        else
+        {
+            services.AddScoped<IDistanceProvider>(sp => sp.GetRequiredService<HaversineDistanceProvider>());
+        }
+
         services.AddHttpClient<IGeocoder, NominatimGeocoder>((sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value;
