@@ -56,4 +56,7 @@ public sealed record ParkingSettingsDto(
     int AdaptiveStepMaxPercent,
     int AdaptivePeakMinPercent,
     int AdaptivePeakMaxPercent,
-    int AdaptiveIntervalMinutes);
+    int AdaptiveIntervalMinutes,
+    bool TrustEnabled,
+    int TrustIntervalHours,
+    int TrustedBadgeThreshold);

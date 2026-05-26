@@ -297,6 +297,20 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TrustSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_TrustHelp"]</FluentLabel>
+            <FluentSwitch @bind-Value="_form.TrustEnabled" Label="@L["Parking_Settings_TrustEnabled"]" />
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TrustIntervalHours" Min="1"
+                                       Label="@L["Parking_Settings_TrustInterval"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TrustedBadgeThreshold" Min="0" Max="100"
+                                       Label="@L["Parking_Settings_TrustThreshold"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -378,6 +392,9 @@
             AdaptivePeakMinPercent = s.AdaptivePeakMinPercent,
             AdaptivePeakMaxPercent = s.AdaptivePeakMaxPercent,
             AdaptiveIntervalMinutes = s.AdaptiveIntervalMinutes,
+            TrustEnabled = s.TrustEnabled,
+            TrustIntervalHours = s.TrustIntervalHours,
+            TrustedBadgeThreshold = s.TrustedBadgeThreshold,
         };
     }
 
@@ -436,7 +453,10 @@
             _form.AdaptiveStepMaxPercent,
             _form.AdaptivePeakMinPercent,
             _form.AdaptivePeakMaxPercent,
-            _form.AdaptiveIntervalMinutes);
+            _form.AdaptiveIntervalMinutes,
+            _form.TrustEnabled,
+            _form.TrustIntervalHours,
+            _form.TrustedBadgeThreshold);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -507,5 +527,8 @@
         public int AdaptivePeakMinPercent { get; set; }
         public int AdaptivePeakMaxPercent { get; set; }
         public int AdaptiveIntervalMinutes { get; set; }
+        public bool TrustEnabled { get; set; }
+        public int TrustIntervalHours { get; set; }
+        public int TrustedBadgeThreshold { get; set; }
     }
 }

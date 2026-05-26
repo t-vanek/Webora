@@ -24,10 +24,10 @@ public sealed class IncentiveService(
             .ToListAsync(cancellationToken);
 
         return score is null
-            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, 0, 0, policy.TierFor(0), badges)
+            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, 0, 0, policy.TierFor(0), 0, badges)
             : new ParkerScoreDto(userId, score.Points, score.Credits, score.ReservationsCompleted,
                 score.ReservationsReleased, score.OffPeakReservations, score.NoShows,
-                score.CompletionStreak, policy.TierFor(score.Points), badges);
+                score.CompletionStreak, policy.TierFor(score.Points), score.TrustScore, badges);
     }
 
     public async Task<IReadOnlyList<LeaderboardEntryDto>> GetLeaderboardAsync(int take = 20, CancellationToken cancellationToken = default)

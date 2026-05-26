@@ -14,4 +14,7 @@ public enum ParkingBadge
 
     /// <summary>Reached a major points milestone.</summary>
     CenturyClub,
+
+    /// <summary>Highly trusted in the sharing network (top trust-graph standing).</summary>
+    Trusted,
 }

@@ -38,6 +38,12 @@ public class ParkerScore
     /// <summary>When reputation was last decayed; the decay sweep advances it one interval at a time.</summary>
     public DateTimeOffset? LastDecayUtc { get; private set; }
 
+    /// <summary>Trust-graph standing (0–100, relative to the most trusted member); recomputed periodically.</summary>
+    public int TrustScore { get; private set; }
+
+    /// <summary>When the trust score was last recomputed.</summary>
+    public DateTimeOffset? TrustComputedUtc { get; private set; }
+
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     private ParkerScore() { }
@@ -204,6 +210,14 @@ public class ParkerScore
         LastDecayUtc = last.AddDays(periods * (double)intervalDays);
         UpdatedAtUtc = now;
         return Points - before;
+    }
+
+    /// <summary>Sets the recomputed trust-graph score (0–100).</summary>
+    public void SetTrust(int trustScore, DateTimeOffset at)
+    {
+        TrustScore = Math.Clamp(trustScore, 0, 100);
+        TrustComputedUtc = at;
+        UpdatedAtUtc = at;
     }
 
     /// <summary>A manual administrative correction; does not touch behaviour counters.</summary>

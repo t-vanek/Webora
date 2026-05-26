@@ -339,6 +339,8 @@
   <data name="Parking_Badge_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
   <data name="Parking_Badge_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
   <data name="Parking_Badge_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
+  <data name="Parking_Badge_Trusted" xml:space="preserve"><value>Trusted</value></data>
+  <data name="Parking_Trust" xml:space="preserve"><value>Trust</value></data>
   <data name="Parking_Admin_Title" xml:space="preserve"><value>Manage parking spots</value></data>
   <data name="Parking_Admin_AddSpot" xml:space="preserve"><value>Add a spot</value></data>
   <data name="Parking_Admin_Code" xml:space="preserve"><value>Code</value></data>
@@ -489,6 +491,11 @@
   <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max surcharge step</value></data>
   <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min peak surcharge (%)</value></data>
   <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max peak surcharge (%)</value></data>
+  <data name="Parking_Settings_TrustSection" xml:space="preserve"><value>Trust graph</value></data>
+  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Builds an interaction graph from completed reservations on shared spots and computes a trust score (0–100) with a weighted PageRank. Above the threshold the "Trusted" badge is awarded. Gaming-resistant — edges require real completed reservations.</value></data>
+  <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Compute the trust graph</value></data>
+  <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Recompute interval (hours)</value></data>
+  <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Trusted badge threshold (0–100)</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks for reputation: queue priority, a bigger monthly allowance and a reservation price discount — all growing with the loyalty tier.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>

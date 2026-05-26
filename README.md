@@ -24,12 +24,13 @@ vyhrazeného místa) a penalizují nedostavení se.
 > **Výchozí administrátor:** `admin@webora.local` / `Admin123$` (viz `IdentitySeed` v
 > `src/Webora.Web/appsettings.json`). **Jazyky UI:** čeština (výchozí) a angličtina.
 
+> **Technická dokumentace** — architektura, nasazení, konfigurace, vývoj a technické poznámky jsou
+> v samostatném dokumentu [docs/TECHNICAL.md](docs/TECHNICAL.md).
+
 ## Obsah
 
 - [Hlavní vlastnosti](#hlavní-vlastnosti)
 - [Náhledy](#náhledy)
-- [Rychlý start](#rychlý-start)
-- [Architektura](#architektura)
 - [Jak to funguje](#jak-to-funguje)
   - [Rezervace a jejich životní cyklus](#rezervace-a-jejich-životní-cyklus)
   - [Kredity a dynamická cena](#kredity-a-dynamická-cena)
@@ -41,9 +42,7 @@ vyhrazeného místa) a penalizují nedostavení se.
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
   - [Údržba na pozadí](#údržba-na-pozadí)
   - [Role a oprávnění](#role-a-oprávnění)
-- [Konfigurace](#konfigurace)
-- [Vývoj](#vývoj)
-- [Technické poznámky](#technické-poznámky)
+- [Technická dokumentace](docs/TECHNICAL.md)
 - [Licence](#licence)
 
 ## Hlavní vlastnosti
@@ -58,6 +57,7 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Výhody za reputaci** — vyšší tier = přednost ve frontě, větší příděl a sleva na cenu.
 - **Rozklad reputace** — body časem slábnou, takže skóre odráží *současné* chování (a tresty se hojí).
 - **Týmové žebříčky** — porovnání oddělení a sociální srovnání s průměrem vlastního týmu.
+- **Graf důvěry** — skóre důvěry (PageRank nad reálnými sdílecími interakcemi) + odznak „Důvěryhodný".
 - **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
@@ -75,35 +75,8 @@ vyhrazeného místa) a penalizují nedostavení se.
 | **Rezervace** — vyhrazené místo, volná místa s živým náhledem ceny a bodů, vaše rezervace.<br>![Rezervace](docs/screenshots/reserve.png) | **Žebříček** — skóre, statistiky chování a odznaky.<br>![Žebříček](docs/screenshots/leaderboard.png) |
 | **Správa míst** — správa míst a přiřazování rezidentů.<br>![Správa míst](docs/screenshots/admin-spots.png) | **Nastavení** — pravidla ekonomiky a motivace, laditelná za běhu.<br>![Nastavení](docs/screenshots/admin-settings.png) |
 
-## Rychlý start
-
-Jediný předpoklad je **Docker** (.NET 10 SDK je potřeba jen pro hostitelský postup ve [Vývoji](#vývoj)).
-
-```bash
-docker compose up --build
-```
-
-Sestaví image aplikace a spustí ji vedle Postgresu, Redisu, RabbitMQ a smtp4dev. Kontejner běží
-v prostředí `Development`, takže při startu aplikuje EF migrace a naseeduje účet administrátora.
-
-| Služba | URL |
-| --- | --- |
-| Aplikace | http://localhost:8080 |
-| Zachycené e-maily (smtp4dev) | http://localhost:5099 |
-| RabbitMQ management | http://localhost:15672 (`guest` / `guest`) |
-
-## Architektura
-
-Řešení v **.NET 10** organizované podle Clean Architecture; tok závislostí je
-`Domain ← Application ← Infrastructure ← Web`.
-
-| Projekt | Odpovědnost | Klíčové závislosti |
-| --- | --- | --- |
-| `Webora.Domain` | Entity, hodnotové objekty, doménová pravidla. Bez frameworkových závislostí. | — |
-| `Webora.Application` | Případy užití a Wolverine handlery zpráv. | WolverineFx |
-| `Webora.Infrastructure` | EF Core/Postgres perzistence, Redis cache, ASP.NET Identity, OpenIddict, geokódování. | EF Core, Npgsql, StackExchange.Redis, OpenIddict |
-| `Webora.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine + RabbitMQ, OpenIddict server, údržba. | Serilog, WolverineFx.RabbitMQ, OpenIddict.AspNetCore |
-| `Webora.Web.Client` | Komponenty Blazor WebAssembly klienta. | — |
+> Spuštění přes `docker compose up --build`, architektura a další technické detaily jsou
+> v [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
 ## Jak to funguje
 
@@ -188,7 +161,7 @@ reputaci i peněženku**:
 
 Účetní kniha (ledger) eviduje vedle reputačních důvodů i pohyby peněženky: **měsíční příděl kreditu**,
 **stržení za rezervaci** a **vrácení kreditu**. Odznaky: *Ohleduplný kolega*, *Šampion mimo špičku*,
-*Spolehlivý parkovač*, *Klub stovky*.
+*Spolehlivý parkovač*, *Klub stovky*, *Důvěryhodný*.
 
 ### Série, úrovně a výhody
 
@@ -213,6 +186,10 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
 - **Týmové žebříčky a sociální srovnání** — uživatel si v profilu nastaví **tým/oddělení**; žebříček pak
   ukazuje pořadí týmů (podle průměrné reputace členů) a kartu „můj tým" s pozicí v týmu a porovnáním
   vlastních čísel s průměrem týmu (normativní motivace).
+- **Graf důvěry** — z **dokončených** rezervací hostů na sdílených místech se sestaví graf interakcí a
+  váženým **PageRankem** se spočítá skóre důvěry (0–100, relativně k nejdůvěryhodnějšímu členu). Nad
+  laditelným prahem se udělí odznak **„Důvěryhodný"**. Hrany vyžadují reálné dokončené rezervace (stojí
+  kredit a obsazují místo), takže je drahé je farmit.
 
 ### Rezidentní místa
 
@@ -266,8 +243,8 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
 připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
 nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
-a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci** a **ladí adaptivní ceny**. Lze ji
-spustit i ručně ze správy míst.
+a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny** a
+**přepočítává graf důvěry**. Lze ji spustit i ručně ze správy míst.
 
 ### Role a oprávnění
 
@@ -275,74 +252,8 @@ Jemná oprávnění hlídají UI i služby: `Parking.View`, `Parking.Reserve`, `
 `Parking.ManageSpots`, `Parking.ManageReservations`, `Parking.ManageIncentives`. Seedované role
 `Viewer`/`Editor` mohou prohlížet, rezervovat a vidět žebříček; `Administrator` má vše.
 
-## Konfigurace
-
-Většina chování je **uložena v databázi a editovatelná za běhu** na `/admin/parking/settings`
-(`Parking.ManageIncentives`) — bez nasazování:
-
-| Skupina | Volby |
-| --- | --- |
-| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
-| **Body** | uvolnění, bonus mimo špičku, penalizace za no-show |
-| **Tresty za no-show z fronty** | srážka bodů, kreditová pokuta, zákaz fronty (dní), srážka příštího přídělu |
-| **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
-| **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
-| **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
-| **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
-| **Okno špičky** | čas začátku / konce |
-| **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
-| **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky |
-| **Faktor vzdálenosti** | souřadnice parkoviště, základní body, referenční km, max. násobič |
-| **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
-
-Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
-
-```jsonc
-"Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "Webora/1.0 (parking)" },
-"Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" }
-```
-
-> **Poznámka k produkci:** odchozí přístup ke geokódovací (a případně routovací) službě musí být povolen
-> síťovou politikou a je nutné respektovat pravidla Nominatimu (rate limit, identifikující User-Agent).
-> Ukládání domácích adres je osobní údaj — získejte souhlas a nastavte retenční politiku.
-
-## Vývoj
-
-Pro ladění lze spustit jen podpůrné služby a engine z SDK na hostiteli:
-
-```bash
-# 1. Pouze podpůrné služby
-docker compose up -d postgres redis rabbitmq smtp4dev
-
-# 2. Spuštění enginu (Development automaticky aplikuje migrace a naseeduje administrátora)
-dotnet run --project src/Webora.Web
-```
-
-Podpůrné služby se konfigurují přes `ConnectionStrings` v `src/Webora.Web/appsettings.json`
-(`Postgres`, `Redis`, `RabbitMq`). Zapojení RabbitMQ se aktivuje jen při nastaveném connection stringu;
-vyprázdnění `ConnectionStrings:RabbitMq` (a `:Redis`) spustí aplikaci jen nad Postgresem. E-maily míří na
-lokální záchytku smtp4dev (`localhost:2525`, bez autentizace); pro produkci nastavte `Smtp:Authentication`
-na `Basic` nebo `OAuth2`.
-
-**Databázové migrace** (prostředí `Development` je aplikuje při startu):
-
-```bash
-# aplikace nejnovějšího schématu
-dotnet ef database update --project src/Webora.Infrastructure --startup-project src/Webora.Web
-
-# přidání migrace po změně modelu
-dotnet ef migrations add <Nazev> --project src/Webora.Infrastructure --startup-project src/Webora.Web
-```
-
-Nástroj `dotnet-ef` se obnoví přes `dotnet tool restore` (připnutý v `dotnet-tools.json`).
-
-## Technické poznámky
-
-- **Blazor Web App** s oběma interaktivními režimy; parkovací stránky se vykreslují na serveru
-  (`InteractiveServer`), zvoneček notifikací běží na WebAssembly.
-- **Lokalizace:** řetězce UI v `Webora.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
-  v `Webora.Infrastructure/Resources/ParkingMessages.*.resx`.
-- **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.
+Veškerá nastavení motivačního systému jsou **laditelná za běhu** v administraci; jejich přehled je
+v [technické dokumentaci](docs/TECHNICAL.md#konfigurace).
 
 ## Licence
 

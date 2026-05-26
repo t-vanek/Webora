@@ -41,6 +41,7 @@ public sealed class ParkingMaintenanceService(
             var settings = scope.ServiceProvider.GetRequiredService<IParkingSettingsService>();
             var reservations = scope.ServiceProvider.GetRequiredService<IReservationService>();
             var residentSpots = scope.ServiceProvider.GetRequiredService<IResidentSpotService>();
+            var trust = scope.ServiceProvider.GetRequiredService<ITrustService>();
 
             interval = await settings.GetSweepIntervalAsync(cancellationToken);
             var reminded = await reservations.SendDueRemindersAsync(cancellationToken);
@@ -53,12 +54,13 @@ public sealed class ParkingMaintenanceService(
             var decayed = await reservations.DecayReputationAsync(cancellationToken);
             var peakOccupancy = await reservations.MeasurePeakOccupancyAsync(cancellationToken);
             var repriced = await settings.AdaptPeakSurchargeAsync(peakOccupancy, cancellationToken);
+            var trustScored = await trust.ComputeTrustAsync(cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}.",
-                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores.",
+                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
