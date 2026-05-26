@@ -12,7 +12,7 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    [Migration("20260526120000_ParkingDomain")]
+    [Migration("20260526060000_ParkingDomain")]
     partial class ParkingDomain
     {
         /// <inheritdoc />
