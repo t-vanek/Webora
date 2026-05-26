@@ -133,6 +133,12 @@ public sealed record IncentivePolicy
     /// <summary>Reservation price discount (percent) per loyalty tier rank, capped so a booking is never free.</summary>
     public int TierDiscountPercent { get; init; } = 5;
 
+    /// <summary>Percent of reputation faded toward zero each decay interval (0 disables decay).</summary>
+    public int ReputationDecayPercent { get; init; } = 10;
+
+    /// <summary>Days between reputation decay steps.</summary>
+    public int ReputationDecayIntervalDays { get; init; } = 30;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>The monthly allowance for a user of the given tier rank (base plus the tier bonus).</summary>

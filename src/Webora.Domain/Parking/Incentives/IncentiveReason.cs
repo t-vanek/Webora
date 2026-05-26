@@ -45,6 +45,9 @@ public enum IncentiveReason
     /// <summary>A reliability bonus for an unbroken run of completed reservations.</summary>
     StreakBonus,
 
+    /// <summary>Periodic decay of reputation toward zero so the score reflects recent behaviour.</summary>
+    ReputationDecay,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

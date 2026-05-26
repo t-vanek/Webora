@@ -35,6 +35,9 @@ public class ParkerScore
     /// <summary>Credits subtracted from the next monthly allowance (a queue no-show penalty), then cleared.</summary>
     public int NextAllowancePenalty { get; private set; }
 
+    /// <summary>When reputation was last decayed; the decay sweep advances it one interval at a time.</summary>
+    public DateTimeOffset? LastDecayUtc { get; private set; }
+
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     private ParkerScore() { }
@@ -169,6 +172,38 @@ public class ParkerScore
         Points += points;
         Credits += points;
         UpdatedAtUtc = at;
+    }
+
+    /// <summary>
+    /// Fades reputation toward zero so it reflects recent behaviour (and old penalties heal). Decays
+    /// once per elapsed interval since the last decay; the first call just sets the baseline. Returns
+    /// the signed change to Points (0 when nothing decayed), for the ledger.
+    /// </summary>
+    public int DecayReputationIfDue(int percent, int intervalDays, DateTimeOffset now)
+    {
+        if (percent <= 0 || intervalDays <= 0)
+        {
+            return 0;
+        }
+
+        if (LastDecayUtc is not { } last)
+        {
+            LastDecayUtc = now;
+            return 0;
+        }
+
+        var periods = (int)((now - last).TotalDays / intervalDays);
+        if (periods <= 0)
+        {
+            return 0;
+        }
+
+        var factor = Math.Pow(1.0 - Math.Min(percent, 100) / 100.0, periods);
+        var before = Points;
+        Points = (int)Math.Round(Points * factor, MidpointRounding.AwayFromZero);
+        LastDecayUtc = last.AddDays(periods * (double)intervalDays);
+        UpdatedAtUtc = now;
+        return Points - before;
     }
 
     /// <summary>A manual administrative correction; does not touch behaviour counters.</summary>

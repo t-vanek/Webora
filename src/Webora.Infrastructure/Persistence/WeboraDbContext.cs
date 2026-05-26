@@ -203,6 +203,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.QueuePriorityPerTier).HasDefaultValue(30);
             settings.Property(s => s.TierAllowanceBonus).HasDefaultValue(20);
             settings.Property(s => s.TierDiscountPercent).HasDefaultValue(5);
+            settings.Property(s => s.ReputationDecayPercent).HasDefaultValue(10);
+            settings.Property(s => s.ReputationDecayIntervalDays).HasDefaultValue(30);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

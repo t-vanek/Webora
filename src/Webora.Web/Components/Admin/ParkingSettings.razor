@@ -236,6 +236,14 @@
                     <FluentNumberField TValue="int" @bind-Value="_form.TierPlatinumPoints" Min="0"
                                        Label="@L["Parking_Settings_TierPlatinum"]" Style="width:100%" />
                 </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ReputationDecayPercent" Min="0" Max="100"
+                                       Label="@L["Parking_Settings_ReputationDecayPercent"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ReputationDecayIntervalDays" Min="1"
+                                       Label="@L["Parking_Settings_ReputationDecayInterval"]" Style="width:100%" />
+                </FluentGridItem>
             </FluentGrid>
 
             <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TierPerksSection"]</FluentLabel>
@@ -326,6 +334,8 @@
             QueuePriorityPerTier = s.QueuePriorityPerTier,
             TierAllowanceBonus = s.TierAllowanceBonus,
             TierDiscountPercent = s.TierDiscountPercent,
+            ReputationDecayPercent = s.ReputationDecayPercent,
+            ReputationDecayIntervalDays = s.ReputationDecayIntervalDays,
         };
     }
 
@@ -374,7 +384,9 @@
             _form.TierPlatinumPoints,
             _form.QueuePriorityPerTier,
             _form.TierAllowanceBonus,
-            _form.TierDiscountPercent);
+            _form.TierDiscountPercent,
+            _form.ReputationDecayPercent,
+            _form.ReputationDecayIntervalDays);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -435,5 +447,7 @@
         public int QueuePriorityPerTier { get; set; }
         public int TierAllowanceBonus { get; set; }
         public int TierDiscountPercent { get; set; }
+        public int ReputationDecayPercent { get; set; }
+        public int ReputationDecayIntervalDays { get; set; }
     }
 }

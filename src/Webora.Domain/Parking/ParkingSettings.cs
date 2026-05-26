@@ -101,6 +101,10 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int TierDiscountPercent { get; private set; } = 5;
 
+    public int ReputationDecayPercent { get; private set; } = 10;
+
+    public int ReputationDecayIntervalDays { get; private set; } = 30;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -155,7 +159,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         int tierPlatinumPoints,
         int queuePriorityPerTier,
         int tierAllowanceBonus,
-        int tierDiscountPercent)
+        int tierDiscountPercent,
+        int reputationDecayPercent,
+        int reputationDecayIntervalDays)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -203,6 +209,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueuePriorityPerTier = Math.Max(0, queuePriorityPerTier);
         TierAllowanceBonus = Math.Max(0, tierAllowanceBonus);
         TierDiscountPercent = Math.Clamp(tierDiscountPercent, 0, 30);
+        ReputationDecayPercent = Math.Clamp(reputationDecayPercent, 0, 100);
+        ReputationDecayIntervalDays = Math.Max(1, reputationDecayIntervalDays);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -249,6 +257,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueuePriorityPerTier = QueuePriorityPerTier,
         TierAllowanceBonus = TierAllowanceBonus,
         TierDiscountPercent = TierDiscountPercent,
+        ReputationDecayPercent = ReputationDecayPercent,
+        ReputationDecayIntervalDays = ReputationDecayIntervalDays,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

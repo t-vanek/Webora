@@ -46,4 +46,6 @@ public sealed record ParkingSettingsDto(
     int TierPlatinumPoints,
     int QueuePriorityPerTier,
     int TierAllowanceBonus,
-    int TierDiscountPercent);
+    int TierDiscountPercent,
+    int ReputationDecayPercent,
+    int ReputationDecayIntervalDays);

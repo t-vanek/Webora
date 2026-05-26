@@ -62,7 +62,8 @@ public sealed class ParkingSettingsService(
             s.QueueOfferMinutes, s.QueueNoShowPenaltyPoints, s.QueueNoShowCreditPenalty, s.QueueNoShowBanDays, s.QueueNoShowAllowancePenalty,
             s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward,
             s.StreakBonusPerLevel, s.StreakBonusCap, s.TierSilverPoints, s.TierGoldPoints, s.TierPlatinumPoints,
-            s.QueuePriorityPerTier, s.TierAllowanceBonus, s.TierDiscountPercent);
+            s.QueuePriorityPerTier, s.TierAllowanceBonus, s.TierDiscountPercent,
+            s.ReputationDecayPercent, s.ReputationDecayIntervalDays);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -86,7 +87,8 @@ public sealed class ParkingSettingsService(
             dto.QueueOfferMinutes, dto.QueueNoShowPenaltyPoints, dto.QueueNoShowCreditPenalty, dto.QueueNoShowBanDays, dto.QueueNoShowAllowancePenalty,
             dto.DemandReleaseOccupancyPercent, dto.DemandReleaseQueueBonus, dto.MaxReleaseReward,
             dto.StreakBonusPerLevel, dto.StreakBonusCap, dto.TierSilverPoints, dto.TierGoldPoints, dto.TierPlatinumPoints,
-            dto.QueuePriorityPerTier, dto.TierAllowanceBonus, dto.TierDiscountPercent);
+            dto.QueuePriorityPerTier, dto.TierAllowanceBonus, dto.TierDiscountPercent,
+            dto.ReputationDecayPercent, dto.ReputationDecayIntervalDays);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
