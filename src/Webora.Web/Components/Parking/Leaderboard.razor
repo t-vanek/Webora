@@ -90,14 +90,15 @@
 
     @if (_leaderboard is null)
     {
-        <FluentProgressRing />
+        <div class="loading"><FluentProgressRing /></div>
     }
     else if (_leaderboard.Count == 0)
     {
-        <FluentLabel Typo="Typography.Body">@L["Parking_Leaderboard_Empty"]</FluentLabel>
+        <div class="empty-state">@L["Parking_Leaderboard_Empty"]</div>
     }
     else
     {
+        <div class="admin-panel">
         <FluentDataGrid Items="@_leaderboard.AsQueryable()" TGridItem="LeaderboardEntryDto"
                         GridTemplateColumns="auto 2fr 1fr 1fr 1fr 2fr">
             <TemplateColumn Title="@L["Parking_Rank"]">
@@ -123,11 +124,13 @@
                 </FluentStack>
             </TemplateColumn>
         </FluentDataGrid>
+        </div>
     }
 
     @if (_teams is { Count: > 0 })
     {
         <FluentLabel Typo="Typography.Subject">@L["Parking_Team_Leaderboard"]</FluentLabel>
+        <div class="admin-panel">
         <FluentDataGrid Items="@_teams.AsQueryable()" TGridItem="TeamLeaderboardEntryDto"
                         GridTemplateColumns="auto 2fr 1fr 1fr 1fr">
             <PropertyColumn Property="@(t => t.Rank)" Title="@L["Parking_Rank"]" />
@@ -136,6 +139,7 @@
             <PropertyColumn Property="@(t => t.AveragePoints)" Title="@L["Parking_Team_AvgPoints"]" />
             <PropertyColumn Property="@(t => t.AverageOffPeak)" Title="@L["Parking_Stat_OffPeak"]" />
         </FluentDataGrid>
+        </div>
     }
 </FluentStack>
 

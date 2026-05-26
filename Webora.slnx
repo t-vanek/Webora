@@ -7,4 +7,7 @@
     <Project Path="src/Webora.Web.Client/Webora.Web.Client.csproj" />
     <Project Path="src/Webora.Web/Webora.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Webora.E2E.Tests/Webora.E2E.Tests.csproj" />
+  </Folder>
 </Solution>

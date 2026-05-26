@@ -791,7 +791,7 @@ h1:focus {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    background: rgba(15, 108, 189, .14);
     color: var(--accent-foreground-rest, #0f6cbd);
 }
 
@@ -914,6 +914,22 @@ h1:focus {
     max-width: 680px;
 }
 
+/* Destructive-action callout used on the user/role edit pages. */
+.danger-zone {
+    max-width: 680px;
+    border: 1px solid rgba(209, 52, 56, .4);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: rgba(209, 52, 56, .05);
+}
+
+.danger-zone__title {
+    color: var(--error-rest, #d13438);
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
 .claims {
     max-width: 680px;
     border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
@@ -938,3 +954,92 @@ h1:focus {
     .claims code {
         color: var(--accent-foreground-rest, #0f6cbd);
     }
+
+/* --- Polish: keyboard focus & reduced motion --- */
+.home-tile:focus-visible {
+    outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-tile,
+    .spot-card,
+    .meter__fill {
+        transition: none;
+    }
+
+    .home-tile:hover,
+    .spot-card:hover {
+        transform: none;
+    }
+}
+
+/* Centred page loading indicator. */
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+}
+
+/* Notification cards carry a level-coloured spine for quick scanning. */
+.notif-card {
+    border-left: 3px solid var(--neutral-stroke-rest, #e0e0e0);
+}
+
+.notif-card--security { border-left-color: var(--error-rest, #d13438); }
+.notif-card--warning { border-left-color: var(--warning-rest, #f7a900); }
+.notif-card--info { border-left-color: var(--accent-fill-rest, #0f6cbd); }
+
+/* Wide data grids scroll within their panel instead of pushing the page. */
+.admin-panel {
+    overflow-x: auto;
+}
+
+/* --- Responsive: stack the sidebar above content on narrow screens --- */
+.body-content {
+    min-width: 0;
+    /* Include the padding in the width so it never forces horizontal page scroll. */
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .main {
+        flex-direction: column !important;
+        overflow: visible !important;
+    }
+
+        .main > fluent-nav-menu {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+    .body-content {
+        padding: 1rem !important;
+    }
+
+    .home-hero {
+        padding: 28px 22px;
+    }
+}
+
+/* Keep the header tools from overflowing on small screens: tighten the
+   padding and drop the wallet chip's "credits" word, leaving the number. */
+@media (max-width: 600px) {
+    .app-header {
+        padding-left: .75rem !important;
+        padding-right: .75rem !important;
+    }
+
+    .wallet-chip {
+        padding-left: 8px;
+    }
+
+        .wallet-chip small {
+            display: none;
+        }
+}
+
+/* Modernise the table panels with a gentle elevation, matching the cards. */
+.admin-panel {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
