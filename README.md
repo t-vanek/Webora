@@ -11,9 +11,9 @@ reservation you won't use, and sharing a reserved ("resident") spot — and pena
 
 ## Screenshots
 
-**Reserving a spot** — pick a time, find available spots (each showing the points it would earn), book one, and see it in your reservations:
+**Complete walkthrough** — sign in, reserve a spot (each option shows the points it would earn), check the leaderboard, and tune the live settings:
 
-![Reserving a spot](docs/screenshots/reserve.gif)
+![Complete walkthrough](docs/screenshots/walkthrough.gif)
 
 The reservation page in detail — your reserved (resident) spot, available spots with a live points preview, and your reservations:
 
