@@ -163,6 +163,15 @@ public sealed record IncentivePolicy
     /// <summary>Minimum minutes between controller adjustments.</summary>
     public int AdaptiveIntervalMinutes { get; init; } = 60;
 
+    /// <summary>Whether the trust graph is computed from sharing interactions.</summary>
+    public bool TrustEnabled { get; init; } = true;
+
+    /// <summary>Hours between trust-graph recomputations.</summary>
+    public int TrustIntervalHours { get; init; } = 24;
+
+    /// <summary>Trust score (0–100) at or above which the "Trusted" badge is awarded.</summary>
+    public int TrustedBadgeThreshold { get; init; } = 60;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>

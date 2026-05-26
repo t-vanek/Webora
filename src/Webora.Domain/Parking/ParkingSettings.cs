@@ -126,6 +126,17 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>Controller state: when the peak surcharge was last auto-adjusted.</summary>
     public DateTimeOffset? LastAdaptiveAdjustUtc { get; private set; }
 
+    // --- Trust graph (EigenTrust/PageRank over sharing interactions) ---
+
+    public bool TrustEnabled { get; private set; } = true;
+
+    public int TrustIntervalHours { get; private set; } = 24;
+
+    public int TrustedBadgeThreshold { get; private set; } = 60;
+
+    /// <summary>State: when the trust graph was last recomputed.</summary>
+    public DateTimeOffset? LastTrustComputeUtc { get; private set; }
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -190,7 +201,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         int adaptiveStepMaxPercent,
         int adaptivePeakMinPercent,
         int adaptivePeakMaxPercent,
-        int adaptiveIntervalMinutes)
+        int adaptiveIntervalMinutes,
+        bool trustEnabled,
+        int trustIntervalHours,
+        int trustedBadgeThreshold)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -248,7 +262,13 @@ public class ParkingSettings : Entity, IAggregateRoot
         AdaptivePeakMinPercent = Math.Max(100, adaptivePeakMinPercent);
         AdaptivePeakMaxPercent = Math.Max(AdaptivePeakMinPercent, adaptivePeakMaxPercent);
         AdaptiveIntervalMinutes = Math.Max(1, adaptiveIntervalMinutes);
+        TrustEnabled = trustEnabled;
+        TrustIntervalHours = Math.Max(1, trustIntervalHours);
+        TrustedBadgeThreshold = Math.Clamp(trustedBadgeThreshold, 0, 100);
     }
+
+    /// <summary>Records when the trust graph was last recomputed.</summary>
+    public void MarkTrustComputed(DateTimeOffset at) => LastTrustComputeUtc = at;
 
     /// <summary>Applies an adaptive-controller adjustment to the peak surcharge and records the time.</summary>
     public void ApplyAdaptiveAdjustment(int newPeakPricePercent, DateTimeOffset at)
@@ -311,6 +331,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         AdaptivePeakMinPercent = AdaptivePeakMinPercent,
         AdaptivePeakMaxPercent = AdaptivePeakMaxPercent,
         AdaptiveIntervalMinutes = AdaptiveIntervalMinutes,
+        TrustEnabled = TrustEnabled,
+        TrustIntervalHours = TrustIntervalHours,
+        TrustedBadgeThreshold = TrustedBadgeThreshold,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

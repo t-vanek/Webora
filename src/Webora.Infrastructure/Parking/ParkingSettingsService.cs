@@ -65,7 +65,8 @@ public sealed class ParkingSettingsService(
             s.QueuePriorityPerTier, s.TierAllowanceBonus, s.TierDiscountPercent,
             s.ReputationDecayPercent, s.ReputationDecayIntervalDays,
             s.AdaptivePricingEnabled, s.AdaptiveTargetOccupancyPercent, s.AdaptiveGainPercent, s.AdaptiveDeadbandPercent,
-            s.AdaptiveStepMaxPercent, s.AdaptivePeakMinPercent, s.AdaptivePeakMaxPercent, s.AdaptiveIntervalMinutes);
+            s.AdaptiveStepMaxPercent, s.AdaptivePeakMinPercent, s.AdaptivePeakMaxPercent, s.AdaptiveIntervalMinutes,
+            s.TrustEnabled, s.TrustIntervalHours, s.TrustedBadgeThreshold);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -92,7 +93,8 @@ public sealed class ParkingSettingsService(
             dto.QueuePriorityPerTier, dto.TierAllowanceBonus, dto.TierDiscountPercent,
             dto.ReputationDecayPercent, dto.ReputationDecayIntervalDays,
             dto.AdaptivePricingEnabled, dto.AdaptiveTargetOccupancyPercent, dto.AdaptiveGainPercent, dto.AdaptiveDeadbandPercent,
-            dto.AdaptiveStepMaxPercent, dto.AdaptivePeakMinPercent, dto.AdaptivePeakMaxPercent, dto.AdaptiveIntervalMinutes);
+            dto.AdaptiveStepMaxPercent, dto.AdaptivePeakMinPercent, dto.AdaptivePeakMaxPercent, dto.AdaptiveIntervalMinutes,
+            dto.TrustEnabled, dto.TrustIntervalHours, dto.TrustedBadgeThreshold);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",

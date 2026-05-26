@@ -213,6 +213,9 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.AdaptivePeakMinPercent).HasDefaultValue(100);
             settings.Property(s => s.AdaptivePeakMaxPercent).HasDefaultValue(400);
             settings.Property(s => s.AdaptiveIntervalMinutes).HasDefaultValue(60);
+            settings.Property(s => s.TrustEnabled).HasDefaultValue(true);
+            settings.Property(s => s.TrustIntervalHours).HasDefaultValue(24);
+            settings.Property(s => s.TrustedBadgeThreshold).HasDefaultValue(60);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

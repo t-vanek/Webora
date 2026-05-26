@@ -339,6 +339,8 @@
   <data name="Parking_Badge_OffPeakChampion" xml:space="preserve"><value>Mistr mimo špičku</value></data>
   <data name="Parking_Badge_ReliableParker" xml:space="preserve"><value>Spolehlivý řidič</value></data>
   <data name="Parking_Badge_CenturyClub" xml:space="preserve"><value>Klub stovkařů</value></data>
+  <data name="Parking_Badge_Trusted" xml:space="preserve"><value>Důvěryhodný</value></data>
+  <data name="Parking_Trust" xml:space="preserve"><value>Důvěra</value></data>
   <data name="Parking_Admin_Title" xml:space="preserve"><value>Správa parkovacích míst</value></data>
   <data name="Parking_Admin_AddSpot" xml:space="preserve"><value>Přidat místo</value></data>
   <data name="Parking_Admin_Code" xml:space="preserve"><value>Označení</value></data>
@@ -489,6 +491,11 @@
   <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max. krok přirážky</value></data>
   <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min. přirážka za špičku (%)</value></data>
   <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_TrustSection" xml:space="preserve"><value>Graf důvěry</value></data>
+  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Z dokončených rezervací na sdílených místech se sestaví graf interakcí a váženým PageRankem se spočítá skóre důvěry (0–100). Nad prahem se udělí odznak „Důvěryhodný". Odolné vůči gamingu – hrany vyžadují reálné dokončené rezervace.</value></data>
+  <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Počítat graf důvěry</value></data>
+  <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Interval přepočtu (hodin)</value></data>
+  <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Práh odznaku Důvěryhodný (0–100)</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>

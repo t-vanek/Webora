@@ -13,6 +13,7 @@ public sealed record ParkerScoreDto(
     int NoShows,
     int CompletionStreak,
     LoyaltyTier Tier,
+    int TrustScore,
     IReadOnlyList<ParkingBadge> Badges);
 
 /// <summary>A department's standing on the team leaderboard (ranked by average reputation).</summary>

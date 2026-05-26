@@ -20,6 +20,7 @@
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
                     <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Tier_{_score.Tier}"]</FluentBadge>
                     <FluentLabel Typo="Typography.Body">@L["Parking_MyStreak"]: <strong>@_score.CompletionStreak</strong></FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Trust"]: <strong>@_score.TrustScore</strong>/100</FluentLabel>
                 </FluentStack>
                 <FluentLabel Typo="Typography.Body">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</FluentLabel>
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
