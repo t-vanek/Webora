@@ -7,8 +7,16 @@
 <PageTitle>@L["Parking_Collusion_Title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Collusion_Title"]</FluentLabel>
-    <FluentLabel Typo="Typography.Body">@L["Parking_Collusion_Intro"]</FluentLabel>
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Collusion_Title"]</FluentLabel>
+            @if (_flags is { Count: > 0 })
+            {
+                <span class="count-chip">@_flags.Count</span>
+            }
+        </div>
+        <p class="admin-head__intro">@L["Parking_Collusion_Intro"]</p>
+    </div>
 
     @if (_flags is null)
     {
@@ -16,35 +24,44 @@
     }
     else if (_flags.Count == 0)
     {
-        <FluentLabel Typo="Typography.Body">@L["Parking_Collusion_Empty"]</FluentLabel>
+        <div class="empty-state">@L["Parking_Collusion_Empty"]</div>
     }
     else
     {
-        <FluentDataGrid Items="@_flags.AsQueryable()" TGridItem="CollusionFlagDto"
-                        GridTemplateColumns="2fr 1fr 1fr 1fr auto">
-            <TemplateColumn Title="@L["Parking_Collusion_Pair"]">
-                @context.UserAName ↔ @context.UserBName
-            </TemplateColumn>
-            <PropertyColumn Property="@(f => f.MutualInteractions)" Title="@L["Parking_Collusion_Mutual"]" />
-            <TemplateColumn Title="@L["Parking_Collusion_Concentration"]">
-                @context.ConcentrationAPercent % / @context.ConcentrationBPercent %
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Parking_Status"]">
-                @L[$"Parking_CollusionState_{context.Status}"]
-            </TemplateColumn>
-            <TemplateColumn Align="Align.End">
-                @if (context.Status == CollusionFlagStatus.New)
-                {
-                    <FluentButton OnClick="() => ReviewAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
-                }
-                <FluentButton OnClick="() => DismissAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
-            </TemplateColumn>
-        </FluentDataGrid>
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_flags.AsQueryable()" TGridItem="CollusionFlagDto"
+                            GridTemplateColumns="2fr 1fr 1fr 1fr auto">
+                <TemplateColumn Title="@L["Parking_Collusion_Pair"]">
+                    @context.UserAName ↔ @context.UserBName
+                </TemplateColumn>
+                <PropertyColumn Property="@(f => f.MutualInteractions)" Title="@L["Parking_Collusion_Mutual"]" />
+                <TemplateColumn Title="@L["Parking_Collusion_Concentration"]">
+                    @context.ConcentrationAPercent % / @context.ConcentrationBPercent %
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Status"]">
+                    <span class="state-pill state-pill--@StatusClass(context.Status)">@L[$"Parking_CollusionState_{context.Status}"]</span>
+                </TemplateColumn>
+                <TemplateColumn Align="Align.End">
+                    @if (context.Status == CollusionFlagStatus.New)
+                    {
+                        <FluentButton OnClick="() => ReviewAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
+                    }
+                    <FluentButton OnClick="() => DismissAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
     }
 </FluentStack>
 
 @code {
     private IReadOnlyList<CollusionFlagDto>? _flags;
+
+    private static string StatusClass(CollusionFlagStatus status) => status switch
+    {
+        CollusionFlagStatus.New => "warn",
+        CollusionFlagStatus.Reviewed => "info",
+        _ => "off",
+    };
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 

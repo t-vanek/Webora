@@ -847,3 +847,64 @@ h1:focus {
 
 .state-pill--on { background: rgba(16, 124, 16, .14); color: var(--success-rest, #107c10); }
 .state-pill--off { background: var(--neutral-fill-secondary-rest, #ececec); color: var(--neutral-foreground-hint, #6b6b6b); }
+.state-pill--warn { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
+.state-pill--info { background: rgba(15, 108, 189, .12); color: var(--accent-foreground-rest, #0f6cbd); }
+
+/* --- Account hub (manage) --- */
+.profile-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    max-width: 640px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 14px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent-fill-rest, #0f6cbd), #16306a);
+    flex: 0 0 auto;
+}
+
+.profile-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.profile-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.profile-sub {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.profile-facts {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 13px;
+}
+
+.account-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 420px;
+}

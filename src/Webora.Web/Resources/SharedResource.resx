@@ -86,6 +86,7 @@
   <data name="ConfirmSuspend_Success" xml:space="preserve"><value>Účet byl uspán.</value></data>
   <data name="ConfirmSuspend_Invalid" xml:space="preserve"><value>Neplatný odkaz pro uspání účtu.</value></data>
   <data name="Manage_Title" xml:space="preserve"><value>Můj účet</value></data>
+  <data name="Manage_Actions" xml:space="preserve"><value>Nastavení účtu</value></data>
   <data name="Manage_Name" xml:space="preserve"><value>Jméno</value></data>
   <data name="Manage_Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Manage_Phone" xml:space="preserve"><value>Telefon</value></data>
