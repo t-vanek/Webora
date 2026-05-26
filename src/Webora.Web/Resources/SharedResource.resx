@@ -482,6 +482,17 @@
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>
   <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Bonus k přídělu / úroveň</value></data>
   <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva na cenu / úroveň (%)</value></data>
+  <data name="Profile_TeamTitle" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_TeamHelp" xml:space="preserve"><value>Zařaď se do týmu nebo oddělení – objeví se týmový žebříček a porovnání s kolegy.</value></data>
+  <data name="Profile_Team" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_SaveTeam" xml:space="preserve"><value>Uložit tým</value></data>
+  <data name="Parking_Team_Mine" xml:space="preserve"><value>Můj tým</value></data>
+  <data name="Parking_Team_Rank" xml:space="preserve"><value>Jsi #{0} z {1} v týmu</value></data>
+  <data name="Parking_Team_Avg" xml:space="preserve"><value>průměr týmu</value></data>
+  <data name="Parking_Team_Leaderboard" xml:space="preserve"><value>Žebříček týmů</value></data>
+  <data name="Parking_Team_Name" xml:space="preserve"><value>Tým</value></data>
+  <data name="Parking_Team_Members" xml:space="preserve"><value>Členů</value></data>
+  <data name="Parking_Team_AvgPoints" xml:space="preserve"><value>Ø bodů</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

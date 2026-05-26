@@ -49,6 +49,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
                 .HasDefaultValue(AccountStatus.PendingActivation);
 
             user.Property(u => u.DisplayName).HasMaxLength(256);
+            user.Property(u => u.Department).HasMaxLength(128);
             user.Property(u => u.StatusReason).HasMaxLength(512);
             user.Property(u => u.HomeAddress).HasMaxLength(512);
         });

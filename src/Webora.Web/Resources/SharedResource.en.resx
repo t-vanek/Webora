@@ -482,6 +482,17 @@
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>
   <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Allowance bonus / tier</value></data>
   <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Price discount / tier (%)</value></data>
+  <data name="Profile_TeamTitle" xml:space="preserve"><value>Team / department</value></data>
+  <data name="Profile_TeamHelp" xml:space="preserve"><value>Join a team or department to see the team leaderboard and how you compare with colleagues.</value></data>
+  <data name="Profile_Team" xml:space="preserve"><value>Team / department</value></data>
+  <data name="Profile_SaveTeam" xml:space="preserve"><value>Save team</value></data>
+  <data name="Parking_Team_Mine" xml:space="preserve"><value>My team</value></data>
+  <data name="Parking_Team_Rank" xml:space="preserve"><value>You're #{0} of {1} in your team</value></data>
+  <data name="Parking_Team_Avg" xml:space="preserve"><value>team average</value></data>
+  <data name="Parking_Team_Leaderboard" xml:space="preserve"><value>Team leaderboard</value></data>
+  <data name="Parking_Team_Name" xml:space="preserve"><value>Team</value></data>
+  <data name="Parking_Team_Members" xml:space="preserve"><value>Members</value></data>
+  <data name="Parking_Team_AvgPoints" xml:space="preserve"><value>Avg points</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

@@ -41,6 +41,20 @@
         </FluentCard>
     }
 
+    @if (_peer is not null)
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_Team_Mine"]: <strong>@_peer.Department</strong></FluentLabel>
+                <FluentLabel Typo="Typography.Body">@L["Parking_Team_Rank", _peer.RankInTeam, _peer.TeamSize]</FluentLabel>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Points"]: <strong>@_peer.MyPoints</strong> · @L["Parking_Team_Avg"]: @_peer.TeamAveragePoints</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_OffPeak"]: <strong>@_peer.MyOffPeak</strong> · @L["Parking_Team_Avg"]: @_peer.TeamAverageOffPeak</FluentLabel>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+
     @if (_leaderboard is null)
     {
         <FluentProgressRing />
@@ -68,6 +82,19 @@
             </TemplateColumn>
         </FluentDataGrid>
     }
+
+    @if (_teams is { Count: > 0 })
+    {
+        <FluentLabel Typo="Typography.Subject">@L["Parking_Team_Leaderboard"]</FluentLabel>
+        <FluentDataGrid Items="@_teams.AsQueryable()" TGridItem="TeamLeaderboardEntryDto"
+                        GridTemplateColumns="auto 2fr 1fr 1fr 1fr">
+            <PropertyColumn Property="@(t => t.Rank)" Title="@L["Parking_Rank"]" />
+            <PropertyColumn Property="@(t => t.Department)" Title="@L["Parking_Team_Name"]" />
+            <PropertyColumn Property="@(t => t.MemberCount)" Title="@L["Parking_Team_Members"]" />
+            <PropertyColumn Property="@(t => t.AveragePoints)" Title="@L["Parking_Team_AvgPoints"]" />
+            <PropertyColumn Property="@(t => t.AverageOffPeak)" Title="@L["Parking_Stat_OffPeak"]" />
+        </FluentDataGrid>
+    }
 </FluentStack>
 
 @code {
@@ -75,6 +102,8 @@
 
     private ParkerScoreDto? _score;
     private IReadOnlyList<LeaderboardEntryDto>? _leaderboard;
+    private IReadOnlyList<TeamLeaderboardEntryDto>? _teams;
+    private PeerComparisonDto? _peer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -83,8 +112,10 @@
         if (user is not null)
         {
             _score = await Incentives.GetScoreAsync(user.Id);
+            _peer = await Incentives.GetPeerComparisonAsync(user.Id);
         }
 
         _leaderboard = await Incentives.GetLeaderboardAsync();
+        _teams = await Incentives.GetTeamLeaderboardAsync();
     }
 }
