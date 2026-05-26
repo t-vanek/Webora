@@ -5,9 +5,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Webora.Application.Accounts;
 using Webora.Application.Administration;
 using Webora.Application.Notifications;
+using Webora.Application.Parking;
 using Webora.Application.Settings;
+using Webora.Domain.Parking.Incentives;
 using Webora.Infrastructure.Accounts;
 using Webora.Infrastructure.Administration;
+using Webora.Infrastructure.Parking;
 using Webora.Infrastructure.Settings;
 using Webora.Infrastructure.Email;
 using Webora.Infrastructure.Identity;
@@ -37,6 +40,12 @@ public static class DependencyInjection
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.
         services.AddScoped<INotificationService, NotificationService>();
         services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
+
+        // Parking reservations and the incentive system. The policy is immutable and shared.
+        services.AddSingleton(IncentivePolicy.Default);
+        services.AddScoped<IParkingSpotService, ParkingSpotService>();
+        services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<IIncentiveService, IncentiveService>();
 
         // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
         // host where the ASP.NET shared framework is available. Here we only provide the seeder

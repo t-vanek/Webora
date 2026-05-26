@@ -202,7 +202,7 @@
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Permissions saved.</value></data>
   <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
-  <data name="Home_Welcome" xml:space="preserve"><value>A lightweight system for building simple web presentations.</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>A reservation system for the company car park, with incentive points that reward making the best use of every spot.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Page not found</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Back to home</value></data>
@@ -279,4 +279,79 @@
   <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>No change</value></data>
   <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Always add “/”</value></data>
   <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Always remove “/”</value></data>
+  <data name="Nav_Parking" xml:space="preserve"><value>Parking</value></data>
+  <data name="Nav_ParkingReserve" xml:space="preserve"><value>Reserve a spot</value></data>
+  <data name="Nav_ParkingLeaderboard" xml:space="preserve"><value>Leaderboard</value></data>
+  <data name="Nav_AdminParking" xml:space="preserve"><value>Parking spots</value></data>
+  <data name="Parking_Title" xml:space="preserve"><value>Reserve parking</value></data>
+  <data name="Parking_Intro" xml:space="preserve"><value>Book a spot for a chosen time. You earn points for releasing an unused reservation and for parking off-peak.</value></data>
+  <data name="Parking_FindTitle" xml:space="preserve"><value>Find available spots</value></data>
+  <data name="Parking_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Parking_From" xml:space="preserve"><value>From</value></data>
+  <data name="Parking_To" xml:space="preserve"><value>To</value></data>
+  <data name="Parking_Find" xml:space="preserve"><value>Find spots</value></data>
+  <data name="Parking_OffPeakHint" xml:space="preserve"><value>This time is off-peak – you'll earn bonus points.</value></data>
+  <data name="Parking_Available" xml:space="preserve"><value>Available spots</value></data>
+  <data name="Parking_NoneAvailable" xml:space="preserve"><value>No spots are available for the chosen time.</value></data>
+  <data name="Parking_Reserve" xml:space="preserve"><value>Reserve</value></data>
+  <data name="Parking_MyReservations" xml:space="preserve"><value>My reservations</value></data>
+  <data name="Parking_NoReservations" xml:space="preserve"><value>You have no reservations yet.</value></data>
+  <data name="Parking_Spot" xml:space="preserve"><value>Spot</value></data>
+  <data name="Parking_When" xml:space="preserve"><value>When</value></data>
+  <data name="Parking_OffPeak" xml:space="preserve"><value>Off-peak</value></data>
+  <data name="Parking_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Parking_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Parking_CheckIn" xml:space="preserve"><value>Check in</value></data>
+  <data name="Parking_Release" xml:space="preserve"><value>Release</value></data>
+  <data name="Parking_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Parking_Complete" xml:space="preserve"><value>Leave</value></data>
+  <data name="Parking_Reserved" xml:space="preserve"><value>The spot has been reserved.</value></data>
+  <data name="Parking_Released" xml:space="preserve"><value>The reservation was released for others.</value></data>
+  <data name="Parking_State_Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Parking_State_CheckedIn" xml:space="preserve"><value>On site</value></data>
+  <data name="Parking_State_Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Parking_State_Released" xml:space="preserve"><value>Released</value></data>
+  <data name="Parking_State_NoShow" xml:space="preserve"><value>No-show</value></data>
+  <data name="Parking_State_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Parking_Error_CodeRequired" xml:space="preserve"><value>Enter a spot code.</value></data>
+  <data name="Parking_Error_DuplicateCode" xml:space="preserve"><value>A spot with this code already exists.</value></data>
+  <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>The spot was not found.</value></data>
+  <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>This spot is not available.</value></data>
+  <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>The end must be after the start.</value></data>
+  <data name="Parking_Error_PastWindow" xml:space="preserve"><value>You can't reserve a time in the past.</value></data>
+  <data name="Parking_Error_SpotConflict" xml:space="preserve"><value>This spot is already taken for the chosen time.</value></data>
+  <data name="Parking_Error_OwnConflict" xml:space="preserve"><value>You already have another reservation at this time.</value></data>
+  <data name="Parking_Error_ReservationNotFound" xml:space="preserve"><value>The reservation was not found.</value></data>
+  <data name="Parking_Error_InvalidState" xml:space="preserve"><value>This action can't be performed in the reservation's current state.</value></data>
+  <data name="Parking_Leaderboard_Title" xml:space="preserve"><value>Leaderboard</value></data>
+  <data name="Parking_Leaderboard_Intro" xml:space="preserve"><value>You earn points for behaviour that improves how well the lot is used.</value></data>
+  <data name="Parking_MyScore" xml:space="preserve"><value>My score</value></data>
+  <data name="Parking_Points" xml:space="preserve"><value>points</value></data>
+  <data name="Parking_Stat_Released" xml:space="preserve"><value>Releases</value></data>
+  <data name="Parking_Stat_OffPeak" xml:space="preserve"><value>Off-peak</value></data>
+  <data name="Parking_Stat_Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Parking_Stat_NoShows" xml:space="preserve"><value>No-shows</value></data>
+  <data name="Parking_Leaderboard_Empty" xml:space="preserve"><value>The leaderboard is still empty.</value></data>
+  <data name="Parking_Rank" xml:space="preserve"><value>Rank</value></data>
+  <data name="Parking_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Parking_Badges" xml:space="preserve"><value>Badges</value></data>
+  <data name="Parking_Badge_ConsiderateColleague" xml:space="preserve"><value>Considerate Colleague</value></data>
+  <data name="Parking_Badge_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
+  <data name="Parking_Badge_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
+  <data name="Parking_Badge_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
+  <data name="Parking_Admin_Title" xml:space="preserve"><value>Manage parking spots</value></data>
+  <data name="Parking_Admin_AddSpot" xml:space="preserve"><value>Add a spot</value></data>
+  <data name="Parking_Admin_Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Parking_Admin_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Parking_Admin_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Parking_Admin_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Resolve no-shows</value></data>
+  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Marks expired unused reservations as no-shows and deducts points.</value></data>
+  <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>No-shows resolved: {0}</value></data>
+  <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>There are no spots yet.</value></data>
+  <data name="Parking_Admin_State" xml:space="preserve"><value>State</value></data>
+  <data name="Parking_Admin_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="Parking_Admin_Activate" xml:space="preserve"><value>Activate</value></data>
 </root>

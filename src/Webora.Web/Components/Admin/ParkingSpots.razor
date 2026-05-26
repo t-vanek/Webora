@@ -1,0 +1,129 @@
+@page "/admin/parking/spots"
+@attribute [HasPermission(Permissions.Parking.ManageSpots)]
+@rendermode InteractiveServer
+@inject IParkingSpotService Spots
+@inject IReservationService Reservations
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Admin_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
+    }
+
+    <FluentCard>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Admin_AddSpot"]</FluentLabel>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                <FluentTextField @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" />
+                <FluentSelect TOption="ParkingSpotType"
+                              Items="@_spotTypes"
+                              OptionValue="@(t => t.ToString())"
+                              OptionText="@(t => t.ToString())"
+                              @bind-SelectedOption="_newType"
+                              Label="@L["Parking_Admin_Type"]" />
+                <FluentTextField @bind-Value="_newNotes" Label="@L["Parking_Admin_Notes"]" />
+                <FluentButton Appearance="Appearance.Accent" OnClick="CreateAsync">@L["Parking_Admin_Add"]</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+            <FluentButton Appearance="Appearance.Outline" OnClick="SweepNoShowsAsync">@L["Parking_Admin_SweepNoShows"]</FluentButton>
+            <FluentLabel Typo="Typography.Body">@L["Parking_Admin_SweepHint"]</FluentLabel>
+        </FluentStack>
+    </AuthorizeView>
+
+    @if (_spots is null)
+    {
+        <FluentProgressRing />
+    }
+    else if (_spots.Count == 0)
+    {
+        <FluentLabel Typo="Typography.Body">@L["Parking_Admin_NoSpots"]</FluentLabel>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
+                        GridTemplateColumns="1fr 1fr 2fr 1fr auto">
+            <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+            <PropertyColumn Property="@(s => s.Type)" Title="@L["Parking_Admin_Type"]" />
+            <TemplateColumn Title="@L["Parking_Admin_Notes"]">
+                @(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)
+            </TemplateColumn>
+            <TemplateColumn Title="@L["Parking_Admin_State"]">
+                @(context.IsActive ? L["Parking_Admin_Active"] : L["Parking_Admin_Inactive"])
+            </TemplateColumn>
+            <TemplateColumn Align="Align.End">
+                @if (context.IsActive)
+                {
+                    <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
+                }
+                else
+                {
+                    <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
+                }
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</FluentStack>
+
+@code {
+    private IReadOnlyList<ParkingSpotDto>? _spots;
+    private readonly ParkingSpotType[] _spotTypes = Enum.GetValues<ParkingSpotType>();
+
+    private string? _newCode;
+    private ParkingSpotType _newType = ParkingSpotType.Standard;
+    private string? _newNotes;
+
+    private string? _error;
+    private string? _info;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task CreateAsync()
+    {
+        _error = _info = null;
+        var result = await Spots.CreateAsync(_newCode ?? string.Empty, _newType, _newNotes);
+        if (result.Succeeded)
+        {
+            _newCode = _newNotes = null;
+            _newType = ParkingSpotType.Standard;
+            await ReloadAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private async Task SetActiveAsync(Guid id, bool active)
+    {
+        _error = _info = null;
+        var result = await Spots.SetActiveAsync(id, active);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task SweepNoShowsAsync()
+    {
+        _error = _info = null;
+        var resolved = await Reservations.SweepNoShowsAsync();
+        _info = string.Format(L["Parking_Admin_SweepResult"], resolved);
+    }
+
+    private async Task ReloadAsync() => _spots = await Spots.ListAsync();
+}

@@ -202,7 +202,7 @@
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
   <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
-  <data name="Home_Welcome" xml:space="preserve"><value>Lehký prezentační systém pro tvorbu jednoduchých webů.</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>Rezervační systém firemního parkoviště s motivačními body za co nejlepší využití míst.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>
@@ -279,4 +279,79 @@
   <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>Beze změny</value></data>
   <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Vždy přidat „/“</value></data>
   <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Vždy odstranit „/“</value></data>
+  <data name="Nav_Parking" xml:space="preserve"><value>Parkování</value></data>
+  <data name="Nav_ParkingReserve" xml:space="preserve"><value>Rezervace místa</value></data>
+  <data name="Nav_ParkingLeaderboard" xml:space="preserve"><value>Žebříček</value></data>
+  <data name="Nav_AdminParking" xml:space="preserve"><value>Parkovací místa</value></data>
+  <data name="Parking_Title" xml:space="preserve"><value>Rezervace parkování</value></data>
+  <data name="Parking_Intro" xml:space="preserve"><value>Rezervujte si místo na vybraný čas. Za uvolnění nevyužité rezervace a parkování mimo špičku získáváte body.</value></data>
+  <data name="Parking_FindTitle" xml:space="preserve"><value>Vyhledat volná místa</value></data>
+  <data name="Parking_Date" xml:space="preserve"><value>Datum</value></data>
+  <data name="Parking_From" xml:space="preserve"><value>Od</value></data>
+  <data name="Parking_To" xml:space="preserve"><value>Do</value></data>
+  <data name="Parking_Find" xml:space="preserve"><value>Najít místa</value></data>
+  <data name="Parking_OffPeakHint" xml:space="preserve"><value>Tento čas je mimo špičku – získáte bonusové body.</value></data>
+  <data name="Parking_Available" xml:space="preserve"><value>Volná místa</value></data>
+  <data name="Parking_NoneAvailable" xml:space="preserve"><value>Pro zvolený čas nejsou volná žádná místa.</value></data>
+  <data name="Parking_Reserve" xml:space="preserve"><value>Rezervovat</value></data>
+  <data name="Parking_MyReservations" xml:space="preserve"><value>Moje rezervace</value></data>
+  <data name="Parking_NoReservations" xml:space="preserve"><value>Zatím nemáte žádné rezervace.</value></data>
+  <data name="Parking_Spot" xml:space="preserve"><value>Místo</value></data>
+  <data name="Parking_When" xml:space="preserve"><value>Kdy</value></data>
+  <data name="Parking_OffPeak" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Yes" xml:space="preserve"><value>Ano</value></data>
+  <data name="Parking_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Parking_CheckIn" xml:space="preserve"><value>Příjezd</value></data>
+  <data name="Parking_Release" xml:space="preserve"><value>Uvolnit</value></data>
+  <data name="Parking_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Parking_Complete" xml:space="preserve"><value>Odjezd</value></data>
+  <data name="Parking_Reserved" xml:space="preserve"><value>Místo bylo rezervováno.</value></data>
+  <data name="Parking_Released" xml:space="preserve"><value>Rezervace byla uvolněna pro ostatní.</value></data>
+  <data name="Parking_State_Reserved" xml:space="preserve"><value>Rezervováno</value></data>
+  <data name="Parking_State_CheckedIn" xml:space="preserve"><value>Na místě</value></data>
+  <data name="Parking_State_Completed" xml:space="preserve"><value>Dokončeno</value></data>
+  <data name="Parking_State_Released" xml:space="preserve"><value>Uvolněno</value></data>
+  <data name="Parking_State_NoShow" xml:space="preserve"><value>Nedostavil se</value></data>
+  <data name="Parking_State_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
+  <data name="Parking_Error_CodeRequired" xml:space="preserve"><value>Zadejte označení místa.</value></data>
+  <data name="Parking_Error_DuplicateCode" xml:space="preserve"><value>Místo s tímto označením už existuje.</value></data>
+  <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>Místo nebylo nalezeno.</value></data>
+  <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>Toto místo není k dispozici.</value></data>
+  <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>Konec musí být po začátku.</value></data>
+  <data name="Parking_Error_PastWindow" xml:space="preserve"><value>Nelze rezervovat čas v minulosti.</value></data>
+  <data name="Parking_Error_SpotConflict" xml:space="preserve"><value>Toto místo je ve zvoleném čase už obsazené.</value></data>
+  <data name="Parking_Error_OwnConflict" xml:space="preserve"><value>V tomto čase už máte jinou rezervaci.</value></data>
+  <data name="Parking_Error_ReservationNotFound" xml:space="preserve"><value>Rezervace nebyla nalezena.</value></data>
+  <data name="Parking_Error_InvalidState" xml:space="preserve"><value>Tuto akci v aktuálním stavu rezervace nelze provést.</value></data>
+  <data name="Parking_Leaderboard_Title" xml:space="preserve"><value>Žebříček</value></data>
+  <data name="Parking_Leaderboard_Intro" xml:space="preserve"><value>Body získáváte za chování, které zlepšuje využití parkoviště.</value></data>
+  <data name="Parking_MyScore" xml:space="preserve"><value>Mé skóre</value></data>
+  <data name="Parking_Points" xml:space="preserve"><value>bodů</value></data>
+  <data name="Parking_Stat_Released" xml:space="preserve"><value>Uvolnění</value></data>
+  <data name="Parking_Stat_OffPeak" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Stat_Completed" xml:space="preserve"><value>Dokončené</value></data>
+  <data name="Parking_Stat_NoShows" xml:space="preserve"><value>Nedostavení</value></data>
+  <data name="Parking_Leaderboard_Empty" xml:space="preserve"><value>Žebříček je zatím prázdný.</value></data>
+  <data name="Parking_Rank" xml:space="preserve"><value>Pořadí</value></data>
+  <data name="Parking_Name" xml:space="preserve"><value>Jméno</value></data>
+  <data name="Parking_Badges" xml:space="preserve"><value>Odznaky</value></data>
+  <data name="Parking_Badge_ConsiderateColleague" xml:space="preserve"><value>Ohleduplný kolega</value></data>
+  <data name="Parking_Badge_OffPeakChampion" xml:space="preserve"><value>Mistr mimo špičku</value></data>
+  <data name="Parking_Badge_ReliableParker" xml:space="preserve"><value>Spolehlivý řidič</value></data>
+  <data name="Parking_Badge_CenturyClub" xml:space="preserve"><value>Klub stovkařů</value></data>
+  <data name="Parking_Admin_Title" xml:space="preserve"><value>Správa parkovacích míst</value></data>
+  <data name="Parking_Admin_AddSpot" xml:space="preserve"><value>Přidat místo</value></data>
+  <data name="Parking_Admin_Code" xml:space="preserve"><value>Označení</value></data>
+  <data name="Parking_Admin_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
+  <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Vyhodnotit nedostavení</value></data>
+  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body.</value></data>
+  <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>
+  <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>Zatím nejsou žádná místa.</value></data>
+  <data name="Parking_Admin_State" xml:space="preserve"><value>Stav</value></data>
+  <data name="Parking_Admin_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
+  <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deaktivovat</value></data>
+  <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
 </root>
