@@ -914,6 +914,22 @@ h1:focus {
     max-width: 680px;
 }
 
+/* Destructive-action callout used on the user/role edit pages. */
+.danger-zone {
+    max-width: 680px;
+    border: 1px solid rgba(209, 52, 56, .4);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: rgba(209, 52, 56, .05);
+}
+
+.danger-zone__title {
+    color: var(--error-rest, #d13438);
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
 .claims {
     max-width: 680px;
     border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
