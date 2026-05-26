@@ -791,7 +791,7 @@ h1:focus {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    background: rgba(15, 108, 189, .14);
     color: var(--accent-foreground-rest, #0f6cbd);
 }
 
@@ -954,3 +954,22 @@ h1:focus {
     .claims code {
         color: var(--accent-foreground-rest, #0f6cbd);
     }
+
+/* --- Polish: keyboard focus & reduced motion --- */
+.home-tile:focus-visible {
+    outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-tile,
+    .spot-card,
+    .meter__fill {
+        transition: none;
+    }
+
+    .home-tile:hover,
+    .spot-card:hover {
+        transform: none;
+    }
+}
