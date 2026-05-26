@@ -20,92 +20,104 @@
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
 
-            <FluentLabel Typo="Typography.H4">@L["Profile_CommuteTitle"]</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_CommuteHelp"]</FluentLabel>
-            @if (_home.DistanceKm is { } km)
-            {
-                <FluentLabel Typo="Typography.Body">
-                    @L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong>
-                    @if (!_home.Verified)
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_CommuteTitle"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_CommuteHelp"]</FluentLabel>
+                    @if (_home.DistanceKm is { } km)
                     {
-                        <FluentBadge Appearance="Appearance.Accent" Fill="warning" Style="margin-left:8px">@L["Profile_CommutePending"]</FluentBadge>
+                        <FluentLabel Typo="Typography.Body">
+                            @L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong>
+                            @if (!_home.Verified)
+                            {
+                                <FluentBadge Appearance="Appearance.Accent" Fill="warning" Style="margin-left:8px">@L["Profile_CommutePending"]</FluentBadge>
+                            }
+                        </FluentLabel>
                     }
-                </FluentLabel>
-            }
-            @if (!string.IsNullOrEmpty(_homeError))
-            {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
-            }
-            <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
-                    <FluentTextField Name="HomeInput.Address" @bind-Value="HomeInput.Address"
-                                     Label="@L["Profile_HomeAddress"]" Style="width:360px" />
-                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
+                    @if (!string.IsNullOrEmpty(_homeError))
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
+                    }
+                    <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            <FluentTextField Name="HomeInput.Address" @bind-Value="HomeInput.Address"
+                                             Label="@L["Profile_HomeAddress"]" Style="width:360px" />
+                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
+                        </FluentStack>
+                    </EditForm>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
+                    @if (!string.IsNullOrWhiteSpace(_home.Address))
+                    {
+                        <MuteButton FormName="home-remove" Label="@L["Profile_RemoveAddress"]"
+                                    Appearance="Appearance.Outline" OnSubmit="RemoveHomeAsync" />
+                    }
                 </FluentStack>
-            </EditForm>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
-            @if (!string.IsNullOrWhiteSpace(_home.Address))
-            {
-                <MuteButton FormName="home-remove" Label="@L["Profile_RemoveAddress"]"
-                            Appearance="Appearance.Outline" OnSubmit="RemoveHomeAsync" />
-            }
+            </FluentCard>
 
-            <FluentLabel Typo="Typography.H4">@L["Profile_TeamTitle"]</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_TeamHelp"]</FluentLabel>
-            <EditForm Model="TeamInput" method="post" OnValidSubmit="SaveDepartmentAsync" FormName="department">
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
-                    <FluentTextField Name="TeamInput.Department" @bind-Value="TeamInput.Department"
-                                     Label="@L["Profile_Team"]" Style="width:360px" />
-                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_TeamTitle"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_TeamHelp"]</FluentLabel>
+                    <EditForm Model="TeamInput" method="post" OnValidSubmit="SaveDepartmentAsync" FormName="department">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            <FluentTextField Name="TeamInput.Department" @bind-Value="TeamInput.Department"
+                                             Label="@L["Profile_Team"]" Style="width:360px" />
+                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
+                        </FluentStack>
+                    </EditForm>
                 </FluentStack>
-            </EditForm>
+            </FluentCard>
 
-            <FluentLabel Typo="Typography.H4">@L["Profile_NotificationSettings"]</FluentLabel>
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_NotificationSettings"]</FluentLabel>
 
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-                <FluentLabel Typo="Typography.Body">@L["Profile_Status"]:</FluentLabel>
-                @if (_prefs.IsCurrentlyMuted)
-                {
-                    <FluentBadge Appearance="Appearance.Accent" Fill="warning">
-                        @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
-                    </FluentBadge>
-                }
-                else
-                {
-                    <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_StatusActive"]</FluentBadge>
-                }
-                <FluentLabel Typo="Typography.Body" Style="margin-left:12px">@L["Profile_Scope"]:</FluentLabel>
-                <FluentBadge Appearance="Appearance.Neutral">
-                    @(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])
-                </FluentBadge>
-            </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body">@L["Profile_Status"]:</FluentLabel>
+                        @if (_prefs.IsCurrentlyMuted)
+                        {
+                            <FluentBadge Appearance="Appearance.Accent" Fill="warning">
+                                @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
+                            </FluentBadge>
+                        }
+                        else
+                        {
+                            <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_StatusActive"]</FluentBadge>
+                        }
+                        <FluentLabel Typo="Typography.Body" Style="margin-left:12px">@L["Profile_Scope"]:</FluentLabel>
+                        <FluentBadge Appearance="Appearance.Neutral">
+                            @(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])
+                        </FluentBadge>
+                    </FluentStack>
 
-            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
-                <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]"
-                            OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
-                <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]"
-                            OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
-                <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]"
-                            OnSubmit="MuteUntilTomorrowAsync" />
-                <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]"
-                            Style="background:var(--warning-rest);color:var(--neutral-foreground-rest)"
-                            OnSubmit="MuteCompletelyAsync" />
-                @if (_prefs.IsCurrentlyMuted)
-                {
-                    <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]"
-                                Style="background:var(--success-rest);color:var(--neutral-fill-rest)"
-                                OnSubmit="UnmuteAsync" />
-                }
-            </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                        <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]"
+                                    OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
+                        <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]"
+                                    OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
+                        <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]"
+                                    OnSubmit="MuteUntilTomorrowAsync" />
+                        <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]"
+                                    Style="background:var(--warning-rest);color:var(--neutral-foreground-rest)"
+                                    OnSubmit="MuteCompletelyAsync" />
+                        @if (_prefs.IsCurrentlyMuted)
+                        {
+                            <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]"
+                                        Style="background:var(--success-rest);color:var(--neutral-fill-rest)"
+                                        OnSubmit="UnmuteAsync" />
+                        }
+                    </FluentStack>
 
-            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
-                <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]"
-                            Appearance="Appearance.Neutral"
-                            OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
-                <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]"
-                            Appearance="Appearance.Neutral"
-                            OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
-            </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                        <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]"
+                                    Appearance="Appearance.Neutral"
+                                    OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
+                        <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]"
+                                    Appearance="Appearance.Neutral"
+                                    OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
 
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
                 <FluentLabel Typo="Typography.H4">@L["Profile_Notifications"]</FluentLabel>
@@ -124,11 +136,11 @@
 
             @if (_notifications.Count == 0)
             {
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_NoNotifications"]</FluentLabel>
+                <div class="empty-state">@L["Profile_NoNotifications"]</div>
             }
             else
             {
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:640px">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:680px">
                     @foreach (var n in _notifications)
                     {
                         <FluentCard Style="@(n.IsRead ? null : "background:var(--neutral-layer-2)")">
@@ -148,13 +160,15 @@
                 </FluentStack>
             }
 
-            <FluentLabel Typo="Typography.H4">@L["Profile_Claims"]</FluentLabel>
-            <ul>
-                @foreach (var claim in auth.User.Claims)
-                {
-                    <li><code>@claim.Type</code> = @claim.Value</li>
-                }
-            </ul>
+            <details class="claims">
+                <summary>@L["Profile_Claims"]</summary>
+                <ul>
+                    @foreach (var claim in auth.User.Claims)
+                    {
+                        <li><code>@claim.Type</code> = @claim.Value</li>
+                    }
+                </ul>
+            </details>
         </Authorized>
     </AuthorizeView>
 </FluentStack>

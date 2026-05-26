@@ -908,3 +908,33 @@ h1:focus {
     gap: 8px;
     max-width: 420px;
 }
+
+/* --- Profile page --- */
+.profile-section {
+    max-width: 680px;
+}
+
+.claims {
+    max-width: 680px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+    .claims > summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .claims ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+    .claims code {
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
