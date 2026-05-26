@@ -1,229 +1,272 @@
 # Webora
 
-Webora is a **parking reservation system for a shared/company car park**, built around an
-**incentive system that maximises how well the lot is used**. Employees reserve spots for a time
-window; the points system rewards behaviour that frees scarce spots — parking off-peak, releasing a
-reservation you won't use, and sharing a reserved ("resident") spot — and penalises no-shows.
+Webora je **rezervační systém parkovacích míst pro sdílené/firemní parkoviště**, postavený kolem
+**motivačního systému, který maximalizuje, jak dobře je parkoviště využíváno**. Zaměstnanci si rezervují
+místa na časové okno; **rezervace stojí kredit**, jehož cena roste ve špičce a s obsazeností, takže
+vzácná místa proudí tam, kde jsou nejvíc potřeba. Souběžně běží **reputační body**, které odměňují
+chování uvolňující vzácná místa — parkování mimo špičku, uvolnění nevyužité rezervace a sdílení
+vyhrazeného („rezidentního") místa — a penalizují nedostavení se.
 
-- **Default admin sign-in:** `admin@webora.local` / `Admin123$` (see `IdentitySeed` in
-  `src/Webora.Web/appsettings.json`).
-- **UI languages:** Czech (default) and English, negotiated from the culture cookie / browser.
+- **Výchozí přihlášení administrátora:** `admin@webora.local` / `Admin123$` (viz `IdentitySeed`
+  v `src/Webora.Web/appsettings.json`).
+- **Jazyky UI:** čeština (výchozí) a angličtina, vyjednané z cookie kultury / prohlížeče.
 
-## Screenshots
+## Náhledy
 
-**Complete walkthrough** — sign in, reserve a spot (each option shows the points it would earn), check the leaderboard, and tune the live settings:
+**Kompletní průchod** — přihlášení, rezervace místa (každá možnost ukazuje cenu i body, které by
+přinesla), žebříček a ladění živých nastavení:
 
-![Complete walkthrough](docs/screenshots/walkthrough.gif)
+![Kompletní průchod](docs/screenshots/walkthrough.gif)
 
-The reservation page in detail — your reserved (resident) spot, available spots with a live points preview, and your reservations:
+Rezervační stránka detailně — vaše vyhrazené (rezidentní) místo, volná místa s živým náhledem ceny
+a bodů a vaše rezervace:
 
-![Reservation page](docs/screenshots/reserve.png)
+![Rezervační stránka](docs/screenshots/reserve.png)
 
-**Leaderboard** — score, behaviour stats and earned badges:
+**Žebříček** — skóre, statistiky chování a získané odznaky:
 
-![Leaderboard](docs/screenshots/leaderboard.png)
+![Žebříček](docs/screenshots/leaderboard.png)
 
-**Spot administration** — manage spots and assign residents:
+**Správa míst** — správa míst a přiřazování rezidentů:
 
-![Spot administration](docs/screenshots/admin-spots.png)
+![Správa míst](docs/screenshots/admin-spots.png)
 
-**Parking settings** — the incentive rules, tunable live (stored in the database):
+**Nastavení parkování** — pravidla motivace a ekonomiky, laditelná za běhu (uložená v databázi):
 
-![Parking settings](docs/screenshots/admin-settings.png)
+![Nastavení parkování](docs/screenshots/admin-settings.png)
 
-**Profile** — set a home address; it is geocoded into a commute distance that scales the shared-spot reward:
+**Profil** — zadání domácí adresy; geokóduje se na dojezdovou vzdálenost, která škáluje odměnu za
+sdílené místo:
 
-![Profile commute](docs/screenshots/profile.png)
+![Dojezd v profilu](docs/screenshots/profile.png)
 
-## Parking & incentives
+## Parkování, kredity a motivace
 
-### Spots and reservations
+### Místa a rezervace
 
-- **Spots** have a code (`A-12`), a type (`Standard`, `Disabled`, `ElectricCharging`, `Visitor`,
-  `Motorcycle`), an active flag and optional notes. Admins manage them at **`/admin/parking/spots`**.
-- **Reservations** book a single spot for a time window. The lifecycle is a state machine:
+- **Místa** mají kód (`A-12`), typ (`Standard`, `Disabled`, `ElectricCharging`, `Visitor`,
+  `Motorcycle`), příznak aktivity a volitelné poznámky. Administrátoři je spravují na
+  **`/admin/parking/spots`**.
+- **Rezervace** zabírá jedno místo na časové okno. Životní cyklus je stavový automat:
 
   ```
-  Reserved ──▶ CheckedIn ──▶ Completed        (the spot was used)
+  Reserved ──▶ CheckedIn ──▶ Completed        (místo bylo využito)
      │
-     ├──▶ Released      (given up early — frees the spot for others)
-     ├──▶ Cancelled     (called off)
-     └──▶ NoShow        (not checked in by the grace deadline)
+     ├──▶ Released      (uvolněno předem — uvolní místo ostatním)
+     ├──▶ Cancelled     (zrušeno)
+     └──▶ NoShow        (bez příjezdu do uplynutí ochranné lhůty)
   ```
 
-- Users reserve, check in ("Příjezd"), leave ("Odjezd"), release ("Uvolnit") or cancel at
-  **`/parking`**, which also shows the points each action would earn.
+- Uživatelé rezervují, přijíždějí („Příjezd"), odjíždějí („Odjezd"), uvolňují („Uvolnit") nebo ruší na
+  **`/parking`**, kde se zároveň zobrazuje **cena rezervace** i body, které by každá akce přinesla.
 
-### Points
+### Kredity a cena rezervace
 
-Rewards are credited for **verified outcomes** (on completion / real use), never merely for booking:
+Rezervace se **platí kreditem** z osobní **peněženky**, která je oddělená od reputačních bodů
+(viz níže). Cena je dynamická a počítá se pro **požadované časové okno**:
 
-| Reason | When | Notes |
+```
+cena = základ × přirážka_za_špičku × přirážka_za_obsazenost   (zastropováno na maximum)
+```
+
+- **Špička** zdražuje: ve špičkovém okně je cena vyšší než mimo špičku (výchozí násobič ×2).
+- **Obsazenost** zdražuje lineárně: čím je parkoviště v daném okně plnější (poměr obsazených k aktivním
+  místům), tím výš cena šplhá, až po nastavený strop.
+- Mimo špičku v prázdném parkovišti se platí **základní cena**; ve špičce na plném parkovišti se platí
+  **maximum**.
+
+Tok kreditu:
+
+- **Kredit se strhne při rezervaci.** Pokud peněženka nestačí, rezervace neprojde.
+- **Včasné zrušení nebo uvolnění** (před cutoffem pro uvolnění) **vrátí celou částku** zpět — místo se
+  stihne nabídnout někomu jinému.
+- **Nedostavení se (no-show)** strženou cenu **propadá** (a navíc se uplatní reputační penalizace).
+
+Peněženka se plní ze dvou zdrojů:
+
+- **Měsíční příděl kreditů** — každý uživatel dostane jednou za kalendářní měsíc konfigurovatelný
+  příděl (uděluje ho údržbová smyčka i líně při první rezervaci v měsíci).
+- **Odměny za chování** — tytéž odměny, které zvyšují reputaci, dobíjejí i peněženku, takže ohleduplné
+  chování financuje vaše budoucí parkování.
+
+### Body (reputace) a žebříček
+
+**Body** jsou nově čistě **reputační skóre** pro **žebříček** (`/parking/leaderboard`) a **odznaky**;
+získávají se za ověřené chování a **utrácení kreditu je nikdy nesnižuje**. Odměny se připisují **za
+ověřené výsledky** (při dokončení / reálném využití), nikdy jen za samotnou rezervaci, a zároveň
+zvyšují jak reputaci, tak peněženku:
+
+| Důvod | Kdy | Poznámky |
 | --- | --- | --- |
-| **Off-peak bonus** | on completion | reservation started outside the peak window |
-| **Release** | on early release | before the release cutoff; capped per user per day |
-| **Shared-spot-taken** | on completion | took another resident's shared spot; scaled by commute distance |
-| **Resident share** | on proactive release | scaled by how early + the resident's monthly allowance |
-| **No-show penalty** | by the sweep | reservation never checked in past the grace period |
-| **Share clawback** | by the sweep / reconciliation | a shared day that was wasted (guest no-show) or never booked |
+| **Bonus mimo špičku** | při dokončení | rezervace začala mimo špičkové okno |
+| **Uvolnění** | při včasném uvolnění | před cutoffem; denně zastropováno na uživatele |
+| **Obsazení sdíleného místa** | při dokončení | obsazení sdíleného rezidentního místa; škálováno dojezdem |
+| **Sdílení rezidenta** | při proaktivním uvolnění | dle toho, jak brzy + dle měsíčního přídělu rezidenta |
+| **Penalizace za no-show** | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě |
+| **Vratka sdílení** | smyčkou / rekonciliací | promarněný sdílený den (host nedorazil) nebo nerezervovaný |
 
-Points feed a **leaderboard** (`/parking/leaderboard`) and **badges**: *Considerate Colleague*,
-*Off-Peak Champion*, *Reliable Parker*, *Century Club*.
+Vedle reputačních důvodů eviduje účetní kniha (ledger) i pohyby peněženky: **měsíční příděl kreditu**,
+**stržení za rezervaci** a **vrácení kreditu**. Odznaky: *Ohleduplný kolega*, *Šampion mimo špičku*,
+*Spolehlivý parkovač*, *Klub stovky*.
 
-### Reserved spots for residents
+### Vyhrazená místa pro rezidenty
 
-A spot can be assigned a **resident owner** (e.g. a company-car holder) by an admin. The spot is then
-**held for the resident each day until a configurable cutoff** (`ResidentHoldUntil` + the no-show
-grace):
+Místu lze administrátorem přiřadit **rezidentního vlastníka** (např. držitele firemního auta). Místo je
+pak **drženo pro rezidenta každý den až do konfigurovatelného cutoffu** (`ResidentHoldUntil` + ochranná
+lhůta no-show):
 
-- The resident **confirms arrival** to keep it for the day, or **releases** it (for a single day or a
-  date range) into the shared pool.
-- If the resident neither confirms nor releases by the cutoff, the spot **auto-shares** for that day.
-- **Conflict rule:** once a guest books a shared spot it is firm; a resident who turns up late
-  competes for any free spot like everyone else (no bumping).
-- A reminder is sent before the cutoff.
+- Rezident **potvrdí příjezd**, aby si místo na den udržel, nebo ho **uvolní** (na jeden den nebo
+  rozsah dnů) do sdíleného fondu.
+- Pokud do cutoffu nepotvrdí ani neuvolní, místo se na ten den **automaticky sdílí**.
+- **Pravidlo konfliktu:** jakmile si host sdílené místo zarezervuje, je pevné; pozdě dorazivší rezident
+  soutěží o volné místo jako každý jiný (žádné vyhazování).
+- Před cutoffem se posílá připomínka.
 
-The **resident share reward** is graduated: `min(cap, hours_of_notice × rate) × (1 + allowance × pct/100)`.
-The **monthly share allowance** the resident sets is both the reward multiplier **and a hard cap** on
-how many rewarded shared days they get per calendar month. The reward is effectively contingent on
-demand:
+**Odměna za sdílení rezidenta** je odstupňovaná: `min(strop, hodiny_předstihu × sazba) × (1 + příděl ×
+pct/100)`. **Měsíční příděl sdílení**, který si rezident nastaví, je zároveň násobič odměny **i tvrdý
+strop** počtu odměněných sdílených dnů za kalendářní měsíc. Odměna je fakticky podmíněna poptávkou:
 
-- guest used the spot → reward kept;
-- guest booked but no-showed → partial clawback;
-- nobody booked the released day → the reward is fully reversed by the daily reconciliation.
+- host místo využil → odměna zůstává;
+- host rezervoval, ale nedorazil → částečná vratka;
+- nikdo uvolněný den nerezervoval → odměnu plně zruší denní rekonciliace.
 
-### Commute-distance factor
+### Faktor dojezdové vzdálenosti
 
-Taking a shared spot is rewarded more the farther the taker commutes (capped), so scarce spots flow
-to those who need them most. Users enter a **home address** in their profile; it is **geocoded**
-(Nominatim) and the **distance to the lot** is computed.
+Obsazení sdíleného místa je odměněno tím víc, čím dál dojíždí ten, kdo ho obsadí (se stropem), takže
+vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají **domácí adresu** v profilu; ta se **geokóduje**
+(Nominatim) a spočte se **vzdálenost k parkovišti**.
 
-- Distance provider is pluggable: **Haversine** (straight-line, offline; default) or **OSRM** driving
-  distance (`Distance:Provider = "Osrm"`), which **falls back to Haversine** if the routing service is
-  unreachable.
-- A self-reported address earns the distance reward only once **verified** — either by an admin (on
-  the user-edit page) or **automatically** when within a configurable distance cap
-  (`AutoVerifyHomeAddress`). The address can be removed by the user at any time.
+- Poskytovatel vzdálenosti je zaměnitelný: **Haversine** (vzdušnou čarou, offline; výchozí) nebo **OSRM**
+  silniční vzdálenost (`Distance:Provider = "Osrm"`), která **spadne zpět na Haversine**, pokud je
+  routovací služba nedostupná.
+- Samostatně nahlášená adresa získá odměnu za vzdálenost až po **ověření** — buď administrátorem (na
+  stránce úpravy uživatele), nebo **automaticky**, je-li v rámci konfigurovatelného limitu vzdálenosti
+  (`AutoVerifyHomeAddress`). Adresu může uživatel kdykoli odstranit.
 
-### Anti-abuse hardening
+### Ochrana proti zneužití
 
-The points system is hardened against farming:
+Systém je zpevněn proti farmaření:
 
-1. Off-peak and distance rewards pay **on completion**, not at booking, so a reserve/release loop earns nothing.
-2. Rewarded **releases are capped per day**.
-3. The **monthly share allowance caps** rewarded shared days per month.
-4. Released days **nobody booked are reconciled** and the reward reversed.
-5. The distance reward requires a **verified address**.
+1. Cena rezervace + měsíční příděl tvoří uzavřenou ekonomiku; rezervace/uvolnění ve smyčce je v čistém
+   nule (stržení se vrátí), takže nic nevydělá.
+2. Odměny mimo špičku a za vzdálenost se platí **při dokončení**, ne při rezervaci.
+3. Odměněná **uvolnění jsou denně zastropována**.
+4. **Měsíční příděl sdílení zastropuje** odměněné sdílené dny za měsíc.
+5. Uvolněné dny, které **nikdo nerezervoval, se rekonciliují** a odměna se zruší.
+6. Odměna za vzdálenost vyžaduje **ověřenou adresu**.
 
-### Background maintenance
+### Údržba na pozadí
 
-A hosted service (`ParkingMaintenanceService`) runs on the configurable `SweepInterval` and, each
-cycle: sends reservation reminders, sends resident hold reminders, resolves no-shows (with penalties
-and notifications), and reconciles unused shared days. It can also be triggered manually from the
-spots admin page.
+Hostovaná služba (`ParkingMaintenanceService`) běží v konfigurovatelném intervalu `SweepInterval` a
+v každém cyklu: posílá připomínky rezervací, posílá připomínky držení rezidentům, řeší no-shows (s
+penalizacemi a notifikacemi), rekonciliuje nevyužité sdílené dny a **uděluje měsíční příděl kreditů**.
+Lze ji také spustit ručně ze stránky správy míst.
 
-### Roles & permissions
+### Role a oprávnění
 
-Fine-grained permissions gate the UI and services: `Parking.View`, `Parking.Reserve`,
-`Parking.ViewLeaderboard`, `Parking.ManageSpots`, `Parking.ManageReservations`,
-`Parking.ManageIncentives`. The seeded `Viewer`/`Editor` roles can view, reserve and see the
-leaderboard; `Administrator` has everything.
+Jemná oprávnění hlídají UI i služby: `Parking.View`, `Parking.Reserve`, `Parking.ViewLeaderboard`,
+`Parking.ManageSpots`, `Parking.ManageReservations`, `Parking.ManageIncentives`. Seedované role
+`Viewer`/`Editor` mohou prohlížet, rezervovat a vidět žebříček; `Administrator` má vše.
 
-## Configuration
+## Konfigurace
 
-Most parking behaviour is **stored in the database and edited live** at
-**`/admin/parking/settings`** (`Parking.ManageIncentives`) — no redeploy needed. Tunables include:
+Většina chování parkování je **uložena v databázi a editovatelná za běhu** na
+**`/admin/parking/settings`** (`Parking.ManageIncentives`) — bez nasazování. Laditelné hodnoty zahrnují:
 
-- **Points:** release, off-peak bonus, no-show penalty.
-- **Peak window:** start / end times.
-- **Timing (minutes):** release cutoff, no-show grace, reminder lead, maintenance sweep interval.
-- **Residents:** daily hold-until time, points-per-hour of notice, reward cap, max share allowance,
-  multiplier % per allowed share, wasted-share clawback %.
-- **Distance factor:** lot coordinates, base points, reference km, max multiplier.
-- **Verification & limits:** auto-verify toggle + distance cap, max rewarded releases/day, max
-  release range in days.
+- **Ekonomika rezervací:** základní cena, přirážka za špičku (%), přirážka za obsazenost (%), maximální
+  cena, měsíční příděl kreditů.
+- **Body:** uvolnění, bonus mimo špičku, penalizace za no-show.
+- **Okno špičky:** čas začátku / konce.
+- **Časování (minuty):** cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval
+  údržbové smyčky.
+- **Rezidenti:** denní čas držení, body za hodinu předstihu, strop odměny, max. příděl sdílení, % násobiče
+  za povolené sdílení, % vratky za promarněné sdílení.
+- **Faktor vzdálenosti:** souřadnice parkoviště, základní body, referenční km, max. násobič.
+- **Ověřování a limity:** přepínač auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max.
+  rozsah uvolnění ve dnech.
 
-Infrastructure-level options live in `appsettings.json`:
+Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ```jsonc
 "Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "Webora/1.0 (parking)" },
 "Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" }
 ```
 
-> Production note: outbound access to the geocoding (and, if used, routing) service must be allowed
-> by the network policy, and Nominatim's usage policy (rate limit, identifying User-Agent) respected.
-> Storing home addresses is personal data — obtain consent and set a retention policy.
+> Poznámka k produkci: odchozí přístup ke geokódovací (a případně routovací) službě musí být povolen
+> síťovou politikou a je nutné respektovat pravidla použití Nominatimu (rate limit, identifikující
+> User-Agent). Ukládání domácích adres je osobní údaj — získejte souhlas a nastavte retenční politiku.
 
 ## Engine
 
-The engine is a .NET 10 solution organized along Clean Architecture lines:
+Engine je řešení v .NET 10 organizované podle Clean Architecture:
 
-| Project | Responsibility | Key dependencies |
+| Projekt | Odpovědnost | Klíčové závislosti |
 | --- | --- | --- |
-| `Webora.Domain` | Entities, value objects, domain rules. No framework dependencies. | — |
-| `Webora.Application` | Use cases and Wolverine message handlers. | WolverineFx |
-| `Webora.Infrastructure` | EF Core/Postgres persistence, Redis cache, ASP.NET Identity, OpenIddict stores, geocoding/distance. | EF Core, Npgsql, StackExchange.Redis, OpenIddict.EntityFrameworkCore |
-| `Webora.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine + RabbitMQ, OpenIddict server, parking maintenance. | Serilog, WolverineFx.RabbitMQ, OpenIddict.AspNetCore |
-| `Webora.Web.Client` | Blazor WebAssembly client components. | — |
+| `Webora.Domain` | Entity, hodnotové objekty, doménová pravidla. Bez frameworkových závislostí. | — |
+| `Webora.Application` | Případy užití a Wolverine handlery zpráv. | WolverineFx |
+| `Webora.Infrastructure` | EF Core/Postgres perzistence, Redis cache, ASP.NET Identity, OpenIddict stores, geokódování/vzdálenost. | EF Core, Npgsql, StackExchange.Redis, OpenIddict.EntityFrameworkCore |
+| `Webora.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine + RabbitMQ, OpenIddict server, údržba parkování. | Serilog, WolverineFx.RabbitMQ, OpenIddict.AspNetCore |
+| `Webora.Web.Client` | Komponenty Blazor WebAssembly klienta. | — |
 
-The dependency flow is `Domain ← Application ← Infrastructure ← Web`.
+Tok závislostí je `Domain ← Application ← Infrastructure ← Web`.
 
-## Getting started
+## Začínáme
 
-Prerequisites: Docker. (The .NET 10 SDK is only needed for the host-side workflow below.)
+Předpoklady: Docker. (.NET 10 SDK je potřeba jen pro hostitelský postup níže.)
 
-### Run everything in Docker
+### Vše v Dockeru
 
 ```bash
 docker compose up --build
 ```
 
-This builds the app image and starts it next to Postgres, Redis, RabbitMQ and smtp4dev. The
-container runs in the `Development` environment, so on startup it applies the EF migrations and
-seeds the admin account. Once it's up:
+Sestaví image aplikace a spustí ji vedle Postgresu, Redisu, RabbitMQ a smtp4dev. Kontejner běží v
+prostředí `Development`, takže při startu aplikuje EF migrace a naseeduje účet administrátora. Jakmile
+běží:
 
-- App: http://localhost:8080
-- Captured email (smtp4dev): http://localhost:5099
+- Aplikace: http://localhost:8080
+- Zachycené e-maily (smtp4dev): http://localhost:5099
 - RabbitMQ management: http://localhost:15672 (`guest` / `guest`)
 
-### Run the app on the host
+### Aplikace na hostiteli
 
-Start only the backing services and run the engine with the SDK — handy for debugging:
+Spusťte jen podpůrné služby a engine se SDK — vhodné pro ladění:
 
 ```bash
-# 1. Backing services only
+# 1. Pouze podpůrné služby
 docker compose up -d postgres redis rabbitmq smtp4dev
 
-# 2. Run the engine (Development auto-applies migrations and seeds the admin account)
+# 2. Spuštění enginu (Development automaticky aplikuje migrace a naseeduje administrátora)
 dotnet run --project src/Webora.Web
 ```
 
-Backing services are configured via `ConnectionStrings` in `src/Webora.Web/appsettings.json`
-(`Postgres`, `Redis`, `RabbitMq`). RabbitMQ wiring activates only when its connection string is set;
-clearing `ConnectionStrings:RabbitMq` (and `:Redis`) runs the app against Postgres alone.
+Podpůrné služby se konfigurují přes `ConnectionStrings` v `src/Webora.Web/appsettings.json`
+(`Postgres`, `Redis`, `RabbitMq`). Zapojení RabbitMQ se aktivuje jen při nastaveném connection stringu;
+vyprázdnění `ConnectionStrings:RabbitMq` (a `:Redis`) spustí aplikaci jen nad Postgresem.
 
-Email is sent over SMTP via the `Smtp` configuration section. It defaults to the local smtp4dev
-catcher (`localhost:2525`, no auth); inspect captured messages at http://localhost:5099. For
-production set `Smtp:Authentication` to `Basic` or `OAuth2`.
+E-maily se posílají přes SMTP dle sekce `Smtp`. Výchozí je lokální záchytka smtp4dev (`localhost:2525`,
+bez autentizace); zachycené zprávy si prohlédnete na http://localhost:5099. Pro produkci nastavte
+`Smtp:Authentication` na `Basic` nebo `OAuth2`.
 
-### Database migrations
+### Databázové migrace
 
-The `Development` environment applies migrations on startup. To manage them manually:
+Prostředí `Development` aplikuje migrace při startu. Ruční správa:
 
 ```bash
-# apply the latest schema
+# aplikace nejnovějšího schématu
 dotnet ef database update --project src/Webora.Infrastructure --startup-project src/Webora.Web
 
-# add a migration after a model change
-dotnet ef migrations add <Name> --project src/Webora.Infrastructure --startup-project src/Webora.Web
+# přidání migrace po změně modelu
+dotnet ef migrations add <Nazev> --project src/Webora.Infrastructure --startup-project src/Webora.Web
 ```
 
-The `dotnet-ef` tool is restored via `dotnet tool restore` (pinned in `dotnet-tools.json`).
+Nástroj `dotnet-ef` se obnoví přes `dotnet tool restore` (připnutý v `dotnet-tools.json`).
 
-## Tech notes
+## Technické poznámky
 
-- **Blazor Web App** with both interactive render modes; parking pages render server-side
-  (`InteractiveServer`), the notification bell runs on WebAssembly.
-- **Localization:** UI strings live in `Webora.Web/Resources/SharedResource.*.resx`; server-side
-  notification text in `Webora.Infrastructure/Resources/ParkingMessages.*.resx`.
-- **Auth:** ASP.NET Core Identity (cookie sign-in) + OpenIddict server + permission-based RBAC.
+- **Blazor Web App** s oběma interaktivními režimy vykreslování; parkovací stránky se vykreslují na
+  serveru (`InteractiveServer`), zvoneček notifikací běží na WebAssembly.
+- **Lokalizace:** řetězce UI jsou v `Webora.Web/Resources/SharedResource.*.resx`; serverové texty
+  notifikací v `Webora.Infrastructure/Resources/ParkingMessages.*.resx`.
+- **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC založené na
+  oprávněních.
