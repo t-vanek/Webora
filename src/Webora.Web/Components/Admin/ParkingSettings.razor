@@ -98,6 +98,10 @@
                     <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
                                        Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
                 </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ResidentWastedShareClawbackPercent" Min="0" Max="100"
+                                       Label="@L["Parking_Settings_ResidentClawback"]" Style="width:100%" />
+                </FluentGridItem>
             </FluentGrid>
 
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
@@ -140,6 +144,7 @@
             ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
             ResidentMaxShareAllowance = s.ResidentMaxShareAllowance,
             ResidentSharePercentPerAllowance = s.ResidentSharePercentPerAllowance,
+            ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
         };
     }
 
@@ -157,7 +162,8 @@
             _form.ResidentReleasePointsPerHour,
             _form.ResidentReleaseMaxPoints,
             _form.ResidentMaxShareAllowance,
-            _form.ResidentSharePercentPerAllowance);
+            _form.ResidentSharePercentPerAllowance,
+            _form.ResidentWastedShareClawbackPercent);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -187,5 +193,6 @@
         public int ResidentReleaseMaxPoints { get; set; }
         public int ResidentMaxShareAllowance { get; set; }
         public int ResidentSharePercentPerAllowance { get; set; }
+        public int ResidentWastedShareClawbackPercent { get; set; }
     }
 }

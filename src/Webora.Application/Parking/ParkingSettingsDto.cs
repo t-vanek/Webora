@@ -15,4 +15,5 @@ public sealed record ParkingSettingsDto(
     int ResidentReleasePointsPerHour,
     int ResidentReleaseMaxPoints,
     int ResidentMaxShareAllowance,
-    int ResidentSharePercentPerAllowance);
+    int ResidentSharePercentPerAllowance,
+    int ResidentWastedShareClawbackPercent);

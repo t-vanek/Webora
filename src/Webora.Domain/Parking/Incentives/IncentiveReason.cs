@@ -18,6 +18,9 @@ public enum IncentiveReason
     /// <summary>A resident proactively released their reserved spot into the shared pool.</summary>
     ResidentSpotShared,
 
+    /// <summary>Part of a share reward clawed back because the guest no-showed on the shared spot.</summary>
+    ResidentShareWasted,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

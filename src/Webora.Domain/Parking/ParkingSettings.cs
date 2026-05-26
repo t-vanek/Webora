@@ -39,6 +39,8 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentSharePercentPerAllowance { get; private set; } = 5;
 
+    public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -62,7 +64,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         int residentReleasePointsPerHour,
         int residentReleaseMaxPoints,
         int residentMaxShareAllowance,
-        int residentSharePercentPerAllowance)
+        int residentSharePercentPerAllowance,
+        int residentWastedShareClawbackPercent)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -79,6 +82,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentReleaseMaxPoints = Math.Max(0, residentReleaseMaxPoints);
         ResidentMaxShareAllowance = Math.Max(0, residentMaxShareAllowance);
         ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
+        ResidentWastedShareClawbackPercent = Math.Clamp(residentWastedShareClawbackPercent, 0, 100);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -96,6 +100,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentReleaseMaxPoints = ResidentReleaseMaxPoints,
         ResidentMaxShareAllowance = ResidentMaxShareAllowance,
         ResidentSharePercentPerAllowance = ResidentSharePercentPerAllowance,
+        ResidentWastedShareClawbackPercent = ResidentWastedShareClawbackPercent,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

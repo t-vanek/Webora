@@ -46,7 +46,14 @@ public sealed record IncentivePolicy
     /// <summary>Extra percent added to the release reward multiplier per allowed monthly share.</summary>
     public int ResidentSharePercentPerAllowance { get; init; } = 5;
 
+    /// <summary>Percent of a share's reward the resident gives back when the guest no-shows on it.</summary>
+    public int ResidentWastedShareClawbackPercent { get; init; } = 25;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>How many points to claw back from a resident when a share they were rewarded for is wasted.</summary>
+    public int ComputeShareClawback(int awardedPoints) =>
+        (int)Math.Round(awardedPoints * Math.Clamp(ResidentWastedShareClawbackPercent, 0, 100) / 100.0, MidpointRounding.AwayFromZero);
 
     /// <summary>
     /// Points for a proactive resident release: an advance-notice bonus (earlier = more, capped)

@@ -48,7 +48,7 @@ public sealed class ParkingSettingsService(
             s.ReleaseCutoff, s.NoShowGracePeriod, s.ReminderLeadTime,
             s.PeakStart, s.PeakEnd, s.SweepInterval,
             s.ResidentHoldUntil, s.ResidentReleasePointsPerHour, s.ResidentReleaseMaxPoints,
-            s.ResidentMaxShareAllowance, s.ResidentSharePercentPerAllowance);
+            s.ResidentMaxShareAllowance, s.ResidentSharePercentPerAllowance, s.ResidentWastedShareClawbackPercent);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -65,7 +65,7 @@ public sealed class ParkingSettingsService(
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
             dto.PeakStart, dto.PeakEnd, dto.SweepInterval,
             dto.ResidentHoldUntil, dto.ResidentReleasePointsPerHour, dto.ResidentReleaseMaxPoints,
-            dto.ResidentMaxShareAllowance, dto.ResidentSharePercentPerAllowance);
+            dto.ResidentMaxShareAllowance, dto.ResidentSharePercentPerAllowance, dto.ResidentWastedShareClawbackPercent);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
