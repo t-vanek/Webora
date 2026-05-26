@@ -1,0 +1,38 @@
+@inject IIncentiveService Incentives
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+@if (_score is not null)
+{
+    <a href="parking/leaderboard" class="wallet-chip" title="@L["Parking_MyCredits"]">
+        <span class="wallet-chip__credits">@_score.Credits <small>@L["Parking_Credits"]</small></span>
+        <span class="wallet-chip__tier wallet-chip__tier--@_score.Tier">@L[$"Parking_Tier_{_score.Tier}"]</span>
+    </a>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ParkerScoreDto? _score;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null)
+        {
+            return;
+        }
+
+        var authUser = (await AuthState).User;
+        if (!authUser.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.Reserve)
+            && !authUser.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ViewLeaderboard))
+        {
+            return;
+        }
+
+        var user = await UserManager.GetUserAsync(authUser);
+        if (user is not null)
+        {
+            _score = await Incentives.GetScoreAsync(user.Id);
+        }
+    }
+}

@@ -304,3 +304,40 @@ h1:focus {
     border-radius: 10px;
     color: var(--neutral-foreground-hint, #777);
 }
+
+/* --- Header wallet chip --- */
+.wallet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    color: var(--foreground-on-accent-rest, #fff);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+    .wallet-chip:hover {
+        background: rgba(255, 255, 255, .26);
+    }
+
+    .wallet-chip small {
+        font-weight: 400;
+        opacity: .85;
+    }
+
+.wallet-chip__tier {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, .22);
+}
+
+.wallet-chip__tier--Bronze { background: rgba(205, 127, 50, .45); }
+.wallet-chip__tier--Silver { background: rgba(225, 225, 235, .40); }
+.wallet-chip__tier--Gold { background: rgba(255, 196, 0, .45); }
+.wallet-chip__tier--Platinum { background: rgba(150, 200, 255, .45); }
