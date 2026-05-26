@@ -356,9 +356,15 @@
   <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
   <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deaktivovat</value></data>
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
-  <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Nastavení parkování</value></data>
+  <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Pravidla a ceny</value></data>
   <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
   <data name="Parking_Settings_Intro" xml:space="preserve"><value>Bodování a časová pravidla motivačního systému. Změny se projeví okamžitě.</value></data>
+  <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Ekonomika</value></data>
+  <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Body a úrovně</value></data>
+  <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Důvěra a ochrana</value></data>
+  <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a špička</value></data>
+  <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Rezidenti</value></data>
+  <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Lokalita a limity</value></data>
   <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Body</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
@@ -472,6 +478,8 @@
   <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
   <data name="Parking_Tier_Gold" xml:space="preserve"><value>Zlato</value></data>
   <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platina</value></data>
+  <data name="Parking_Tier_ToNext" xml:space="preserve"><value>Ještě {0} bodů do úrovně {1}</value></data>
+  <data name="Parking_Tier_Max" xml:space="preserve"><value>Nejvyšší úroveň</value></data>
   <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
   <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
   <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>

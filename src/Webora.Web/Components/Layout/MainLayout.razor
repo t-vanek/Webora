@@ -29,6 +29,11 @@
                     <div class="header-divider" aria-hidden="true"></div>
                 </NotAuthorized>
             </AuthorizeView>
+            <AuthorizeView>
+                <Authorized>
+                    <WalletChip />
+                </Authorized>
+            </AuthorizeView>
             <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
             <LanguageSwitcher @rendermode="InteractiveServer" />
             <ThemeToggle @rendermode="InteractiveServer" />
