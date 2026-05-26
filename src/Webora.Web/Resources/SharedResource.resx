@@ -453,6 +453,13 @@
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
   <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Držení místa z fronty (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Tresty za no-show z fronty</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Nekompromisní postih, když si uživatel převezme místo z fronty a pak nedorazí: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka bodů</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta</value></data>
+  <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka příštího přídělu</value></data>
+  <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>Kvůli předchozímu nedostavení máš dočasně zakázaný vstup do fronty.</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

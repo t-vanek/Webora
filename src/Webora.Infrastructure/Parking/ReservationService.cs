@@ -74,7 +74,10 @@ public sealed class ReservationService(
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
+    public Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default) =>
+        ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, cancellationToken);
+
+    private async Task<ParkingResult> ReserveCoreAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool fromQueue, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         if (endUtc <= startUtc)
@@ -159,7 +162,7 @@ public sealed class ReservationService(
         }
 
         score.ChargeCredits(cost, now);
-        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, cost);
+        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, cost, fromQueue);
         dbContext.Reservations.Add(reservation);
         dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
             userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
@@ -439,9 +442,35 @@ public sealed class ReservationService(
         {
             reservation.MarkNoShow();
             var score = await GetOrCreateScoreAsync(dbContext, reservation.UserId, cancellationToken);
-            score.PenalizeNoShow(policy.NoShowPenaltyPoints, now);
-            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                reservation.UserId, IncentiveReason.NoShowPenalty, -policy.NoShowPenaltyPoints, reservation.Id, now));
+
+            if (reservation.FromQueue)
+            {
+                // Uncompromising penalty for wasting a scarce spot claimed off the waitlist: a much
+                // bigger reputation hit, an extra credit fine, a queue ban and a cut to next month's allowance.
+                score.PenalizeNoShow(policy.QueueNoShowPenaltyPoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    reservation.UserId, IncentiveReason.QueueNoShowPenalty, -policy.QueueNoShowPenaltyPoints, reservation.Id, now));
+
+                if (policy.QueueNoShowCreditPenalty > 0)
+                {
+                    score.PenalizeCredits(policy.QueueNoShowCreditPenalty, now);
+                    dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                        reservation.UserId, IncentiveReason.QueueNoShowFine, -policy.QueueNoShowCreditPenalty, reservation.Id, now));
+                }
+
+                if (policy.QueueNoShowBanDays > 0)
+                {
+                    score.BanFromQueue(now.AddDays(policy.QueueNoShowBanDays), now);
+                }
+
+                score.AddAllowancePenalty(policy.QueueNoShowAllowancePenalty, now);
+            }
+            else
+            {
+                score.PenalizeNoShow(policy.NoShowPenaltyPoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    reservation.UserId, IncentiveReason.NoShowPenalty, -policy.NoShowPenaltyPoints, reservation.Id, now));
+            }
 
             if (spots.TryGetValue(reservation.SpotId, out var spot) && spot.OwnerId is { } ownerId && ownerId != reservation.UserId)
             {
@@ -466,10 +495,20 @@ public sealed class ReservationService(
         foreach (var reservation in due)
         {
             var code = spots.TryGetValue(reservation.SpotId, out var s) ? s.Code : string.Empty;
-            await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
-                messages["Parking_Notify_NoShow_Title"],
-                messages["Parking_Notify_NoShow_Body", code, policy.NoShowPenaltyPoints],
-                email: true, cancellationToken);
+            if (reservation.FromQueue)
+            {
+                await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                    messages["Parking_Notify_QueueNoShow_Title"],
+                    messages["Parking_Notify_QueueNoShow_Body", code, policy.QueueNoShowPenaltyPoints, policy.QueueNoShowCreditPenalty],
+                    email: true, cancellationToken);
+            }
+            else
+            {
+                await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                    messages["Parking_Notify_NoShow_Title"],
+                    messages["Parking_Notify_NoShow_Body", code, policy.NoShowPenaltyPoints],
+                    email: true, cancellationToken);
+            }
         }
 
         foreach (var (ownerId, code, clawback) in ownerNotices)
@@ -618,6 +657,16 @@ public sealed class ReservationService(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
+        // A queue no-show bars the user from the waitlist for a cooldown.
+        var bannedUntil = await dbContext.ParkerScores.AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .Select(s => s.QueueBannedUntilUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (bannedUntil is { } until && until > now)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_Banned");
+        }
+
         // One active waitlist entry per user per overlapping window.
         var alreadyQueued = await dbContext.QueueEntries.AnyAsync(q => q.UserId == userId
             && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
@@ -684,8 +733,9 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Queue_Error_OfferExpired");
         }
 
-        // Claiming is just reserving the held spot — same dynamic price and balance check as any booking.
-        var result = await ReserveAsync(userId, spotId, entry.StartUtc, entry.EndUtc, cancellationToken);
+        // Claiming is just reserving the held spot — same dynamic price and balance check as any booking,
+        // but flagged so a no-show on it is punished harder.
+        var result = await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, cancellationToken);
         if (!result.Succeeded)
         {
             return result;

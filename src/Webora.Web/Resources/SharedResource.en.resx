@@ -453,6 +453,13 @@
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max price (credits)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
   <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Queue spot hold (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Queue no-show penalties</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Uncompromising penalty when a user claims a spot from the queue and then doesn't show up: a bigger points hit, a credit fine, a temporary queue ban and a cut to next month's allowance.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Points penalty</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Credit fine</value></data>
+  <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Queue ban (days)</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Next allowance cut</value></data>
+  <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>You're temporarily barred from the queue because of a previous no-show.</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

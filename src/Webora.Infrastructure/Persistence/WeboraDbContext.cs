@@ -187,6 +187,10 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.MaxReservationCost).HasDefaultValue(40);
             settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(100);
             settings.Property(s => s.QueueOfferMinutes).HasDefaultValue(15);
+            settings.Property(s => s.QueueNoShowPenaltyPoints).HasDefaultValue(50);
+            settings.Property(s => s.QueueNoShowCreditPenalty).HasDefaultValue(30);
+            settings.Property(s => s.QueueNoShowBanDays).HasDefaultValue(14);
+            settings.Property(s => s.QueueNoShowAllowancePenalty).HasDefaultValue(30);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

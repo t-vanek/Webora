@@ -31,4 +31,8 @@ public sealed record ParkingSettingsDto(
     int OccupancyPricePercent,
     int MaxReservationCost,
     int MonthlyCreditAllowance,
-    int QueueOfferMinutes);
+    int QueueOfferMinutes,
+    int QueueNoShowPenaltyPoints,
+    int QueueNoShowCreditPenalty,
+    int QueueNoShowBanDays,
+    int QueueNoShowAllowancePenalty);

@@ -88,6 +88,18 @@ public sealed record IncentivePolicy
     /// <summary>Minutes a freed spot is held for the next in the waitlist before the offer lapses.</summary>
     public int QueueOfferMinutes { get; init; } = 15;
 
+    /// <summary>Reputation points deducted for a no-show on a spot claimed from the waitlist (harsher than a normal no-show).</summary>
+    public int QueueNoShowPenaltyPoints { get; init; } = 50;
+
+    /// <summary>Extra credits fined from the wallet for a no-show on a spot claimed from the waitlist.</summary>
+    public int QueueNoShowCreditPenalty { get; init; } = 30;
+
+    /// <summary>Days the user is barred from the waitlist after a no-show on a spot claimed from it.</summary>
+    public int QueueNoShowBanDays { get; init; } = 14;
+
+    /// <summary>Credits cut from the user's next monthly allowance after a waitlist-claim no-show.</summary>
+    public int QueueNoShowAllowancePenalty { get; init; } = 30;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>

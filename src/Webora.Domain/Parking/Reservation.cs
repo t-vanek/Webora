@@ -32,9 +32,12 @@ public class Reservation : Entity
     /// <summary>Credits debited at booking; refunded in full on an early enough cancel or release.</summary>
     public int CreditsCharged { get; private set; }
 
+    /// <summary>True when this booking was claimed from the waitlist; a no-show on it is punished harder.</summary>
+    public bool FromQueue { get; private set; }
+
     private Reservation() { }
 
-    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc, int creditsCharged = 0)
+    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc, int creditsCharged = 0, bool fromQueue = false)
     {
         if (endUtc <= startUtc)
             throw new ArgumentException("Reservation end must be after its start.", nameof(endUtc));
@@ -46,6 +49,7 @@ public class Reservation : Entity
         IsOffPeak = isOffPeak;
         CreatedAtUtc = createdAtUtc;
         CreditsCharged = creditsCharged;
+        FromQueue = fromQueue;
     }
 
     /// <summary>Whether the two windows overlap on the same spot (used to prevent double-booking).</summary>

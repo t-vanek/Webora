@@ -175,6 +175,27 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueuePenaltySection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_QueuePenaltyHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowPenaltyPoints" Min="0"
+                                       Label="@L["Parking_Settings_QueueNoShowPoints"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowCreditPenalty" Min="0"
+                                       Label="@L["Parking_Settings_QueueNoShowCredits"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowBanDays" Min="0"
+                                       Label="@L["Parking_Settings_QueueNoShowBanDays"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowAllowancePenalty" Min="0"
+                                       Label="@L["Parking_Settings_QueueNoShowAllowance"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -231,6 +252,10 @@
             MaxReservationCost = s.MaxReservationCost,
             MonthlyCreditAllowance = s.MonthlyCreditAllowance,
             QueueOfferMinutes = s.QueueOfferMinutes,
+            QueueNoShowPenaltyPoints = s.QueueNoShowPenaltyPoints,
+            QueueNoShowCreditPenalty = s.QueueNoShowCreditPenalty,
+            QueueNoShowBanDays = s.QueueNoShowBanDays,
+            QueueNoShowAllowancePenalty = s.QueueNoShowAllowancePenalty,
         };
     }
 
@@ -264,7 +289,11 @@
             _form.OccupancyPricePercent,
             _form.MaxReservationCost,
             _form.MonthlyCreditAllowance,
-            _form.QueueOfferMinutes);
+            _form.QueueOfferMinutes,
+            _form.QueueNoShowPenaltyPoints,
+            _form.QueueNoShowCreditPenalty,
+            _form.QueueNoShowBanDays,
+            _form.QueueNoShowAllowancePenalty);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -310,5 +339,9 @@
         public int MaxReservationCost { get; set; }
         public int MonthlyCreditAllowance { get; set; }
         public int QueueOfferMinutes { get; set; }
+        public int QueueNoShowPenaltyPoints { get; set; }
+        public int QueueNoShowCreditPenalty { get; set; }
+        public int QueueNoShowBanDays { get; set; }
+        public int QueueNoShowAllowancePenalty { get; set; }
     }
 }

@@ -71,6 +71,14 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int QueueOfferMinutes { get; private set; } = 15;
 
+    public int QueueNoShowPenaltyPoints { get; private set; } = 50;
+
+    public int QueueNoShowCreditPenalty { get; private set; } = 30;
+
+    public int QueueNoShowBanDays { get; private set; } = 14;
+
+    public int QueueNoShowAllowancePenalty { get; private set; } = 30;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -110,7 +118,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         int occupancyPricePercent,
         int maxReservationCost,
         int monthlyCreditAllowance,
-        int queueOfferMinutes)
+        int queueOfferMinutes,
+        int queueNoShowPenaltyPoints,
+        int queueNoShowCreditPenalty,
+        int queueNoShowBanDays,
+        int queueNoShowAllowancePenalty)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -143,6 +155,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         MaxReservationCost = Math.Max(BaseReservationCost, maxReservationCost);
         MonthlyCreditAllowance = Math.Max(0, monthlyCreditAllowance);
         QueueOfferMinutes = Math.Max(1, queueOfferMinutes);
+        QueueNoShowPenaltyPoints = Math.Max(0, queueNoShowPenaltyPoints);
+        QueueNoShowCreditPenalty = Math.Max(0, queueNoShowCreditPenalty);
+        QueueNoShowBanDays = Math.Max(0, queueNoShowBanDays);
+        QueueNoShowAllowancePenalty = Math.Max(0, queueNoShowAllowancePenalty);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -174,6 +190,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         MaxReservationCost = MaxReservationCost,
         MonthlyCreditAllowance = MonthlyCreditAllowance,
         QueueOfferMinutes = QueueOfferMinutes,
+        QueueNoShowPenaltyPoints = QueueNoShowPenaltyPoints,
+        QueueNoShowCreditPenalty = QueueNoShowCreditPenalty,
+        QueueNoShowBanDays = QueueNoShowBanDays,
+        QueueNoShowAllowancePenalty = QueueNoShowAllowancePenalty,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;
