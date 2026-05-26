@@ -11,7 +11,7 @@
     @*  FluentHeader is a flex container, but FluentSpacer only reliably pushes content right when
         it sits between exactly two flex children. Group everything that belongs on the right into
         one wrapping FluentStack so the spacer has a clean "brand | (spacer) | tools" split.  *@
-    <FluentHeader Style="padding: 0 1.5rem">
+    <FluentHeader Class="app-header" Style="padding: 0 1.5rem">
         <a href="" class="brand-link">@_siteName</a>
         <FluentSpacer />
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Width="auto">
