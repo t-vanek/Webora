@@ -166,7 +166,7 @@
                 <FluentCard>
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
                         <FluentLabel Typo="Typography.Body">
-                            @q.StartUtc.LocalDateTime.ToString("g") – @q.EndUtc.LocalDateTime.ToString("t")
+                            @q.StartUtc.UtcDateTime.ToString("g") – @q.EndUtc.UtcDateTime.ToString("t")
                         </FluentLabel>
                         <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_QueueState_{q.Status}"]</FluentBadge>
                         @if (q.Status == QueueEntryStatus.Offered)
@@ -202,7 +202,7 @@
                         GridTemplateColumns="1fr 2fr 1fr 1fr auto">
             <PropertyColumn Property="@(r => r.SpotCode)" Title="@L["Parking_Spot"]" />
             <TemplateColumn Title="@L["Parking_When"]">
-                @context.StartUtc.LocalDateTime.ToString("g") – @context.EndUtc.LocalDateTime.ToString("t")
+                @context.StartUtc.UtcDateTime.ToString("g") – @context.EndUtc.UtcDateTime.ToString("t")
             </TemplateColumn>
             <TemplateColumn Title="@L["Parking_OffPeak"]">
                 @(context.IsOffPeak ? L["Parking_Yes"] : "—")
@@ -348,7 +348,8 @@
 
         var from = DateOnly.FromDateTime(_releaseFrom);
         var to = DateOnly.FromDateTime(_releaseTo);
-        var now = DateTimeOffset.Now;
+        // UtcNow (offset 0) so this client-side estimate matches the server's reward maths.
+        var now = DateTimeOffset.UtcNow;
         var total = 0;
         var days = 0;
         for (var date = from; date <= to && days < 92; date = date.AddDays(1), days++)
