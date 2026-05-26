@@ -25,4 +25,9 @@ public sealed record ParkingSettingsDto(
     bool AutoVerifyHomeAddress,
     int AutoVerifyMaxDistanceKm,
     int MaxRewardedReleasesPerDay,
-    int MaxReleaseRangeDays);
+    int MaxReleaseRangeDays,
+    int BaseReservationCost,
+    int PeakPricePercent,
+    int OccupancyPricePercent,
+    int MaxReservationCost,
+    int MonthlyCreditAllowance);

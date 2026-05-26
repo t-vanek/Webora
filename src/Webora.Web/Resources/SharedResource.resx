@@ -437,4 +437,19 @@
   <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Limit pro auto-schválení (km)</value></data>
   <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max. odměněných uvolnění / den</value></data>
   <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max. rozsah uvolnění (dní)</value></data>
+  <data name="Parking_Price" xml:space="preserve"><value>Cena</value></data>
+  <data name="Parking_Credits" xml:space="preserve"><value>kreditů</value></data>
+  <data name="Parking_Occupancy" xml:space="preserve"><value>Obsazenost</value></data>
+  <data name="Parking_Peak" xml:space="preserve"><value>Špička</value></data>
+  <data name="Parking_OffPeakLabel" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Balance" xml:space="preserve"><value>Zůstatek</value></data>
+  <data name="Parking_MyCredits" xml:space="preserve"><value>Kredit</value></data>
+  <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>Nemáš dostatek kreditů na tuto rezervaci.</value></data>
+  <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Ekonomika rezervací</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace = základ × přirážka za špičku × přirážka za obsazenost (zastropováno). Kredit se strhává při rezervaci a vrací se při včasném zrušení nebo uvolnění.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Základní cena (kredity)</value></data>
+  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
+  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
+  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
 </root>

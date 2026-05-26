@@ -10,6 +10,12 @@ public interface IReservationService
     /// <summary>Active spots with no conflicting reservation in the given window.</summary>
     Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The dynamic credit price to book in the given window (peak surcharge × projected occupancy of
+    /// the lot for that window), together with the user's spendable balance and whether they can pay.
+    /// </summary>
+    Task<ReservationQuoteDto> GetQuoteAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
@@ -37,4 +43,10 @@ public interface IReservationService
     /// Returns the number of reminders sent.
     /// </summary>
     Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tops every user's wallet up with the monthly credit allowance, once per calendar month.
+    /// Intended to be run on a schedule. Returns the number of wallets granted this run.
+    /// </summary>
+    Task<int> GrantDueMonthlyCreditsAsync(CancellationToken cancellationToken = default);
 }

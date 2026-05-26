@@ -125,11 +125,73 @@ public sealed class ReservationService(
         // Off-peak and distance rewards are granted on completion (actual use), not at booking, so a
         // reserve/release loop earns nothing. IsOffPeak is captured now for use at completion.
         var isOffPeak = policy.IsOffPeak(startUtc);
-        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now);
+
+        // Dynamic price: a peak surcharge times an occupancy surcharge for the requested window.
+        var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
+        var cost = policy.ComputeReservationCost(!isOffPeak, occupancy);
+
+        var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+        var granted = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, ParkerScore.PeriodOf(now), now);
+        if (granted > 0)
+        {
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.MonthlyCreditGrant, granted, null, now));
+        }
+
+        if (score.Credits < cost)
+        {
+            return ParkingResult.Failure("Parking_Error_InsufficientCredit");
+        }
+
+        score.ChargeCredits(cost, now);
+        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, cost);
         dbContext.Reservations.Add(reservation);
+        dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+            userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
+    }
+
+    public async Task<ReservationQuoteDto> GetQuoteAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var isPeak = policy.IsPeak(startUtc);
+        var occupancy = endUtc > startUtc
+            ? await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken)
+            : 0.0;
+        var cost = policy.ComputeReservationCost(isPeak, occupancy);
+
+        // Reflect the monthly allowance the user would receive at booking, so affordability matches reserve.
+        var score = await dbContext.ParkerScores.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+        var balance = score?.Credits ?? 0;
+        if (score is null || score.LastCreditGrantPeriod < ParkerScore.PeriodOf(timeProvider.GetUtcNow()))
+        {
+            balance += policy.MonthlyCreditAllowance;
+        }
+
+        return new ReservationQuoteDto(cost, (int)Math.Round(occupancy * 100), isPeak, balance, balance >= cost);
+    }
+
+    private static async Task<double> ComputeOccupancyAsync(WeboraDbContext dbContext, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
+    {
+        var activeSpots = await dbContext.ParkingSpots.CountAsync(s => s.IsActive, cancellationToken);
+        if (activeSpots == 0)
+        {
+            return 0.0;
+        }
+
+        var occupied = await dbContext.Reservations
+            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc < endUtc && r.EndUtc > startUtc)
+            .Select(r => r.SpotId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        return Math.Min(1.0, (double)occupied / activeSpots);
     }
 
     public async Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default)
@@ -225,21 +287,35 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Release(now);
 
-        // Releasing always frees the spot. The reward applies when it happens early enough AND the
-        // user hasn't already hit the daily cap on rewarded releases — otherwise a reserve/release
-        // loop could farm points without ever parking.
+        // An early enough release frees the spot for others, so the charge is refunded in full.
+        var timely = policy.QualifiesForReleaseReward(reservation.StartUtc, now);
+
+        // The reward applies on top when the user hasn't hit the daily cap on rewarded releases —
+        // otherwise a reserve/release loop could farm points without ever parking.
         var todayStart = new DateTimeOffset(DateOnly.FromDateTime(now.Date).ToDateTime(TimeOnly.MinValue), now.Offset);
         var rewardedToday = await dbContext.PointsLedgerEntries.CountAsync(
             e => e.UserId == userId && e.Reason == IncentiveReason.ReleasedReservation && e.OccurredAtUtc >= todayStart,
             cancellationToken);
+        var rewardEligible = timely && rewardedToday < policy.MaxRewardedReleasesPerDay;
 
-        if (policy.QualifiesForReleaseReward(reservation.StartUtc, now) && rewardedToday < policy.MaxRewardedReleasesPerDay)
+        if ((timely && reservation.CreditsCharged > 0) || rewardEligible)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-            score.RewardRelease(policy.ReleasePoints, now);
-            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                userId, IncentiveReason.ReleasedReservation, policy.ReleasePoints, reservation.Id, now));
-            await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
+
+            if (timely && reservation.CreditsCharged > 0)
+            {
+                score.RefundCredits(reservation.CreditsCharged, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.ReservationRefund, reservation.CreditsCharged, reservation.Id, now));
+            }
+
+            if (rewardEligible)
+            {
+                score.RewardRelease(policy.ReleasePoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.ReleasedReservation, policy.ReleasePoints, reservation.Id, now));
+                await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
+            }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -260,7 +336,19 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_InvalidState");
         }
 
+        var now = timeProvider.GetUtcNow();
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Cancel();
+
+        // Cancelling early enough to re-let the spot refunds the charge; a late cancel forfeits it.
+        if (reservation.CreditsCharged > 0 && policy.QualifiesForReleaseReward(reservation.StartUtc, now))
+        {
+            var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+            score.RefundCredits(reservation.CreditsCharged, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.ReservationRefund, reservation.CreditsCharged, reservation.Id, now));
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }
@@ -377,6 +465,36 @@ public sealed class ReservationService(
                 cancellationToken);
         }
 
+        return due.Count;
+    }
+
+    public async Task<int> GrantDueMonthlyCreditsAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var period = ParkerScore.PeriodOf(now);
+
+        var due = await dbContext.ParkerScores
+            .Where(s => s.LastCreditGrantPeriod < period)
+            .ToListAsync(cancellationToken);
+
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var score in due)
+        {
+            var granted = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, period, now);
+            if (granted > 0)
+            {
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    score.UserId, IncentiveReason.MonthlyCreditGrant, granted, null, now));
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
         return due.Count;
     }
 

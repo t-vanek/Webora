@@ -70,6 +70,21 @@ public sealed record IncentivePolicy
     /// <summary>Largest day range a resident may release in one action.</summary>
     public int MaxReleaseRangeDays { get; init; } = 92;
 
+    /// <summary>Base credit cost to book a spot off-peak in an empty lot, before peak/occupancy surcharges.</summary>
+    public int BaseReservationCost { get; init; } = 10;
+
+    /// <summary>Percent of the base cost charged during the peak window (200 = double the off-peak price).</summary>
+    public int PeakPricePercent { get; init; } = 200;
+
+    /// <summary>Extra percent of the base cost added at full occupancy, scaled linearly with how full the lot is.</summary>
+    public int OccupancyPricePercent { get; init; } = 100;
+
+    /// <summary>Hard cap on the credit cost of a single reservation, however high peak/occupancy push it.</summary>
+    public int MaxReservationCost { get; init; } = 40;
+
+    /// <summary>Credits granted to each user's wallet at the start of every calendar month.</summary>
+    public int MonthlyCreditAllowance { get; init; } = 100;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
@@ -114,6 +129,23 @@ public sealed record IncentivePolicy
     {
         var arrival = TimeOnly.FromTimeSpan(start.TimeOfDay);
         return arrival < PeakStart || arrival >= PeakEnd;
+    }
+
+    /// <summary>A reservation is on-peak when its arrival falls inside the peak window.</summary>
+    public bool IsPeak(DateTimeOffset start) => !IsOffPeak(start);
+
+    /// <summary>
+    /// The credit cost to book a spot: the base cost multiplied by a peak surcharge and an occupancy
+    /// surcharge that grows linearly with how full the lot is, then floored at the base and capped.
+    /// </summary>
+    public int ComputeReservationCost(bool isPeak, double occupancyRatio)
+    {
+        var ratio = Math.Clamp(occupancyRatio, 0.0, 1.0);
+        var peakFactor = isPeak ? Math.Max(100, PeakPricePercent) / 100.0 : 1.0;
+        var occupancyFactor = 1.0 + Math.Max(0, OccupancyPricePercent) / 100.0 * ratio;
+        var raw = (int)Math.Ceiling(BaseReservationCost * peakFactor * occupancyFactor);
+        var cap = Math.Max(BaseReservationCost, MaxReservationCost);
+        return Math.Clamp(raw, BaseReservationCost, cap);
     }
 
     /// <summary>Whether a release at the given moment is early enough to be rewarded.</summary>

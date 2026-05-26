@@ -21,8 +21,8 @@ public sealed class IncentiveService(IDbContextFactory<WeboraDbContext> dbContex
             .ToListAsync(cancellationToken);
 
         return score is null
-            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, badges)
-            : new ParkerScoreDto(userId, score.Points, score.ReservationsCompleted,
+            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, 0, badges)
+            : new ParkerScoreDto(userId, score.Points, score.Credits, score.ReservationsCompleted,
                 score.ReservationsReleased, score.OffPeakReservations, score.NoShows, badges);
     }
 
