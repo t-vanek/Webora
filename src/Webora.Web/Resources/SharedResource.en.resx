@@ -57,6 +57,11 @@
   <data name="Register_HaveAccount" xml:space="preserve"><value>Already have an account?</value></data>
   <data name="Register_SignIn" xml:space="preserve"><value>Sign in</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Your account has been created. We sent an activation link to the address you provided — confirm it to sign in.</value></data>
+  <data name="Auth_Hero_Headline" xml:space="preserve"><value>Smart parking, zero paperwork</value></data>
+  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Reserve a spot, share it when you don't need it, and earn credits and points for playing fair.</value></data>
+  <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Book a spot in a couple of clicks</value></data>
+  <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Credits and demand-based dynamic pricing</value></data>
+  <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Leaderboard, streaks and reliability badges</value></data>
   <data name="ForgotPassword_Title" xml:space="preserve"><value>Forgot password</value></data>
   <data name="ForgotPassword_Submit" xml:space="preserve"><value>Send link</value></data>
   <data name="ForgotPassword_Success" xml:space="preserve"><value>If an account with this address exists, we've sent it a password reset link.</value></data>

@@ -8,12 +8,10 @@
 
 <PageTitle>@L["Register_Title"]</PageTitle>
 
-<FluentCard Style="max-width:560px; width:100%; padding:2rem">
+<div class="auth-form">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
-        <FluentStack Orientation="Orientation.Vertical"
-                     HorizontalAlignment="HorizontalAlignment.Center"
-                     VerticalGap="4">
-            <FluentIcon Value="@(new Icons.Filled.Size48.PersonAdd())" Color="Color.Accent" />
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+            <FluentIcon Value="@(new Icons.Filled.Size32.PersonAdd())" Color="Color.Accent" />
             <FluentLabel Typo="Typography.H2" Style="margin:0">@L["Register_Title"]</FluentLabel>
             <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Register_Subtitle"]</FluentLabel>
         </FluentStack>
@@ -92,7 +90,7 @@
 
         @*  Footer prose: 'Already have an account? Sign in.'  *@
         <FluentStack Orientation="Orientation.Vertical"
-                     HorizontalAlignment="HorizontalAlignment.Center"
+                     HorizontalAlignment="HorizontalAlignment.Start"
                      Style="font-size:0.9rem; padding-top:8px; border-top:1px solid var(--neutral-stroke-divider-rest)">
             <span>
                 @L["Register_HaveAccount"]
@@ -100,7 +98,7 @@
             </span>
         </FluentStack>
     </FluentStack>
-</FluentCard>
+</div>
 
 @code {
 #pragma warning disable BL0008
