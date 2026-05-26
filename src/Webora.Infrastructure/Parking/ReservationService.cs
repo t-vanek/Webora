@@ -16,6 +16,9 @@ public sealed class ReservationService(
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
+    /// <summary>Most releases a user can be rewarded for in a day; bounds reserve/release farming.</summary>
+    private const int MaxRewardedReleasesPerDay = 2;
+
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -122,34 +125,11 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_OwnConflict");
         }
 
+        // Off-peak and distance rewards are granted on completion (actual use), not at booking, so a
+        // reserve/release loop earns nothing. IsOffPeak is captured now for use at completion.
         var isOffPeak = policy.IsOffPeak(startUtc);
         var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now);
         dbContext.Reservations.Add(reservation);
-
-        if (isOffPeak)
-        {
-            var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-            score.RewardOffPeak(policy.OffPeakBonusPoints, now);
-            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                userId, IncentiveReason.OffPeakBonus, policy.OffPeakBonusPoints, reservation.Id, now));
-            await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
-        }
-
-        // Taking a shared reserved spot is rewarded by the taker's commute distance (farther = more).
-        if (spot.OwnerId is { } && spot.OwnerId != userId)
-        {
-            var distanceKm = await dbContext.Users.Where(u => u.Id == userId)
-                .Select(u => u.CommuteDistanceKm).FirstOrDefaultAsync(cancellationToken);
-            var takenPoints = policy.ComputeSharedTakenReward(distanceKm);
-            if (takenPoints > 0)
-            {
-                var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-                score.RewardSharedSpotTaken(takenPoints, now);
-                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                    userId, IncentiveReason.SharedSpotTaken, takenPoints, reservation.Id, now, spot.Code));
-                await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
-            }
-        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
@@ -189,12 +169,38 @@ public sealed class ReservationService(
         }
 
         var now = timeProvider.GetUtcNow();
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Complete(now);
 
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
         score.RecordCompletion(now);
         dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
             userId, IncentiveReason.ReservationCompleted, 0, reservation.Id, now));
+
+        // Reward off-peak use only once the spot was actually used.
+        if (reservation.IsOffPeak)
+        {
+            score.RewardOffPeak(policy.OffPeakBonusPoints, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.OffPeakBonus, policy.OffPeakBonusPoints, reservation.Id, now));
+        }
+
+        // Reward taking a shared reserved spot, scaled by commute distance — also only on real use.
+        var spot = await dbContext.ParkingSpots.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == reservation.SpotId, cancellationToken);
+        if (spot is { OwnerId: { } owner } && owner != userId)
+        {
+            var distanceKm = await dbContext.Users.Where(u => u.Id == userId)
+                .Select(u => u.CommuteDistanceKm).FirstOrDefaultAsync(cancellationToken);
+            var takenPoints = policy.ComputeSharedTakenReward(distanceKm);
+            if (takenPoints > 0)
+            {
+                score.RewardSharedSpotTaken(takenPoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.SharedSpotTaken, takenPoints, reservation.Id, now, spot.Code));
+            }
+        }
+
         await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -219,8 +225,15 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Release(now);
 
-        // Releasing always frees the spot; the reward only applies when it happens early enough.
-        if (policy.QualifiesForReleaseReward(reservation.StartUtc, now))
+        // Releasing always frees the spot. The reward applies when it happens early enough AND the
+        // user hasn't already hit the daily cap on rewarded releases — otherwise a reserve/release
+        // loop could farm points without ever parking.
+        var todayStart = new DateTimeOffset(DateOnly.FromDateTime(now.Date).ToDateTime(TimeOnly.MinValue), now.Offset);
+        var rewardedToday = await dbContext.PointsLedgerEntries.CountAsync(
+            e => e.UserId == userId && e.Reason == IncentiveReason.ReleasedReservation && e.OccurredAtUtc >= todayStart,
+            cancellationToken);
+
+        if (policy.QualifiesForReleaseReward(reservation.StartUtc, now) && rewardedToday < MaxRewardedReleasesPerDay)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
             score.RewardRelease(policy.ReleasePoints, now);

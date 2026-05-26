@@ -148,6 +148,17 @@ public sealed class ResidentSpotService(
             .Select(start => DateOnly.FromDateTime(start.Date))
             .ToHashSet();
 
+        // The monthly share allowance is a hard cap on how many days a month a resident is rewarded
+        // for sharing (not just a multiplier), so releasing a long future range can't farm points.
+        var allowance = spot.MonthlyShareAllowance;
+        var monthFloor = new DateOnly(fromDate.Year, fromDate.Month, 1);
+        var rewardedPerMonth = (await dbContext.SpotReleases
+                .Where(r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date <= toDate)
+                .Select(r => r.Date)
+                .ToListAsync(cancellationToken))
+            .GroupBy(d => (d.Year, d.Month))
+            .ToDictionary(g => g.Key, g => g.Count());
+
         ParkerScore? score = null;
         var releasedCount = 0;
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
@@ -157,12 +168,16 @@ public sealed class ResidentSpotService(
                 continue;
             }
 
-            var points = policy.ComputeShareReward(policy.ResidentShareCutoff(date, now.Offset), now, spot.MonthlyShareAllowance);
+            var monthKey = (date.Year, date.Month);
+            var points = rewardedPerMonth.GetValueOrDefault(monthKey) < allowance
+                ? policy.ComputeShareReward(policy.ResidentShareCutoff(date, now.Offset), now, allowance)
+                : 0;
             dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
             releasedCount++;
 
             if (points > 0)
             {
+                rewardedPerMonth[monthKey] = rewardedPerMonth.GetValueOrDefault(monthKey) + 1;
                 score ??= await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
                 score.RewardSharing(points, now);
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
