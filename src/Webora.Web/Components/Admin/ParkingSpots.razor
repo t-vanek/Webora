@@ -9,7 +9,16 @@
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
-    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
+            @if (_spots is not null)
+            {
+                <span class="count-chip">@_spots.Count</span>
+            }
+        </div>
+        <p class="admin-head__intro">@L["Parking_Admin_Intro"]</p>
+    </div>
 
     @if (_error is not null)
     {
@@ -54,36 +63,47 @@
     }
     else
     {
-        <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
-                        GridTemplateColumns="1fr 1fr 1.5fr 1fr 1.5fr auto">
-            <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
-            <PropertyColumn Property="@(s => s.Type)" Title="@L["Parking_Admin_Type"]" />
-            <TemplateColumn Title="@L["Parking_Admin_Notes"]">
-                @(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Parking_Admin_State"]">
-                @(context.IsActive ? L["Parking_Admin_Active"] : L["Parking_Admin_Inactive"])
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Parking_Admin_Resident"]">
-                <FluentSelect TOption="string"
-                              Items="@_userOptions"
-                              OptionValue="@(id => id)"
-                              OptionText="@(id => UserLabel(id))"
-                              Value="@(context.OwnerId?.ToString() ?? string.Empty)"
-                              ValueChanged="@(v => AssignAsync(context.Id, v))"
-                              Style="width:100%" />
-            </TemplateColumn>
-            <TemplateColumn Align="Align.End">
-                @if (context.IsActive)
-                {
-                    <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
-                }
-                else
-                {
-                    <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
-                }
-            </TemplateColumn>
-        </FluentDataGrid>
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
+                            GridTemplateColumns="1fr 1.2fr 1.5fr 1fr 1.5fr auto">
+                <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+                <TemplateColumn Title="@L["Parking_Admin_Type"]">
+                    <span class="type-pill type-pill--@context.Type">@context.Type</span>
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Admin_Notes"]">
+                    @(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Admin_State"]">
+                    @if (context.IsActive)
+                    {
+                        <span class="state-pill state-pill--on">@L["Parking_Admin_Active"]</span>
+                    }
+                    else
+                    {
+                        <span class="state-pill state-pill--off">@L["Parking_Admin_Inactive"]</span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Admin_Resident"]">
+                    <FluentSelect TOption="string"
+                                  Items="@_userOptions"
+                                  OptionValue="@(id => id)"
+                                  OptionText="@(id => UserLabel(id))"
+                                  Value="@(context.OwnerId?.ToString() ?? string.Empty)"
+                                  ValueChanged="@(v => AssignAsync(context.Id, v))"
+                                  Style="width:100%" />
+                </TemplateColumn>
+                <TemplateColumn Align="Align.End">
+                    @if (context.IsActive)
+                    {
+                        <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
+                    }
+                    else
+                    {
+                        <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
+                    }
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
     }
 </FluentStack>
 

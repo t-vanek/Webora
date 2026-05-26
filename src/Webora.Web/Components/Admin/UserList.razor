@@ -7,17 +7,27 @@
 <PageTitle>@L["Admin_Users_Title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Title"]</FluentLabel>
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Title"]</FluentLabel>
+                @if (_users is not null)
+                {
+                    <span class="count-chip">@_users.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Admin_Users_Intro"]</p>
+        </div>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
+            <FluentAnchor Href="admin/users/create" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentAnchor>
+        </AuthorizeView>
+    </div>
 
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
         <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
                       Placeholder="@L["Admin_Users_SearchPlaceholder"]"
                       Style="max-width:320px" />
         <FluentButton OnClick="ReloadAsync" Appearance="Appearance.Outline">@L["Admin_Search"]</FluentButton>
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
-            <FluentSpacer />
-            <FluentAnchor Href="admin/users/create" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentAnchor>
-        </AuthorizeView>
     </FluentStack>
 
     @if (_users is null)
@@ -26,28 +36,42 @@
     }
     else if (_users.Count == 0)
     {
-        <FluentLabel Typo="Typography.Body">@L["Admin_Users_None"]</FluentLabel>
+        <div class="empty-state">@L["Admin_Users_None"]</div>
     }
     else
     {
-        <FluentDataGrid Items="@_users.AsQueryable()" TGridItem="UserSummary"
-                        GridTemplateColumns="2fr 2fr 1fr 2fr auto">
-            <PropertyColumn Property="@(u => u.Email)" Title="@L["Admin_Users_Email"]" />
-            <TemplateColumn Title="@L["Admin_Users_Name"]">
-                @(string.IsNullOrWhiteSpace(context.DisplayName) ? "—" : context.DisplayName)
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Admin_Users_Status"]">
-                <StatusBadge Status="context.Status" />
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Admin_Users_Roles"]">
-                @(context.Roles.Count == 0 ? "—" : string.Join(", ", context.Roles))
-            </TemplateColumn>
-            <TemplateColumn Align="Align.End">
-                <FluentAnchor Href="@($"admin/users/{context.Id}")" Appearance="Appearance.Outline">
-                    @L["Admin_Manage"]
-                </FluentAnchor>
-            </TemplateColumn>
-        </FluentDataGrid>
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_users.AsQueryable()" TGridItem="UserSummary"
+                            GridTemplateColumns="2fr 2fr 1fr 2fr auto">
+                <PropertyColumn Property="@(u => u.Email)" Title="@L["Admin_Users_Email"]" />
+                <TemplateColumn Title="@L["Admin_Users_Name"]">
+                    @(string.IsNullOrWhiteSpace(context.DisplayName) ? "—" : context.DisplayName)
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Users_Status"]">
+                    <StatusBadge Status="context.Status" />
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Users_Roles"]">
+                    @if (context.Roles.Count == 0)
+                    {
+                        <span>—</span>
+                    }
+                    else
+                    {
+                        <span class="role-tags">
+                            @foreach (var role in context.Roles)
+                            {
+                                <span class="tag">@role</span>
+                            }
+                        </span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Align="Align.End">
+                    <FluentAnchor Href="@($"admin/users/{context.Id}")" Appearance="Appearance.Outline">
+                        @L["Admin_Manage"]
+                    </FluentAnchor>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
     }
 </FluentStack>
 

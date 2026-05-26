@@ -7,11 +7,21 @@
 <PageTitle>@L["Admin_Roles_Title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Title"]</FluentLabel>
-
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Create)" Context="create">
-        <FluentAnchor Href="admin/roles/create" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentAnchor>
-    </AuthorizeView>
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Title"]</FluentLabel>
+                @if (_roles is not null)
+                {
+                    <span class="count-chip">@_roles.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Admin_Roles_Intro"]</p>
+        </div>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Create)" Context="create">
+            <FluentAnchor Href="admin/roles/create" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentAnchor>
+        </AuthorizeView>
+    </div>
 
     @if (_roles is null)
     {
@@ -19,23 +29,25 @@
     }
     else
     {
-        <FluentDataGrid Items="@_roles.AsQueryable()" TGridItem="RoleSummary"
-                        GridTemplateColumns="2fr 1fr 1fr auto">
-            <TemplateColumn Title="@L["Admin_Roles_Name"]">
-                @context.Name
-                @if (context.IsDefault)
-                {
-                    <FluentBadge Appearance="Appearance.Neutral" Style="margin-left:4px">@L["Admin_Roles_Default"]</FluentBadge>
-                }
-            </TemplateColumn>
-            <PropertyColumn Property="@(r => r.PermissionCount)" Title="@L["Admin_Roles_Permissions"]" />
-            <PropertyColumn Property="@(r => r.UserCount)" Title="@L["Admin_Roles_Users"]" />
-            <TemplateColumn Align="Align.End">
-                <FluentAnchor Href="@($"admin/roles/{context.Id}")" Appearance="Appearance.Outline">
-                    @L["Admin_Manage"]
-                </FluentAnchor>
-            </TemplateColumn>
-        </FluentDataGrid>
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_roles.AsQueryable()" TGridItem="RoleSummary"
+                            GridTemplateColumns="2fr 1fr 1fr auto">
+                <TemplateColumn Title="@L["Admin_Roles_Name"]">
+                    @context.Name
+                    @if (context.IsDefault)
+                    {
+                        <FluentBadge Appearance="Appearance.Neutral" Style="margin-left:4px">@L["Admin_Roles_Default"]</FluentBadge>
+                    }
+                </TemplateColumn>
+                <PropertyColumn Property="@(r => r.PermissionCount)" Title="@L["Admin_Roles_Permissions"]" />
+                <PropertyColumn Property="@(r => r.UserCount)" Title="@L["Admin_Roles_Users"]" />
+                <TemplateColumn Align="Align.End">
+                    <FluentAnchor Href="@($"admin/roles/{context.Id}")" Appearance="Appearance.Outline">
+                        @L["Admin_Manage"]
+                    </FluentAnchor>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
     }
 </FluentStack>
 

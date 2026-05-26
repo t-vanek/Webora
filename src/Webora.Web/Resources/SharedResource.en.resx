@@ -159,6 +159,9 @@
   <data name="AccountStatus_Suspended" xml:space="preserve"><value>Suspended</value></data>
   <data name="AccountStatus_Blocked" xml:space="preserve"><value>Blocked</value></data>
   <data name="Admin_Users_Title" xml:space="preserve"><value>User administration</value></data>
+  <data name="Admin_Users_Intro" xml:space="preserve"><value>Manage user accounts, their status and assigned roles.</value></data>
+  <data name="Admin_Roles_Intro" xml:space="preserve"><value>Define roles and the fine-grained permissions that guard the UI and services.</value></data>
+  <data name="Parking_Admin_Intro" xml:space="preserve"><value>Manage parking spots, their status and resident assignments.</value></data>
   <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Search by email or name…</value></data>
   <data name="Admin_Users_Create" xml:space="preserve"><value>New account</value></data>
   <data name="Admin_Users_None" xml:space="preserve"><value>No accounts.</value></data>

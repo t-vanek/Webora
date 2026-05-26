@@ -159,6 +159,9 @@
   <data name="AccountStatus_Suspended" xml:space="preserve"><value>Uspán</value></data>
   <data name="AccountStatus_Blocked" xml:space="preserve"><value>Zablokován</value></data>
   <data name="Admin_Users_Title" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Admin_Users_Intro" xml:space="preserve"><value>Spravujte uživatelské účty, jejich stav a přiřazené role.</value></data>
+  <data name="Admin_Roles_Intro" xml:space="preserve"><value>Definujte role a jemná oprávnění, která hlídají UI i služby.</value></data>
+  <data name="Parking_Admin_Intro" xml:space="preserve"><value>Spravujte parkovací místa, jejich stav a přiřazení rezidentů.</value></data>
   <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Hledat podle e-mailu nebo jména…</value></data>
   <data name="Admin_Users_Create" xml:space="preserve"><value>Nový účet</value></data>
   <data name="Admin_Users_None" xml:space="preserve"><value>Žádné účty.</value></data>

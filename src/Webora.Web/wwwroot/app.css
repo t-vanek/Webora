@@ -756,3 +756,94 @@ h1:focus {
     line-height: 1.4;
     color: var(--neutral-foreground-hint, #6b6b6b);
 }
+
+/* --- Admin list pages --- */
+.admin-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-head__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-head__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-head__intro {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin: 0;
+}
+
+.count-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+.admin-panel {
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 12px;
+    padding: 6px 10px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.role-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    color: var(--neutral-foreground-rest, #444);
+}
+
+.type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+    .type-pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent-fill-rest, #0f6cbd);
+        flex: 0 0 auto;
+    }
+
+.type-pill--ElectricCharging::before { background: #2e7d32; }
+.type-pill--Disabled::before { background: #6a4fb6; }
+.type-pill--Visitor::before { background: #c77700; }
+.type-pill--Motorcycle::before { background: #008272; }
+
+.state-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.state-pill--on { background: rgba(16, 124, 16, .14); color: var(--success-rest, #107c10); }
+.state-pill--off { background: var(--neutral-fill-secondary-rest, #ececec); color: var(--neutral-foreground-hint, #6b6b6b); }
