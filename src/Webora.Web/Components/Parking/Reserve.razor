@@ -190,11 +190,11 @@
     <FluentLabel Typo="Typography.Subject">@L["Parking_MyReservations"]</FluentLabel>
     @if (_myReservations is null)
     {
-        <FluentProgressRing />
+        <div class="loading"><FluentProgressRing /></div>
     }
     else if (_myReservations.Count == 0)
     {
-        <FluentLabel Typo="Typography.Body">@L["Parking_NoReservations"]</FluentLabel>
+        <div class="empty-state">@L["Parking_NoReservations"]</div>
     }
     else
     {

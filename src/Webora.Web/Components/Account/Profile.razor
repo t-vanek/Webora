@@ -143,7 +143,7 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:680px">
                     @foreach (var n in _notifications)
                     {
-                        <FluentCard Style="@(n.IsRead ? null : "background:var(--neutral-layer-2)")">
+                        <FluentCard Class="@($"notif-card notif-card--{LevelClass(n.Level)}")" Style="@(n.IsRead ? null : "background:var(--neutral-layer-2)")">
                             <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
                                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
                                     <strong>@n.Title</strong>
@@ -320,6 +320,13 @@
             await ReloadAsync();
         }
     }
+
+    private static string LevelClass(NotificationLevel level) => level switch
+    {
+        NotificationLevel.Security => "security",
+        NotificationLevel.Warning => "warning",
+        _ => "info",
+    };
 
     private RenderFragment LevelBadge(NotificationLevel level) => __builder =>
     {

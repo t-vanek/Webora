@@ -32,7 +32,7 @@
 
     @if (_users is null)
     {
-        <FluentProgressRing />
+        <div class="loading"><FluentProgressRing /></div>
     }
     else if (_users.Count == 0)
     {

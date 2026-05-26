@@ -973,3 +973,49 @@ h1:focus {
         transform: none;
     }
 }
+
+/* Centred page loading indicator. */
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+}
+
+/* Notification cards carry a level-coloured spine for quick scanning. */
+.notif-card {
+    border-left: 3px solid var(--neutral-stroke-rest, #e0e0e0);
+}
+
+.notif-card--security { border-left-color: var(--error-rest, #d13438); }
+.notif-card--warning { border-left-color: var(--warning-rest, #f7a900); }
+.notif-card--info { border-left-color: var(--accent-fill-rest, #0f6cbd); }
+
+/* Wide data grids scroll within their panel instead of pushing the page. */
+.admin-panel {
+    overflow-x: auto;
+}
+
+/* --- Responsive: stack the sidebar above content on narrow screens --- */
+.body-content {
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .main {
+        flex-direction: column !important;
+        overflow: visible !important;
+    }
+
+        .main > fluent-nav-menu {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+    .body-content {
+        padding: 1rem !important;
+    }
+
+    .home-hero {
+        padding: 28px 22px;
+    }
+}
