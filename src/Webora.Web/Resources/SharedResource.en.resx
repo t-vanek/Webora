@@ -423,6 +423,8 @@
   <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max distance multiplier</value></data>
   <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Couldn't find that address. Try to refine it.</value></data>
   <data name="Profile_CommutePending" xml:space="preserve"><value>Awaiting admin verification</value></data>
+  <data name="Profile_CommutePrivacy" xml:space="preserve"><value>The address is used only to compute the distance to the lot. You can remove it at any time.</value></data>
+  <data name="Profile_RemoveAddress" xml:space="preserve"><value>Remove address</value></data>
   <data name="Admin_UserEdit_Commute" xml:space="preserve"><value>Commute / address</value></data>
   <data name="Admin_UserEdit_NoHome" xml:space="preserve"><value>No address</value></data>
   <data name="Admin_UserEdit_HomeVerified" xml:space="preserve"><value>Verified</value></data>

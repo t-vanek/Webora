@@ -423,6 +423,8 @@
   <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max. násobič vzdálenosti</value></data>
   <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Adresu se nepodařilo najít. Zkus ji upřesnit.</value></data>
   <data name="Profile_CommutePending" xml:space="preserve"><value>Čeká na ověření adminem</value></data>
+  <data name="Profile_CommutePrivacy" xml:space="preserve"><value>Adresa se používá pouze pro výpočet vzdálenosti k parkovišti. Můžeš ji kdykoli odebrat.</value></data>
+  <data name="Profile_RemoveAddress" xml:space="preserve"><value>Odebrat adresu</value></data>
   <data name="Admin_UserEdit_Commute" xml:space="preserve"><value>Dojezd / adresa</value></data>
   <data name="Admin_UserEdit_NoHome" xml:space="preserve"><value>Bez adresy</value></data>
   <data name="Admin_UserEdit_HomeVerified" xml:space="preserve"><value>Ověřeno</value></data>

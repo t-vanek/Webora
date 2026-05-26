@@ -43,6 +43,12 @@
                     <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
                 </FluentStack>
             </EditForm>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
+            @if (!string.IsNullOrWhiteSpace(_home.Address))
+            {
+                <MuteButton FormName="home-remove" Label="@L["Profile_RemoveAddress"]"
+                            Appearance="Appearance.Outline" OnSubmit="RemoveHomeAsync" />
+            }
 
             <FluentLabel Typo="Typography.H4">@L["Profile_NotificationSettings"]</FluentLabel>
 
@@ -151,7 +157,7 @@
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
 #pragma warning disable BL0008
-    [SupplyParameterFromForm] private HomeFormModel HomeInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
 #pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
@@ -178,6 +184,17 @@
                 _homeError = result.Errors.FirstOrDefault();
             }
 
+            _home = await UserLocation.GetHomeAsync(userId);
+        }
+    }
+
+    private async Task RemoveHomeAsync()
+    {
+        _homeError = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await UserLocation.SetHomeAddressAsync(userId, null);
+            HomeInput.Address = null;
             _home = await UserLocation.GetHomeAsync(userId);
         }
     }
