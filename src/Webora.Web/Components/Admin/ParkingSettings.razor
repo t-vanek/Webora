@@ -169,6 +169,10 @@
                     <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0"
                                        Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
                 </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
+                                       Label="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
+                </FluentGridItem>
             </FluentGrid>
 
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
@@ -226,6 +230,7 @@
             OccupancyPricePercent = s.OccupancyPricePercent,
             MaxReservationCost = s.MaxReservationCost,
             MonthlyCreditAllowance = s.MonthlyCreditAllowance,
+            QueueOfferMinutes = s.QueueOfferMinutes,
         };
     }
 
@@ -258,7 +263,8 @@
             _form.PeakPricePercent,
             _form.OccupancyPricePercent,
             _form.MaxReservationCost,
-            _form.MonthlyCreditAllowance);
+            _form.MonthlyCreditAllowance,
+            _form.QueueOfferMinutes);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -303,5 +309,6 @@
         public int OccupancyPricePercent { get; set; }
         public int MaxReservationCost { get; set; }
         public int MonthlyCreditAllowance { get; set; }
+        public int QueueOfferMinutes { get; set; }
     }
 }

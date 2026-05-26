@@ -30,4 +30,5 @@ public sealed record ParkingSettingsDto(
     int PeakPricePercent,
     int OccupancyPricePercent,
     int MaxReservationCost,
-    int MonthlyCreditAllowance);
+    int MonthlyCreditAllowance,
+    int QueueOfferMinutes);

@@ -33,6 +33,7 @@ vyhrazeného místa) a penalizují nedostavení se.
 - [Jak to funguje](#jak-to-funguje)
   - [Rezervace a jejich životní cyklus](#rezervace-a-jejich-životní-cyklus)
   - [Kredity a dynamická cena](#kredity-a-dynamická-cena)
+  - [Fronta při plném obsazení](#fronta-při-plném-obsazení)
   - [Body a reputace](#body-a-reputace)
   - [Rezidentní místa](#rezidentní-místa)
   - [Dojezdová vzdálenost](#dojezdová-vzdálenost)
@@ -53,6 +54,7 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Reputace a žebříček** — body oddělené od peněženky; utrácení je nesnižuje. Odznaky za chování.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
+- **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 
 ## Náhledy
@@ -139,6 +141,21 @@ cena = základ × přirážka_za_špičku × přirážka_za_obsazenost      (zas
 | Měsíční příděl | jednou za kalendářní měsíc se připíše konfigurovatelný příděl |
 | Odměny za chování | tytéž odměny, které zvyšují reputaci, **dobíjejí i peněženku** |
 
+### Fronta při plném obsazení
+
+Když pro zvolené okno není volné žádné místo, uživatel se může **postavit do fronty** (na `/parking`).
+Fronta je vázaná na **konkrétní časové okno** a obsluhuje se v pořadí příchodu (FIFO):
+
+- Jakmile se místo uvolní (uvolnění, zrušení nebo nedostavení se), **přidrží se prvnímu čekateli**,
+  jehož okno pokrývá, na konfigurovatelné claim okno (`QueueOfferMinutes`, výchozí 15 min), a přijde mu
+  **notifikace + e-mail**.
+- Přidržené místo je **skryté z běžné nabídky** a nelze ho zarezervovat někomu jinému.
+- **Převzetí** = rezervace přidrženého místa za obvyklou dynamickou cenu (tehdy se strhne kredit a
+  zkontroluje zůstatek). Když čekatel nestihne claim okno, přidržení **propadne dalšímu** v pořadí.
+- Vstup do fronty je zdarma a je možný jen při skutečně plném obsazení.
+
+Nabídky se vyhodnocují i průběžně v údržbové smyčce (expirace prošlých nabídek a doplnění nových).
+
 ### Body a reputace
 
 **Body** jsou čistě **reputační skóre** pro **žebříček** (`/parking/leaderboard`) a **odznaky**;
@@ -210,7 +227,8 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
 připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
-nevyužité sdílené dny a **uděluje měsíční příděl kreditů**. Lze ji spustit i ručně ze správy míst.
+nevyužité sdílené dny, **uděluje měsíční příděl kreditů** a **obsluhuje frontu** (expiruje prošlé
+nabídky a přidržuje uvolněná místa dalším čekatelům). Lze ji spustit i ručně ze správy míst.
 
 ### Role a oprávnění
 
@@ -225,7 +243,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 
 | Skupina | Volby |
 | --- | --- |
-| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů |
+| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
 | **Body** | uvolnění, bonus mimo špičku, penalizace za no-show |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |

@@ -452,6 +452,7 @@
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max price (credits)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Queue spot hold (min)</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

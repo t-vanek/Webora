@@ -69,6 +69,8 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MonthlyCreditAllowance { get; private set; } = 100;
 
+    public int QueueOfferMinutes { get; private set; } = 15;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -107,7 +109,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         int peakPricePercent,
         int occupancyPricePercent,
         int maxReservationCost,
-        int monthlyCreditAllowance)
+        int monthlyCreditAllowance,
+        int queueOfferMinutes)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -139,6 +142,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = Math.Max(0, occupancyPricePercent);
         MaxReservationCost = Math.Max(BaseReservationCost, maxReservationCost);
         MonthlyCreditAllowance = Math.Max(0, monthlyCreditAllowance);
+        QueueOfferMinutes = Math.Max(1, queueOfferMinutes);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -169,6 +173,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = OccupancyPricePercent,
         MaxReservationCost = MaxReservationCost,
         MonthlyCreditAllowance = MonthlyCreditAllowance,
+        QueueOfferMinutes = QueueOfferMinutes,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

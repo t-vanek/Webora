@@ -16,9 +16,6 @@ public sealed class ReservationService(
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
-    /// <summary>How long a freed spot is held for the offered waitlist entry before it lapses to the next.</summary>
-    private static readonly TimeSpan OfferHold = TimeSpan.FromMinutes(15);
-
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -734,6 +731,7 @@ public sealed class ReservationService(
             .Select(q => q.OfferedSpotId!.Value)
             .ToHashSet();
 
+        var offerHold = TimeSpan.FromMinutes(policy.QueueOfferMinutes);
         var offers = new List<(Guid UserId, Guid SpotId)>();
         foreach (var entry in active.Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now))
         {
@@ -744,7 +742,7 @@ public sealed class ReservationService(
                 continue;
             }
 
-            entry.Offer(spotId, now + OfferHold);
+            entry.Offer(spotId, now + offerHold);
             heldSpotIds.Add(spotId);
             offers.Add((entry.UserId, spotId));
         }
@@ -761,7 +759,7 @@ public sealed class ReservationService(
             {
                 await notifications.NotifyAsync(offerUserId, NotificationCategory.SelfService, NotificationLevel.Warning,
                     messages["Parking_Notify_QueueOffer_Title"],
-                    messages["Parking_Notify_QueueOffer_Body", codes.GetValueOrDefault(spotId, string.Empty), (int)OfferHold.TotalMinutes],
+                    messages["Parking_Notify_QueueOffer_Body", codes.GetValueOrDefault(spotId, string.Empty), policy.QueueOfferMinutes],
                     email: true, cancellationToken);
             }
         }

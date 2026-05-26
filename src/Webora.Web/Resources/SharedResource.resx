@@ -452,6 +452,7 @@
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Držení místa z fronty (min)</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

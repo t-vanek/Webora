@@ -85,6 +85,9 @@ public sealed record IncentivePolicy
     /// <summary>Credits granted to each user's wallet at the start of every calendar month.</summary>
     public int MonthlyCreditAllowance { get; init; } = 100;
 
+    /// <summary>Minutes a freed spot is held for the next in the waitlist before the offer lapses.</summary>
+    public int QueueOfferMinutes { get; init; } = 15;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
