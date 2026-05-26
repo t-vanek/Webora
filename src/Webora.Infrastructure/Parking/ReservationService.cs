@@ -144,17 +144,20 @@ public sealed class ReservationService(
         // reserve/release loop earns nothing. IsOffPeak is captured now for use at completion.
         var isOffPeak = policy.IsOffPeak(startUtc);
 
-        // Dynamic price: a peak surcharge times an occupancy surcharge for the requested window.
-        var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
-        var cost = policy.ComputeReservationCost(!isOffPeak, occupancy);
-
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-        var granted = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, ParkerScore.PeriodOf(now), now);
+        var tierRank = IncentivePolicy.TierRank(policy.TierFor(score.Points));
+
+        // Higher loyalty tiers get a bigger monthly allowance.
+        var granted = score.GrantMonthlyCreditIfDue(policy.AllowanceForTier(tierRank), ParkerScore.PeriodOf(now), now);
         if (granted > 0)
         {
             dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
                 userId, IncentiveReason.MonthlyCreditGrant, granted, null, now));
         }
+
+        // Dynamic price (peak × occupancy for the window), then a loyalty-tier discount.
+        var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
+        var cost = policy.ApplyTierDiscount(policy.ComputeReservationCost(!isOffPeak, occupancy), tierRank);
 
         if (score.Credits < cost)
         {
@@ -200,15 +203,17 @@ public sealed class ReservationService(
         var occupancy = endUtc > startUtc
             ? await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken)
             : 0.0;
-        var cost = policy.ComputeReservationCost(isPeak, occupancy);
 
-        // Reflect the monthly allowance the user would receive at booking, so affordability matches reserve.
         var score = await dbContext.ParkerScores.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+        var tierRank = IncentivePolicy.TierRank(policy.TierFor(score?.Points ?? 0));
+        var cost = policy.ApplyTierDiscount(policy.ComputeReservationCost(isPeak, occupancy), tierRank);
+
+        // Reflect the (tier-boosted) monthly allowance the user would receive at booking, so affordability matches reserve.
         var balance = score?.Credits ?? 0;
         if (score is null || score.LastCreditGrantPeriod < ParkerScore.PeriodOf(timeProvider.GetUtcNow()))
         {
-            balance += policy.MonthlyCreditAllowance;
+            balance += policy.AllowanceForTier(tierRank);
         }
 
         return new ReservationQuoteDto(cost, (int)Math.Round(occupancy * 100), isPeak, balance, balance >= cost);
@@ -601,7 +606,8 @@ public sealed class ReservationService(
         var granted = new List<(Guid UserId, int Amount)>();
         foreach (var score in due)
         {
-            var amount = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, period, now);
+            var rank = IncentivePolicy.TierRank(policy.TierFor(score.Points));
+            var amount = score.GrantMonthlyCreditIfDue(policy.AllowanceForTier(rank), period, now);
             if (amount > 0)
             {
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
@@ -624,6 +630,8 @@ public sealed class ReservationService(
 
     public async Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var mine = await dbContext.QueueEntries.AsNoTracking()
@@ -636,25 +644,41 @@ public sealed class ReservationService(
             return [];
         }
 
-        // Position is how many still-waiting entries (anyone) joined no later for an overlapping window.
         var waiting = await dbContext.QueueEntries.AsNoTracking()
             .Where(q => q.Status == QueueEntryStatus.Waiting)
-            .Select(q => new { q.StartUtc, q.EndUtc, q.CreatedAtUtc })
+            .Select(q => new { q.UserId, q.StartUtc, q.EndUtc, q.CreatedAtUtc })
             .ToListAsync(cancellationToken);
+
+        var waitingUserIds = waiting.Select(w => w.UserId).Distinct().ToList();
+        var pointsByUser = await dbContext.ParkerScores.AsNoTracking()
+            .Where(s => waitingUserIds.Contains(s.UserId))
+            .ToDictionaryAsync(s => s.UserId, s => s.Points, cancellationToken);
+
+        int Priority(Guid uid, DateTimeOffset created) =>
+            IncentivePolicy.TierRank(policy.TierFor(pointsByUser.GetValueOrDefault(uid))) * policy.QueuePriorityPerTier
+            + (int)(now - created).TotalMinutes;
 
         var spotIds = mine.Where(q => q.OfferedSpotId != null).Select(q => q.OfferedSpotId!.Value).ToList();
         var codes = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => spotIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
 
-        return mine.Select(q => new QueueEntryDto(
-            q.Id, q.StartUtc, q.EndUtc, q.Status,
-            q.Status == QueueEntryStatus.Offered
+        return mine.Select(q =>
+        {
+            // Position reflects the same tier+wait priority the matcher uses: how many overlapping
+            // entries currently outrank me, plus one.
+            var myPriority = Priority(q.UserId, q.CreatedAtUtc);
+            var position = q.Status == QueueEntryStatus.Offered
                 ? 0
-                : waiting.Count(w => w.StartUtc < q.EndUtc && w.EndUtc > q.StartUtc && w.CreatedAtUtc <= q.CreatedAtUtc),
-            q.OfferedSpotId,
-            q.OfferedSpotId is { } sid ? codes.GetValueOrDefault(sid) : null,
-            q.OfferExpiresAtUtc)).ToList();
+                : 1 + waiting.Count(w => w.StartUtc < q.EndUtc && w.EndUtc > q.StartUtc
+                    && Priority(w.UserId, w.CreatedAtUtc) > myPriority);
+
+            return new QueueEntryDto(
+                q.Id, q.StartUtc, q.EndUtc, q.Status, position,
+                q.OfferedSpotId,
+                q.OfferedSpotId is { } sid ? codes.GetValueOrDefault(sid) : null,
+                q.OfferExpiresAtUtc);
+        }).ToList();
     }
 
     public async Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
@@ -796,9 +820,23 @@ public sealed class ReservationService(
             .Select(q => q.OfferedSpotId!.Value)
             .ToHashSet();
 
+        // Serve by a blend of loyalty tier (head start) and how long they've waited, so higher tiers
+        // are favoured but a long-waiting lower tier still catches up (no starvation).
+        var waitingUserIds = active.Where(q => q.Status == QueueEntryStatus.Waiting).Select(q => q.UserId).Distinct().ToList();
+        var pointsByUser = await dbContext.ParkerScores.AsNoTracking()
+            .Where(s => waitingUserIds.Contains(s.UserId))
+            .ToDictionaryAsync(s => s.UserId, s => s.Points, cancellationToken);
+
+        int Priority(QueueEntry q) =>
+            IncentivePolicy.TierRank(policy.TierFor(pointsByUser.GetValueOrDefault(q.UserId))) * policy.QueuePriorityPerTier
+            + (int)(now - q.CreatedAtUtc).TotalMinutes;
+
         var offerHold = TimeSpan.FromMinutes(policy.QueueOfferMinutes);
         var offers = new List<(Guid UserId, Guid SpotId)>();
-        foreach (var entry in active.Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now))
+        foreach (var entry in active
+            .Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now)
+            .OrderByDescending(Priority)
+            .ThenBy(q => q.CreatedAtUtc))
         {
             var candidates = await AvailableSpotIdsAsync(dbContext, policy, entry.StartUtc, entry.EndUtc, now, cancellationToken);
             var spotId = candidates.FirstOrDefault(id => !heldSpotIds.Contains(id));

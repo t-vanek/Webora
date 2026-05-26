@@ -43,4 +43,7 @@ public sealed record ParkingSettingsDto(
     int StreakBonusCap,
     int TierSilverPoints,
     int TierGoldPoints,
-    int TierPlatinumPoints);
+    int TierPlatinumPoints,
+    int QueuePriorityPerTier,
+    int TierAllowanceBonus,
+    int TierDiscountPercent);

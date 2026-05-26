@@ -238,6 +238,23 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TierPerksSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_TierPerksHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.QueuePriorityPerTier" Min="0"
+                                       Label="@L["Parking_Settings_QueuePriorityPerTier"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TierAllowanceBonus" Min="0"
+                                       Label="@L["Parking_Settings_TierAllowanceBonus"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TierDiscountPercent" Min="0" Max="30"
+                                       Label="@L["Parking_Settings_TierDiscountPercent"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -306,6 +323,9 @@
             TierSilverPoints = s.TierSilverPoints,
             TierGoldPoints = s.TierGoldPoints,
             TierPlatinumPoints = s.TierPlatinumPoints,
+            QueuePriorityPerTier = s.QueuePriorityPerTier,
+            TierAllowanceBonus = s.TierAllowanceBonus,
+            TierDiscountPercent = s.TierDiscountPercent,
         };
     }
 
@@ -351,7 +371,10 @@
             _form.StreakBonusCap,
             _form.TierSilverPoints,
             _form.TierGoldPoints,
-            _form.TierPlatinumPoints);
+            _form.TierPlatinumPoints,
+            _form.QueuePriorityPerTier,
+            _form.TierAllowanceBonus,
+            _form.TierDiscountPercent);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -409,5 +432,8 @@
         public int TierSilverPoints { get; set; }
         public int TierGoldPoints { get; set; }
         public int TierPlatinumPoints { get; set; }
+        public int QueuePriorityPerTier { get; set; }
+        public int TierAllowanceBonus { get; set; }
+        public int TierDiscountPercent { get; set; }
     }
 }

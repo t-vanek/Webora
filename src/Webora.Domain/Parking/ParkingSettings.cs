@@ -95,6 +95,12 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int TierPlatinumPoints { get; private set; } = 300;
 
+    public int QueuePriorityPerTier { get; private set; } = 30;
+
+    public int TierAllowanceBonus { get; private set; } = 20;
+
+    public int TierDiscountPercent { get; private set; } = 5;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -146,7 +152,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         int streakBonusCap,
         int tierSilverPoints,
         int tierGoldPoints,
-        int tierPlatinumPoints)
+        int tierPlatinumPoints,
+        int queuePriorityPerTier,
+        int tierAllowanceBonus,
+        int tierDiscountPercent)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -191,6 +200,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         TierSilverPoints = Math.Max(0, tierSilverPoints);
         TierGoldPoints = Math.Max(TierSilverPoints, tierGoldPoints);
         TierPlatinumPoints = Math.Max(TierGoldPoints, tierPlatinumPoints);
+        QueuePriorityPerTier = Math.Max(0, queuePriorityPerTier);
+        TierAllowanceBonus = Math.Max(0, tierAllowanceBonus);
+        TierDiscountPercent = Math.Clamp(tierDiscountPercent, 0, 30);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -234,6 +246,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         TierSilverPoints = TierSilverPoints,
         TierGoldPoints = TierGoldPoints,
         TierPlatinumPoints = TierPlatinumPoints,
+        QueuePriorityPerTier = QueuePriorityPerTier,
+        TierAllowanceBonus = TierAllowanceBonus,
+        TierDiscountPercent = TierDiscountPercent,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

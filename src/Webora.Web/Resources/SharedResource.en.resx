@@ -477,6 +477,11 @@
   <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Silver from (points)</value></data>
   <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Gold from (points)</value></data>
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platinum from (points)</value></data>
+  <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks for reputation: queue priority, a bigger monthly allowance and a reservation price discount — all growing with the loyalty tier.</value></data>
+  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Allowance bonus / tier</value></data>
+  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Price discount / tier (%)</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

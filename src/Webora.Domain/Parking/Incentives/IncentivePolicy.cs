@@ -124,7 +124,28 @@ public sealed record IncentivePolicy
     /// <summary>Reputation points needed to reach the Platinum loyalty tier.</summary>
     public int TierPlatinumPoints { get; init; } = 300;
 
+    /// <summary>Minutes of head start in the waitlist per loyalty tier rank (higher tiers are served sooner).</summary>
+    public int QueuePriorityPerTier { get; init; } = 30;
+
+    /// <summary>Extra monthly credit allowance per loyalty tier rank.</summary>
+    public int TierAllowanceBonus { get; init; } = 20;
+
+    /// <summary>Reservation price discount (percent) per loyalty tier rank, capped so a booking is never free.</summary>
+    public int TierDiscountPercent { get; init; } = 5;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>The monthly allowance for a user of the given tier rank (base plus the tier bonus).</summary>
+    public int AllowanceForTier(int tierRank) =>
+        Math.Max(0, MonthlyCreditAllowance) + Math.Max(0, TierAllowanceBonus) * Math.Max(0, tierRank);
+
+    /// <summary>Applies the loyalty-tier discount to a reservation cost (never below 1 credit).</summary>
+    public int ApplyTierDiscount(int cost, int tierRank)
+    {
+        var percent = Math.Clamp(Math.Max(0, TierDiscountPercent) * Math.Max(0, tierRank), 0, 90);
+        var discounted = (int)Math.Round(cost * (1.0 - percent / 100.0), MidpointRounding.AwayFromZero);
+        return Math.Max(1, discounted);
+    }
 
     /// <summary>The streak bonus for a run of <paramref name="streak"/> consecutive completions.</summary>
     public int ComputeStreakBonus(int streak) =>
