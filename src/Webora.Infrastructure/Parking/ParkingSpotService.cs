@@ -127,7 +127,7 @@ public sealed class ParkingSpotService(
             {
                 await notifications.NotifyAsync(holderId, NotificationCategory.Administrative, NotificationLevel.Warning,
                     messages["Parking_Notify_SpotDeactivated_Title"],
-                    messages["Parking_Notify_SpotDeactivated_Body", spot.Code], cancellationToken);
+                    messages["Parking_Notify_SpotDeactivated_Body", spot.Code], email: true, cancellationToken);
             }
         }
 

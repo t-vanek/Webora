@@ -167,7 +167,7 @@ public sealed class ReservationService(
         {
             await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Warning,
                 messages["Parking_Notify_LowBalance_Title"],
-                messages["Parking_Notify_LowBalance_Body", score.Credits], cancellationToken);
+                messages["Parking_Notify_LowBalance_Body", score.Credits], email: true, cancellationToken);
         }
 
         return ParkingResult.Success;
@@ -448,7 +448,7 @@ public sealed class ReservationService(
             await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
                 messages["Parking_Notify_NoShow_Title"],
                 messages["Parking_Notify_NoShow_Body", code, policy.NoShowPenaltyPoints],
-                cancellationToken);
+                email: true, cancellationToken);
         }
 
         foreach (var (ownerId, code, clawback) in ownerNotices)

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Webora.Application.Abstractions.Email;
 using Webora.Application.Mapping;
 using Webora.Application.Notifications;
 using Webora.Contracts.Notifications;
@@ -11,9 +13,14 @@ public sealed class NotificationService(
     IDbContextFactory<WeboraDbContext> dbContextFactory,
     NotificationMapper mapper,
     INotificationRealtimePublisher publisher,
+    IEmailSender emailSender,
+    ILogger<NotificationService> logger,
     TimeProvider timeProvider) : INotificationService
 {
-    public async Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default)
+    public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) =>
+        NotifyAsync(userId, category, level, title, message, email: false, cancellationToken);
+
+    public async Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var preferences = await GetOrCreatePreferencesAsync(dbContext, userId, cancellationToken);
@@ -28,10 +35,45 @@ public sealed class NotificationService(
         dbContext.Notifications.Add(notification);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Muting suppresses only the live push; the notification is still stored.
+        // Muting suppresses the live push and the email mirror; the notification is still stored.
         if (!preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()))
         {
             await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+
+            if (email)
+            {
+                await TrySendEmailAsync(dbContext, userId, title, message, cancellationToken);
+            }
+        }
+    }
+
+    private async Task TrySendEmailAsync(WeboraDbContext dbContext, Guid userId, string title, string message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var recipient = await dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.Email, u.DisplayName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(recipient?.Email))
+            {
+                return;
+            }
+
+            await emailSender.SendAsync(new EmailMessage
+            {
+                To = recipient.Email,
+                ToName = recipient.DisplayName,
+                Subject = title,
+                HtmlBody = $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
+                TextBody = message,
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Email is best-effort; a transport failure must not break the notification or its caller.
+            logger.LogWarning(ex, "Failed to mirror notification to email for {UserId}.", userId);
         }
     }
 
