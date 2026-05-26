@@ -23,4 +23,16 @@
   <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>O sdílené místo nebyl zájem</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>O tvé sdílené místo {0} nebyl ten den zájem – nikdo si ho nezarezervoval, proto se vrací {1} bodů z odměny.</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Měsíční kredit připsán</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>Na tento měsíc ti bylo připsáno {0} kreditů na rezervace parkování.</value></data>
+  <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Nízký zůstatek kreditu</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>Zbývá ti jen {0} kreditů – na další rezervaci nemusí stačit. Doplníš je ohleduplným chováním nebo příštím měsíčním přídělem.</value></data>
+  <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Rezervace potvrzena</value></data>
+  <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Rezervace místa {0} je potvrzena. Strženo {1} kreditů.</value></data>
+  <data name="Parking_Notify_Badge_Title" xml:space="preserve"><value>Nový odznak!</value></data>
+  <data name="Parking_Notify_Badge_Body" xml:space="preserve"><value>Získal(a) jsi odznak „{0}“ na parkovacím žebříčku.</value></data>
+  <data name="Parking_BadgeName_ConsiderateColleague" xml:space="preserve"><value>Ohleduplný kolega</value></data>
+  <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Šampion mimo špičku</value></data>
+  <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Spolehlivý parkovač</value></data>
+  <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Klub stovky</value></data>
 </root>

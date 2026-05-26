@@ -150,6 +150,26 @@ public sealed class ReservationService(
             userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (granted > 0)
+        {
+            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_MonthlyCredit_Title"],
+                messages["Parking_Notify_MonthlyCredit_Body", granted], cancellationToken);
+        }
+
+        await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+            messages["Parking_Notify_Reserved_Title"],
+            messages["Parking_Notify_Reserved_Body", spot.Code, cost], cancellationToken);
+
+        // Warn when the wallet can no longer cover even a base-price booking.
+        if (score.Credits < policy.BaseReservationCost)
+        {
+            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                messages["Parking_Notify_LowBalance_Title"],
+                messages["Parking_Notify_LowBalance_Body", score.Credits], cancellationToken);
+        }
+
         return ParkingResult.Success;
     }
 
@@ -263,9 +283,10 @@ public sealed class ReservationService(
             }
         }
 
-        await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
+        var newBadges = await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
         return ParkingResult.Success;
     }
 
@@ -298,6 +319,7 @@ public sealed class ReservationService(
             cancellationToken);
         var rewardEligible = timely && rewardedToday < policy.MaxRewardedReleasesPerDay;
 
+        var newBadges = new List<ParkingBadge>();
         if ((timely && reservation.CreditsCharged > 0) || rewardEligible)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
@@ -314,11 +336,12 @@ public sealed class ReservationService(
                 score.RewardRelease(policy.ReleasePoints, now);
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
                     userId, IncentiveReason.ReleasedReservation, policy.ReleasePoints, reservation.Id, now));
-                await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
+                newBadges = await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
             }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
         return ParkingResult.Success;
     }
 
@@ -484,17 +507,27 @@ public sealed class ReservationService(
             return 0;
         }
 
+        var granted = new List<(Guid UserId, int Amount)>();
         foreach (var score in due)
         {
-            var granted = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, period, now);
-            if (granted > 0)
+            var amount = score.GrantMonthlyCreditIfDue(policy.MonthlyCreditAllowance, period, now);
+            if (amount > 0)
             {
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                    score.UserId, IncentiveReason.MonthlyCreditGrant, granted, null, now));
+                    score.UserId, IncentiveReason.MonthlyCreditGrant, amount, null, now));
+                granted.Add((score.UserId, amount));
             }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var (userId, amount) in granted)
+        {
+            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_MonthlyCredit_Title"],
+                messages["Parking_Notify_MonthlyCredit_Body", amount], cancellationToken);
+        }
+
         return due.Count;
     }
 
@@ -521,12 +554,13 @@ public sealed class ReservationService(
         return score;
     }
 
-    private static async Task ReevaluateBadgesAsync(WeboraDbContext dbContext, ParkerScore score, DateTimeOffset now, CancellationToken cancellationToken)
+    private static async Task<List<ParkingBadge>> ReevaluateBadgesAsync(WeboraDbContext dbContext, ParkerScore score, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        var newlyEarned = new List<ParkingBadge>();
         var earned = ParkingBadgeRules.Earned(score).ToHashSet();
         if (earned.Count == 0)
         {
-            return;
+            return newlyEarned;
         }
 
         var existing = await dbContext.UserBadges
@@ -539,7 +573,20 @@ public sealed class ReservationService(
             if (!existing.Contains(badge))
             {
                 dbContext.UserBadges.Add(new UserBadge(score.UserId, badge, now));
+                newlyEarned.Add(badge);
             }
+        }
+
+        return newlyEarned;
+    }
+
+    private async Task NotifyNewBadgesAsync(Guid userId, IReadOnlyList<ParkingBadge> badges, CancellationToken cancellationToken)
+    {
+        foreach (var badge in badges)
+        {
+            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_Badge_Title"],
+                messages["Parking_Notify_Badge_Body", messages[$"Parking_BadgeName_{badge}"]], cancellationToken);
         }
     }
 }

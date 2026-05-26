@@ -23,4 +23,16 @@
   <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>No demand for your shared spot</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Monthly credit added</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>You've received {0} parking credits for this month.</value></data>
+  <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Low credit balance</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>You have only {0} credits left – that may not cover your next reservation. Top up through good behaviour or next month's allowance.</value></data>
+  <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Reservation confirmed</value></data>
+  <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Your reservation for spot {0} is confirmed. {1} credits were charged.</value></data>
+  <data name="Parking_Notify_Badge_Title" xml:space="preserve"><value>New badge!</value></data>
+  <data name="Parking_Notify_Badge_Body" xml:space="preserve"><value>You've earned the “{0}” badge on the parking leaderboard.</value></data>
+  <data name="Parking_BadgeName_ConsiderateColleague" xml:space="preserve"><value>Considerate Colleague</value></data>
+  <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
+  <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
+  <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
 </root>
