@@ -23,4 +23,30 @@
   <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>No demand for your shared spot</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Monthly credit added</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>You've received {0} parking credits for this month.</value></data>
+  <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Low credit balance</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>You have only {0} credits left – that may not cover your next reservation. Top up through good behaviour or next month's allowance.</value></data>
+  <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Reservation confirmed</value></data>
+  <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Your reservation for spot {0} is confirmed. {1} credits were charged.</value></data>
+  <data name="Parking_Notify_Badge_Title" xml:space="preserve"><value>New badge!</value></data>
+  <data name="Parking_Notify_Badge_Body" xml:space="preserve"><value>You've earned the “{0}” badge on the parking leaderboard.</value></data>
+  <data name="Parking_BadgeName_ConsiderateColleague" xml:space="preserve"><value>Considerate Colleague</value></data>
+  <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
+  <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
+  <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Parking spot deactivated</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Spot {0} was deactivated by an administrator and your reservation for it may be affected. Please review your reservations and pick another spot if needed.</value></data>
+  <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Your spot is shared today</value></data>
+  <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>You didn't confirm arrival on your spot {0} before today's cutoff, so it's now in the shared pool for others. Next time you can release it in advance and earn points for it.</value></data>
+  <data name="Parking_Notify_ShareUsed_Title" xml:space="preserve"><value>A colleague used your shared spot</value></data>
+  <data name="Parking_Notify_ShareUsed_Body" xml:space="preserve"><value>Your shared spot {0} was used by someone else today – thanks for sharing it.</value></data>
+  <data name="Parking_Notify_ResidentAssigned_Title" xml:space="preserve"><value>You have a new reserved spot</value></data>
+  <data name="Parking_Notify_ResidentAssigned_Body" xml:space="preserve"><value>You've been assigned reserved spot {0}. Confirm arrival each day, or release it to others to earn points.</value></data>
+  <data name="Parking_Notify_ResidentUnassigned_Title" xml:space="preserve"><value>Reserved spot removed</value></data>
+  <data name="Parking_Notify_ResidentUnassigned_Body" xml:space="preserve"><value>An administrator removed your reserved spot {0}. Please book from the shared pool from now on.</value></data>
+  <data name="Parking_Notify_QueueOffer_Title" xml:space="preserve"><value>A queued spot is free</value></data>
+  <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Spot {0} opened up for your queued window – we've held it for you for {1} minutes. Confirm the reservation in the app, otherwise we'll offer it to the next person.</value></data>
+  <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>
+  <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
 </root>

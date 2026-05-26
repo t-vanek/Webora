@@ -85,7 +85,83 @@ public sealed record IncentivePolicy
     /// <summary>Credits granted to each user's wallet at the start of every calendar month.</summary>
     public int MonthlyCreditAllowance { get; init; } = 100;
 
+    /// <summary>Minutes a freed spot is held for the next in the waitlist before the offer lapses.</summary>
+    public int QueueOfferMinutes { get; init; } = 15;
+
+    /// <summary>Reputation points deducted for a no-show on a spot claimed from the waitlist (harsher than a normal no-show).</summary>
+    public int QueueNoShowPenaltyPoints { get; init; } = 50;
+
+    /// <summary>Extra credits fined from the wallet for a no-show on a spot claimed from the waitlist.</summary>
+    public int QueueNoShowCreditPenalty { get; init; } = 30;
+
+    /// <summary>Days the user is barred from the waitlist after a no-show on a spot claimed from it.</summary>
+    public int QueueNoShowBanDays { get; init; } = 14;
+
+    /// <summary>Credits cut from the user's next monthly allowance after a waitlist-claim no-show.</summary>
+    public int QueueNoShowAllowancePenalty { get; init; } = 30;
+
+    /// <summary>Extra percent added to the release reward at full occupancy (mirrors the occupancy price surcharge).</summary>
+    public int DemandReleaseOccupancyPercent { get; init; } = 100;
+
+    /// <summary>Extra release-reward points per person waiting in the queue for the freed window.</summary>
+    public int DemandReleaseQueueBonus { get; init; } = 5;
+
+    /// <summary>Cap on the demand-scaled release reward, however high occupancy and the queue push it.</summary>
+    public int MaxReleaseReward { get; init; } = 40;
+
+    /// <summary>Points/credits added per consecutive completion (streak), rewarding reliability.</summary>
+    public int StreakBonusPerLevel { get; init; } = 2;
+
+    /// <summary>Cap on a single streak bonus, so an endless run doesn't pay unboundedly.</summary>
+    public int StreakBonusCap { get; init; } = 20;
+
+    /// <summary>Reputation points needed to reach the Silver loyalty tier.</summary>
+    public int TierSilverPoints { get; init; } = 50;
+
+    /// <summary>Reputation points needed to reach the Gold loyalty tier.</summary>
+    public int TierGoldPoints { get; init; } = 150;
+
+    /// <summary>Reputation points needed to reach the Platinum loyalty tier.</summary>
+    public int TierPlatinumPoints { get; init; } = 300;
+
+    /// <summary>Minutes of head start in the waitlist per loyalty tier rank (higher tiers are served sooner).</summary>
+    public int QueuePriorityPerTier { get; init; } = 30;
+
+    /// <summary>Extra monthly credit allowance per loyalty tier rank.</summary>
+    public int TierAllowanceBonus { get; init; } = 20;
+
+    /// <summary>Reservation price discount (percent) per loyalty tier rank, capped so a booking is never free.</summary>
+    public int TierDiscountPercent { get; init; } = 5;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>The monthly allowance for a user of the given tier rank (base plus the tier bonus).</summary>
+    public int AllowanceForTier(int tierRank) =>
+        Math.Max(0, MonthlyCreditAllowance) + Math.Max(0, TierAllowanceBonus) * Math.Max(0, tierRank);
+
+    /// <summary>Applies the loyalty-tier discount to a reservation cost (never below 1 credit).</summary>
+    public int ApplyTierDiscount(int cost, int tierRank)
+    {
+        var percent = Math.Clamp(Math.Max(0, TierDiscountPercent) * Math.Max(0, tierRank), 0, 90);
+        var discounted = (int)Math.Round(cost * (1.0 - percent / 100.0), MidpointRounding.AwayFromZero);
+        return Math.Max(1, discounted);
+    }
+
+    /// <summary>The streak bonus for a run of <paramref name="streak"/> consecutive completions.</summary>
+    public int ComputeStreakBonus(int streak) =>
+        Math.Min(Math.Max(0, StreakBonusCap), Math.Max(0, streak) * Math.Max(0, StreakBonusPerLevel));
+
+    /// <summary>The loyalty tier a reputation score falls in.</summary>
+    public LoyaltyTier TierFor(int points)
+    {
+        if (points >= TierPlatinumPoints) return LoyaltyTier.Platinum;
+        if (points >= TierGoldPoints) return LoyaltyTier.Gold;
+        if (points >= TierSilverPoints) return LoyaltyTier.Silver;
+        return LoyaltyTier.Bronze;
+    }
+
+    /// <summary>Rank of a tier (Bronze=0 … Platinum=3), used to scale tier perks.</summary>
+    public static int TierRank(LoyaltyTier tier) => (int)tier;
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
     public bool ShouldAutoVerify(double? distanceKm) =>
@@ -151,6 +227,20 @@ public sealed record IncentivePolicy
     /// <summary>Whether a release at the given moment is early enough to be rewarded.</summary>
     public bool QualifiesForReleaseReward(DateTimeOffset start, DateTimeOffset releasedAt) =>
         releasedAt <= start - ReleaseCutoff;
+
+    /// <summary>
+    /// The release reward, scaled by how badly the freed spot was needed: an occupancy surcharge on the
+    /// base reward plus a bonus per person waiting in the queue, capped. Freeing a spot when the lot is
+    /// full and others are queued pays far more than freeing one nobody wanted.
+    /// </summary>
+    public int ComputeReleaseReward(double occupancyRatio, int waitingCount)
+    {
+        var ratio = Math.Clamp(occupancyRatio, 0.0, 1.0);
+        var occupancyReward = ReleasePoints * (1.0 + Math.Max(0, DemandReleaseOccupancyPercent) / 100.0 * ratio);
+        var queueReward = Math.Max(0, DemandReleaseQueueBonus) * Math.Max(0, waitingCount);
+        var reward = (int)Math.Round(occupancyReward + queueReward, MidpointRounding.AwayFromZero);
+        return Math.Clamp(reward, ReleasePoints, Math.Max(ReleasePoints, MaxReleaseReward));
+    }
 
     /// <summary>Whether an un-used reservation has passed its grace period and is now a no-show.</summary>
     public bool IsNoShow(DateTimeOffset start, DateTimeOffset now) =>

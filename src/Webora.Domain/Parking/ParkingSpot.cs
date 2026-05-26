@@ -24,6 +24,9 @@ public class ParkingSpot : Entity
     /// <summary>The day the resident was last reminded to confirm arrival, so it is sent once a day.</summary>
     public DateOnly? LastResidentReminderDate { get; private set; }
 
+    /// <summary>The day the resident was last told their spot auto-shared, so it is sent once a day.</summary>
+    public DateOnly? LastAutoShareNoticeDate { get; private set; }
+
     public bool HasOwner => OwnerId is not null;
 
     private ParkingSpot() { }
@@ -59,10 +62,13 @@ public class ParkingSpot : Entity
         {
             MonthlyShareAllowance = 0;
             LastResidentReminderDate = null;
+            LastAutoShareNoticeDate = null;
         }
     }
 
     public void SetShareAllowance(int allowance) => MonthlyShareAllowance = allowance < 0 ? 0 : allowance;
 
     public void MarkResidentReminded(DateOnly date) => LastResidentReminderDate = date;
+
+    public void MarkAutoShareNoticed(DateOnly date) => LastAutoShareNoticeDate = date;
 }

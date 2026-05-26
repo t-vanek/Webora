@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Webora.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    partial class WeboraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526120213_DemandReleaseRewards")]
+    partial class DemandReleaseRewards
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -436,9 +439,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("CompletionStreak")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Credits")
                         .HasColumnType("integer");
 
@@ -638,11 +638,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(15);
 
-                    b.Property<int>("QueuePriorityPerTier")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
                     b.Property<TimeSpan>("ReleaseCutoff")
                         .HasColumnType("interval");
 
@@ -679,43 +674,8 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<int>("SharedTakenReferenceKm")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StreakBonusCap")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(20);
-
-                    b.Property<int>("StreakBonusPerLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(2);
-
                     b.Property<TimeSpan>("SweepInterval")
                         .HasColumnType("interval");
-
-                    b.Property<int>("TierAllowanceBonus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(20);
-
-                    b.Property<int>("TierDiscountPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(5);
-
-                    b.Property<int>("TierGoldPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(150);
-
-                    b.Property<int>("TierPlatinumPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(300);
-
-                    b.Property<int>("TierSilverPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(50);
 
                     b.HasKey("Id");
 

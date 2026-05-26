@@ -452,4 +452,54 @@
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Držení místa z fronty (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Tresty za no-show z fronty</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Nekompromisní postih, když si uživatel převezme místo z fronty a pak nedorazí: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka bodů</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta</value></data>
+  <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka příštího přídělu</value></data>
+  <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>Kvůli předchozímu nedostavení máš dočasně zakázaný vstup do fronty.</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Poptávkové odměny za uvolnění</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>Odměna za uvolnění roste s poptávkou: přirážka podle obsazenosti lotu plus bonus za každého čekajícího ve frontě, zastropováno. Uvolnit místo, když je o něj zájem, se vyplatí nejvíc.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za čekajícího ve frontě</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max. odměna za uvolnění</value></data>
+  <data name="Parking_MyStreak" xml:space="preserve"><value>Série dokončení</value></data>
+  <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronz</value></data>
+  <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
+  <data name="Parking_Tier_Gold" xml:space="preserve"><value>Zlato</value></data>
+  <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platina</value></data>
+  <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Strop bonusu za sérii</value></data>
+  <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Stříbro od (bodů)</value></data>
+  <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Zlato od (bodů)</value></data>
+  <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
+  <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
+  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Bonus k přídělu / úroveň</value></data>
+  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva na cenu / úroveň (%)</value></data>
+  <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
+  <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
+  <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>
+  <data name="Parking_Queue_Error_NotFound" xml:space="preserve"><value>Tato položka fronty neexistuje.</value></data>
+  <data name="Parking_Queue_Error_NoOffer" xml:space="preserve"><value>Pro tuto položku fronty není aktivní nabídka místa.</value></data>
+  <data name="Parking_Queue_Error_OfferExpired" xml:space="preserve"><value>Nabídka místa už vypršela.</value></data>
+  <data name="Parking_Queue_Joined" xml:space="preserve"><value>Přidali jsme tě do fronty. Až se místo uvolní, dáme ti vědět.</value></data>
+  <data name="Parking_Queue_Left" xml:space="preserve"><value>Opustil(a) jsi frontu.</value></data>
+  <data name="Parking_Queue_Claimed" xml:space="preserve"><value>Místo z fronty je tvé – rezervace potvrzena.</value></data>
+  <data name="Parking_Queue_JoinFull" xml:space="preserve"><value>Plno – postavit se do fronty</value></data>
+  <data name="Parking_Queue_MyQueue" xml:space="preserve"><value>Moje fronta</value></data>
+  <data name="Parking_Queue_Position" xml:space="preserve"><value>Pozice</value></data>
+  <data name="Parking_Queue_Claim" xml:space="preserve"><value>Převzít místo</value></data>
+  <data name="Parking_Queue_Leave" xml:space="preserve"><value>Opustit frontu</value></data>
+  <data name="Parking_Queue_OfferedSpot" xml:space="preserve"><value>Přidržené místo</value></data>
+  <data name="Parking_QueueState_Waiting" xml:space="preserve"><value>Čeká</value></data>
+  <data name="Parking_QueueState_Offered" xml:space="preserve"><value>Nabídnuto</value></data>
+  <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Převzato</value></data>
+  <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
+  <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
 </root>

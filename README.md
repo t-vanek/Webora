@@ -33,7 +33,9 @@ vyhrazeného místa) a penalizují nedostavení se.
 - [Jak to funguje](#jak-to-funguje)
   - [Rezervace a jejich životní cyklus](#rezervace-a-jejich-životní-cyklus)
   - [Kredity a dynamická cena](#kredity-a-dynamická-cena)
+  - [Fronta při plném obsazení](#fronta-při-plném-obsazení)
   - [Body a reputace](#body-a-reputace)
+  - [Série, úrovně a výhody](#série-úrovně-a-výhody)
   - [Rezidentní místa](#rezidentní-místa)
   - [Dojezdová vzdálenost](#dojezdová-vzdálenost)
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
@@ -51,8 +53,12 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Dynamická cena** — cena = základ × přirážka za špičku × přirážka za obsazenost, zastropováno.
 - **Měsíční příděl** — každý uživatel dostává jednou za měsíc příděl kreditů; ohleduplné chování dobíjí.
 - **Reputace a žebříček** — body oddělené od peněženky; utrácení je nesnižuje. Odznaky za chování.
+- **Poptávkové odměny** — odměna za uvolnění roste s obsazeností a délkou fronty (symetrie k ceně).
+- **Série a úrovně** — bonus za nepřerušenou řadu dokončení a loajalitní tiery (Bronz–Platina).
+- **Výhody za reputaci** — vyšší tier = přednost ve frontě, větší příděl a sleva na cenu.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
+- **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 
 ## Náhledy
@@ -139,6 +145,22 @@ cena = základ × přirážka_za_špičku × přirážka_za_obsazenost      (zas
 | Měsíční příděl | jednou za kalendářní měsíc se připíše konfigurovatelný příděl |
 | Odměny za chování | tytéž odměny, které zvyšují reputaci, **dobíjejí i peněženku** |
 
+### Fronta při plném obsazení
+
+Když pro zvolené okno není volné žádné místo, uživatel se může **postavit do fronty** (na `/parking`).
+Fronta je vázaná na **konkrétní časové okno** a obsluhuje se podle priority `tier × náskok + minuty
+čekání` (vyšší loajalitní úroveň má přednost, dlouho čekající nižší tier ji ale dožene):
+
+- Jakmile se místo uvolní (uvolnění, zrušení nebo nedostavení se), **přidrží se čekateli s nejvyšší
+  prioritou**, jehož okno pokrývá, na konfigurovatelné claim okno (`QueueOfferMinutes`, výchozí 15 min),
+  a přijde mu **notifikace + e-mail**.
+- Přidržené místo je **skryté z běžné nabídky** a nelze ho zarezervovat někomu jinému.
+- **Převzetí** = rezervace přidrženého místa za obvyklou dynamickou cenu (tehdy se strhne kredit a
+  zkontroluje zůstatek). Když čekatel nestihne claim okno, přidržení **propadne dalšímu** v pořadí.
+- Vstup do fronty je zdarma a je možný jen při skutečně plném obsazení.
+
+Nabídky se vyhodnocují i průběžně v údržbové smyčce (expirace prošlých nabídek a doplnění nových).
+
 ### Body a reputace
 
 **Body** jsou čistě **reputační skóre** pro **žebříček** (`/parking/leaderboard`) a **odznaky**;
@@ -149,7 +171,8 @@ reputaci i peněženku**:
 | Důvod | Kdy | Poznámky |
 | --- | --- | --- |
 | Bonus mimo špičku | při dokončení | rezervace začala mimo špičkové okno |
-| Uvolnění | při včasném uvolnění | před cutoffem; denně zastropováno na uživatele |
+| Uvolnění | při včasném uvolnění | **škálováno obsazeností + délkou fronty**, zastropováno; denně omezeno na uživatele |
+| Série dokončení | při dokončení | rostoucí bonus za nepřerušenou řadu; no-show ji vynuluje |
 | Obsazení sdíleného místa | při dokončení | obsazení sdíleného rezidentního místa; škálováno dojezdem |
 | Sdílení rezidenta | při proaktivním uvolnění | dle předstihu + měsíčního přídělu rezidenta |
 | Penalizace za no-show | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě |
@@ -158,6 +181,24 @@ reputaci i peněženku**:
 Účetní kniha (ledger) eviduje vedle reputačních důvodů i pohyby peněženky: **měsíční příděl kreditu**,
 **stržení za rezervaci** a **vrácení kreditu**. Odznaky: *Ohleduplný kolega*, *Šampion mimo špičku*,
 *Spolehlivý parkovač*, *Klub stovky*.
+
+### Série, úrovně a výhody
+
+Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatatelnými výhodami:
+
+- **Poptávkové odměny za uvolnění** — odměna není fixní, ale roste s tím, jak moc je místo potřeba:
+  přirážka podle obsazenosti lotu pro dané okno **plus bonus za každého čekajícího ve frontě**,
+  zastropováno. Uvolnit místo ve špičce, když čekají lidé, vynáší výrazně víc než uvolnit nežádané
+  místo — zrcadlí to přirážku za obsazenost u ceny.
+- **Série dokončení (streak)** — za každou nepřerušenou řadu reálně využitých rezervací roste bonus
+  (do stropu) připisovaný do reputace i peněženky. Jakýkoli no-show sérii vynuluje.
+- **Loajalitní úrovně** — z reputačních bodů se odvozuje tier **Bronz → Stříbro → Zlato → Platina**
+  (hranice jsou laditelné). Tier je vidět v žebříčku.
+- **Výhody vyššího tieru** — reputace se konečně vyplácí:
+  - **přednost ve frontě** — pořadí se počítá jako `tier × náskok + minuty čekání`, takže vyšší tier
+    je obsloužen dřív, ale dlouho čekající nižší tier ho dožene (žádné vyhladovění);
+  - **vyšší měsíční příděl** — `základní příděl + bonus × tier`;
+  - **sleva na cenu rezervace** — `sleva % × tier` (zastropováno, nikdy zdarma).
 
 ### Rezidentní místa
 
@@ -210,7 +251,8 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
 připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
-nevyužité sdílené dny a **uděluje měsíční příděl kreditů**. Lze ji spustit i ručně ze správy míst.
+nevyužité sdílené dny, **uděluje měsíční příděl kreditů** a **obsluhuje frontu** (expiruje prošlé
+nabídky a přidržuje uvolněná místa dalším čekatelům). Lze ji spustit i ručně ze správy míst.
 
 ### Role a oprávnění
 
@@ -225,8 +267,12 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 
 | Skupina | Volby |
 | --- | --- |
-| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů |
+| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
 | **Body** | uvolnění, bonus mimo špičku, penalizace za no-show |
+| **Tresty za no-show z fronty** | srážka bodů, kreditová pokuta, zákaz fronty (dní), srážka příštího přídělu |
+| **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
+| **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů) |
+| **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
 | **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky |

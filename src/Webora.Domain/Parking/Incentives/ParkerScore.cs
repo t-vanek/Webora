@@ -26,6 +26,15 @@ public class ParkerScore
 
     public int NoShows { get; private set; }
 
+    /// <summary>Consecutive completed reservations with no no-show in between; drives the streak bonus.</summary>
+    public int CompletionStreak { get; private set; }
+
+    /// <summary>Until when the user is barred from joining the waitlist (a queue no-show penalty).</summary>
+    public DateTimeOffset? QueueBannedUntilUtc { get; private set; }
+
+    /// <summary>Credits subtracted from the next monthly allowance (a queue no-show penalty), then cleared.</summary>
+    public int NextAllowancePenalty { get; private set; }
+
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     private ParkerScore() { }
@@ -46,7 +55,9 @@ public class ParkerScore
             return 0;
         }
 
-        var amount = Math.Max(0, allowance);
+        // A pending queue no-show penalty reduces this one grant, then is consumed.
+        var amount = Math.Max(0, Math.Max(0, allowance) - NextAllowancePenalty);
+        NextAllowancePenalty = 0;
         Credits += amount;
         LastCreditGrantPeriod = period;
         UpdatedAtUtc = at;
@@ -87,12 +98,50 @@ public class ParkerScore
     {
         Points -= Math.Abs(penalty);
         NoShows++;
+        CompletionStreak = 0;
         UpdatedAtUtc = at;
     }
+
+    /// <summary>A reliability bonus for an unbroken run of completions; tops up both reputation and wallet.</summary>
+    public void RewardStreak(int points, DateTimeOffset at)
+    {
+        Points += points;
+        Credits += points;
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>An extra credit fine (may push the wallet negative — a debt to earn back).</summary>
+    public void PenalizeCredits(int amount, DateTimeOffset at)
+    {
+        Credits -= Math.Max(0, amount);
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>Bars the user from the waitlist until the given instant (extends an existing ban).</summary>
+    public void BanFromQueue(DateTimeOffset until, DateTimeOffset at)
+    {
+        if (QueueBannedUntilUtc is not { } current || until > current)
+        {
+            QueueBannedUntilUtc = until;
+        }
+
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>Queues a reduction of the next monthly allowance.</summary>
+    public void AddAllowancePenalty(int amount, DateTimeOffset at)
+    {
+        NextAllowancePenalty += Math.Max(0, amount);
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>Whether the user is currently barred from joining the waitlist.</summary>
+    public bool IsQueueBanned(DateTimeOffset now) => QueueBannedUntilUtc is { } until && until > now;
 
     public void RecordCompletion(DateTimeOffset at)
     {
         ReservationsCompleted++;
+        CompletionStreak++;
         UpdatedAtUtc = at;
     }
 

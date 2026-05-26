@@ -69,6 +69,38 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MonthlyCreditAllowance { get; private set; } = 100;
 
+    public int QueueOfferMinutes { get; private set; } = 15;
+
+    public int QueueNoShowPenaltyPoints { get; private set; } = 50;
+
+    public int QueueNoShowCreditPenalty { get; private set; } = 30;
+
+    public int QueueNoShowBanDays { get; private set; } = 14;
+
+    public int QueueNoShowAllowancePenalty { get; private set; } = 30;
+
+    public int DemandReleaseOccupancyPercent { get; private set; } = 100;
+
+    public int DemandReleaseQueueBonus { get; private set; } = 5;
+
+    public int MaxReleaseReward { get; private set; } = 40;
+
+    public int StreakBonusPerLevel { get; private set; } = 2;
+
+    public int StreakBonusCap { get; private set; } = 20;
+
+    public int TierSilverPoints { get; private set; } = 50;
+
+    public int TierGoldPoints { get; private set; } = 150;
+
+    public int TierPlatinumPoints { get; private set; } = 300;
+
+    public int QueuePriorityPerTier { get; private set; } = 30;
+
+    public int TierAllowanceBonus { get; private set; } = 20;
+
+    public int TierDiscountPercent { get; private set; } = 5;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -107,7 +139,23 @@ public class ParkingSettings : Entity, IAggregateRoot
         int peakPricePercent,
         int occupancyPricePercent,
         int maxReservationCost,
-        int monthlyCreditAllowance)
+        int monthlyCreditAllowance,
+        int queueOfferMinutes,
+        int queueNoShowPenaltyPoints,
+        int queueNoShowCreditPenalty,
+        int queueNoShowBanDays,
+        int queueNoShowAllowancePenalty,
+        int demandReleaseOccupancyPercent,
+        int demandReleaseQueueBonus,
+        int maxReleaseReward,
+        int streakBonusPerLevel,
+        int streakBonusCap,
+        int tierSilverPoints,
+        int tierGoldPoints,
+        int tierPlatinumPoints,
+        int queuePriorityPerTier,
+        int tierAllowanceBonus,
+        int tierDiscountPercent)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -139,6 +187,22 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = Math.Max(0, occupancyPricePercent);
         MaxReservationCost = Math.Max(BaseReservationCost, maxReservationCost);
         MonthlyCreditAllowance = Math.Max(0, monthlyCreditAllowance);
+        QueueOfferMinutes = Math.Max(1, queueOfferMinutes);
+        QueueNoShowPenaltyPoints = Math.Max(0, queueNoShowPenaltyPoints);
+        QueueNoShowCreditPenalty = Math.Max(0, queueNoShowCreditPenalty);
+        QueueNoShowBanDays = Math.Max(0, queueNoShowBanDays);
+        QueueNoShowAllowancePenalty = Math.Max(0, queueNoShowAllowancePenalty);
+        DemandReleaseOccupancyPercent = Math.Max(0, demandReleaseOccupancyPercent);
+        DemandReleaseQueueBonus = Math.Max(0, demandReleaseQueueBonus);
+        MaxReleaseReward = Math.Max(ReleasePoints, maxReleaseReward);
+        StreakBonusPerLevel = Math.Max(0, streakBonusPerLevel);
+        StreakBonusCap = Math.Max(0, streakBonusCap);
+        TierSilverPoints = Math.Max(0, tierSilverPoints);
+        TierGoldPoints = Math.Max(TierSilverPoints, tierGoldPoints);
+        TierPlatinumPoints = Math.Max(TierGoldPoints, tierPlatinumPoints);
+        QueuePriorityPerTier = Math.Max(0, queuePriorityPerTier);
+        TierAllowanceBonus = Math.Max(0, tierAllowanceBonus);
+        TierDiscountPercent = Math.Clamp(tierDiscountPercent, 0, 30);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -169,6 +233,22 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = OccupancyPricePercent,
         MaxReservationCost = MaxReservationCost,
         MonthlyCreditAllowance = MonthlyCreditAllowance,
+        QueueOfferMinutes = QueueOfferMinutes,
+        QueueNoShowPenaltyPoints = QueueNoShowPenaltyPoints,
+        QueueNoShowCreditPenalty = QueueNoShowCreditPenalty,
+        QueueNoShowBanDays = QueueNoShowBanDays,
+        QueueNoShowAllowancePenalty = QueueNoShowAllowancePenalty,
+        DemandReleaseOccupancyPercent = DemandReleaseOccupancyPercent,
+        DemandReleaseQueueBonus = DemandReleaseQueueBonus,
+        MaxReleaseReward = MaxReleaseReward,
+        StreakBonusPerLevel = StreakBonusPerLevel,
+        StreakBonusCap = StreakBonusCap,
+        TierSilverPoints = TierSilverPoints,
+        TierGoldPoints = TierGoldPoints,
+        TierPlatinumPoints = TierPlatinumPoints,
+        QueuePriorityPerTier = QueuePriorityPerTier,
+        TierAllowanceBonus = TierAllowanceBonus,
+        TierDiscountPercent = TierDiscountPercent,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

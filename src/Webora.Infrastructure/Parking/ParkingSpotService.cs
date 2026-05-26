@@ -1,11 +1,18 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Webora.Application.Notifications;
 using Webora.Application.Parking;
+using Webora.Domain.Notifications;
 using Webora.Domain.Parking;
 using Webora.Infrastructure.Persistence;
 
 namespace Webora.Infrastructure.Parking;
 
-public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbContextFactory) : IParkingSpotService
+public sealed class ParkingSpotService(
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
+    INotificationService notifications,
+    TimeProvider timeProvider,
+    IStringLocalizer<ParkingMessages> messages) : IParkingSpotService
 {
     public async Task<IReadOnlyList<ParkingSpotDto>> ListAsync(bool includeInactive = true, CancellationToken cancellationToken = default)
     {
@@ -104,6 +111,26 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Deactivating a spot leaves its upcoming reservations stranded, so warn the holders to re-book.
+        if (!active)
+        {
+            var now = timeProvider.GetUtcNow();
+            var affected = await dbContext.Reservations.AsNoTracking()
+                .Where(r => r.SpotId == id && r.EndUtc >= now
+                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            foreach (var holderId in affected)
+            {
+                await notifications.NotifyAsync(holderId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                    messages["Parking_Notify_SpotDeactivated_Title"],
+                    messages["Parking_Notify_SpotDeactivated_Body", spot.Code], email: true, cancellationToken);
+            }
+        }
+
         return ParkingResult.Success;
     }
 
@@ -121,8 +148,28 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
             return ParkingResult.Failure("Parking_Error_UserNotFound");
         }
 
+        var previousOwner = spot.OwnerId;
         spot.AssignOwner(ownerId);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Tell the affected residents: a removed/replaced owner loses the spot, a new owner gains one.
+        if (previousOwner != ownerId)
+        {
+            if (previousOwner is { } prev)
+            {
+                await notifications.NotifyAsync(prev, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_ResidentUnassigned_Title"],
+                    messages["Parking_Notify_ResidentUnassigned_Body", spot.Code], cancellationToken);
+            }
+
+            if (ownerId is { } newOwner)
+            {
+                await notifications.NotifyAsync(newOwner, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_ResidentAssigned_Title"],
+                    messages["Parking_Notify_ResidentAssigned_Body", spot.Code], cancellationToken);
+            }
+        }
+
         return ParkingResult.Success;
     }
 }

@@ -7,6 +7,12 @@ public interface INotificationService
 {
     Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// As above, but when <paramref name="email"/> is set the notification is also mirrored to the
+    /// user's email (best-effort; subject to the same do-not-disturb and category-scope gating).
+    /// </summary>
+    Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default);
 
     Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);

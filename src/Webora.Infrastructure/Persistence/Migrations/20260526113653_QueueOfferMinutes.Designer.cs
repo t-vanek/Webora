@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Webora.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    partial class WeboraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526113653_QueueOfferMinutes")]
+    partial class QueueOfferMinutes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -436,16 +439,10 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("CompletionStreak")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Credits")
                         .HasColumnType("integer");
 
                     b.Property<int>("LastCreditGrantPeriod")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("NextAllowancePenalty")
                         .HasColumnType("integer");
 
                     b.Property<int>("NoShows")
@@ -456,9 +453,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("Points")
                         .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("QueueBannedUntilUtc")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ReservationsCompleted")
                         .HasColumnType("integer");
@@ -551,16 +545,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(10);
 
-                    b.Property<int>("DemandReleaseOccupancyPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(100);
-
-                    b.Property<int>("DemandReleaseQueueBonus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(5);
-
                     b.Property<double?>("LotLatitude")
                         .HasColumnType("double precision");
 
@@ -569,11 +553,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("MaxReleaseRangeDays")
                         .HasColumnType("integer");
-
-                    b.Property<int>("MaxReleaseReward")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(40);
 
                     b.Property<int>("MaxReservationCost")
                         .ValueGeneratedOnAdd()
@@ -613,35 +592,10 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<TimeOnly>("PeakStart")
                         .HasColumnType("time without time zone");
 
-                    b.Property<int>("QueueNoShowAllowancePenalty")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
-                    b.Property<int>("QueueNoShowBanDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(14);
-
-                    b.Property<int>("QueueNoShowCreditPenalty")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
-                    b.Property<int>("QueueNoShowPenaltyPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(50);
-
                     b.Property<int>("QueueOfferMinutes")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(15);
-
-                    b.Property<int>("QueuePriorityPerTier")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
 
                     b.Property<TimeSpan>("ReleaseCutoff")
                         .HasColumnType("interval");
@@ -679,43 +633,8 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<int>("SharedTakenReferenceKm")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StreakBonusCap")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(20);
-
-                    b.Property<int>("StreakBonusPerLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(2);
-
                     b.Property<TimeSpan>("SweepInterval")
                         .HasColumnType("interval");
-
-                    b.Property<int>("TierAllowanceBonus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(20);
-
-                    b.Property<int>("TierDiscountPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(5);
-
-                    b.Property<int>("TierGoldPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(150);
-
-                    b.Property<int>("TierPlatinumPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(300);
-
-                    b.Property<int>("TierSilverPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(50);
 
                     b.HasKey("Id");
 
@@ -825,9 +744,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("EndUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("FromQueue")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsOffPeak")
                         .HasColumnType("boolean");

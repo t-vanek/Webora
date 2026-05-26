@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Webora.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    partial class WeboraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526120703_StreaksAndTiers")]
+    partial class StreaksAndTiers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -638,11 +641,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(15);
 
-                    b.Property<int>("QueuePriorityPerTier")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
                     b.Property<TimeSpan>("ReleaseCutoff")
                         .HasColumnType("interval");
 
@@ -691,16 +689,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<TimeSpan>("SweepInterval")
                         .HasColumnType("interval");
-
-                    b.Property<int>("TierAllowanceBonus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(20);
-
-                    b.Property<int>("TierDiscountPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(5);
 
                     b.Property<int>("TierGoldPoints")
                         .ValueGeneratedOnAdd()

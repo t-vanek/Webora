@@ -36,6 +36,15 @@ public enum IncentiveReason
     /// <summary>Credits returned when a booking is given up early enough to re-let the spot.</summary>
     ReservationRefund,
 
+    /// <summary>Reputation penalty for a no-show on a spot claimed from the waitlist (harsher than a normal no-show).</summary>
+    QueueNoShowPenalty,
+
+    /// <summary>Extra credit fine for a no-show on a spot claimed from the waitlist.</summary>
+    QueueNoShowFine,
+
+    /// <summary>A reliability bonus for an unbroken run of completed reservations.</summary>
+    StreakBonus,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

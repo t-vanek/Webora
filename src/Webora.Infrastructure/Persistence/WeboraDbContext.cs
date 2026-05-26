@@ -35,6 +35,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
 
+    public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -129,6 +131,15 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             release.HasIndex(r => new { r.OwnerId, r.Date });
         });
 
+        builder.Entity<QueueEntry>(entry =>
+        {
+            entry.ToTable("QueueEntries");
+            entry.HasKey(q => q.Id);
+            entry.Property(q => q.Status).HasConversion<string>().HasMaxLength(32);
+            entry.HasIndex(q => new { q.Status, q.CreatedAtUtc });
+            entry.HasIndex(q => new { q.UserId, q.Status });
+        });
+
         builder.Entity<Reservation>(reservation =>
         {
             reservation.ToTable("Reservations");
@@ -175,6 +186,22 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.OccupancyPricePercent).HasDefaultValue(100);
             settings.Property(s => s.MaxReservationCost).HasDefaultValue(40);
             settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(100);
+            settings.Property(s => s.QueueOfferMinutes).HasDefaultValue(15);
+            settings.Property(s => s.QueueNoShowPenaltyPoints).HasDefaultValue(50);
+            settings.Property(s => s.QueueNoShowCreditPenalty).HasDefaultValue(30);
+            settings.Property(s => s.QueueNoShowBanDays).HasDefaultValue(14);
+            settings.Property(s => s.QueueNoShowAllowancePenalty).HasDefaultValue(30);
+            settings.Property(s => s.DemandReleaseOccupancyPercent).HasDefaultValue(100);
+            settings.Property(s => s.DemandReleaseQueueBonus).HasDefaultValue(5);
+            settings.Property(s => s.MaxReleaseReward).HasDefaultValue(40);
+            settings.Property(s => s.StreakBonusPerLevel).HasDefaultValue(2);
+            settings.Property(s => s.StreakBonusCap).HasDefaultValue(20);
+            settings.Property(s => s.TierSilverPoints).HasDefaultValue(50);
+            settings.Property(s => s.TierGoldPoints).HasDefaultValue(150);
+            settings.Property(s => s.TierPlatinumPoints).HasDefaultValue(300);
+            settings.Property(s => s.QueuePriorityPerTier).HasDefaultValue(30);
+            settings.Property(s => s.TierAllowanceBonus).HasDefaultValue(20);
+            settings.Property(s => s.TierDiscountPercent).HasDefaultValue(5);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).
