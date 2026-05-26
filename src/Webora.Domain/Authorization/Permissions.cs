@@ -46,6 +46,27 @@ public static class Permissions
         public const string Edit = "Settings.Edit";
     }
 
+    public static class Parking
+    {
+        /// <summary>See the lot, spot availability and one's own reservations.</summary>
+        public const string View = "Parking.View";
+
+        /// <summary>Book and manage one's own reservations.</summary>
+        public const string Reserve = "Parking.Reserve";
+
+        /// <summary>See the incentive leaderboard and earned badges.</summary>
+        public const string ViewLeaderboard = "Parking.ViewLeaderboard";
+
+        /// <summary>Create, edit and retire parking spots.</summary>
+        public const string ManageSpots = "Parking.ManageSpots";
+
+        /// <summary>Administer any user's reservations (override, cancel, resolve no-shows).</summary>
+        public const string ManageReservations = "Parking.ManageReservations";
+
+        /// <summary>Tune incentive rules and make manual points adjustments.</summary>
+        public const string ManageIncentives = "Parking.ManageIncentives";
+    }
+
     private static readonly Lazy<IReadOnlyList<PermissionGroup>> GroupedPermissions = new(() =>
         typeof(Permissions)
             .GetNestedTypes(BindingFlags.Public | BindingFlags.Static)

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Webora.Domain.Accounts;
 using Webora.Domain.Notifications;
+using Webora.Domain.Parking;
+using Webora.Domain.Parking.Incentives;
 using Webora.Domain.Settings;
 using Webora.Infrastructure.Identity;
 
@@ -18,6 +20,16 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
     public DbSet<NotificationPreferences> NotificationPreferences => Set<NotificationPreferences>();
 
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
+
+    public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
+
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    public DbSet<ParkerScore> ParkerScores => Set<ParkerScore>();
+
+    public DbSet<PointsLedgerEntry> PointsLedgerEntries => Set<PointsLedgerEntry>();
+
+    public DbSet<UserBadge> UserBadges => Set<UserBadge>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -91,6 +103,51 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
                         (a, b) => a!.SequenceEqual(b!),
                         v => v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
                         v => v.ToArray()));
+        });
+
+        builder.Entity<ParkingSpot>(spot =>
+        {
+            spot.ToTable("ParkingSpots");
+            spot.HasKey(s => s.Id);
+            spot.Property(s => s.Code).HasMaxLength(32).IsRequired();
+            spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
+            spot.Property(s => s.Notes).HasMaxLength(512);
+            spot.HasIndex(s => s.Code).IsUnique();
+        });
+
+        builder.Entity<Reservation>(reservation =>
+        {
+            reservation.ToTable("Reservations");
+            reservation.HasKey(r => r.Id);
+            reservation.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
+            reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
+            reservation.HasIndex(r => new { r.UserId, r.StartUtc });
+            reservation.HasIndex(r => r.Status);
+        });
+
+        builder.Entity<ParkerScore>(score =>
+        {
+            score.ToTable("ParkerScores");
+            score.HasKey(s => s.UserId);
+            score.Property(s => s.UserId).ValueGeneratedNever();
+            score.HasIndex(s => s.Points);
+        });
+
+        builder.Entity<PointsLedgerEntry>(entry =>
+        {
+            entry.ToTable("PointsLedgerEntries");
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Reason).HasConversion<string>().HasMaxLength(32);
+            entry.Property(e => e.Detail).HasMaxLength(512);
+            entry.HasIndex(e => new { e.UserId, e.OccurredAtUtc });
+        });
+
+        builder.Entity<UserBadge>(badge =>
+        {
+            badge.ToTable("UserBadges");
+            badge.HasKey(b => b.Id);
+            badge.Property(b => b.Badge).HasConversion<string>().HasMaxLength(32);
+            badge.HasIndex(b => new { b.UserId, b.Badge }).IsUnique();
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).
