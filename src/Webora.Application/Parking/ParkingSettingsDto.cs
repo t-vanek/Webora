@@ -59,4 +59,9 @@ public sealed record ParkingSettingsDto(
     int AdaptiveIntervalMinutes,
     bool TrustEnabled,
     int TrustIntervalHours,
-    int TrustedBadgeThreshold);
+    int TrustedBadgeThreshold,
+    int MaxPairTrustWeight,
+    bool AntiCollusionEnabled,
+    int CollusionMinInteractions,
+    int CollusionConcentrationPercent,
+    int CollusionScanIntervalHours);

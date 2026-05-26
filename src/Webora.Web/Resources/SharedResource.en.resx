@@ -496,6 +496,25 @@
   <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Compute the trust graph</value></data>
   <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Recompute interval (hours)</value></data>
   <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Trusted badge threshold (0–100)</value></data>
+  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Anti-collusion (ring detection)</value></data>
+  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Detects pairs whose sharing interactions are too concentrated on each other (a possible farming ring) and records a flag for review. The only automatic effect is the trust-graph edge cap; hard action is left to an admin.</value></data>
+  <data name="Parking_Settings_CollusionEnabled" xml:space="preserve"><value>Detect suspicious rings</value></data>
+  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Min mutual interactions</value></data>
+  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Concentration threshold (%)</value></data>
+  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Trust edge weight cap</value></data>
+  <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Scan interval (hours)</value></data>
+  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Go to suspicious-interactions review →</value></data>
+  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Suspicious interactions</value></data>
+  <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Pairs whose sharing is too concentrated on each other. Review and either keep on record or dismiss as a false positive.</value></data>
+  <data name="Parking_Collusion_Empty" xml:space="preserve"><value>No suspicious pairs.</value></data>
+  <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pair</value></data>
+  <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Mutual</value></data>
+  <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Concentration</value></data>
+  <data name="Parking_Collusion_Review" xml:space="preserve"><value>Reviewed</value></data>
+  <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Parking_CollusionState_New" xml:space="preserve"><value>New</value></data>
+  <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Reviewed</value></data>
+  <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Dismissed</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks for reputation: queue priority, a bigger monthly allowance and a reservation price discount — all growing with the loyalty tier.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>

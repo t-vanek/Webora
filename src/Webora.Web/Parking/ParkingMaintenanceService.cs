@@ -42,6 +42,7 @@ public sealed class ParkingMaintenanceService(
             var reservations = scope.ServiceProvider.GetRequiredService<IReservationService>();
             var residentSpots = scope.ServiceProvider.GetRequiredService<IResidentSpotService>();
             var trust = scope.ServiceProvider.GetRequiredService<ITrustService>();
+            var collusion = scope.ServiceProvider.GetRequiredService<ICollusionService>();
 
             interval = await settings.GetSweepIntervalAsync(cancellationToken);
             var reminded = await reservations.SendDueRemindersAsync(cancellationToken);
@@ -55,12 +56,13 @@ public sealed class ParkingMaintenanceService(
             var peakOccupancy = await reservations.MeasurePeakOccupancyAsync(cancellationToken);
             var repriced = await settings.AdaptPeakSurchargeAsync(peakOccupancy, cancellationToken);
             var trustScored = await trust.ComputeTrustAsync(cancellationToken);
+            var collusionFlagged = await collusion.ScanAsync(cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores.",
-                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags.",
+                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

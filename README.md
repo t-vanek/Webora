@@ -58,6 +58,7 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Rozklad reputace** — body časem slábnou, takže skóre odráží *současné* chování (a tresty se hojí).
 - **Týmové žebříčky** — porovnání oddělení a sociální srovnání s průměrem vlastního týmu.
 - **Graf důvěry** — skóre důvěry (PageRank nad reálnými sdílecími interakcemi) + odznak „Důvěryhodný".
+- **Anti-collusion** — detekce recipročních kruhů sdílení + cap váhy hrany v grafu důvěry; flagy k revizi.
 - **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
@@ -237,14 +238,20 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 4. **Měsíční příděl sdílení zastropuje** odměněné sdílené dny za měsíc.
 5. Uvolněné dny, které **nikdo nerezervoval, se rekonciliují** a odměna se zruší.
 6. Odměna za vzdálenost vyžaduje **ověřenou adresu**.
+7. **Cap váhy hrany v grafu důvěry** — jeden protějšek přispěje k důvěře jen do stropu, takže reciproční
+   kruh si nenapumpuje skóre.
+8. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
+   (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi** a admin dostane
+   notifikaci. Tvrdé akce řeší admin ručně na stránce *Podezřelé interakce* (false-positive bezpečné).
 
 ### Údržba na pozadí
 
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
 připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
 nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
-a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny** a
-**přepočítává graf důvěry**. Lze ji spustit i ručně ze správy míst.
+a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny**,
+**přepočítává graf důvěry** a **skenuje podezřelé kruhy (anti-collusion)**. Lze ji spustit i ručně
+ze správy míst.
 
 ### Role a oprávnění
 

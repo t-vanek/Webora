@@ -496,6 +496,25 @@
   <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Počítat graf důvěry</value></data>
   <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Interval přepočtu (hodin)</value></data>
   <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Práh odznaku Důvěryhodný (0–100)</value></data>
+  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Anti-collusion (detekce kruhů)</value></data>
+  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Detekuje páry, jejichž sdílecí interakce se příliš soustředí na sebe navzájem (možný farmící kruh), a založí flag k revizi. Automaticky jen ořízne váhu hrany v grafu důvěry; tvrdé akce řeší admin ručně.</value></data>
+  <data name="Parking_Settings_CollusionEnabled" xml:space="preserve"><value>Detekovat podezřelé kruhy</value></data>
+  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Min. vzájemných interakcí</value></data>
+  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Práh koncentrace (%)</value></data>
+  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Strop váhy hrany v důvěře</value></data>
+  <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval skenu (hodin)</value></data>
+  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Přejít na revizi podezřelých interakcí →</value></data>
+  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Podezřelé interakce</value></data>
+  <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Páry, jejichž sdílení se příliš soustředí na sebe navzájem. Posuď a buď ponech k záznamu, nebo zamítni jako planý poplach.</value></data>
+  <data name="Parking_Collusion_Empty" xml:space="preserve"><value>Žádné podezřelé páry.</value></data>
+  <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pár</value></data>
+  <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Vzájemné</value></data>
+  <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Koncentrace</value></data>
+  <data name="Parking_Collusion_Review" xml:space="preserve"><value>Přezkoumáno</value></data>
+  <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Zamítnout</value></data>
+  <data name="Parking_CollusionState_New" xml:space="preserve"><value>Nový</value></data>
+  <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Přezkoumán</value></data>
+  <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Zamítnut</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>

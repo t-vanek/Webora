@@ -1,0 +1,64 @@
+@page "/admin/parking/collusion"
+@attribute [HasPermission(Permissions.Parking.ManageIncentives)]
+@rendermode InteractiveServer
+@inject ICollusionService Collusion
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Collusion_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Collusion_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Parking_Collusion_Intro"]</FluentLabel>
+
+    @if (_flags is null)
+    {
+        <FluentProgressRing />
+    }
+    else if (_flags.Count == 0)
+    {
+        <FluentLabel Typo="Typography.Body">@L["Parking_Collusion_Empty"]</FluentLabel>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_flags.AsQueryable()" TGridItem="CollusionFlagDto"
+                        GridTemplateColumns="2fr 1fr 1fr 1fr auto">
+            <TemplateColumn Title="@L["Parking_Collusion_Pair"]">
+                @context.UserAName ↔ @context.UserBName
+            </TemplateColumn>
+            <PropertyColumn Property="@(f => f.MutualInteractions)" Title="@L["Parking_Collusion_Mutual"]" />
+            <TemplateColumn Title="@L["Parking_Collusion_Concentration"]">
+                @context.ConcentrationAPercent % / @context.ConcentrationBPercent %
+            </TemplateColumn>
+            <TemplateColumn Title="@L["Parking_Status"]">
+                @L[$"Parking_CollusionState_{context.Status}"]
+            </TemplateColumn>
+            <TemplateColumn Align="Align.End">
+                @if (context.Status == CollusionFlagStatus.New)
+                {
+                    <FluentButton OnClick="() => ReviewAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
+                }
+                <FluentButton OnClick="() => DismissAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</FluentStack>
+
+@code {
+    private IReadOnlyList<CollusionFlagDto>? _flags;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() => _flags = await Collusion.GetFlagsAsync();
+
+    private async Task ReviewAsync(Guid id)
+    {
+        await Collusion.ReviewAsync(id);
+        await ReloadAsync();
+    }
+
+    private async Task DismissAsync(Guid id)
+    {
+        await Collusion.DismissAsync(id);
+        await ReloadAsync();
+    }
+}

@@ -37,6 +37,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
 
+    public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -141,6 +143,15 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             entry.HasIndex(q => new { q.UserId, q.Status });
         });
 
+        builder.Entity<CollusionFlag>(flag =>
+        {
+            flag.ToTable("CollusionFlags");
+            flag.HasKey(f => f.Id);
+            flag.Property(f => f.Status).HasConversion<string>().HasMaxLength(16);
+            flag.HasIndex(f => new { f.UserA, f.UserB }).IsUnique();
+            flag.HasIndex(f => f.Status);
+        });
+
         builder.Entity<Reservation>(reservation =>
         {
             reservation.ToTable("Reservations");
@@ -216,6 +227,11 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.TrustEnabled).HasDefaultValue(true);
             settings.Property(s => s.TrustIntervalHours).HasDefaultValue(24);
             settings.Property(s => s.TrustedBadgeThreshold).HasDefaultValue(60);
+            settings.Property(s => s.MaxPairTrustWeight).HasDefaultValue(3);
+            settings.Property(s => s.AntiCollusionEnabled).HasDefaultValue(true);
+            settings.Property(s => s.CollusionMinInteractions).HasDefaultValue(4);
+            settings.Property(s => s.CollusionConcentrationPercent).HasDefaultValue(70);
+            settings.Property(s => s.CollusionScanIntervalHours).HasDefaultValue(24);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

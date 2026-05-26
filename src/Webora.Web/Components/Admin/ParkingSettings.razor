@@ -311,6 +311,29 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_CollusionSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_CollusionHelp"]</FluentLabel>
+            <FluentSwitch @bind-Value="_form.AntiCollusionEnabled" Label="@L["Parking_Settings_CollusionEnabled"]" />
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.CollusionMinInteractions" Min="2"
+                                       Label="@L["Parking_Settings_CollusionMin"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.CollusionConcentrationPercent" Min="1" Max="100"
+                                       Label="@L["Parking_Settings_CollusionConcentration"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.MaxPairTrustWeight" Min="1"
+                                       Label="@L["Parking_Settings_MaxPairTrustWeight"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.CollusionScanIntervalHours" Min="1"
+                                       Label="@L["Parking_Settings_CollusionInterval"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+            <FluentAnchor Href="/admin/parking/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -395,6 +418,11 @@
             TrustEnabled = s.TrustEnabled,
             TrustIntervalHours = s.TrustIntervalHours,
             TrustedBadgeThreshold = s.TrustedBadgeThreshold,
+            MaxPairTrustWeight = s.MaxPairTrustWeight,
+            AntiCollusionEnabled = s.AntiCollusionEnabled,
+            CollusionMinInteractions = s.CollusionMinInteractions,
+            CollusionConcentrationPercent = s.CollusionConcentrationPercent,
+            CollusionScanIntervalHours = s.CollusionScanIntervalHours,
         };
     }
 
@@ -456,7 +484,12 @@
             _form.AdaptiveIntervalMinutes,
             _form.TrustEnabled,
             _form.TrustIntervalHours,
-            _form.TrustedBadgeThreshold);
+            _form.TrustedBadgeThreshold,
+            _form.MaxPairTrustWeight,
+            _form.AntiCollusionEnabled,
+            _form.CollusionMinInteractions,
+            _form.CollusionConcentrationPercent,
+            _form.CollusionScanIntervalHours);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -530,5 +563,10 @@
         public bool TrustEnabled { get; set; }
         public int TrustIntervalHours { get; set; }
         public int TrustedBadgeThreshold { get; set; }
+        public int MaxPairTrustWeight { get; set; }
+        public bool AntiCollusionEnabled { get; set; }
+        public int CollusionMinInteractions { get; set; }
+        public int CollusionConcentrationPercent { get; set; }
+        public int CollusionScanIntervalHours { get; set; }
     }
 }

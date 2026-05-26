@@ -172,6 +172,21 @@ public sealed record IncentivePolicy
     /// <summary>Trust score (0–100) at or above which the "Trusted" badge is awarded.</summary>
     public int TrustedBadgeThreshold { get; init; } = 60;
 
+    /// <summary>Cap on how much a single counterpart contributes to the trust graph, blunting reciprocal pumping.</summary>
+    public int MaxPairTrustWeight { get; init; } = 3;
+
+    /// <summary>Whether suspicious reciprocal sharing pairs are detected and flagged.</summary>
+    public bool AntiCollusionEnabled { get; init; } = true;
+
+    /// <summary>Minimum mutual interactions before a pair can be flagged for collusion.</summary>
+    public int CollusionMinInteractions { get; init; } = 4;
+
+    /// <summary>Percent of each party's interactions that must be with the other to flag the pair.</summary>
+    public int CollusionConcentrationPercent { get; init; } = 70;
+
+    /// <summary>Hours between collusion scans.</summary>
+    public int CollusionScanIntervalHours { get; init; } = 24;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>
