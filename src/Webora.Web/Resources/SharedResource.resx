@@ -346,7 +346,7 @@
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
   <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Vyhodnotit nedostavení</value></data>
-  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body.</value></data>
+  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body. Probíhá i automaticky na pozadí.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>
   <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>Zatím nejsou žádná místa.</value></data>
   <data name="Parking_Admin_State" xml:space="preserve"><value>Stav</value></data>

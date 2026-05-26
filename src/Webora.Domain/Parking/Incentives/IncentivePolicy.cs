@@ -22,6 +22,9 @@ public sealed record IncentivePolicy
     /// <summary>Grace period after the start before an un-used reservation becomes a no-show.</summary>
     public TimeSpan NoShowGracePeriod { get; init; } = TimeSpan.FromMinutes(30);
 
+    /// <summary>How long before the start to remind the holder to confirm arrival or release.</summary>
+    public TimeSpan ReminderLeadTime { get; init; } = TimeSpan.FromMinutes(5);
+
     /// <summary>Start of the daily high-demand window (local time of the reservation).</summary>
     public TimeOnly PeakStart { get; init; } = new(7, 30);
 

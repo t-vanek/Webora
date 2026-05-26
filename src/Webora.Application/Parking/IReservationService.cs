@@ -30,4 +30,11 @@ public interface IReservationService
     /// Returns the number of reservations resolved.
     /// </summary>
     Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a one-time "confirm arrival or release" reminder for reservations whose start is near and
+    /// that have not been checked in or released yet. Intended to be run on a schedule.
+    /// Returns the number of reminders sent.
+    /// </summary>
+    Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default);
 }

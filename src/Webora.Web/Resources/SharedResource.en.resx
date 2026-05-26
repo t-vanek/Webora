@@ -346,7 +346,7 @@
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Notes</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Add</value></data>
   <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Resolve no-shows</value></data>
-  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Marks expired unused reservations as no-shows and deducts points.</value></data>
+  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Marks expired unused reservations as no-shows and deducts points. Also runs automatically in the background.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>No-shows resolved: {0}</value></data>
   <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>There are no spots yet.</value></data>
   <data name="Parking_Admin_State" xml:space="preserve"><value>State</value></data>

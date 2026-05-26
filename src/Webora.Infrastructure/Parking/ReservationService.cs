@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Webora.Application.Notifications;
 using Webora.Application.Parking;
+using Webora.Domain.Notifications;
 using Webora.Domain.Parking;
 using Webora.Domain.Parking.Incentives;
 using Webora.Infrastructure.Persistence;
@@ -9,7 +12,9 @@ namespace Webora.Infrastructure.Parking;
 public sealed class ReservationService(
     IDbContextFactory<WeboraDbContext> dbContextFactory,
     IncentivePolicy policy,
-    TimeProvider timeProvider) : IReservationService
+    TimeProvider timeProvider,
+    INotificationService notifications,
+    IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
@@ -218,6 +223,13 @@ public sealed class ReservationService(
             .Where(r => r.Status == ReservationStatus.Reserved && r.StartUtc <= threshold)
             .ToListAsync(cancellationToken);
 
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        var spotCodes = await GetSpotCodesAsync(dbContext, due, cancellationToken);
+
         foreach (var reservation in due)
         {
             reservation.MarkNoShow();
@@ -227,12 +239,67 @@ public sealed class ReservationService(
                 reservation.UserId, IncentiveReason.NoShowPenalty, -policy.NoShowPenaltyPoints, reservation.Id, now));
         }
 
-        if (due.Count > 0)
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var reservation in due)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            var code = spotCodes.GetValueOrDefault(reservation.SpotId, string.Empty);
+            await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                messages["Parking_Notify_NoShow_Title"],
+                messages["Parking_Notify_NoShow_Body", code, policy.NoShowPenaltyPoints],
+                cancellationToken);
         }
 
         return due.Count;
+    }
+
+    public async Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+
+        // Remind once when the start is near (within the lead time) and the holder can still act
+        // (before the no-show deadline at start + grace).
+        var remindFrom = now - policy.NoShowGracePeriod;
+        var remindTo = now + policy.ReminderLeadTime;
+
+        var due = await dbContext.Reservations
+            .Where(r => r.Status == ReservationStatus.Reserved && r.ReminderSentAtUtc == null
+                && r.StartUtc > remindFrom && r.StartUtc <= remindTo)
+            .ToListAsync(cancellationToken);
+
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        var spotCodes = await GetSpotCodesAsync(dbContext, due, cancellationToken);
+
+        foreach (var reservation in due)
+        {
+            reservation.MarkReminderSent(now);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var reservation in due)
+        {
+            var code = spotCodes.GetValueOrDefault(reservation.SpotId, string.Empty);
+            await notifications.NotifyAsync(reservation.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                messages["Parking_Notify_Reminder_Title"],
+                messages["Parking_Notify_Reminder_Body", code],
+                cancellationToken);
+        }
+
+        return due.Count;
+    }
+
+    private static async Task<Dictionary<Guid, string>> GetSpotCodesAsync(WeboraDbContext dbContext, IReadOnlyList<Reservation> reservations, CancellationToken cancellationToken)
+    {
+        var spotIds = reservations.Select(r => r.SpotId).Distinct().ToList();
+        return await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => spotIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
     }
 
     private static Task<Reservation?> FindOwnedAsync(WeboraDbContext dbContext, Guid userId, Guid reservationId, CancellationToken cancellationToken) =>
