@@ -48,7 +48,35 @@
         assumption, no inner wrapper div needed.  *@
     <FluentBodyContent Class="body-content"
                        Style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem; overflow:auto">
-        @Body
+        <div class="auth-shell">
+            <aside class="auth-shell__brand">
+                <div class="auth-shell__mark">
+                    <FluentIcon Value="@(new Icons.Filled.Size28.VehicleCar())" Color="Color.Custom" CustomColor="#fff" />
+                    <span>@_siteName</span>
+                </div>
+                <div>
+                    <h2 class="auth-shell__headline">@L["Auth_Hero_Headline"]</h2>
+                    <p class="auth-shell__lead">@L["Auth_Hero_Lead"]</p>
+                    <ul class="auth-shell__features">
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature1"]
+                        </li>
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.Money())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature2"]
+                        </li>
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.Trophy())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature3"]
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+            <section class="auth-shell__panel">
+                @Body
+            </section>
+        </div>
     </FluentBodyContent>
 </FluentLayout>
 

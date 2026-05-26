@@ -57,6 +57,11 @@
   <data name="Register_HaveAccount" xml:space="preserve"><value>Už máte účet?</value></data>
   <data name="Register_SignIn" xml:space="preserve"><value>Přihlásit se</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Účet byl vytvořen. Na zadanou adresu jsme poslali aktivační odkaz — po jeho potvrzení se budete moci přihlásit.</value></data>
+  <data name="Auth_Hero_Headline" xml:space="preserve"><value>Chytré parkování bez papírování</value></data>
+  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Rezervujte si místo, sdílejte ho, když ho nevyužijete, a sbírejte kredity i body za férové chování.</value></data>
+  <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Rezervace místa na pár kliknutí</value></data>
+  <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Kredity a dynamické ceny dle obsazenosti</value></data>
+  <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Žebříček, série a odznaky za spolehlivost</value></data>
   <data name="ForgotPassword_Title" xml:space="preserve"><value>Zapomenuté heslo</value></data>
   <data name="ForgotPassword_Submit" xml:space="preserve"><value>Poslat odkaz</value></data>
   <data name="ForgotPassword_Success" xml:space="preserve"><value>Pokud účet s touto adresou existuje, poslali jsme na něj odkaz pro obnovení hesla.</value></data>
