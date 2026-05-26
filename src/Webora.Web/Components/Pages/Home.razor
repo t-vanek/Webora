@@ -3,15 +3,85 @@
 
 <PageTitle>@L["Home_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Home_Title"]</FluentLabel>
-    <FluentLabel Typo="Typography.Body">@L["Home_Welcome"]</FluentLabel>
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
-            <FluentAnchor Href="parking" Appearance="Appearance.Accent">@L["Nav_ParkingReserve"]</FluentAnchor>
-            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewLeaderboard)" Context="board">
-                <FluentAnchor Href="parking/leaderboard" Appearance="Appearance.Outline">@L["Nav_ParkingLeaderboard"]</FluentAnchor>
+<div class="home">
+    <section class="home-hero">
+        <div class="home-hero__content">
+            <h1 class="home-hero__title">@L["Home_Title"]</h1>
+            <p class="home-hero__lead">@L["Home_Welcome"]</p>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
+                <Authorized>
+                    <a href="parking" class="home-hero__cta">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+                        @L["Nav_ParkingReserve"]
+                    </a>
+                </Authorized>
+                <NotAuthorized>
+                    <span class="home-hero__note">@L["Home_SignedOut"]</span>
+                </NotAuthorized>
             </AuthorizeView>
-        </FluentStack>
+        </div>
+    </section>
+
+    <AuthorizeView Context="auth">
+        <Authorized>
+            <h2 class="home-section">@L["Home_QuickActions"]</h2>
+            <div class="home-grid">
+                <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
+            <a href="parking" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--reserve"><FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_ParkingReserve"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Reserve"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewLeaderboard)">
+            <a href="parking/leaderboard" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--board"><FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_ParkingLeaderboard"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Leaderboard"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)">
+            <a href="admin/parking/spots" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--spots"><FluentIcon Value="@(new Icons.Regular.Size24.Map())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminParking"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Spots"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)">
+            <a href="admin/parking/settings" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--rules"><FluentIcon Value="@(new Icons.Regular.Size24.Options())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminParkingSettings"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Rules"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.View)">
+            <a href="admin/users" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--users"><FluentIcon Value="@(new Icons.Regular.Size24.People())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminUsers"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Users"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.View)">
+            <a href="admin/roles" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--roles"><FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminRoles"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Roles"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.View)">
+            <a href="admin/settings" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--settings"><FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminSettings"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Settings"]</span>
+            </a>
+                </AuthorizeView>
+            </div>
+        </Authorized>
     </AuthorizeView>
-</FluentStack>
+</div>

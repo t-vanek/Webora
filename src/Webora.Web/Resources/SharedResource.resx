@@ -86,6 +86,7 @@
   <data name="ConfirmSuspend_Success" xml:space="preserve"><value>Účet byl uspán.</value></data>
   <data name="ConfirmSuspend_Invalid" xml:space="preserve"><value>Neplatný odkaz pro uspání účtu.</value></data>
   <data name="Manage_Title" xml:space="preserve"><value>Můj účet</value></data>
+  <data name="Manage_Actions" xml:space="preserve"><value>Nastavení účtu</value></data>
   <data name="Manage_Name" xml:space="preserve"><value>Jméno</value></data>
   <data name="Manage_Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Manage_Phone" xml:space="preserve"><value>Telefon</value></data>
@@ -159,6 +160,9 @@
   <data name="AccountStatus_Suspended" xml:space="preserve"><value>Uspán</value></data>
   <data name="AccountStatus_Blocked" xml:space="preserve"><value>Zablokován</value></data>
   <data name="Admin_Users_Title" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Admin_Users_Intro" xml:space="preserve"><value>Spravujte uživatelské účty, jejich stav a přiřazené role.</value></data>
+  <data name="Admin_Roles_Intro" xml:space="preserve"><value>Definujte role a jemná oprávnění, která hlídají UI i služby.</value></data>
+  <data name="Parking_Admin_Intro" xml:space="preserve"><value>Spravujte parkovací místa, jejich stav a přiřazení rezidentů.</value></data>
   <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Hledat podle e-mailu nebo jména…</value></data>
   <data name="Admin_Users_Create" xml:space="preserve"><value>Nový účet</value></data>
   <data name="Admin_Users_None" xml:space="preserve"><value>Žádné účty.</value></data>
@@ -208,6 +212,15 @@
   <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>Rezervační systém firemního parkoviště s motivačními body za co nejlepší využití míst.</value></data>
+  <data name="Home_QuickActions" xml:space="preserve"><value>Rychlé akce</value></data>
+  <data name="Home_SignedOut" xml:space="preserve"><value>Přihlaste se nebo si vytvořte účet a začněte rezervovat.</value></data>
+  <data name="Home_Card_Reserve" xml:space="preserve"><value>Rezervujte si místo na časové okno za kredit.</value></data>
+  <data name="Home_Card_Leaderboard" xml:space="preserve"><value>Sledujte své body, úroveň, sérii a odznaky.</value></data>
+  <data name="Home_Card_Spots" xml:space="preserve"><value>Spravujte místa a přiřazujte rezidenty.</value></data>
+  <data name="Home_Card_Rules" xml:space="preserve"><value>Laďte ceny, body a pravidla za běhu.</value></data>
+  <data name="Home_Card_Users" xml:space="preserve"><value>Spravujte uživatelské účty.</value></data>
+  <data name="Home_Card_Roles" xml:space="preserve"><value>Definujte role a oprávnění.</value></data>
+  <data name="Home_Card_Settings" xml:space="preserve"><value>Konfigurujte web a identitu.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>

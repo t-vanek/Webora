@@ -86,6 +86,7 @@
   <data name="ConfirmSuspend_Success" xml:space="preserve"><value>Your account has been suspended.</value></data>
   <data name="ConfirmSuspend_Invalid" xml:space="preserve"><value>Invalid suspension link.</value></data>
   <data name="Manage_Title" xml:space="preserve"><value>My account</value></data>
+  <data name="Manage_Actions" xml:space="preserve"><value>Account settings</value></data>
   <data name="Manage_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Manage_Email" xml:space="preserve"><value>Email</value></data>
   <data name="Manage_Phone" xml:space="preserve"><value>Phone</value></data>
@@ -159,6 +160,9 @@
   <data name="AccountStatus_Suspended" xml:space="preserve"><value>Suspended</value></data>
   <data name="AccountStatus_Blocked" xml:space="preserve"><value>Blocked</value></data>
   <data name="Admin_Users_Title" xml:space="preserve"><value>User administration</value></data>
+  <data name="Admin_Users_Intro" xml:space="preserve"><value>Manage user accounts, their status and assigned roles.</value></data>
+  <data name="Admin_Roles_Intro" xml:space="preserve"><value>Define roles and the fine-grained permissions that guard the UI and services.</value></data>
+  <data name="Parking_Admin_Intro" xml:space="preserve"><value>Manage parking spots, their status and resident assignments.</value></data>
   <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Search by email or name…</value></data>
   <data name="Admin_Users_Create" xml:space="preserve"><value>New account</value></data>
   <data name="Admin_Users_None" xml:space="preserve"><value>No accounts.</value></data>
@@ -208,6 +212,15 @@
   <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>A reservation system for the company car park, with incentive points that reward making the best use of every spot.</value></data>
+  <data name="Home_QuickActions" xml:space="preserve"><value>Quick actions</value></data>
+  <data name="Home_SignedOut" xml:space="preserve"><value>Sign in or create an account to start reserving.</value></data>
+  <data name="Home_Card_Reserve" xml:space="preserve"><value>Book a spot for a time window with credits.</value></data>
+  <data name="Home_Card_Leaderboard" xml:space="preserve"><value>Track your points, tier, streak and badges.</value></data>
+  <data name="Home_Card_Spots" xml:space="preserve"><value>Manage spots and assign residents.</value></data>
+  <data name="Home_Card_Rules" xml:space="preserve"><value>Tune pricing, points and rules at runtime.</value></data>
+  <data name="Home_Card_Users" xml:space="preserve"><value>Manage user accounts.</value></data>
+  <data name="Home_Card_Roles" xml:space="preserve"><value>Define roles and permissions.</value></data>
+  <data name="Home_Card_Settings" xml:space="preserve"><value>Configure the site and identity.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Page not found</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Back to home</value></data>
