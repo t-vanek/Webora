@@ -29,9 +29,12 @@ public class Reservation : Entity
     /// <summary>When the "confirm arrival or release" reminder was sent, so it is sent only once.</summary>
     public DateTimeOffset? ReminderSentAtUtc { get; private set; }
 
+    /// <summary>Credits debited at booking; refunded in full on an early enough cancel or release.</summary>
+    public int CreditsCharged { get; private set; }
+
     private Reservation() { }
 
-    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc)
+    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc, int creditsCharged = 0)
     {
         if (endUtc <= startUtc)
             throw new ArgumentException("Reservation end must be after its start.", nameof(endUtc));
@@ -42,6 +45,7 @@ public class Reservation : Entity
         EndUtc = endUtc;
         IsOffPeak = isOffPeak;
         CreatedAtUtc = createdAtUtc;
+        CreditsCharged = creditsCharged;
     }
 
     /// <summary>Whether the two windows overlap on the same spot (used to prevent double-booking).</summary>

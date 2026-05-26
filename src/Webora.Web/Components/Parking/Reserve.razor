@@ -87,6 +87,22 @@
             {
                 <FluentLabel Typo="Typography.Body" Style="color: var(--success);">@L["Parking_OffPeakHint"]</FluentLabel>
             }
+            @if (_quote is not null)
+            {
+                <FluentLabel Typo="Typography.Body">
+                    @L["Parking_Price"]: <strong>@_quote.Cost</strong> @L["Parking_Credits"]
+                    · @L["Parking_Occupancy"]: @_quote.OccupancyPercent %
+                    · @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])
+                </FluentLabel>
+                <FluentLabel Typo="Typography.Body"
+                             Style="@(_quote.Affordable ? "color: var(--success);" : "color: var(--error);")">
+                    @L["Parking_Balance"]: @_quote.Balance @L["Parking_Credits"]
+                    @if (!_quote.Affordable)
+                    {
+                        <span> — @L["Parking_Error_InsufficientCredit"]</span>
+                    }
+                </FluentLabel>
+            }
         </FluentStack>
     </FluentCard>
 
@@ -106,13 +122,21 @@
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
                             <FluentLabel Typo="Typography.H5">@spot.Code</FluentLabel>
                             <FluentLabel Typo="Typography.Body">@spot.Type</FluentLabel>
+                            @if (_quote is not null)
+                            {
+                                <FluentLabel Typo="Typography.Body">
+                                    @L["Parking_Price"]: <strong>@_quote.Cost</strong> @L["Parking_Credits"]
+                                </FluentLabel>
+                            }
                             @if (PointsForSpot(spot) > 0)
                             {
                                 <FluentLabel Typo="Typography.Body" Style="color: var(--success);">
                                     @L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]
                                 </FluentLabel>
                             }
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => ReserveAsync(spot.Id)">
+                            <FluentButton Appearance="Appearance.Accent"
+                                          Disabled="@(_quote is not null && !_quote.Affordable)"
+                                          OnClick="() => ReserveAsync(spot.Id)">
                                 @L["Parking_Reserve"]
                             </FluentButton>
                         </FluentStack>
@@ -170,6 +194,7 @@
     private TimeOnly _endTime = new(17, 0);
 
     private IReadOnlyList<ParkingSpotDto>? _available;
+    private ReservationQuoteDto? _quote;
     private IReadOnlyList<ReservationDto>? _myReservations;
     private string? _error;
     private string? _info;
@@ -283,10 +308,12 @@
         {
             _error = "Parking_Error_InvalidWindow";
             _available = null;
+            _quote = null;
             return;
         }
 
         _available = await Reservations.GetAvailableSpotsAsync(Start, End);
+        _quote = await Reservations.GetQuoteAsync(_userId, Start, End);
     }
 
     private async Task ReserveAsync(Guid spotId)

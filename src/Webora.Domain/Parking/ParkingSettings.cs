@@ -59,6 +59,16 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MaxReleaseRangeDays { get; private set; } = 92;
 
+    public int BaseReservationCost { get; private set; } = 10;
+
+    public int PeakPricePercent { get; private set; } = 200;
+
+    public int OccupancyPricePercent { get; private set; } = 100;
+
+    public int MaxReservationCost { get; private set; } = 40;
+
+    public int MonthlyCreditAllowance { get; private set; } = 100;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -92,7 +102,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         bool autoVerifyHomeAddress,
         int autoVerifyMaxDistanceKm,
         int maxRewardedReleasesPerDay,
-        int maxReleaseRangeDays)
+        int maxReleaseRangeDays,
+        int baseReservationCost,
+        int peakPricePercent,
+        int occupancyPricePercent,
+        int maxReservationCost,
+        int monthlyCreditAllowance)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -119,6 +134,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         AutoVerifyMaxDistanceKm = Math.Max(0, autoVerifyMaxDistanceKm);
         MaxRewardedReleasesPerDay = Math.Max(0, maxRewardedReleasesPerDay);
         MaxReleaseRangeDays = Math.Clamp(maxReleaseRangeDays, 1, 366);
+        BaseReservationCost = Math.Max(0, baseReservationCost);
+        PeakPricePercent = Math.Max(100, peakPricePercent);
+        OccupancyPricePercent = Math.Max(0, occupancyPricePercent);
+        MaxReservationCost = Math.Max(BaseReservationCost, maxReservationCost);
+        MonthlyCreditAllowance = Math.Max(0, monthlyCreditAllowance);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -144,6 +164,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         AutoVerifyMaxDistanceKm = AutoVerifyMaxDistanceKm,
         MaxRewardedReleasesPerDay = MaxRewardedReleasesPerDay,
         MaxReleaseRangeDays = MaxReleaseRangeDays,
+        BaseReservationCost = BaseReservationCost,
+        PeakPricePercent = PeakPricePercent,
+        OccupancyPricePercent = OccupancyPricePercent,
+        MaxReservationCost = MaxReservationCost,
+        MonthlyCreditAllowance = MonthlyCreditAllowance,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

@@ -169,6 +169,12 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.ToTable("ParkingSettings");
             settings.HasKey(s => s.Id);
             settings.Property(s => s.Id).ValueGeneratedNever();
+            // Economy defaults so existing settings rows get sensible pricing when the columns are added.
+            settings.Property(s => s.BaseReservationCost).HasDefaultValue(10);
+            settings.Property(s => s.PeakPricePercent).HasDefaultValue(200);
+            settings.Property(s => s.OccupancyPricePercent).HasDefaultValue(100);
+            settings.Property(s => s.MaxReservationCost).HasDefaultValue(40);
+            settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(100);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

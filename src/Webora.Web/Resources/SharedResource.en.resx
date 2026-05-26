@@ -437,4 +437,19 @@
   <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Auto-verify distance cap (km)</value></data>
   <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max rewarded releases / day</value></data>
   <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max release range (days)</value></data>
+  <data name="Parking_Price" xml:space="preserve"><value>Price</value></data>
+  <data name="Parking_Credits" xml:space="preserve"><value>credits</value></data>
+  <data name="Parking_Occupancy" xml:space="preserve"><value>Occupancy</value></data>
+  <data name="Parking_Peak" xml:space="preserve"><value>Peak</value></data>
+  <data name="Parking_OffPeakLabel" xml:space="preserve"><value>Off-peak</value></data>
+  <data name="Parking_Balance" xml:space="preserve"><value>Balance</value></data>
+  <data name="Parking_MyCredits" xml:space="preserve"><value>Credit</value></data>
+  <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>You don't have enough credits for this reservation.</value></data>
+  <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Reservation economy</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Reservation price = base × peak surcharge × occupancy surcharge (capped). Credits are charged on booking and refunded on an early enough cancel or release.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Base price (credits)</value></data>
+  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Peak surcharge (%)</value></data>
+  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
+  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max price (credits)</value></data>
+  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
 </root>

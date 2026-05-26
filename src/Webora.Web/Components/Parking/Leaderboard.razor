@@ -17,6 +17,7 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_MyScore"]</FluentLabel>
                 <FluentLabel Typo="Typography.H3">@_score.Points @L["Parking_Points"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</FluentLabel>
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
                     <FluentLabel Typo="Typography.Body">@L["Parking_Stat_Released"]: @_score.ReservationsReleased</FluentLabel>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Stat_OffPeak"]: @_score.OffPeakReservations</FluentLabel>
