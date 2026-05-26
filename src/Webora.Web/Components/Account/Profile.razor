@@ -150,7 +150,9 @@
     private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
+#pragma warning disable BL0008
     [SupplyParameterFromForm] private HomeFormModel HomeInput { get; set; } = new();
+#pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
 
