@@ -49,4 +49,6 @@
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Uvolnilo se místo {0} pro tvé okno z fronty – přidrželi jsme ti ho na {1} minut. Potvrď rezervaci v aplikaci, jinak ho nabídneme dalšímu.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>Nedostavení k místu z fronty</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>Nedostavil(a) ses k místu {0}, které sis převzal(a) z fronty. Tvrdá penalizace: −{1} bodů, −{2} kreditů, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
+  <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Podezřelé sdílecí interakce</value></data>
+  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>Detekováno {0} nových podezřelých párů sdílení. Zkontroluj je v administraci (Podezřelé interakce).</value></data>
 </root>

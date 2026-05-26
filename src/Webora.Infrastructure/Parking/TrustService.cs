@@ -72,6 +72,20 @@ public sealed class TrustService(
             AddEdge(t.Guest, t.Owner);
         }
 
+        // Anti-collusion: cap how much any single counterpart contributes, so a tight reciprocal ring
+        // can't pump each other's trust beyond a bound.
+        var maxPairWeight = settings.MaxPairTrustWeight;
+        foreach (var row in weights.Values)
+        {
+            foreach (var key in row.Keys.ToList())
+            {
+                if (row[key] > maxPairWeight)
+                {
+                    row[key] = maxPairWeight;
+                }
+            }
+        }
+
         var nodes = weights.Keys.ToList();
         var n = nodes.Count;
         var outWeight = nodes.ToDictionary(u => u, u => weights[u].Values.Sum());

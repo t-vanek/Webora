@@ -137,6 +137,21 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>State: when the trust graph was last recomputed.</summary>
     public DateTimeOffset? LastTrustComputeUtc { get; private set; }
 
+    // --- Anti-collusion (reciprocal sharing-ring detection) ---
+
+    public int MaxPairTrustWeight { get; private set; } = 3;
+
+    public bool AntiCollusionEnabled { get; private set; } = true;
+
+    public int CollusionMinInteractions { get; private set; } = 4;
+
+    public int CollusionConcentrationPercent { get; private set; } = 70;
+
+    public int CollusionScanIntervalHours { get; private set; } = 24;
+
+    /// <summary>State: when the collusion scan last ran.</summary>
+    public DateTimeOffset? LastCollusionScanUtc { get; private set; }
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -204,7 +219,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         int adaptiveIntervalMinutes,
         bool trustEnabled,
         int trustIntervalHours,
-        int trustedBadgeThreshold)
+        int trustedBadgeThreshold,
+        int maxPairTrustWeight,
+        bool antiCollusionEnabled,
+        int collusionMinInteractions,
+        int collusionConcentrationPercent,
+        int collusionScanIntervalHours)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -265,10 +285,18 @@ public class ParkingSettings : Entity, IAggregateRoot
         TrustEnabled = trustEnabled;
         TrustIntervalHours = Math.Max(1, trustIntervalHours);
         TrustedBadgeThreshold = Math.Clamp(trustedBadgeThreshold, 0, 100);
+        MaxPairTrustWeight = Math.Max(1, maxPairTrustWeight);
+        AntiCollusionEnabled = antiCollusionEnabled;
+        CollusionMinInteractions = Math.Max(2, collusionMinInteractions);
+        CollusionConcentrationPercent = Math.Clamp(collusionConcentrationPercent, 1, 100);
+        CollusionScanIntervalHours = Math.Max(1, collusionScanIntervalHours);
     }
 
     /// <summary>Records when the trust graph was last recomputed.</summary>
     public void MarkTrustComputed(DateTimeOffset at) => LastTrustComputeUtc = at;
+
+    /// <summary>Records when the collusion scan last ran.</summary>
+    public void MarkCollusionScanned(DateTimeOffset at) => LastCollusionScanUtc = at;
 
     /// <summary>Applies an adaptive-controller adjustment to the peak surcharge and records the time.</summary>
     public void ApplyAdaptiveAdjustment(int newPeakPricePercent, DateTimeOffset at)
@@ -334,6 +362,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         TrustEnabled = TrustEnabled,
         TrustIntervalHours = TrustIntervalHours,
         TrustedBadgeThreshold = TrustedBadgeThreshold,
+        MaxPairTrustWeight = MaxPairTrustWeight,
+        AntiCollusionEnabled = AntiCollusionEnabled,
+        CollusionMinInteractions = CollusionMinInteractions,
+        CollusionConcentrationPercent = CollusionConcentrationPercent,
+        CollusionScanIntervalHours = CollusionScanIntervalHours,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

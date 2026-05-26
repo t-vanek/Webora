@@ -49,4 +49,6 @@
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Spot {0} opened up for your queued window – we've held it for you for {1} minutes. Confirm the reservation in the app, otherwise we'll offer it to the next person.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
+  <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Suspicious sharing interactions</value></data>
+  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Suspicious interactions).</value></data>
 </root>
