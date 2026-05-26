@@ -108,3 +108,199 @@ h1:focus {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+/* --- Parking reservation redesign --- */
+.section-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .field > label {
+        font-size: 12px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+.parking-input {
+    padding: 7px 10px;
+    border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 6px;
+    background: var(--neutral-fill-input-rest, transparent);
+    color: var(--neutral-foreground-rest, inherit);
+    font: inherit;
+    min-height: 32px;
+}
+
+.booking-bar__row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.quote-panel {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--neutral-stroke-divider-rest, #e0e0e0);
+}
+
+.price-tag {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.price-tag__num {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+.price-tag__unit {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.quote-meter {
+    min-width: 200px;
+    flex: 1 1 200px;
+}
+
+.quote-meter__head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.meter {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--neutral-fill-secondary-rest, #e6e6e6);
+    overflow: hidden;
+}
+
+.meter__fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .3s ease;
+}
+
+.meter__fill--low { background: var(--success-rest, #107c10); }
+.meter__fill--mid { background: var(--warning-rest, #f7a900); }
+.meter__fill--high { background: var(--error-rest, #d13438); }
+
+.pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pill--peak { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
+.pill--offpeak { background: rgba(16, 124, 16, .16); color: var(--success-rest, #107c10); }
+.pill--type { background: var(--neutral-fill-secondary-rest, #efefef); color: var(--neutral-foreground-rest, #444); }
+
+.balance-chip {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--neutral-layer-2, #f5f5f5);
+}
+
+.balance-chip--ok { color: var(--success-rest, #107c10); }
+.balance-chip--low { color: var(--error-rest, #d13438); }
+
+.spot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    width: 100%;
+}
+
+.spot-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-left: 4px solid var(--accent-fill-rest, #0f6cbd);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+    .spot-card:hover {
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+        transform: translateY(-2px);
+    }
+
+.spot-card--ElectricCharging { border-left-color: #2e7d32; }
+.spot-card--Disabled { border-left-color: #6a4fb6; }
+.spot-card--Visitor { border-left-color: #c77700; }
+.spot-card--Motorcycle { border-left-color: #008272; }
+
+.spot-card__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.spot-glyph {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    flex: 0 0 auto;
+}
+
+.spot-card__code {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.spot-card__price { font-size: 14px; }
+
+    .spot-card__price strong {
+        font-size: 18px;
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
+
+.reward-chip {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: rgba(16, 124, 16, .14);
+    color: var(--success-rest, #107c10);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px;
+    border: 1px dashed var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 10px;
+    color: var(--neutral-foreground-hint, #777);
+}

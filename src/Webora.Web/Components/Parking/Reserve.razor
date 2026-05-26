@@ -65,45 +65,53 @@
         </FluentCard>
     }
 
-    <FluentCard>
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            <FluentLabel Typo="Typography.Subject">@L["Parking_FindTitle"]</FluentLabel>
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Date"]</FluentLabel>
-                    <input type="date" @bind="_day" class="parking-input" />
+    <FluentCard Class="booking-bar">
+        <div class="section-head">
+            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Accent" />
+            <span>@L["Parking_FindTitle"]</span>
+        </div>
+        <div class="booking-bar__row">
+            <div class="field">
+                <label>@L["Parking_Date"]</label>
+                <input type="date" @bind="_day" class="parking-input" />
+            </div>
+            <div class="field">
+                <label>@L["Parking_From"]</label>
+                <input type="time" @bind="_startTime" class="parking-input" />
+            </div>
+            <div class="field">
+                <label>@L["Parking_To"]</label>
+                <input type="time" @bind="_endTime" class="parking-input" />
+            </div>
+            <FluentButton Appearance="Appearance.Accent" OnClick="FindAvailableAsync">@L["Parking_Find"]</FluentButton>
+        </div>
+
+        @if (_quote is not null)
+        {
+            <div class="quote-panel">
+                <div class="price-tag">
+                    <span class="price-tag__num">@_quote.Cost</span>
+                    <span class="price-tag__unit">@L["Parking_Credits"]</span>
                 </div>
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_From"]</FluentLabel>
-                    <input type="time" @bind="_startTime" class="parking-input" />
+                <span class="pill @(_quote.IsPeak ? "pill--peak" : "pill--offpeak")">
+                    @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])
+                </span>
+                <div class="quote-meter">
+                    <div class="quote-meter__head">
+                        <span>@L["Parking_Occupancy"]</span>
+                        <span>@_quote.OccupancyPercent %</span>
+                    </div>
+                    <div class="meter"><div class="meter__fill @OccupancyClass(_quote.OccupancyPercent)" style="width:@(_quote.OccupancyPercent)%"></div></div>
                 </div>
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_To"]</FluentLabel>
-                    <input type="time" @bind="_endTime" class="parking-input" />
-                </div>
-                <FluentButton Appearance="Appearance.Accent" OnClick="FindAvailableAsync">@L["Parking_Find"]</FluentButton>
-            </FluentStack>
-            @if (IsOffPeak)
+                <span class="balance-chip @(_quote.Affordable ? "balance-chip--ok" : "balance-chip--low")">
+                    @L["Parking_Balance"]: <strong>@_quote.Balance</strong> @L["Parking_Credits"]
+                </span>
+            </div>
+            @if (!_quote.Affordable)
             {
-                <FluentLabel Typo="Typography.Body" Style="color: var(--success);">@L["Parking_OffPeakHint"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="color:var(--error)">@L["Parking_Error_InsufficientCredit"]</FluentLabel>
             }
-            @if (_quote is not null)
-            {
-                <FluentLabel Typo="Typography.Body">
-                    @L["Parking_Price"]: <strong>@_quote.Cost</strong> @L["Parking_Credits"]
-                    · @L["Parking_Occupancy"]: @_quote.OccupancyPercent %
-                    · @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])
-                </FluentLabel>
-                <FluentLabel Typo="Typography.Body"
-                             Style="@(_quote.Affordable ? "color: var(--success);" : "color: var(--error);")">
-                    @L["Parking_Balance"]: @_quote.Balance @L["Parking_Credits"]
-                    @if (!_quote.Affordable)
-                    {
-                        <span> — @L["Parking_Error_InsufficientCredit"]</span>
-                    }
-                </FluentLabel>
-            }
-        </FluentStack>
+        }
     </FluentCard>
 
     @if (_available is not null)
@@ -111,39 +119,41 @@
         <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
         @if (_available.Count == 0)
         {
-            <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
-            <FluentButton Appearance="Appearance.Accent" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+            <div class="empty-state">
+                <FluentIcon Value="@(new Icons.Regular.Size32.VehicleCar())" Color="Color.Neutral" />
+                <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
+                <FluentButton Appearance="Appearance.Accent" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+            </div>
         }
         else
         {
-            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="12" VerticalGap="12">
+            <div class="spot-grid">
                 @foreach (var spot in _available)
                 {
-                    <FluentCard Width="180px">
-                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-                            <FluentLabel Typo="Typography.H5">@spot.Code</FluentLabel>
-                            <FluentLabel Typo="Typography.Body">@spot.Type</FluentLabel>
-                            @if (_quote is not null)
-                            {
-                                <FluentLabel Typo="Typography.Body">
-                                    @L["Parking_Price"]: <strong>@_quote.Cost</strong> @L["Parking_Credits"]
-                                </FluentLabel>
-                            }
-                            @if (PointsForSpot(spot) > 0)
-                            {
-                                <FluentLabel Typo="Typography.Body" Style="color: var(--success);">
-                                    @L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]
-                                </FluentLabel>
-                            }
-                            <FluentButton Appearance="Appearance.Accent"
-                                          Disabled="@(_quote is not null && !_quote.Affordable)"
-                                          OnClick="() => ReserveAsync(spot.Id)">
-                                @L["Parking_Reserve"]
-                            </FluentButton>
-                        </FluentStack>
-                    </FluentCard>
+                    <div class="spot-card spot-card--@spot.Type">
+                        <div class="spot-card__top">
+                            <span class="spot-glyph"><FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Accent" /></span>
+                            <div>
+                                <div class="spot-card__code">@spot.Code</div>
+                                <span class="pill pill--type">@spot.Type</span>
+                            </div>
+                        </div>
+                        @if (_quote is not null)
+                        {
+                            <div class="spot-card__price"><strong>@_quote.Cost</strong> @L["Parking_Credits"]</div>
+                        }
+                        @if (PointsForSpot(spot) > 0)
+                        {
+                            <span class="reward-chip">@L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]</span>
+                        }
+                        <FluentButton Appearance="Appearance.Accent" Style="width:100%"
+                                      Disabled="@(_quote is not null && !_quote.Affordable)"
+                                      OnClick="() => ReserveAsync(spot.Id)">
+                            @L["Parking_Reserve"]
+                        </FluentButton>
+                    </div>
                 }
-            </FluentStack>
+            </div>
         }
     }
 
@@ -307,6 +317,9 @@
             _error = result.Errors.FirstOrDefault();
         }
     }
+
+    private static string OccupancyClass(int percent) =>
+        percent >= 90 ? "meter__fill--high" : percent >= 70 ? "meter__fill--mid" : "meter__fill--low";
 
     // Points a reservation on this spot would earn now: off-peak bonus plus, for a shared reserved
     // spot, the commute-distance reward.
