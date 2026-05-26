@@ -1,53 +1,47 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Webora.Application.Parking;
-using Webora.Infrastructure.Parking;
 
 namespace Webora.Web.Parking;
 
 /// <summary>
 /// Periodically sends reservation reminders and resolves no-shows, so the lot stays accurate
-/// without anyone having to press a button.
+/// without anyone having to press a button. The interval is read from the database each cycle, so
+/// changes to it take effect without a restart.
 /// </summary>
 public sealed class ParkingMaintenanceService(
     IServiceScopeFactory scopeFactory,
-    IOptions<ParkingOptions> options,
     ILogger<ParkingMaintenanceService> logger) : BackgroundService
 {
+    private static readonly TimeSpan FallbackInterval = TimeSpan.FromMinutes(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Run once at startup, then on the configured interval.
-        await RunOnceAsync(stoppingToken);
-
-        var interval = options.Value.SweepInterval;
-        if (interval <= TimeSpan.Zero)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            interval = TimeSpan.FromMinutes(5);
-        }
-
-        using var timer = new PeriodicTimer(interval);
-        try
-        {
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            var interval = await RunOnceAsync(stoppingToken);
+            try
             {
-                await RunOnceAsync(stoppingToken);
+                await Task.Delay(interval, stoppingToken);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Host is shutting down.
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
-    private async Task RunOnceAsync(CancellationToken cancellationToken)
+    private async Task<TimeSpan> RunOnceAsync(CancellationToken cancellationToken)
     {
+        var interval = FallbackInterval;
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
+            var settings = scope.ServiceProvider.GetRequiredService<IParkingSettingsService>();
             var reservations = scope.ServiceProvider.GetRequiredService<IReservationService>();
 
+            interval = await settings.GetSweepIntervalAsync(cancellationToken);
             var reminded = await reservations.SendDueRemindersAsync(cancellationToken);
             var resolved = await reservations.SweepNoShowsAsync(cancellationToken);
 
@@ -66,5 +60,7 @@ public sealed class ParkingMaintenanceService(
         {
             logger.LogError(ex, "Parking maintenance run failed.");
         }
+
+        return interval <= TimeSpan.Zero ? FallbackInterval : interval;
     }
 }

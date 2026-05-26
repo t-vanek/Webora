@@ -1,0 +1,152 @@
+@page "/admin/parking/settings"
+@attribute [HasPermission(Permissions.Parking.ManageIncentives)]
+@rendermode InteractiveServer
+@inject IParkingSettingsService SettingsService
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Settings_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Settings_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Parking_Settings_Intro"]</FluentLabel>
+
+    @if (_form is null)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
+        }
+
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px">
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PointsSection"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="12" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ReleasePoints" Min="0"
+                                       Label="@L["Parking_Settings_ReleasePoints"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="12" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.OffPeakBonusPoints" Min="0"
+                                       Label="@L["Parking_Settings_OffPeakBonus"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="12" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.NoShowPenaltyPoints" Min="0"
+                                       Label="@L["Parking_Settings_NoShowPenalty"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PeakSection"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Settings_PeakStart"]</FluentLabel>
+                    <input type="time" @bind="_form.PeakStart" class="parking-input" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Settings_PeakEnd"]</FluentLabel>
+                    <input type="time" @bind="_form.PeakEnd" class="parking-input" />
+                </FluentGridItem>
+            </FluentGrid>
+
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TimingSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_MinutesHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ReleaseCutoffMinutes" Min="0"
+                                       Label="@L["Parking_Settings_ReleaseCutoff"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.NoShowGraceMinutes" Min="0"
+                                       Label="@L["Parking_Settings_NoShowGrace"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ReminderLeadMinutes" Min="0"
+                                       Label="@L["Parking_Settings_ReminderLead"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.SweepIntervalMinutes" Min="1"
+                                       Label="@L["Parking_Settings_SweepInterval"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
+            <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
+        </FluentStack>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private SettingsForm? _form;
+    private Guid _adminId;
+    private string? _message;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var admin = await UserManager.GetUserAsync(state.User);
+        _adminId = admin?.Id ?? Guid.Empty;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var s = await SettingsService.GetAsync();
+        _form = new SettingsForm
+        {
+            ReleasePoints = s.ReleasePoints,
+            OffPeakBonusPoints = s.OffPeakBonusPoints,
+            NoShowPenaltyPoints = s.NoShowPenaltyPoints,
+            ReleaseCutoffMinutes = (int)s.ReleaseCutoff.TotalMinutes,
+            NoShowGraceMinutes = (int)s.NoShowGracePeriod.TotalMinutes,
+            ReminderLeadMinutes = (int)s.ReminderLeadTime.TotalMinutes,
+            SweepIntervalMinutes = (int)s.SweepInterval.TotalMinutes,
+            PeakStart = s.PeakStart,
+            PeakEnd = s.PeakEnd,
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        _message = _error = null;
+        var dto = new ParkingSettingsDto(
+            _form!.ReleasePoints, _form.OffPeakBonusPoints, _form.NoShowPenaltyPoints,
+            TimeSpan.FromMinutes(_form.ReleaseCutoffMinutes),
+            TimeSpan.FromMinutes(_form.NoShowGraceMinutes),
+            TimeSpan.FromMinutes(_form.ReminderLeadMinutes),
+            _form.PeakStart, _form.PeakEnd,
+            TimeSpan.FromMinutes(_form.SweepIntervalMinutes));
+
+        var result = await SettingsService.UpdateAsync(dto, _adminId);
+        if (result.Succeeded)
+        {
+            _message = L["Parking_Settings_Saved"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private sealed class SettingsForm
+    {
+        public int ReleasePoints { get; set; }
+        public int OffPeakBonusPoints { get; set; }
+        public int NoShowPenaltyPoints { get; set; }
+        public int ReleaseCutoffMinutes { get; set; }
+        public int NoShowGraceMinutes { get; set; }
+        public int ReminderLeadMinutes { get; set; }
+        public int SweepIntervalMinutes { get; set; }
+        public TimeOnly PeakStart { get; set; }
+        public TimeOnly PeakEnd { get; set; }
+    }
+}

@@ -354,4 +354,23 @@
   <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
   <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deaktivovat</value></data>
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
+  <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Nastavení parkování</value></data>
+  <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Bodování a časová pravidla motivačního systému. Změny se projeví okamžitě.</value></data>
+  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Body</value></data>
+  <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
+  <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
+  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Body za uvolnění</value></data>
+  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Bonus mimo špičku</value></data>
+  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>Postih za nedostavení</value></data>
+  <data name="Parking_Settings_PeakStart" xml:space="preserve"><value>Začátek špičky</value></data>
+  <data name="Parking_Settings_PeakEnd" xml:space="preserve"><value>Konec špičky</value></data>
+  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Uvolnit nejpozději před (min)</value></data>
+  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Tolerance pro příjezd (min)</value></data>
+  <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Připomínka před začátkem (min)</value></data>
+  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Interval kontroly (min)</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Časové hodnoty jsou v minutách.</value></data>
+  <data name="Parking_Settings_Save" xml:space="preserve"><value>Uložit nastavení</value></data>
+  <data name="Parking_Settings_Saved" xml:space="preserve"><value>Nastavení uloženo.</value></data>
+  <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Konec špičky musí být po jejím začátku.</value></data>
 </root>

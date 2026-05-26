@@ -354,4 +354,23 @@
   <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Inactive</value></data>
   <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deactivate</value></data>
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Parking settings</value></data>
+  <data name="Parking_Settings_Title" xml:space="preserve"><value>Parking settings</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Scoring and timing rules of the incentive system. Changes take effect immediately.</value></data>
+  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Points</value></data>
+  <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Peak</value></data>
+  <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Timing</value></data>
+  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Release points</value></data>
+  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Off-peak bonus</value></data>
+  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>No-show penalty</value></data>
+  <data name="Parking_Settings_PeakStart" xml:space="preserve"><value>Peak start</value></data>
+  <data name="Parking_Settings_PeakEnd" xml:space="preserve"><value>Peak end</value></data>
+  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Release at least before (min)</value></data>
+  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Arrival grace (min)</value></data>
+  <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Reminder before start (min)</value></data>
+  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Check interval (min)</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Time values are in minutes.</value></data>
+  <data name="Parking_Settings_Save" xml:space="preserve"><value>Save settings</value></data>
+  <data name="Parking_Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
 </root>

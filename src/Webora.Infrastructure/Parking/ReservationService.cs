@@ -11,7 +11,7 @@ namespace Webora.Infrastructure.Parking;
 
 public sealed class ReservationService(
     IDbContextFactory<WeboraDbContext> dbContextFactory,
-    IncentivePolicy policy,
+    IParkingSettingsService parkingSettings,
     TimeProvider timeProvider,
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
@@ -71,6 +71,7 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == spotId, cancellationToken);
@@ -178,6 +179,7 @@ public sealed class ReservationService(
         }
 
         var now = timeProvider.GetUtcNow();
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Release(now);
 
         // Releasing always frees the spot; the reward only applies when it happens early enough.
@@ -215,6 +217,7 @@ public sealed class ReservationService(
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var threshold = now - policy.NoShowGracePeriod;
@@ -255,6 +258,7 @@ public sealed class ReservationService(
 
     public async Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
 

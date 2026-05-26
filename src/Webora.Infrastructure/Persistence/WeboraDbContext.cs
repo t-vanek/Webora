@@ -31,6 +31,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<UserBadge> UserBadges => Set<UserBadge>();
 
+    public DbSet<ParkingSettings> ParkingSettings => Set<ParkingSettings>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -148,6 +150,13 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             badge.HasKey(b => b.Id);
             badge.Property(b => b.Badge).HasConversion<string>().HasMaxLength(32);
             badge.HasIndex(b => new { b.UserId, b.Badge }).IsUnique();
+        });
+
+        builder.Entity<ParkingSettings>(settings =>
+        {
+            settings.ToTable("ParkingSettings");
+            settings.HasKey(s => s.Id);
+            settings.Property(s => s.Id).ValueGeneratedNever();
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

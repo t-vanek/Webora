@@ -25,7 +25,7 @@
         </FluentNavGroup>
     }
 
-    @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots)
+    @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
     {
         <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
             @if (_canAdminUsers)
@@ -44,6 +44,12 @@
             {
                 <FluentNavLink Href="admin/parking/spots" Icon="@(new Icons.Regular.Size20.Map())">
                     @L["Nav_AdminParking"]
+                </FluentNavLink>
+            }
+            @if (_canManageIncentives)
+            {
+                <FluentNavLink Href="admin/parking/settings" Icon="@(new Icons.Regular.Size20.Options())">
+                    @L["Nav_AdminParkingSettings"]
                 </FluentNavLink>
             }
             @if (_canSettings)
@@ -78,6 +84,7 @@
     private bool _canReserve;
     private bool _canLeaderboard;
     private bool _canManageSpots;
+    private bool _canManageIncentives;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +97,7 @@
             _canReserve = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.Reserve);
             _canLeaderboard = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ViewLeaderboard);
             _canManageSpots = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ManageSpots);
+            _canManageIncentives = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ManageIncentives);
         }
     }
 }

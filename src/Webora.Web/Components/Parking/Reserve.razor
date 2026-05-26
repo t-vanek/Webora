@@ -2,7 +2,7 @@
 @attribute [HasPermission(Permissions.Parking.Reserve)]
 @rendermode InteractiveServer
 @inject IReservationService Reservations
-@inject IncentivePolicy Policy
+@inject IParkingSettingsService ParkingSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -128,15 +128,18 @@
     private string? _error;
     private string? _info;
 
+    private IncentivePolicy? _policy;
+
     private DateTimeOffset Start => new(_day.ToDateTime(_startTime));
     private DateTimeOffset End => new(_day.ToDateTime(_endTime));
-    private bool IsOffPeak => Policy.IsOffPeak(Start);
+    private bool IsOffPeak => _policy?.IsOffPeak(Start) ?? false;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
+        _policy = await ParkingSettings.GetPolicyAsync();
         await ReloadReservationsAsync();
     }
 
