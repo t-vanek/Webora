@@ -9,6 +9,28 @@ reservation you won't use, and sharing a reserved ("resident") spot — and pena
   `src/Webora.Web/appsettings.json`).
 - **UI languages:** Czech (default) and English, negotiated from the culture cookie / browser.
 
+## Screenshots
+
+**Reserve a spot** — your reserved (resident) spot, available spots with a live points preview, and your reservations:
+
+![Reservation page](docs/screenshots/reserve.png)
+
+**Leaderboard** — score, behaviour stats and earned badges:
+
+![Leaderboard](docs/screenshots/leaderboard.png)
+
+**Spot administration** — manage spots and assign residents:
+
+![Spot administration](docs/screenshots/admin-spots.png)
+
+**Parking settings** — the incentive rules, tunable live (stored in the database):
+
+![Parking settings](docs/screenshots/admin-settings.png)
+
+**Profile** — set a home address; it is geocoded into a commute distance that scales the shared-spot reward:
+
+![Profile commute](docs/screenshots/profile.png)
+
 ## Parking & incentives
 
 ### Spots and reservations
