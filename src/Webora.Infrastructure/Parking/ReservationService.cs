@@ -666,6 +666,22 @@ public sealed class ReservationService(
         return decayed;
     }
 
+    public async Task<double> MeasurePeakOccupancyAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.Date);
+        var start = new DateTimeOffset(today.ToDateTime(policy.PeakStart), now.Offset);
+        var end = new DateTimeOffset(today.ToDateTime(policy.PeakEnd), now.Offset);
+        if (end <= start)
+        {
+            return 0.0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ComputeOccupancyAsync(dbContext, start, end, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);

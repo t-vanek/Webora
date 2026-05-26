@@ -479,6 +479,16 @@
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
   <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Rozklad reputace (%)</value></data>
   <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Interval rozkladu (dní)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptivní ceny</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Samoladící regulátor: pravidelně změří obsazenost ve špičce a posune přirážku za špičku směrem k cílové obsazenosti (v mezích a po krocích). Při vypnutí drží ruční hodnotu přirážky.</value></data>
+  <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Zapnout adaptivní ladění cen</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Cílová obsazenost (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Interval ladění (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Zesílení regulátoru</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Pásmo necitlivosti (%)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max. krok přirážky</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max. přirážka za špičku (%)</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>

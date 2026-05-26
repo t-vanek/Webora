@@ -48,4 +48,12 @@ public sealed record ParkingSettingsDto(
     int TierAllowanceBonus,
     int TierDiscountPercent,
     int ReputationDecayPercent,
-    int ReputationDecayIntervalDays);
+    int ReputationDecayIntervalDays,
+    bool AdaptivePricingEnabled,
+    int AdaptiveTargetOccupancyPercent,
+    int AdaptiveGainPercent,
+    int AdaptiveDeadbandPercent,
+    int AdaptiveStepMaxPercent,
+    int AdaptivePeakMinPercent,
+    int AdaptivePeakMaxPercent,
+    int AdaptiveIntervalMinutes);

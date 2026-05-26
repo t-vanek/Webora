@@ -263,6 +263,40 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AdaptiveSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_AdaptiveHelp"]</FluentLabel>
+            <FluentSwitch @bind-Value="_form.AdaptivePricingEnabled" Label="@L["Parking_Settings_AdaptiveEnabled"]" />
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveTargetOccupancyPercent" Min="1" Max="100"
+                                       Label="@L["Parking_Settings_AdaptiveTarget"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveIntervalMinutes" Min="1"
+                                       Label="@L["Parking_Settings_AdaptiveInterval"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveGainPercent" Min="0"
+                                       Label="@L["Parking_Settings_AdaptiveGain"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveDeadbandPercent" Min="0" Max="100"
+                                       Label="@L["Parking_Settings_AdaptiveDeadband"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveStepMaxPercent" Min="0"
+                                       Label="@L["Parking_Settings_AdaptiveStepMax"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMinPercent" Min="100"
+                                       Label="@L["Parking_Settings_AdaptivePeakMin"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMaxPercent" Min="100"
+                                       Label="@L["Parking_Settings_AdaptivePeakMax"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -336,6 +370,14 @@
             TierDiscountPercent = s.TierDiscountPercent,
             ReputationDecayPercent = s.ReputationDecayPercent,
             ReputationDecayIntervalDays = s.ReputationDecayIntervalDays,
+            AdaptivePricingEnabled = s.AdaptivePricingEnabled,
+            AdaptiveTargetOccupancyPercent = s.AdaptiveTargetOccupancyPercent,
+            AdaptiveGainPercent = s.AdaptiveGainPercent,
+            AdaptiveDeadbandPercent = s.AdaptiveDeadbandPercent,
+            AdaptiveStepMaxPercent = s.AdaptiveStepMaxPercent,
+            AdaptivePeakMinPercent = s.AdaptivePeakMinPercent,
+            AdaptivePeakMaxPercent = s.AdaptivePeakMaxPercent,
+            AdaptiveIntervalMinutes = s.AdaptiveIntervalMinutes,
         };
     }
 
@@ -386,7 +428,15 @@
             _form.TierAllowanceBonus,
             _form.TierDiscountPercent,
             _form.ReputationDecayPercent,
-            _form.ReputationDecayIntervalDays);
+            _form.ReputationDecayIntervalDays,
+            _form.AdaptivePricingEnabled,
+            _form.AdaptiveTargetOccupancyPercent,
+            _form.AdaptiveGainPercent,
+            _form.AdaptiveDeadbandPercent,
+            _form.AdaptiveStepMaxPercent,
+            _form.AdaptivePeakMinPercent,
+            _form.AdaptivePeakMaxPercent,
+            _form.AdaptiveIntervalMinutes);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -449,5 +499,13 @@
         public int TierDiscountPercent { get; set; }
         public int ReputationDecayPercent { get; set; }
         public int ReputationDecayIntervalDays { get; set; }
+        public bool AdaptivePricingEnabled { get; set; }
+        public int AdaptiveTargetOccupancyPercent { get; set; }
+        public int AdaptiveGainPercent { get; set; }
+        public int AdaptiveDeadbandPercent { get; set; }
+        public int AdaptiveStepMaxPercent { get; set; }
+        public int AdaptivePeakMinPercent { get; set; }
+        public int AdaptivePeakMaxPercent { get; set; }
+        public int AdaptiveIntervalMinutes { get; set; }
     }
 }

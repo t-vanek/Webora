@@ -51,12 +51,14 @@ public sealed class ParkingMaintenanceService(
             var credited = await reservations.GrantDueMonthlyCreditsAsync(cancellationToken);
             var queueOffers = await reservations.ProcessQueueAsync(cancellationToken);
             var decayed = await reservations.DecayReputationAsync(cancellationToken);
+            var peakOccupancy = await reservations.MeasurePeakOccupancyAsync(cancellationToken);
+            var repriced = await settings.AdaptPeakSurchargeAsync(peakOccupancy, cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays.",
-                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}.",
+                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

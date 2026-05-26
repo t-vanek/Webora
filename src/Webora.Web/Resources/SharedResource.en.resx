@@ -479,6 +479,16 @@
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platinum from (points)</value></data>
   <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Reputation decay (%)</value></data>
   <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Decay interval (days)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptive pricing</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Self-tuning controller: it periodically measures peak occupancy and nudges the peak surcharge toward the target occupancy (within bounds, in steps). When off, the manual surcharge value stands.</value></data>
+  <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Enable adaptive price tuning</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Target occupancy (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Tuning interval (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Controller gain</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Deadband (%)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max surcharge step</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min peak surcharge (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max peak surcharge (%)</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks for reputation: queue priority, a bigger monthly allowance and a reservation price discount — all growing with the loyalty tier.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>

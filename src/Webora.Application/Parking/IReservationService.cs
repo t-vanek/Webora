@@ -56,6 +56,9 @@ public interface IReservationService
     /// </summary>
     Task<int> DecayReputationAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>The projected occupancy of the lot during today's peak window (0–1), for the adaptive controller.</summary>
+    Task<double> MeasurePeakOccupancyAsync(CancellationToken cancellationToken = default);
+
     /// <summary>The caller's active (and recent) waitlist entries with their queue position and any offer.</summary>
     Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default);
 

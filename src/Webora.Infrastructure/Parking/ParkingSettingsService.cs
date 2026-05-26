@@ -63,7 +63,9 @@ public sealed class ParkingSettingsService(
             s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward,
             s.StreakBonusPerLevel, s.StreakBonusCap, s.TierSilverPoints, s.TierGoldPoints, s.TierPlatinumPoints,
             s.QueuePriorityPerTier, s.TierAllowanceBonus, s.TierDiscountPercent,
-            s.ReputationDecayPercent, s.ReputationDecayIntervalDays);
+            s.ReputationDecayPercent, s.ReputationDecayIntervalDays,
+            s.AdaptivePricingEnabled, s.AdaptiveTargetOccupancyPercent, s.AdaptiveGainPercent, s.AdaptiveDeadbandPercent,
+            s.AdaptiveStepMaxPercent, s.AdaptivePeakMinPercent, s.AdaptivePeakMaxPercent, s.AdaptiveIntervalMinutes);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -88,7 +90,9 @@ public sealed class ParkingSettingsService(
             dto.DemandReleaseOccupancyPercent, dto.DemandReleaseQueueBonus, dto.MaxReleaseReward,
             dto.StreakBonusPerLevel, dto.StreakBonusCap, dto.TierSilverPoints, dto.TierGoldPoints, dto.TierPlatinumPoints,
             dto.QueuePriorityPerTier, dto.TierAllowanceBonus, dto.TierDiscountPercent,
-            dto.ReputationDecayPercent, dto.ReputationDecayIntervalDays);
+            dto.ReputationDecayPercent, dto.ReputationDecayIntervalDays,
+            dto.AdaptivePricingEnabled, dto.AdaptiveTargetOccupancyPercent, dto.AdaptiveGainPercent, dto.AdaptiveDeadbandPercent,
+            dto.AdaptiveStepMaxPercent, dto.AdaptivePeakMinPercent, dto.AdaptivePeakMaxPercent, dto.AdaptiveIntervalMinutes);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
@@ -101,6 +105,38 @@ public sealed class ParkingSettingsService(
 
         logger.LogInformation("Parking settings changed by {AdminId}.", actingUserId);
         return ParkingResult.Success;
+    }
+
+    public async Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
+        if (!settings.AdaptivePricingEnabled)
+        {
+            return false;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (settings.LastAdaptiveAdjustUtc is { } last && (now - last).TotalMinutes < settings.AdaptiveIntervalMinutes)
+        {
+            return false;
+        }
+
+        var newPeak = settings.ToPolicy().ComputeAdaptivePeak(measuredOccupancy);
+        var changed = newPeak != settings.PeakPricePercent;
+
+        settings.ApplyAdaptiveAdjustment(newPeak, now);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        cache.Remove(PolicyCacheKey);
+
+        if (changed)
+        {
+            logger.LogInformation(
+                "Adaptive pricing: peak surcharge set to {Peak}% (peak occupancy {Occupancy:P0}, target {Target}%).",
+                newPeak, measuredOccupancy, settings.AdaptiveTargetOccupancyPercent);
+        }
+
+        return changed;
     }
 
     private static async Task<ParkingSettings> GetOrCreateAsync(WeboraDbContext dbContext, CancellationToken cancellationToken)
