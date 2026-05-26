@@ -359,6 +359,12 @@
   <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Pravidla a ceny</value></data>
   <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
   <data name="Parking_Settings_Intro" xml:space="preserve"><value>Bodování a časová pravidla motivačního systému. Změny se projeví okamžitě.</value></data>
+  <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Ekonomika</value></data>
+  <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Body a úrovně</value></data>
+  <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Důvěra a ochrana</value></data>
+  <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a špička</value></data>
+  <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Rezidenti</value></data>
+  <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Lokalita a limity</value></data>
   <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Body</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
