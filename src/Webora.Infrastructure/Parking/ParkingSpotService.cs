@@ -18,7 +18,11 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
 
         return await query
             .OrderBy(s => s.Code)
-            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes))
+            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
+                s.OwnerId == null
+                    ? null
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
     }
 
@@ -27,7 +31,11 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.Id == id)
-            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes))
+            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
+                s.OwnerId == null
+                    ? null
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.MonthlyShareAllowance))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -95,6 +103,25 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
             spot.Deactivate();
         }
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> AssignOwnerAsync(Guid id, Guid? ownerId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        if (spot is null)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+        }
+
+        if (ownerId is { } owner && !await dbContext.Users.AnyAsync(u => u.Id == owner, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_UserNotFound");
+        }
+
+        spot.AssignOwner(ownerId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }

@@ -33,6 +33,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<ParkingSettings> ParkingSettings => Set<ParkingSettings>();
 
+    public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -115,6 +117,15 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
             spot.Property(s => s.Notes).HasMaxLength(512);
             spot.HasIndex(s => s.Code).IsUnique();
+            spot.HasIndex(s => s.OwnerId);
+        });
+
+        builder.Entity<SpotRelease>(release =>
+        {
+            release.ToTable("SpotReleases");
+            release.HasKey(r => r.Id);
+            release.HasIndex(r => new { r.SpotId, r.Date }).IsUnique();
+            release.HasIndex(r => new { r.OwnerId, r.Date });
         });
 
         builder.Entity<Reservation>(reservation =>

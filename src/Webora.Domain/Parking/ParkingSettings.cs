@@ -29,6 +29,16 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public TimeSpan SweepInterval { get; private set; } = TimeSpan.FromMinutes(5);
 
+    public TimeOnly ResidentHoldUntil { get; private set; } = new(8, 0);
+
+    public int ResidentReleasePointsPerHour { get; private set; } = 2;
+
+    public int ResidentReleaseMaxPoints { get; private set; } = 40;
+
+    public int ResidentMaxShareAllowance { get; private set; } = 30;
+
+    public int ResidentSharePercentPerAllowance { get; private set; } = 5;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -47,7 +57,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         TimeSpan reminderLeadTime,
         TimeOnly peakStart,
         TimeOnly peakEnd,
-        TimeSpan sweepInterval)
+        TimeSpan sweepInterval,
+        TimeOnly residentHoldUntil,
+        int residentReleasePointsPerHour,
+        int residentReleaseMaxPoints,
+        int residentMaxShareAllowance,
+        int residentSharePercentPerAllowance)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -59,6 +74,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         PeakEnd = peakEnd;
         // A floor keeps the maintenance loop from busy-spinning on a misconfigured tiny interval.
         SweepInterval = sweepInterval < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : sweepInterval;
+        ResidentHoldUntil = residentHoldUntil;
+        ResidentReleasePointsPerHour = Math.Max(0, residentReleasePointsPerHour);
+        ResidentReleaseMaxPoints = Math.Max(0, residentReleaseMaxPoints);
+        ResidentMaxShareAllowance = Math.Max(0, residentMaxShareAllowance);
+        ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -71,6 +91,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReminderLeadTime = ReminderLeadTime,
         PeakStart = PeakStart,
         PeakEnd = PeakEnd,
+        ResidentHoldUntil = ResidentHoldUntil,
+        ResidentReleasePointsPerHour = ResidentReleasePointsPerHour,
+        ResidentReleaseMaxPoints = ResidentReleaseMaxPoints,
+        ResidentMaxShareAllowance = ResidentMaxShareAllowance,
+        ResidentSharePercentPerAllowance = ResidentSharePercentPerAllowance,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

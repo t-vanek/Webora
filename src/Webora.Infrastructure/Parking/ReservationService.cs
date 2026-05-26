@@ -18,6 +18,11 @@ public sealed class ReservationService(
 {
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var requestDate = DateOnly.FromDateTime(startUtc.Date);
+        var autoShareActive = policy.IsResidentAutoShareActive(requestDate, now);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var blocked = dbContext.Reservations
@@ -25,10 +30,15 @@ public sealed class ReservationService(
                         && r.StartUtc < endUtc && r.EndUtc > startUtc)
             .Select(r => r.SpotId);
 
+        var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
+
+        // Owned spots are hidden from the pool unless released for that day, or it is today and the
+        // hold cutoff has passed (auto-share). Once a guest books one, the block above excludes it.
         return await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && !blocked.Contains(s.Id))
+            .Where(s => s.IsActive && !blocked.Contains(s.Id)
+                && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
             .OrderBy(s => s.Code)
-            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes))
+            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null, s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
     }
 
@@ -83,6 +93,17 @@ public sealed class ReservationService(
         if (!spot.IsActive)
         {
             return ParkingResult.Failure("Parking_Error_SpotInactive");
+        }
+
+        // A reserved (owned) spot can only be booked by a non-owner once it is shared for that day.
+        if (spot.OwnerId is { } owner && owner != userId)
+        {
+            var requestDate = DateOnly.FromDateTime(startUtc.Date);
+            var released = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spotId && r.Date == requestDate, cancellationToken);
+            if (!released && !policy.IsResidentAutoShareActive(requestDate, now))
+            {
+                return ParkingResult.Failure("Parking_Error_SpotReserved");
+            }
         }
 
         var spotTaken = await dbContext.Reservations.AnyAsync(r => r.SpotId == spotId

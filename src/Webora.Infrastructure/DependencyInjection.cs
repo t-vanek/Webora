@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IParkingSpotService, ParkingSpotService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<IIncentiveService, IncentiveService>();
+        services.AddScoped<IResidentSpotService, ResidentSpotService>();
 
         // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
         // host where the ASP.NET shared framework is available. Here we only provide the seeder

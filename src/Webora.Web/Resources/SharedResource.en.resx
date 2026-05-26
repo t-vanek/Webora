@@ -373,4 +373,32 @@
   <data name="Parking_Settings_Save" xml:space="preserve"><value>Save settings</value></data>
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
+  <data name="Parking_Owned_Title" xml:space="preserve"><value>Your reserved spot</value></data>
+  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Held for you</value></data>
+  <data name="Parking_OwnedState_Claimed" xml:space="preserve"><value>Confirmed – yours all day</value></data>
+  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Shared (still free)</value></data>
+  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Shared – taken by someone else</value></data>
+  <data name="Parking_Owned_Confirm" xml:space="preserve"><value>Confirm arrival</value></data>
+  <data name="Parking_Owned_ReleaseDate" xml:space="preserve"><value>Release day</value></data>
+  <data name="Parking_Owned_Release" xml:space="preserve"><value>Release</value></data>
+  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Monthly share allowance</value></data>
+  <data name="Parking_Owned_SaveAllowance" xml:space="preserve"><value>Save</value></data>
+  <data name="Parking_Owned_Confirmed" xml:space="preserve"><value>Arrival confirmed, the spot is yours.</value></data>
+  <data name="Parking_Owned_Released" xml:space="preserve"><value>The spot was released to others.</value></data>
+  <data name="Parking_Owned_AllowanceSaved" xml:space="preserve"><value>Sharing settings saved.</value></data>
+  <data name="Parking_Admin_Resident" xml:space="preserve"><value>Resident</value></data>
+  <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— no resident —</value></data>
+  <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Residents</value></data>
+  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Hold spot until</value></data>
+  <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Points per hour of notice</value></data>
+  <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Cap on advance-notice points</value></data>
+  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Max share allowance</value></data>
+  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>% to multiplier per share</value></data>
+  <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>The user was not found.</value></data>
+  <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>This spot is reserved and not shared for that time.</value></data>
+  <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>You have no reserved spot assigned.</value></data>
+  <data name="Parking_Error_AlreadyReleased" xml:space="preserve"><value>The spot is already released for that day.</value></data>
+  <data name="Parking_Error_SpotTakenToday" xml:space="preserve"><value>Someone else already took the spot today.</value></data>
+  <data name="Parking_Error_AlreadyClaimed" xml:space="preserve"><value>You already confirmed arrival for that day.</value></data>
+  <data name="Parking_Error_PastDate" xml:space="preserve"><value>You can't release a day in the past.</value></data>
 </root>

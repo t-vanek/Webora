@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IParkingSpotService Spots
 @inject IReservationService Reservations
+@inject IUserAdminService UserAdmin
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
@@ -54,7 +55,7 @@
     else
     {
         <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
-                        GridTemplateColumns="1fr 1fr 2fr 1fr auto">
+                        GridTemplateColumns="1fr 1fr 1.5fr 1fr 1.5fr auto">
             <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
             <PropertyColumn Property="@(s => s.Type)" Title="@L["Parking_Admin_Type"]" />
             <TemplateColumn Title="@L["Parking_Admin_Notes"]">
@@ -62,6 +63,15 @@
             </TemplateColumn>
             <TemplateColumn Title="@L["Parking_Admin_State"]">
                 @(context.IsActive ? L["Parking_Admin_Active"] : L["Parking_Admin_Inactive"])
+            </TemplateColumn>
+            <TemplateColumn Title="@L["Parking_Admin_Resident"]">
+                <FluentSelect TOption="string"
+                              Items="@_userOptions"
+                              OptionValue="@(id => id)"
+                              OptionText="@(id => UserLabel(id))"
+                              Value="@(context.OwnerId?.ToString() ?? string.Empty)"
+                              ValueChanged="@(v => AssignAsync(context.Id, v))"
+                              Style="width:100%" />
             </TemplateColumn>
             <TemplateColumn Align="Align.End">
                 @if (context.IsActive)
@@ -88,7 +98,38 @@
     private string? _error;
     private string? _info;
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    private IReadOnlyList<UserSummary> _users = [];
+    private IEnumerable<string> _userOptions => new[] { string.Empty }.Concat(_users.Select(u => u.Id.ToString()));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserAdmin.ListAsync(null);
+        await ReloadAsync();
+    }
+
+    private string UserLabel(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return L["Parking_Admin_NoResident"];
+        }
+
+        var user = _users.FirstOrDefault(u => u.Id.ToString() == id);
+        return user is null ? id : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
+    }
+
+    private async Task AssignAsync(Guid spotId, string? userId)
+    {
+        _error = _info = null;
+        Guid? ownerId = Guid.TryParse(userId, out var parsed) ? parsed : null;
+        var result = await Spots.AssignOwnerAsync(spotId, ownerId);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
 
     private async Task CreateAsync()
     {

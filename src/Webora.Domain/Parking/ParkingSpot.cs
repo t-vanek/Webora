@@ -15,6 +15,17 @@ public class ParkingSpot : Entity
 
     public string? Notes { get; private set; }
 
+    /// <summary>The resident this spot is reserved for, or null when it is a shared pool spot.</summary>
+    public Guid? OwnerId { get; private set; }
+
+    /// <summary>How many times a month the resident is willing to share the spot; scales the reward.</summary>
+    public int MonthlyShareAllowance { get; private set; }
+
+    /// <summary>The day the resident was last reminded to confirm arrival, so it is sent once a day.</summary>
+    public DateOnly? LastResidentReminderDate { get; private set; }
+
+    public bool HasOwner => OwnerId is not null;
+
     private ParkingSpot() { }
 
     public ParkingSpot(string code, ParkingSpotType type, string? notes = null)
@@ -39,4 +50,19 @@ public class ParkingSpot : Entity
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;
+
+    /// <summary>Assigns a resident. Passing null clears ownership and resets the sharing settings.</summary>
+    public void AssignOwner(Guid? ownerId)
+    {
+        OwnerId = ownerId;
+        if (ownerId is null)
+        {
+            MonthlyShareAllowance = 0;
+            LastResidentReminderDate = null;
+        }
+    }
+
+    public void SetShareAllowance(int allowance) => MonthlyShareAllowance = allowance < 0 ? 0 : allowance;
+
+    public void MarkResidentReminded(DateOnly date) => LastResidentReminderDate = date;
 }

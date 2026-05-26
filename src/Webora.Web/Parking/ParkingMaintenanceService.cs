@@ -40,16 +40,18 @@ public sealed class ParkingMaintenanceService(
             await using var scope = scopeFactory.CreateAsyncScope();
             var settings = scope.ServiceProvider.GetRequiredService<IParkingSettingsService>();
             var reservations = scope.ServiceProvider.GetRequiredService<IReservationService>();
+            var residentSpots = scope.ServiceProvider.GetRequiredService<IResidentSpotService>();
 
             interval = await settings.GetSweepIntervalAsync(cancellationToken);
             var reminded = await reservations.SendDueRemindersAsync(cancellationToken);
+            var residentReminders = await residentSpots.SendDueHoldRemindersAsync(cancellationToken);
             var resolved = await reservations.SweepNoShowsAsync(cancellationToken);
 
-            if (reminded > 0 || resolved > 0)
+            if (reminded > 0 || residentReminders > 0 || resolved > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reminders sent, {Resolved} no-shows resolved.",
-                    reminded, resolved);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {Resolved} no-shows resolved.",
+                    reminded, residentReminders, resolved);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

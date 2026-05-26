@@ -373,4 +373,32 @@
   <data name="Parking_Settings_Save" xml:space="preserve"><value>Uložit nastavení</value></data>
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Nastavení uloženo.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Konec špičky musí být po jejím začátku.</value></data>
+  <data name="Parking_Owned_Title" xml:space="preserve"><value>Tvé vyhrazené místo</value></data>
+  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Drženo pro tebe</value></data>
+  <data name="Parking_OwnedState_Claimed" xml:space="preserve"><value>Potvrzeno – tvé na celý den</value></data>
+  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Sdíleno (zatím volné)</value></data>
+  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Sdíleno – obsazeno jiným</value></data>
+  <data name="Parking_Owned_Confirm" xml:space="preserve"><value>Potvrdit příjezd</value></data>
+  <data name="Parking_Owned_ReleaseDate" xml:space="preserve"><value>Den uvolnění</value></data>
+  <data name="Parking_Owned_Release" xml:space="preserve"><value>Uvolnit</value></data>
+  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Měsíční povolené sdílení</value></data>
+  <data name="Parking_Owned_SaveAllowance" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Parking_Owned_Confirmed" xml:space="preserve"><value>Příjezd potvrzen, místo je tvé.</value></data>
+  <data name="Parking_Owned_Released" xml:space="preserve"><value>Místo bylo uvolněno ostatním.</value></data>
+  <data name="Parking_Owned_AllowanceSaved" xml:space="preserve"><value>Nastavení sdílení uloženo.</value></data>
+  <data name="Parking_Admin_Resident" xml:space="preserve"><value>Rezident</value></data>
+  <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— bez rezidenta —</value></data>
+  <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Rezidenti</value></data>
+  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Držení místa do</value></data>
+  <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Body za hodinu předstihu</value></data>
+  <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Strop bodů za předstih</value></data>
+  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Max. povolené sdílení</value></data>
+  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>% k násobiči za sdílení</value></data>
+  <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>Uživatel nebyl nalezen.</value></data>
+  <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>Toto místo je vyhrazené a v tomto čase není ke sdílení.</value></data>
+  <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>Nemáš přiřazené vyhrazené místo.</value></data>
+  <data name="Parking_Error_AlreadyReleased" xml:space="preserve"><value>Místo už je na tento den uvolněné.</value></data>
+  <data name="Parking_Error_SpotTakenToday" xml:space="preserve"><value>Místo už dnes obsadil někdo jiný.</value></data>
+  <data name="Parking_Error_AlreadyClaimed" xml:space="preserve"><value>Na tento den už máš potvrzený příjezd.</value></data>
+  <data name="Parking_Error_PastDate" xml:space="preserve"><value>Nelze uvolnit den v minulosti.</value></data>
 </root>

@@ -14,4 +14,7 @@ public interface IParkingSpotService
     Task<ParkingResult> UpdateAsync(Guid id, string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default);
+
+    /// <summary>Assigns a resident to the spot, or clears ownership when ownerId is null.</summary>
+    Task<ParkingResult> AssignOwnerAsync(Guid id, Guid? ownerId, CancellationToken cancellationToken = default);
 }

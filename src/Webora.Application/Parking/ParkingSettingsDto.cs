@@ -10,4 +10,9 @@ public sealed record ParkingSettingsDto(
     TimeSpan ReminderLeadTime,
     TimeOnly PeakStart,
     TimeOnly PeakEnd,
-    TimeSpan SweepInterval);
+    TimeSpan SweepInterval,
+    TimeOnly ResidentHoldUntil,
+    int ResidentReleasePointsPerHour,
+    int ResidentReleaseMaxPoints,
+    int ResidentMaxShareAllowance,
+    int ResidentSharePercentPerAllowance);

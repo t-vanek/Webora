@@ -7,4 +7,7 @@ public sealed record ParkingSpotDto(
     string Code,
     ParkingSpotType Type,
     bool IsActive,
-    string? Notes);
+    string? Notes,
+    Guid? OwnerId,
+    string? OwnerName,
+    int MonthlyShareAllowance);

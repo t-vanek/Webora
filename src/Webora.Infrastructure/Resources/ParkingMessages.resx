@@ -16,4 +16,6 @@
   <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Tvá rezervace místa {0} brzy začíná. Potvrď příjezd, nebo místo uvolni pro ostatní – jinak ti propadne jako nedostavení.</value></data>
   <data name="Parking_Notify_NoShow_Title" xml:space="preserve"><value>Nedostavení k rezervaci</value></data>
   <data name="Parking_Notify_NoShow_Body" xml:space="preserve"><value>Nepotvrdil(a) jsi příjezd k rezervaci místa {0}, byla označena jako nedostavení a přišel(a) jsi o {1} bodů.</value></data>
+  <data name="Parking_Notify_HoldReminder_Title" xml:space="preserve"><value>Potvrď příjezd na své místo</value></data>
+  <data name="Parking_Notify_HoldReminder_Body" xml:space="preserve"><value>Brzy vyprší držení tvého vyhrazeného místa {0}. Potvrď příjezd, nebo ho uvolni ostatním a získej body.</value></data>
 </root>

@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IReservationService Reservations
 @inject IParkingSettingsService ParkingSettings
+@inject IResidentSpotService ResidentSpots
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -23,6 +24,39 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">
             @L[_info]
         </FluentMessageBar>
+    }
+
+    @if (_ownedSpot is not null)
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_Owned_Title"]</FluentLabel>
+                <FluentLabel Typo="Typography.H5">@_ownedSpot.Code (@_ownedSpot.Type)</FluentLabel>
+                <FluentLabel Typo="Typography.Body">
+                    @L["Parking_Status"]: @L[$"Parking_OwnedState_{_ownedSpot.TodayState}"]
+                </FluentLabel>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    @if (_ownedSpot.TodayState == OwnedSpotDayState.Held)
+                    {
+                        <FluentButton Appearance="Appearance.Accent" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
+                    }
+                    <div>
+                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseDate"]</FluentLabel>
+                        <input type="date" @bind="_releaseDate" class="parking-input" />
+                    </div>
+                    <FluentButton Appearance="Appearance.Outline" OnClick="ReleaseOwnedAsync">
+                        @L["Parking_Owned_Release"] (+@_ownedSpot.PotentialReleasePointsToday @L["Parking_Points"])
+                    </FluentButton>
+                </FluentStack>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
+                                       Label="@L["Parking_Owned_Allowance"]" />
+                    <FluentButton OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
     }
 
     <FluentCard>
@@ -128,6 +162,10 @@
     private string? _error;
     private string? _info;
 
+    private OwnedSpotDto? _ownedSpot;
+    private DateTime _releaseDate = DateTime.Today;
+    private int _allowance;
+
     private IncentivePolicy? _policy;
 
     private DateTimeOffset Start => new(_day.ToDateTime(_startTime));
@@ -140,7 +178,49 @@
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
         _policy = await ParkingSettings.GetPolicyAsync();
+        await ReloadOwnedSpotAsync();
         await ReloadReservationsAsync();
+    }
+
+    private async Task ReloadOwnedSpotAsync()
+    {
+        _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
+        _allowance = _ownedSpot?.MonthlyShareAllowance ?? 0;
+    }
+
+    private async Task ConfirmArrivalAsync()
+    {
+        await RunResidentAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId), "Parking_Owned_Confirmed");
+    }
+
+    private async Task ReleaseOwnedAsync()
+    {
+        await RunResidentAsync(() => ResidentSpots.ReleaseAsync(_userId, DateOnly.FromDateTime(_releaseDate)), "Parking_Owned_Released");
+    }
+
+    private async Task SaveAllowanceAsync()
+    {
+        await RunResidentAsync(() => ResidentSpots.SetShareAllowanceAsync(_userId, _allowance), "Parking_Owned_AllowanceSaved");
+    }
+
+    private async Task RunResidentAsync(Func<Task<ParkingResult>> action, string successKey)
+    {
+        _error = _info = null;
+        var result = await action();
+        if (result.Succeeded)
+        {
+            _info = successKey;
+            await ReloadOwnedSpotAsync();
+            await ReloadReservationsAsync();
+            if (_available is not null)
+            {
+                await FindAvailableAsync();
+            }
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
     }
 
     private async Task FindAvailableAsync()

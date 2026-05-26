@@ -15,6 +15,9 @@ public enum IncentiveReason
     /// <summary>A reservation was used as booked (check-in through completion).</summary>
     ReservationCompleted,
 
+    /// <summary>A resident proactively released their reserved spot into the shared pool.</summary>
+    ResidentSpotShared,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

@@ -76,6 +76,30 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentSection"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Settings_ResidentHoldUntil"]</FluentLabel>
+                    <input type="time" @bind="_form.ResidentHoldUntil" class="parking-input" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleasePointsPerHour" Min="0"
+                                       Label="@L["Parking_Settings_ResidentPointsPerHour"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleaseMaxPoints" Min="0"
+                                       Label="@L["Parking_Settings_ResidentMaxPoints"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ResidentMaxShareAllowance" Min="0"
+                                       Label="@L["Parking_Settings_ResidentMaxAllowance"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
+                                       Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -111,6 +135,11 @@
             SweepIntervalMinutes = (int)s.SweepInterval.TotalMinutes,
             PeakStart = s.PeakStart,
             PeakEnd = s.PeakEnd,
+            ResidentHoldUntil = s.ResidentHoldUntil,
+            ResidentReleasePointsPerHour = s.ResidentReleasePointsPerHour,
+            ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
+            ResidentMaxShareAllowance = s.ResidentMaxShareAllowance,
+            ResidentSharePercentPerAllowance = s.ResidentSharePercentPerAllowance,
         };
     }
 
@@ -123,7 +152,12 @@
             TimeSpan.FromMinutes(_form.NoShowGraceMinutes),
             TimeSpan.FromMinutes(_form.ReminderLeadMinutes),
             _form.PeakStart, _form.PeakEnd,
-            TimeSpan.FromMinutes(_form.SweepIntervalMinutes));
+            TimeSpan.FromMinutes(_form.SweepIntervalMinutes),
+            _form.ResidentHoldUntil,
+            _form.ResidentReleasePointsPerHour,
+            _form.ResidentReleaseMaxPoints,
+            _form.ResidentMaxShareAllowance,
+            _form.ResidentSharePercentPerAllowance);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -148,5 +182,10 @@
         public int SweepIntervalMinutes { get; set; }
         public TimeOnly PeakStart { get; set; }
         public TimeOnly PeakEnd { get; set; }
+        public TimeOnly ResidentHoldUntil { get; set; }
+        public int ResidentReleasePointsPerHour { get; set; }
+        public int ResidentReleaseMaxPoints { get; set; }
+        public int ResidentMaxShareAllowance { get; set; }
+        public int ResidentSharePercentPerAllowance { get; set; }
     }
 }

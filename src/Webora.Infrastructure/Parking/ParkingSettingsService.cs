@@ -46,7 +46,9 @@ public sealed class ParkingSettingsService(
         return new ParkingSettingsDto(
             s.ReleasePoints, s.OffPeakBonusPoints, s.NoShowPenaltyPoints,
             s.ReleaseCutoff, s.NoShowGracePeriod, s.ReminderLeadTime,
-            s.PeakStart, s.PeakEnd, s.SweepInterval);
+            s.PeakStart, s.PeakEnd, s.SweepInterval,
+            s.ResidentHoldUntil, s.ResidentReleasePointsPerHour, s.ResidentReleaseMaxPoints,
+            s.ResidentMaxShareAllowance, s.ResidentSharePercentPerAllowance);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -61,7 +63,9 @@ public sealed class ParkingSettingsService(
         settings.Update(
             dto.ReleasePoints, dto.OffPeakBonusPoints, dto.NoShowPenaltyPoints,
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
-            dto.PeakStart, dto.PeakEnd, dto.SweepInterval);
+            dto.PeakStart, dto.PeakEnd, dto.SweepInterval,
+            dto.ResidentHoldUntil, dto.ResidentReleasePointsPerHour, dto.ResidentReleaseMaxPoints,
+            dto.ResidentMaxShareAllowance, dto.ResidentSharePercentPerAllowance);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",

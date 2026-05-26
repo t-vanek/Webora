@@ -52,6 +52,14 @@ public class ParkerScore
         UpdatedAtUtc = at;
     }
 
+    /// <summary>A resident shared their reserved spot with the pool; counts as a release.</summary>
+    public void RewardSharing(int points, DateTimeOffset at)
+    {
+        Points += points;
+        ReservationsReleased++;
+        UpdatedAtUtc = at;
+    }
+
     /// <summary>A manual administrative correction; does not touch behaviour counters.</summary>
     public void Adjust(int delta, DateTimeOffset at)
     {

@@ -31,7 +31,35 @@ public sealed record IncentivePolicy
     /// <summary>End of the daily high-demand window (local time of the reservation).</summary>
     public TimeOnly PeakEnd { get; init; } = new(10, 0);
 
+    /// <summary>Daily time until which a reserved spot is held for its resident before auto-sharing.</summary>
+    public TimeOnly ResidentHoldUntil { get; init; } = new(8, 0);
+
+    /// <summary>Points per hour of advance notice when a resident proactively releases their spot.</summary>
+    public int ResidentReleasePointsPerHour { get; init; } = 2;
+
+    /// <summary>Cap on the advance-notice part of a resident's release reward.</summary>
+    public int ResidentReleaseMaxPoints { get; init; } = 40;
+
+    /// <summary>Largest monthly share allowance a resident may set on their spot.</summary>
+    public int ResidentMaxShareAllowance { get; init; } = 30;
+
+    /// <summary>Extra percent added to the release reward multiplier per allowed monthly share.</summary>
+    public int ResidentSharePercentPerAllowance { get; init; } = 5;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>
+    /// Points for a proactive resident release: an advance-notice bonus (earlier = more, capped)
+    /// scaled by a multiplier that grows with the resident's monthly share allowance.
+    /// </summary>
+    public int ComputeShareReward(DateTimeOffset shareCutoff, DateTimeOffset releasedAt, int monthlyAllowance)
+    {
+        var hoursEarly = Math.Max(0d, (shareCutoff - releasedAt).TotalHours);
+        var earlyBonus = Math.Min(ResidentReleaseMaxPoints, (int)Math.Ceiling(hoursEarly) * ResidentReleasePointsPerHour);
+        var allowance = Math.Clamp(monthlyAllowance, 0, ResidentMaxShareAllowance);
+        var multiplier = 1.0 + allowance * ResidentSharePercentPerAllowance / 100.0;
+        return (int)Math.Round(earlyBonus * multiplier, MidpointRounding.AwayFromZero);
+    }
 
     /// <summary>A reservation is off-peak when its arrival falls outside the peak window.</summary>
     public bool IsOffPeak(DateTimeOffset start)
@@ -47,4 +75,12 @@ public sealed record IncentivePolicy
     /// <summary>Whether an un-used reservation has passed its grace period and is now a no-show.</summary>
     public bool IsNoShow(DateTimeOffset start, DateTimeOffset now) =>
         now >= start + NoShowGracePeriod;
+
+    /// <summary>The instant on a given day after which an unclaimed reserved spot auto-shares.</summary>
+    public DateTimeOffset ResidentShareCutoff(DateOnly date, TimeSpan offset) =>
+        new DateTimeOffset(date.ToDateTime(ResidentHoldUntil), offset) + NoShowGracePeriod;
+
+    /// <summary>Whether a reserved spot for the requested day has auto-shared: today and past cutoff.</summary>
+    public bool IsResidentAutoShareActive(DateOnly requestDate, DateTimeOffset now) =>
+        requestDate == DateOnly.FromDateTime(now.Date) && now >= ResidentShareCutoff(requestDate, now.Offset);
 }

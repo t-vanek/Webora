@@ -16,4 +16,6 @@
   <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Your reservation for spot {0} starts soon. Confirm arrival or release it for others – otherwise it will lapse as a no-show.</value></data>
   <data name="Parking_Notify_NoShow_Title" xml:space="preserve"><value>Missed reservation</value></data>
   <data name="Parking_Notify_NoShow_Body" xml:space="preserve"><value>You didn't confirm arrival for spot {0}; it was marked as a no-show and you lost {1} points.</value></data>
+  <data name="Parking_Notify_HoldReminder_Title" xml:space="preserve"><value>Confirm arrival on your spot</value></data>
+  <data name="Parking_Notify_HoldReminder_Body" xml:space="preserve"><value>The hold on your reserved spot {0} expires soon. Confirm arrival, or release it to others and earn points.</value></data>
 </root>
