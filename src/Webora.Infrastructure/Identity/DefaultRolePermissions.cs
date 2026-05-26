@@ -15,10 +15,12 @@ public static class DefaultRolePermissions
                 Permissions.Pages.Delete, Permissions.Pages.Publish,
                 Permissions.Media.View, Permissions.Media.Upload, Permissions.Media.Delete,
                 Permissions.Settings.View,
+                Permissions.Parking.View, Permissions.Parking.Reserve, Permissions.Parking.ViewLeaderboard,
             ],
             [Roles.Viewer] =
             [
                 Permissions.Pages.View, Permissions.Media.View, Permissions.Settings.View,
+                Permissions.Parking.View, Permissions.Parking.Reserve, Permissions.Parking.ViewLeaderboard,
             ],
         };
 }
