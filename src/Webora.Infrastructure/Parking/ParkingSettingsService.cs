@@ -60,7 +60,8 @@ public sealed class ParkingSettingsService(
             s.AutoVerifyHomeAddress, s.AutoVerifyMaxDistanceKm, s.MaxRewardedReleasesPerDay, s.MaxReleaseRangeDays,
             s.BaseReservationCost, s.PeakPricePercent, s.OccupancyPricePercent, s.MaxReservationCost, s.MonthlyCreditAllowance,
             s.QueueOfferMinutes, s.QueueNoShowPenaltyPoints, s.QueueNoShowCreditPenalty, s.QueueNoShowBanDays, s.QueueNoShowAllowancePenalty,
-            s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward);
+            s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward,
+            s.StreakBonusPerLevel, s.StreakBonusCap, s.TierSilverPoints, s.TierGoldPoints, s.TierPlatinumPoints);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -82,7 +83,8 @@ public sealed class ParkingSettingsService(
             dto.AutoVerifyHomeAddress, dto.AutoVerifyMaxDistanceKm, dto.MaxRewardedReleasesPerDay, dto.MaxReleaseRangeDays,
             dto.BaseReservationCost, dto.PeakPricePercent, dto.OccupancyPricePercent, dto.MaxReservationCost, dto.MonthlyCreditAllowance,
             dto.QueueOfferMinutes, dto.QueueNoShowPenaltyPoints, dto.QueueNoShowCreditPenalty, dto.QueueNoShowBanDays, dto.QueueNoShowAllowancePenalty,
-            dto.DemandReleaseOccupancyPercent, dto.DemandReleaseQueueBonus, dto.MaxReleaseReward);
+            dto.DemandReleaseOccupancyPercent, dto.DemandReleaseQueueBonus, dto.MaxReleaseReward,
+            dto.StreakBonusPerLevel, dto.StreakBonusCap, dto.TierSilverPoints, dto.TierGoldPoints, dto.TierPlatinumPoints);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",

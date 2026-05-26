@@ -38,4 +38,9 @@ public sealed record ParkingSettingsDto(
     int QueueNoShowAllowancePenalty,
     int DemandReleaseOccupancyPercent,
     int DemandReleaseQueueBonus,
-    int MaxReleaseReward);
+    int MaxReleaseReward,
+    int StreakBonusPerLevel,
+    int StreakBonusCap,
+    int TierSilverPoints,
+    int TierGoldPoints,
+    int TierPlatinumPoints);

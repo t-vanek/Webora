@@ -85,6 +85,16 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MaxReleaseReward { get; private set; } = 40;
 
+    public int StreakBonusPerLevel { get; private set; } = 2;
+
+    public int StreakBonusCap { get; private set; } = 20;
+
+    public int TierSilverPoints { get; private set; } = 50;
+
+    public int TierGoldPoints { get; private set; } = 150;
+
+    public int TierPlatinumPoints { get; private set; } = 300;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -131,7 +141,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         int queueNoShowAllowancePenalty,
         int demandReleaseOccupancyPercent,
         int demandReleaseQueueBonus,
-        int maxReleaseReward)
+        int maxReleaseReward,
+        int streakBonusPerLevel,
+        int streakBonusCap,
+        int tierSilverPoints,
+        int tierGoldPoints,
+        int tierPlatinumPoints)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -171,6 +186,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         DemandReleaseOccupancyPercent = Math.Max(0, demandReleaseOccupancyPercent);
         DemandReleaseQueueBonus = Math.Max(0, demandReleaseQueueBonus);
         MaxReleaseReward = Math.Max(ReleasePoints, maxReleaseReward);
+        StreakBonusPerLevel = Math.Max(0, streakBonusPerLevel);
+        StreakBonusCap = Math.Max(0, streakBonusCap);
+        TierSilverPoints = Math.Max(0, tierSilverPoints);
+        TierGoldPoints = Math.Max(TierSilverPoints, tierGoldPoints);
+        TierPlatinumPoints = Math.Max(TierGoldPoints, tierPlatinumPoints);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -209,6 +229,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         DemandReleaseOccupancyPercent = DemandReleaseOccupancyPercent,
         DemandReleaseQueueBonus = DemandReleaseQueueBonus,
         MaxReleaseReward = MaxReleaseReward,
+        StreakBonusPerLevel = StreakBonusPerLevel,
+        StreakBonusCap = StreakBonusCap,
+        TierSilverPoints = TierSilverPoints,
+        TierGoldPoints = TierGoldPoints,
+        TierPlatinumPoints = TierPlatinumPoints,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

@@ -213,6 +213,31 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LoyaltySection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_LoyaltyHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusPerLevel" Min="0"
+                                       Label="@L["Parking_Settings_StreakBonusPerLevel"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusCap" Min="0"
+                                       Label="@L["Parking_Settings_StreakBonusCap"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TierSilverPoints" Min="0"
+                                       Label="@L["Parking_Settings_TierSilver"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TierGoldPoints" Min="0"
+                                       Label="@L["Parking_Settings_TierGold"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.TierPlatinumPoints" Min="0"
+                                       Label="@L["Parking_Settings_TierPlatinum"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -276,6 +301,11 @@
             DemandReleaseOccupancyPercent = s.DemandReleaseOccupancyPercent,
             DemandReleaseQueueBonus = s.DemandReleaseQueueBonus,
             MaxReleaseReward = s.MaxReleaseReward,
+            StreakBonusPerLevel = s.StreakBonusPerLevel,
+            StreakBonusCap = s.StreakBonusCap,
+            TierSilverPoints = s.TierSilverPoints,
+            TierGoldPoints = s.TierGoldPoints,
+            TierPlatinumPoints = s.TierPlatinumPoints,
         };
     }
 
@@ -316,7 +346,12 @@
             _form.QueueNoShowAllowancePenalty,
             _form.DemandReleaseOccupancyPercent,
             _form.DemandReleaseQueueBonus,
-            _form.MaxReleaseReward);
+            _form.MaxReleaseReward,
+            _form.StreakBonusPerLevel,
+            _form.StreakBonusCap,
+            _form.TierSilverPoints,
+            _form.TierGoldPoints,
+            _form.TierPlatinumPoints);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -369,5 +404,10 @@
         public int DemandReleaseOccupancyPercent { get; set; }
         public int DemandReleaseQueueBonus { get; set; }
         public int MaxReleaseReward { get; set; }
+        public int StreakBonusPerLevel { get; set; }
+        public int StreakBonusCap { get; set; }
+        public int TierSilverPoints { get; set; }
+        public int TierGoldPoints { get; set; }
+        public int TierPlatinumPoints { get; set; }
     }
 }

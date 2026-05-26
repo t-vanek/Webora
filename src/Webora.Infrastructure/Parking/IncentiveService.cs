@@ -5,10 +5,13 @@ using Webora.Infrastructure.Persistence;
 
 namespace Webora.Infrastructure.Parking;
 
-public sealed class IncentiveService(IDbContextFactory<WeboraDbContext> dbContextFactory) : IIncentiveService
+public sealed class IncentiveService(
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
+    IParkingSettingsService parkingSettings) : IIncentiveService
 {
     public async Task<ParkerScoreDto> GetScoreAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var score = await dbContext.ParkerScores.AsNoTracking()
@@ -21,9 +24,10 @@ public sealed class IncentiveService(IDbContextFactory<WeboraDbContext> dbContex
             .ToListAsync(cancellationToken);
 
         return score is null
-            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, 0, badges)
+            ? new ParkerScoreDto(userId, 0, 0, 0, 0, 0, 0, 0, policy.TierFor(0), badges)
             : new ParkerScoreDto(userId, score.Points, score.Credits, score.ReservationsCompleted,
-                score.ReservationsReleased, score.OffPeakReservations, score.NoShows, badges);
+                score.ReservationsReleased, score.OffPeakReservations, score.NoShows,
+                score.CompletionStreak, policy.TierFor(score.Points), badges);
     }
 
     public async Task<IReadOnlyList<LeaderboardEntryDto>> GetLeaderboardAsync(int take = 20, CancellationToken cancellationToken = default)

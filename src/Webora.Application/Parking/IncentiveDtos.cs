@@ -11,6 +11,8 @@ public sealed record ParkerScoreDto(
     int ReservationsReleased,
     int OffPeakReservations,
     int NoShows,
+    int CompletionStreak,
+    LoyaltyTier Tier,
     IReadOnlyList<ParkingBadge> Badges);
 
 /// <summary>A live price quote for booking a spot in a given window, plus the user's ability to pay.</summary>

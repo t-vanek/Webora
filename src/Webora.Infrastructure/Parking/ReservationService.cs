@@ -274,6 +274,15 @@ public sealed class ReservationService(
         dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
             userId, IncentiveReason.ReservationCompleted, 0, reservation.Id, now));
 
+        // Reward an unbroken run of completions (reliability), growing with the streak up to a cap.
+        var streakBonus = policy.ComputeStreakBonus(score.CompletionStreak);
+        if (streakBonus > 0)
+        {
+            score.RewardStreak(streakBonus, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.StreakBonus, streakBonus, reservation.Id, now));
+        }
+
         // Reward off-peak use only once the spot was actually used.
         if (reservation.IsOffPeak)
         {

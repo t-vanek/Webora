@@ -42,6 +42,9 @@ public enum IncentiveReason
     /// <summary>Extra credit fine for a no-show on a spot claimed from the waitlist.</summary>
     QueueNoShowFine,
 
+    /// <summary>A reliability bonus for an unbroken run of completed reservations.</summary>
+    StreakBonus,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

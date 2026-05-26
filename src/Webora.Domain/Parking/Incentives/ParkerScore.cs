@@ -26,6 +26,9 @@ public class ParkerScore
 
     public int NoShows { get; private set; }
 
+    /// <summary>Consecutive completed reservations with no no-show in between; drives the streak bonus.</summary>
+    public int CompletionStreak { get; private set; }
+
     /// <summary>Until when the user is barred from joining the waitlist (a queue no-show penalty).</summary>
     public DateTimeOffset? QueueBannedUntilUtc { get; private set; }
 
@@ -95,6 +98,15 @@ public class ParkerScore
     {
         Points -= Math.Abs(penalty);
         NoShows++;
+        CompletionStreak = 0;
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>A reliability bonus for an unbroken run of completions; tops up both reputation and wallet.</summary>
+    public void RewardStreak(int points, DateTimeOffset at)
+    {
+        Points += points;
+        Credits += points;
         UpdatedAtUtc = at;
     }
 
@@ -129,6 +141,7 @@ public class ParkerScore
     public void RecordCompletion(DateTimeOffset at)
     {
         ReservationsCompleted++;
+        CompletionStreak++;
         UpdatedAtUtc = at;
     }
 

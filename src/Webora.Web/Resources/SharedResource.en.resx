@@ -465,6 +465,18 @@
   <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
   <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus per queued person</value></data>
   <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max release reward</value></data>
+  <data name="Parking_MyStreak" xml:space="preserve"><value>Completion streak</value></data>
+  <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronze</value></data>
+  <data name="Parking_Tier_Silver" xml:space="preserve"><value>Silver</value></data>
+  <data name="Parking_Tier_Gold" xml:space="preserve"><value>Gold</value></data>
+  <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platinum</value></data>
+  <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Streaks and tiers</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>A reward for an unbroken run of completions (grows with length, capped; a no-show resets it) and the reputation thresholds for the loyalty tiers (Bronze/Silver/Gold/Platinum) that unlock perks.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Streak bonus (per level)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Streak bonus cap</value></data>
+  <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Silver from (points)</value></data>
+  <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Gold from (points)</value></data>
+  <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platinum from (points)</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

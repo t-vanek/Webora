@@ -465,6 +465,18 @@
   <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
   <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za čekajícího ve frontě</value></data>
   <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max. odměna za uvolnění</value></data>
+  <data name="Parking_MyStreak" xml:space="preserve"><value>Série dokončení</value></data>
+  <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronz</value></data>
+  <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
+  <data name="Parking_Tier_Gold" xml:space="preserve"><value>Zlato</value></data>
+  <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platina</value></data>
+  <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Strop bonusu za sérii</value></data>
+  <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Stříbro od (bodů)</value></data>
+  <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Zlato od (bodů)</value></data>
+  <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

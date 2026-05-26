@@ -109,7 +109,38 @@ public sealed record IncentivePolicy
     /// <summary>Cap on the demand-scaled release reward, however high occupancy and the queue push it.</summary>
     public int MaxReleaseReward { get; init; } = 40;
 
+    /// <summary>Points/credits added per consecutive completion (streak), rewarding reliability.</summary>
+    public int StreakBonusPerLevel { get; init; } = 2;
+
+    /// <summary>Cap on a single streak bonus, so an endless run doesn't pay unboundedly.</summary>
+    public int StreakBonusCap { get; init; } = 20;
+
+    /// <summary>Reputation points needed to reach the Silver loyalty tier.</summary>
+    public int TierSilverPoints { get; init; } = 50;
+
+    /// <summary>Reputation points needed to reach the Gold loyalty tier.</summary>
+    public int TierGoldPoints { get; init; } = 150;
+
+    /// <summary>Reputation points needed to reach the Platinum loyalty tier.</summary>
+    public int TierPlatinumPoints { get; init; } = 300;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>The streak bonus for a run of <paramref name="streak"/> consecutive completions.</summary>
+    public int ComputeStreakBonus(int streak) =>
+        Math.Min(Math.Max(0, StreakBonusCap), Math.Max(0, streak) * Math.Max(0, StreakBonusPerLevel));
+
+    /// <summary>The loyalty tier a reputation score falls in.</summary>
+    public LoyaltyTier TierFor(int points)
+    {
+        if (points >= TierPlatinumPoints) return LoyaltyTier.Platinum;
+        if (points >= TierGoldPoints) return LoyaltyTier.Gold;
+        if (points >= TierSilverPoints) return LoyaltyTier.Silver;
+        return LoyaltyTier.Bronze;
+    }
+
+    /// <summary>Rank of a tier (Bronze=0 … Platinum=3), used to scale tier perks.</summary>
+    public static int TierRank(LoyaltyTier tier) => (int)tier;
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
     public bool ShouldAutoVerify(double? distanceKm) =>
