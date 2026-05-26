@@ -35,6 +35,8 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
 
+    public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -127,6 +129,15 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             release.HasKey(r => r.Id);
             release.HasIndex(r => new { r.SpotId, r.Date }).IsUnique();
             release.HasIndex(r => new { r.OwnerId, r.Date });
+        });
+
+        builder.Entity<QueueEntry>(entry =>
+        {
+            entry.ToTable("QueueEntries");
+            entry.HasKey(q => q.Id);
+            entry.Property(q => q.Status).HasConversion<string>().HasMaxLength(32);
+            entry.HasIndex(q => new { q.Status, q.CreatedAtUtc });
+            entry.HasIndex(q => new { q.UserId, q.Status });
         });
 
         builder.Entity<Reservation>(reservation =>

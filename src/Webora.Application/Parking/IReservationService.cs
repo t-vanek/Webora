@@ -49,4 +49,22 @@ public interface IReservationService
     /// Intended to be run on a schedule. Returns the number of wallets granted this run.
     /// </summary>
     Task<int> GrantDueMonthlyCreditsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The caller's active (and recent) waitlist entries with their queue position and any offer.</summary>
+    Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Join the waitlist for a window. Allowed only when the window is currently full.</summary>
+    Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>Leave the waitlist; releases any spot currently held for the entry.</summary>
+    Task<ParkingResult> LeaveQueueAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default);
+
+    /// <summary>Claim the spot held for an offered waitlist entry by reserving it (charged as usual).</summary>
+    Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Expires stale offers and past-window entries, then offers freed spots to the earliest waiting
+    /// entries they fit. Runs on free-up events and on the maintenance loop. Returns offers made.
+    /// </summary>
+    Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default);
 }

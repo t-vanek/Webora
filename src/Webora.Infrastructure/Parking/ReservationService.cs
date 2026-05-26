@@ -16,6 +16,9 @@ public sealed class ReservationService(
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
+    /// <summary>How long a freed spot is held for the offered waitlist entry before it lapses to the next.</summary>
+    private static readonly TimeSpan OfferHold = TimeSpan.FromMinutes(15);
+
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -32,10 +35,16 @@ public sealed class ReservationService(
 
         var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
 
+        // Spots currently held for a waitlist offer are off the table until the claim window lapses.
+        var held = dbContext.QueueEntries
+            .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferExpiresAtUtc > now
+                        && q.OfferedSpotId != null && q.StartUtc < endUtc && q.EndUtc > startUtc)
+            .Select(q => q.OfferedSpotId!.Value);
+
         // Owned spots are hidden from the pool unless released for that day, or it is today and the
         // hold cutoff has passed (auto-share). Once a guest books one, the block above excludes it.
         return await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && !blocked.Contains(s.Id)
+            .Where(s => s.IsActive && !blocked.Contains(s.Id) && !held.Contains(s.Id)
                 && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
             .OrderBy(s => s.Code)
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null, s.MonthlyShareAllowance))
@@ -112,6 +121,15 @@ public sealed class ReservationService(
         if (spotTaken)
         {
             return ParkingResult.Failure("Parking_Error_SpotConflict");
+        }
+
+        // A spot held for someone else's waitlist offer can't be booked out from under them.
+        var heldByOther = await dbContext.QueueEntries.AnyAsync(q => q.Status == QueueEntryStatus.Offered
+            && q.OfferedSpotId == spotId && q.UserId != userId && q.OfferExpiresAtUtc > now
+            && q.StartUtc < endUtc && q.EndUtc > startUtc, cancellationToken);
+        if (heldByOther)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotHeld");
         }
 
         var ownConflict = await dbContext.Reservations.AnyAsync(r => r.UserId == userId
@@ -356,6 +374,9 @@ public sealed class ReservationService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
+
+        // The freed spot may now satisfy someone on the waitlist.
+        await ProcessQueueAsync(cancellationToken);
         return ParkingResult.Success;
     }
 
@@ -387,6 +408,9 @@ public sealed class ReservationService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // The freed spot may now satisfy someone on the waitlist.
+        await ProcessQueueAsync(cancellationToken);
         return ParkingResult.Success;
     }
 
@@ -460,6 +484,8 @@ public sealed class ReservationService(
                 messages["Parking_Notify_ShareWasted_Title"], body, cancellationToken);
         }
 
+        // No-shows freed their spots; offer them to the waitlist.
+        await ProcessQueueAsync(cancellationToken);
         return due.Count;
     }
 
@@ -543,6 +569,225 @@ public sealed class ReservationService(
         }
 
         return due.Count;
+    }
+
+    public async Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var mine = await dbContext.QueueEntries.AsNoTracking()
+            .Where(q => q.UserId == userId && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered))
+            .OrderBy(q => q.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        if (mine.Count == 0)
+        {
+            return [];
+        }
+
+        // Position is how many still-waiting entries (anyone) joined no later for an overlapping window.
+        var waiting = await dbContext.QueueEntries.AsNoTracking()
+            .Where(q => q.Status == QueueEntryStatus.Waiting)
+            .Select(q => new { q.StartUtc, q.EndUtc, q.CreatedAtUtc })
+            .ToListAsync(cancellationToken);
+
+        var spotIds = mine.Where(q => q.OfferedSpotId != null).Select(q => q.OfferedSpotId!.Value).ToList();
+        var codes = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => spotIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+        return mine.Select(q => new QueueEntryDto(
+            q.Id, q.StartUtc, q.EndUtc, q.Status,
+            q.Status == QueueEntryStatus.Offered
+                ? 0
+                : waiting.Count(w => w.StartUtc < q.EndUtc && w.EndUtc > q.StartUtc && w.CreatedAtUtc <= q.CreatedAtUtc),
+            q.OfferedSpotId,
+            q.OfferedSpotId is { } sid ? codes.GetValueOrDefault(sid) : null,
+            q.OfferExpiresAtUtc)).ToList();
+    }
+
+    public async Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
+    {
+        var now = timeProvider.GetUtcNow();
+        if (endUtc <= startUtc)
+        {
+            return ParkingResult.Failure("Parking_Error_InvalidWindow");
+        }
+
+        if (endUtc <= now)
+        {
+            return ParkingResult.Failure("Parking_Error_PastWindow");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // One active waitlist entry per user per overlapping window.
+        var alreadyQueued = await dbContext.QueueEntries.AnyAsync(q => q.UserId == userId
+            && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+            && q.StartUtc < endUtc && q.EndUtc > startUtc, cancellationToken);
+        if (alreadyQueued)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_Already");
+        }
+
+        var ownConflict = await dbContext.Reservations.AnyAsync(r => r.UserId == userId
+            && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+            && r.StartUtc < endUtc && r.EndUtc > startUtc, cancellationToken);
+        if (ownConflict)
+        {
+            return ParkingResult.Failure("Parking_Error_OwnConflict");
+        }
+
+        // The waitlist only opens when the window is genuinely full (nothing the user could book now).
+        var available = await GetAvailableSpotsAsync(startUtc, endUtc, cancellationToken);
+        if (available.Count > 0)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_NotFull");
+        }
+
+        dbContext.QueueEntries.Add(new QueueEntry(userId, startUtc, endUtc, now));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> LeaveQueueAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entry = await dbContext.QueueEntries.FirstOrDefaultAsync(q => q.Id == queueEntryId && q.UserId == userId, cancellationToken);
+        if (entry is null || !entry.IsActive)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_NotFound");
+        }
+
+        var wasOffered = entry.Status == QueueEntryStatus.Offered;
+        entry.Cancel();
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Leaving while holding an offer frees that spot for the next in line.
+        if (wasOffered)
+        {
+            await ProcessQueueAsync(cancellationToken);
+        }
+
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default)
+    {
+        var now = timeProvider.GetUtcNow();
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entry = await dbContext.QueueEntries.FirstOrDefaultAsync(q => q.Id == queueEntryId && q.UserId == userId, cancellationToken);
+        if (entry is null || entry.Status != QueueEntryStatus.Offered || entry.OfferedSpotId is not { } spotId)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_NoOffer");
+        }
+
+        if (entry.OfferExpiresAtUtc is { } expires && expires <= now)
+        {
+            return ParkingResult.Failure("Parking_Queue_Error_OfferExpired");
+        }
+
+        // Claiming is just reserving the held spot — same dynamic price and balance check as any booking.
+        var result = await ReserveAsync(userId, spotId, entry.StartUtc, entry.EndUtc, cancellationToken);
+        if (!result.Succeeded)
+        {
+            return result;
+        }
+
+        entry.Claim();
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+
+        var active = await dbContext.QueueEntries
+            .Where(q => q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+            .OrderBy(q => q.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        if (active.Count == 0)
+        {
+            return 0;
+        }
+
+        // Expire passed windows; lapse stale offers back to waiting so the spot can move on.
+        foreach (var entry in active)
+        {
+            if (entry.EndUtc <= now)
+            {
+                entry.Expire();
+            }
+            else if (entry.Status == QueueEntryStatus.Offered && entry.OfferExpiresAtUtc is { } expires && expires <= now)
+            {
+                entry.WithdrawOffer();
+            }
+        }
+
+        // Spots still under a valid offer remain held for their entry and are not re-offered.
+        var heldSpotIds = active
+            .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId is not null)
+            .Select(q => q.OfferedSpotId!.Value)
+            .ToHashSet();
+
+        var offers = new List<(Guid UserId, Guid SpotId)>();
+        foreach (var entry in active.Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now))
+        {
+            var candidates = await AvailableSpotIdsAsync(dbContext, policy, entry.StartUtc, entry.EndUtc, now, cancellationToken);
+            var spotId = candidates.FirstOrDefault(id => !heldSpotIds.Contains(id));
+            if (spotId == Guid.Empty)
+            {
+                continue;
+            }
+
+            entry.Offer(spotId, now + OfferHold);
+            heldSpotIds.Add(spotId);
+            offers.Add((entry.UserId, spotId));
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (offers.Count > 0)
+        {
+            var codes = await dbContext.ParkingSpots.AsNoTracking()
+                .Where(s => offers.Select(o => o.SpotId).Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+            foreach (var (offerUserId, spotId) in offers)
+            {
+                await notifications.NotifyAsync(offerUserId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                    messages["Parking_Notify_QueueOffer_Title"],
+                    messages["Parking_Notify_QueueOffer_Body", codes.GetValueOrDefault(spotId, string.Empty), (int)OfferHold.TotalMinutes],
+                    email: true, cancellationToken);
+            }
+        }
+
+        return offers.Count;
+    }
+
+    // Raw availability for a window (active, unreserved, owned-spot visibility) without the waitlist
+    // hold filter — the queue matcher manages holds itself in memory.
+    private static async Task<List<Guid>> AvailableSpotIdsAsync(WeboraDbContext dbContext, IncentivePolicy policy, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var requestDate = DateOnly.FromDateTime(startUtc.Date);
+        var autoShareActive = policy.IsResidentAutoShareActive(requestDate, now);
+
+        var blocked = dbContext.Reservations
+            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc < endUtc && r.EndUtc > startUtc)
+            .Select(r => r.SpotId);
+
+        var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
+
+        return await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => s.IsActive && !blocked.Contains(s.Id)
+                && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
     }
 
     private static async Task<Dictionary<Guid, string>> GetSpotCodesAsync(WeboraDbContext dbContext, IReadOnlyList<Reservation> reservations, CancellationToken cancellationToken)

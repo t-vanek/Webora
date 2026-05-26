@@ -112,6 +112,7 @@
         @if (_available.Count == 0)
         {
             <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
+            <FluentButton Appearance="Appearance.Accent" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
         }
         else
         {
@@ -144,6 +145,36 @@
                 }
             </FluentStack>
         }
+    }
+
+    @if (_myQueue is { Count: > 0 })
+    {
+        <FluentLabel Typo="Typography.Subject">@L["Parking_Queue_MyQueue"]</FluentLabel>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            @foreach (var q in _myQueue)
+            {
+                <FluentCard>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body">
+                            @q.StartUtc.LocalDateTime.ToString("g") – @q.EndUtc.LocalDateTime.ToString("t")
+                        </FluentLabel>
+                        <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_QueueState_{q.Status}"]</FluentBadge>
+                        @if (q.Status == QueueEntryStatus.Offered)
+                        {
+                            <FluentLabel Typo="Typography.Body" Style="color: var(--success);">
+                                @L["Parking_Queue_OfferedSpot"]: <strong>@q.OfferedSpotCode</strong>
+                            </FluentLabel>
+                            <FluentButton Appearance="Appearance.Accent" OnClick="() => ClaimQueueAsync(q.Id)">@L["Parking_Queue_Claim"]</FluentButton>
+                        }
+                        else
+                        {
+                            <FluentLabel Typo="Typography.Body">@L["Parking_Queue_Position"]: @q.Position</FluentLabel>
+                        }
+                        <FluentButton Appearance="Appearance.Stealth" OnClick="() => LeaveQueueAsync(q.Id)">@L["Parking_Queue_Leave"]</FluentButton>
+                    </FluentStack>
+                </FluentCard>
+            }
+        </FluentStack>
     }
 
     <FluentLabel Typo="Typography.Subject">@L["Parking_MyReservations"]</FluentLabel>
@@ -196,6 +227,7 @@
     private IReadOnlyList<ParkingSpotDto>? _available;
     private ReservationQuoteDto? _quote;
     private IReadOnlyList<ReservationDto>? _myReservations;
+    private IReadOnlyList<QueueEntryDto>? _myQueue;
     private string? _error;
     private string? _info;
 
@@ -221,6 +253,59 @@
         _distanceKm = home.Verified ? home.DistanceKm : null;
         await ReloadOwnedSpotAsync();
         await ReloadReservationsAsync();
+        await ReloadQueueAsync();
+    }
+
+    private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
+
+    private async Task JoinQueueAsync()
+    {
+        _error = _info = null;
+        var result = await Reservations.JoinQueueAsync(_userId, Start, End);
+        if (result.Succeeded)
+        {
+            _info = "Parking_Queue_Joined";
+            await ReloadQueueAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private async Task ClaimQueueAsync(Guid id)
+    {
+        _error = _info = null;
+        var result = await Reservations.ClaimQueueOfferAsync(_userId, id);
+        if (result.Succeeded)
+        {
+            _info = "Parking_Queue_Claimed";
+            await ReloadQueueAsync();
+            await ReloadReservationsAsync();
+            if (_available is not null)
+            {
+                await FindAvailableAsync();
+            }
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private async Task LeaveQueueAsync(Guid id)
+    {
+        _error = _info = null;
+        var result = await Reservations.LeaveQueueAsync(_userId, id);
+        if (result.Succeeded)
+        {
+            _info = "Parking_Queue_Left";
+            await ReloadQueueAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
     }
 
     // Points a reservation on this spot would earn now: off-peak bonus plus, for a shared reserved

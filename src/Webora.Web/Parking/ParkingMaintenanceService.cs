@@ -49,12 +49,13 @@ public sealed class ParkingMaintenanceService(
             var resolved = await reservations.SweepNoShowsAsync(cancellationToken);
             var reconciled = await residentSpots.ReconcileUnusedSharesAsync(cancellationToken);
             var credited = await reservations.GrantDueMonthlyCreditsAsync(cancellationToken);
+            var queueOffers = await reservations.ProcessQueueAsync(cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants.",
-                    reminded, residentReminders, autoShared, resolved, reconciled, credited);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers.",
+                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

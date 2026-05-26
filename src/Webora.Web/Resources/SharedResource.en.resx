@@ -452,4 +452,24 @@
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max price (credits)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
+  <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
+  <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
+  <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>
+  <data name="Parking_Queue_Error_NotFound" xml:space="preserve"><value>That queue entry doesn't exist.</value></data>
+  <data name="Parking_Queue_Error_NoOffer" xml:space="preserve"><value>There's no active spot offer for this queue entry.</value></data>
+  <data name="Parking_Queue_Error_OfferExpired" xml:space="preserve"><value>The spot offer has expired.</value></data>
+  <data name="Parking_Queue_Joined" xml:space="preserve"><value>You've joined the queue. We'll let you know when a spot frees up.</value></data>
+  <data name="Parking_Queue_Left" xml:space="preserve"><value>You've left the queue.</value></data>
+  <data name="Parking_Queue_Claimed" xml:space="preserve"><value>The queued spot is yours – reservation confirmed.</value></data>
+  <data name="Parking_Queue_JoinFull" xml:space="preserve"><value>Full – join the queue</value></data>
+  <data name="Parking_Queue_MyQueue" xml:space="preserve"><value>My queue</value></data>
+  <data name="Parking_Queue_Position" xml:space="preserve"><value>Position</value></data>
+  <data name="Parking_Queue_Claim" xml:space="preserve"><value>Claim spot</value></data>
+  <data name="Parking_Queue_Leave" xml:space="preserve"><value>Leave queue</value></data>
+  <data name="Parking_Queue_OfferedSpot" xml:space="preserve"><value>Held spot</value></data>
+  <data name="Parking_QueueState_Waiting" xml:space="preserve"><value>Waiting</value></data>
+  <data name="Parking_QueueState_Offered" xml:space="preserve"><value>Offered</value></data>
+  <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Claimed</value></data>
+  <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Expired</value></data>
 </root>

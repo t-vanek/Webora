@@ -452,4 +452,24 @@
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
+  <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
+  <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
+  <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>
+  <data name="Parking_Queue_Error_NotFound" xml:space="preserve"><value>Tato položka fronty neexistuje.</value></data>
+  <data name="Parking_Queue_Error_NoOffer" xml:space="preserve"><value>Pro tuto položku fronty není aktivní nabídka místa.</value></data>
+  <data name="Parking_Queue_Error_OfferExpired" xml:space="preserve"><value>Nabídka místa už vypršela.</value></data>
+  <data name="Parking_Queue_Joined" xml:space="preserve"><value>Přidali jsme tě do fronty. Až se místo uvolní, dáme ti vědět.</value></data>
+  <data name="Parking_Queue_Left" xml:space="preserve"><value>Opustil(a) jsi frontu.</value></data>
+  <data name="Parking_Queue_Claimed" xml:space="preserve"><value>Místo z fronty je tvé – rezervace potvrzena.</value></data>
+  <data name="Parking_Queue_JoinFull" xml:space="preserve"><value>Plno – postavit se do fronty</value></data>
+  <data name="Parking_Queue_MyQueue" xml:space="preserve"><value>Moje fronta</value></data>
+  <data name="Parking_Queue_Position" xml:space="preserve"><value>Pozice</value></data>
+  <data name="Parking_Queue_Claim" xml:space="preserve"><value>Převzít místo</value></data>
+  <data name="Parking_Queue_Leave" xml:space="preserve"><value>Opustit frontu</value></data>
+  <data name="Parking_Queue_OfferedSpot" xml:space="preserve"><value>Přidržené místo</value></data>
+  <data name="Parking_QueueState_Waiting" xml:space="preserve"><value>Čeká</value></data>
+  <data name="Parking_QueueState_Offered" xml:space="preserve"><value>Nabídnuto</value></data>
+  <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Převzato</value></data>
+  <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
+  <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
 </root>
