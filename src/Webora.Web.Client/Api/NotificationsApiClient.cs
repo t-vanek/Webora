@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Webora.Contracts.Notifications;
 
 namespace Webora.Web.Client.Api;
@@ -11,17 +13,24 @@ public sealed class NotificationsApiClient(HttpClient http, AntiforgeryTokenProv
 {
     private const string Base = "api/notifications";
 
+    // The host serializes enums as strings (JsonStringEnumConverter); match that when reading so
+    // DTOs carrying enums (NotificationCategory/Level, NotificationScope) deserialize correctly.
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     public Task<int> GetUnreadCountAsync(CancellationToken cancellationToken = default) =>
-        http.GetFromJsonAsync<int>($"{Base}/unread-count", cancellationToken);
+        http.GetFromJsonAsync<int>($"{Base}/unread-count", JsonOptions, cancellationToken);
 
     public async Task<IReadOnlyList<NotificationDto>> GetAsync(int take = 50, bool unreadOnly = false, CancellationToken cancellationToken = default)
     {
         var url = $"{Base}?take={take}&unreadOnly={unreadOnly}";
-        return await http.GetFromJsonAsync<IReadOnlyList<NotificationDto>>(url, cancellationToken) ?? [];
+        return await http.GetFromJsonAsync<IReadOnlyList<NotificationDto>>(url, JsonOptions, cancellationToken) ?? [];
     }
 
     public Task<NotificationPreferencesDto?> GetPreferencesAsync(CancellationToken cancellationToken = default) =>
-        http.GetFromJsonAsync<NotificationPreferencesDto>($"{Base}/preferences", cancellationToken);
+        http.GetFromJsonAsync<NotificationPreferencesDto>($"{Base}/preferences", JsonOptions, cancellationToken);
 
     public Task MarkReadAsync(Guid notificationId, CancellationToken cancellationToken = default) =>
         SendPostAsync($"{Base}/{notificationId}/read", cancellationToken);
