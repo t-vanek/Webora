@@ -192,7 +192,8 @@
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
         _policy = await ParkingSettings.GetPolicyAsync();
-        _distanceKm = (await UserLocation.GetHomeAsync(_userId)).DistanceKm;
+        var home = await UserLocation.GetHomeAsync(_userId);
+        _distanceKm = home.Verified ? home.DistanceKm : null;
         await ReloadOwnedSpotAsync();
         await ReloadReservationsAsync();
     }

@@ -190,8 +190,11 @@ public sealed class ReservationService(
             .FirstOrDefaultAsync(s => s.Id == reservation.SpotId, cancellationToken);
         if (spot is { OwnerId: { } owner } && owner != userId)
         {
-            var distanceKm = await dbContext.Users.Where(u => u.Id == userId)
-                .Select(u => u.CommuteDistanceKm).FirstOrDefaultAsync(cancellationToken);
+            // Only a verified home address counts, so a spoofed far address earns nothing.
+            var home = await dbContext.Users.Where(u => u.Id == userId)
+                .Select(u => new { u.CommuteDistanceKm, u.HomeVerified })
+                .FirstOrDefaultAsync(cancellationToken);
+            var distanceKm = home is { HomeVerified: true } ? home.CommuteDistanceKm : null;
             var takenPoints = policy.ComputeSharedTakenReward(distanceKm);
             if (takenPoints > 0)
             {

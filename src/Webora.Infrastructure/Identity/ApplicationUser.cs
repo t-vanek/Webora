@@ -24,6 +24,9 @@ public class ApplicationUser : IdentityUser<Guid>
 
     /// <summary>Distance from home to the parking lot in km; scales the shared-spot reward.</summary>
     public double? CommuteDistanceKm { get; set; }
+
+    /// <summary>Whether an admin has verified the home address; the distance reward needs this.</summary>
+    public bool HomeVerified { get; set; }
 }
 
 public class ApplicationRole : IdentityRole<Guid>

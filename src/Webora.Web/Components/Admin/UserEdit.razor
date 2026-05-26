@@ -4,6 +4,7 @@
 @inject IUserAdminService UserAdmin
 @inject IRoleAdminService RoleAdmin
 @inject IAccountService AccountService
+@inject IUserLocationService UserLocation
 @inject UserManager<ApplicationUser> UserManager
 @inject ISiteSettingsService SiteSettings
 @inject NavigationManager Nav
@@ -62,6 +63,32 @@
                 </FluentGridItem>
             </FluentGrid>
         </FluentCard>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)" Context="commute">
+            <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_Commute"]</FluentLabel>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
+                <FluentLabel Typo="Typography.Body">
+                    @(string.IsNullOrWhiteSpace(_home.Address) ? L["Admin_UserEdit_NoHome"] : _home.Address)
+                    @if (_home.DistanceKm is { } km)
+                    {
+                        <span> · @km.ToString("0.0") km</span>
+                    }
+                </FluentLabel>
+                @if (!string.IsNullOrWhiteSpace(_home.Address))
+                {
+                    @if (_home.Verified)
+                    {
+                        <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Admin_UserEdit_HomeVerified"]</FluentBadge>
+                        <FluentButton OnClick="() => SetVerifiedAsync(false)" Appearance="Appearance.Outline">@L["Admin_UserEdit_HomeUnverify"]</FluentButton>
+                    }
+                    else
+                    {
+                        <FluentBadge Appearance="Appearance.Accent" Fill="warning">@L["Admin_UserEdit_HomeUnverified"]</FluentBadge>
+                        <FluentButton OnClick="() => SetVerifiedAsync(true)" Appearance="Appearance.Accent">@L["Admin_UserEdit_HomeVerify"]</FluentButton>
+                    }
+                }
+            </FluentStack>
+        </AuthorizeView>
 
         <FluentLabel Typo="Typography.H4">@L["Admin_UserEdit_Roles"]</FluentLabel>
         <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
@@ -157,6 +184,7 @@
     private IReadOnlyList<string> _allRoles = [];
     private HashSet<string> _selectedRoles = new(StringComparer.Ordinal);
     private IReadOnlyList<AccountAuditEntry> _audit = [];
+    private UserHomeDto _home = new(null, null, false);
     private string? _blockReason;
     private bool _confirmDelete;
     private string? _message;
@@ -184,6 +212,22 @@
             _isSelf = _detail.Id == _adminId;
             _selectedRoles = _detail.Roles.ToHashSet(StringComparer.Ordinal);
             _audit = await AccountService.GetAuditTrailAsync(Id);
+            _home = await UserLocation.GetHomeAsync(Id);
+        }
+    }
+
+    private async Task SetVerifiedAsync(bool verified)
+    {
+        _message = _error = null;
+        var result = await UserLocation.SetHomeVerifiedAsync(Id, verified);
+        if (result.Succeeded)
+        {
+            _message = L["Admin_UserEdit_HomeSaved"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = L[result.Errors.FirstOrDefault() ?? string.Empty];
         }
     }
 

@@ -15,9 +15,9 @@ public sealed class UserLocationService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await dbContext.Users.AsNoTracking()
             .Where(u => u.Id == userId)
-            .Select(u => new UserHomeDto(u.HomeAddress, u.CommuteDistanceKm))
+            .Select(u => new UserHomeDto(u.HomeAddress, u.CommuteDistanceKm, u.HomeVerified))
             .FirstOrDefaultAsync(cancellationToken);
-        return user ?? new UserHomeDto(null, null);
+        return user ?? new UserHomeDto(null, null, false);
     }
 
     public async Task<ParkingResult> SetHomeAddressAsync(Guid userId, string? address, CancellationToken cancellationToken = default)
@@ -28,6 +28,9 @@ public sealed class UserLocationService(
         {
             return ParkingResult.Failure("Parking_Error_UserNotFound");
         }
+
+        // Any address change drops verification; an admin must re-verify before it earns rewards.
+        user.HomeVerified = false;
 
         if (string.IsNullOrWhiteSpace(address))
         {
@@ -54,6 +57,20 @@ public sealed class UserLocationService(
             ? await distanceProvider.DistanceKmAsync(home, lotPoint, cancellationToken)
             : null;
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> SetHomeVerifiedAsync(Guid userId, bool verified, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return ParkingResult.Failure("Parking_Error_UserNotFound");
+        }
+
+        user.HomeVerified = verified;
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }

@@ -24,7 +24,13 @@
             <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_CommuteHelp"]</FluentLabel>
             @if (_home.DistanceKm is { } km)
             {
-                <FluentLabel Typo="Typography.Body">@L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong></FluentLabel>
+                <FluentLabel Typo="Typography.Body">
+                    @L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong>
+                    @if (!_home.Verified)
+                    {
+                        <FluentBadge Appearance="Appearance.Accent" Fill="warning" Style="margin-left:8px">@L["Profile_CommutePending"]</FluentBadge>
+                    }
+                </FluentLabel>
             }
             @if (!string.IsNullOrEmpty(_homeError))
             {
@@ -145,7 +151,7 @@
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
     [SupplyParameterFromForm] private HomeFormModel HomeInput { get; set; } = new();
-    private UserHomeDto _home = new(null, null);
+    private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
 
     protected override async Task OnInitializedAsync()
