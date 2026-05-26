@@ -341,3 +341,154 @@ h1:focus {
 .wallet-chip__tier--Silver { background: rgba(225, 225, 235, .40); }
 .wallet-chip__tier--Gold { background: rgba(255, 196, 0, .45); }
 .wallet-chip__tier--Platinum { background: rgba(150, 200, 255, .45); }
+
+/* --- Leaderboard hero card --- */
+.hero {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.hero__ring {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.tier-ring {
+    --pct: 0;
+    --ring-color: var(--accent-fill-rest, #0f6cbd);
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--neutral-fill-secondary-rest, #e6e6e6) 0);
+    display: grid;
+    place-items: center;
+}
+
+.tier-ring--Bronze { --ring-color: #cd7f32; }
+.tier-ring--Silver { --ring-color: #9aa0aa; }
+.tier-ring--Gold { --ring-color: #f0b400; }
+.tier-ring--Platinum { --ring-color: #7fb3ff; }
+
+.tier-ring__inner {
+    width: 98px;
+    height: 98px;
+    border-radius: 50%;
+    background: var(--neutral-layer-1, #fff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ring-color);
+}
+
+.tier-ring__name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--neutral-foreground-rest, #242424);
+}
+
+.hero__next {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.hero__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 280px;
+    min-width: 260px;
+}
+
+.hero__label {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.hero__points {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+    .hero__points strong {
+        font-size: 38px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
+
+    .hero__points span {
+        font-size: 14px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+.hero__chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.trust-meter {
+    max-width: 320px;
+}
+
+.trust-meter__head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.meter__fill--good { background: var(--success-rest, #107c10); }
+
+.hero__stats {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat__num {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.stat__lbl {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Rank medals */
+.medal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 13px;
+    color: #3a2d00;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45);
+}
+
+.medal--1 { background: linear-gradient(135deg, #ffd76a, #e0a200); }
+.medal--2 { background: linear-gradient(135deg, #e8e8ef, #b4b4c0); }
+.medal--3 { background: linear-gradient(135deg, #e8b07a, #bd7f43); color: #3a2300; }
+
+.rank-num {
+    padding-left: 9px;
+    font-variant-numeric: tabular-nums;
+}

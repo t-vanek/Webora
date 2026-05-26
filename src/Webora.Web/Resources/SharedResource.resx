@@ -478,6 +478,8 @@
   <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
   <data name="Parking_Tier_Gold" xml:space="preserve"><value>Zlato</value></data>
   <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platina</value></data>
+  <data name="Parking_Tier_ToNext" xml:space="preserve"><value>Ještě {0} bodů do úrovně {1}</value></data>
+  <data name="Parking_Tier_Max" xml:space="preserve"><value>Nejvyšší úroveň</value></data>
   <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
   <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
   <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>

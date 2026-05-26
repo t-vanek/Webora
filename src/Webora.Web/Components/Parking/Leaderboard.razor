@@ -1,7 +1,9 @@
 @page "/parking/leaderboard"
 @attribute [HasPermission(Permissions.Parking.ViewLeaderboard)]
 @rendermode InteractiveServer
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IIncentiveService Incentives
+@inject IParkingSettingsService ParkingSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -13,32 +15,62 @@
 
     @if (_score is not null)
     {
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                <FluentLabel Typo="Typography.Subject">@L["Parking_MyScore"]</FluentLabel>
-                <FluentLabel Typo="Typography.H3">@_score.Points @L["Parking_Points"]</FluentLabel>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
-                    <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Tier_{_score.Tier}"]</FluentBadge>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_MyStreak"]: <strong>@_score.CompletionStreak</strong></FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Trust"]: <strong>@_score.TrustScore</strong>/100</FluentLabel>
-                </FluentStack>
-                <FluentLabel Typo="Typography.Body">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</FluentLabel>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_Released"]: @_score.ReservationsReleased</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_OffPeak"]: @_score.OffPeakReservations</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_Completed"]: @_score.ReservationsCompleted</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_NoShows"]: @_score.NoShows</FluentLabel>
-                </FluentStack>
-                @if (_score.Badges.Count > 0)
-                {
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                        @foreach (var badge in _score.Badges)
+        <FluentCard Class="hero-card">
+            <div class="hero">
+                <div class="hero__ring">
+                    <div class="tier-ring tier-ring--@_score.Tier" style="--pct:@TierProgressPercent()">
+                        <div class="tier-ring__inner">
+                            <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
+                            <span class="tier-ring__name">@L[$"Parking_Tier_{_score.Tier}"]</span>
+                        </div>
+                    </div>
+                    <span class="hero__next">
+                        @if (_score.Tier == LoyaltyTier.Platinum)
                         {
-                            <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Badge_{badge}"]</FluentBadge>
+                            @L["Parking_Tier_Max"]
                         }
-                    </FluentStack>
-                }
-            </FluentStack>
+                        else
+                        {
+                            @L["Parking_Tier_ToNext", PointsToNextTier(), L[$"Parking_Tier_{NextTier()}"]]
+                        }
+                    </span>
+                </div>
+
+                <div class="hero__body">
+                    <span class="hero__label">@L["Parking_MyScore"]</span>
+                    <div class="hero__points"><strong>@_score.Points</strong> <span>@L["Parking_Points"]</span></div>
+
+                    <div class="hero__chips">
+                        <span class="balance-chip balance-chip--ok">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</span>
+                        <span class="pill pill--type">@L["Parking_MyStreak"]: @_score.CompletionStreak</span>
+                    </div>
+
+                    <div class="trust-meter">
+                        <div class="trust-meter__head">
+                            <span>@L["Parking_Trust"]</span>
+                            <span><strong>@_score.TrustScore</strong>/100</span>
+                        </div>
+                        <div class="meter"><div class="meter__fill meter__fill--good" style="width:@(_score.TrustScore)%"></div></div>
+                    </div>
+
+                    <div class="hero__stats">
+                        <div class="stat"><span class="stat__num">@_score.ReservationsReleased</span><span class="stat__lbl">@L["Parking_Stat_Released"]</span></div>
+                        <div class="stat"><span class="stat__num">@_score.OffPeakReservations</span><span class="stat__lbl">@L["Parking_Stat_OffPeak"]</span></div>
+                        <div class="stat"><span class="stat__num">@_score.ReservationsCompleted</span><span class="stat__lbl">@L["Parking_Stat_Completed"]</span></div>
+                        <div class="stat"><span class="stat__num">@_score.NoShows</span><span class="stat__lbl">@L["Parking_Stat_NoShows"]</span></div>
+                    </div>
+
+                    @if (_score.Badges.Count > 0)
+                    {
+                        <div class="hero__chips">
+                            @foreach (var badge in _score.Badges)
+                            {
+                                <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Badge_{badge}"]</FluentBadge>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </FluentCard>
     }
 
@@ -68,7 +100,16 @@
     {
         <FluentDataGrid Items="@_leaderboard.AsQueryable()" TGridItem="LeaderboardEntryDto"
                         GridTemplateColumns="auto 2fr 1fr 1fr 1fr 2fr">
-            <PropertyColumn Property="@(e => e.Rank)" Title="@L["Parking_Rank"]" />
+            <TemplateColumn Title="@L["Parking_Rank"]">
+                @if (context.Rank <= 3)
+                {
+                    <span class="medal medal--@context.Rank">@context.Rank</span>
+                }
+                else
+                {
+                    <span class="rank-num">@context.Rank</span>
+                }
+            </TemplateColumn>
             <PropertyColumn Property="@(e => e.DisplayName)" Title="@L["Parking_Name"]" />
             <PropertyColumn Property="@(e => e.Points)" Title="@L["Parking_Points"]" />
             <PropertyColumn Property="@(e => e.ReservationsReleased)" Title="@L["Parking_Stat_Released"]" />
@@ -105,6 +146,7 @@
     private IReadOnlyList<LeaderboardEntryDto>? _leaderboard;
     private IReadOnlyList<TeamLeaderboardEntryDto>? _teams;
     private PeerComparisonDto? _peer;
+    private IncentivePolicy? _policy;
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,7 +158,46 @@
             _peer = await Incentives.GetPeerComparisonAsync(user.Id);
         }
 
+        _policy = await ParkingSettings.GetPolicyAsync();
         _leaderboard = await Incentives.GetLeaderboardAsync();
         _teams = await Incentives.GetTeamLeaderboardAsync();
     }
+
+    // Floor/ceiling reputation thresholds bounding the current tier band.
+    private (int floor, int next) TierBand()
+    {
+        var p = _policy!;
+        return _score!.Tier switch
+        {
+            LoyaltyTier.Bronze => (0, p.TierSilverPoints),
+            LoyaltyTier.Silver => (p.TierSilverPoints, p.TierGoldPoints),
+            LoyaltyTier.Gold => (p.TierGoldPoints, p.TierPlatinumPoints),
+            _ => (p.TierPlatinumPoints, p.TierPlatinumPoints),
+        };
+    }
+
+    private int TierProgressPercent()
+    {
+        if (_policy is null || _score is null) return 0;
+        if (_score.Tier == LoyaltyTier.Platinum) return 100;
+        var (floor, next) = TierBand();
+        var span = next - floor;
+        if (span <= 0) return 100;
+        var pct = (int)Math.Round((_score.Points - floor) * 100.0 / span);
+        return Math.Clamp(pct, 0, 100);
+    }
+
+    private int PointsToNextTier()
+    {
+        if (_policy is null || _score is null) return 0;
+        var (_, next) = TierBand();
+        return Math.Max(0, next - _score.Points);
+    }
+
+    private LoyaltyTier NextTier() => _score!.Tier switch
+    {
+        LoyaltyTier.Bronze => LoyaltyTier.Silver,
+        LoyaltyTier.Silver => LoyaltyTier.Gold,
+        _ => LoyaltyTier.Platinum,
+    };
 }

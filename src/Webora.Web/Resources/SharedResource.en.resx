@@ -478,6 +478,8 @@
   <data name="Parking_Tier_Silver" xml:space="preserve"><value>Silver</value></data>
   <data name="Parking_Tier_Gold" xml:space="preserve"><value>Gold</value></data>
   <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platinum</value></data>
+  <data name="Parking_Tier_ToNext" xml:space="preserve"><value>{0} points to {1}</value></data>
+  <data name="Parking_Tier_Max" xml:space="preserve"><value>Top tier</value></data>
   <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Streaks and tiers</value></data>
   <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>A reward for an unbroken run of completions (grows with length, capped; a no-show resets it) and the reputation thresholds for the loyalty tiers (Bronze/Silver/Gold/Platinum) that unlock perks.</value></data>
   <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Streak bonus (per level)</value></data>
