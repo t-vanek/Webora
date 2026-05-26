@@ -1,11 +1,18 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Webora.Application.Notifications;
 using Webora.Application.Parking;
+using Webora.Domain.Notifications;
 using Webora.Domain.Parking;
 using Webora.Infrastructure.Persistence;
 
 namespace Webora.Infrastructure.Parking;
 
-public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbContextFactory) : IParkingSpotService
+public sealed class ParkingSpotService(
+    IDbContextFactory<WeboraDbContext> dbContextFactory,
+    INotificationService notifications,
+    TimeProvider timeProvider,
+    IStringLocalizer<ParkingMessages> messages) : IParkingSpotService
 {
     public async Task<IReadOnlyList<ParkingSpotDto>> ListAsync(bool includeInactive = true, CancellationToken cancellationToken = default)
     {
@@ -104,6 +111,26 @@ public sealed class ParkingSpotService(IDbContextFactory<WeboraDbContext> dbCont
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Deactivating a spot leaves its upcoming reservations stranded, so warn the holders to re-book.
+        if (!active)
+        {
+            var now = timeProvider.GetUtcNow();
+            var affected = await dbContext.Reservations.AsNoTracking()
+                .Where(r => r.SpotId == id && r.EndUtc >= now
+                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            foreach (var holderId in affected)
+            {
+                await notifications.NotifyAsync(holderId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                    messages["Parking_Notify_SpotDeactivated_Title"],
+                    messages["Parking_Notify_SpotDeactivated_Body", spot.Code], cancellationToken);
+            }
+        }
+
         return ParkingResult.Success;
     }
 

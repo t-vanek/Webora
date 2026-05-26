@@ -35,4 +35,6 @@
   <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
   <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Parking spot deactivated</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Spot {0} was deactivated by an administrator and your reservation for it may be affected. Please review your reservations and pick another spot if needed.</value></data>
 </root>

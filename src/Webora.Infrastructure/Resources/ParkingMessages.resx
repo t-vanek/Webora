@@ -35,4 +35,6 @@
   <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Šampion mimo špičku</value></data>
   <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Spolehlivý parkovač</value></data>
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Klub stovky</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Místo bylo deaktivováno</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Místo {0} bylo administrátorem deaktivováno a tvá rezervace na něj může být dotčena. Zkontroluj si rezervace a případně si vyber jiné místo.</value></data>
 </root>
