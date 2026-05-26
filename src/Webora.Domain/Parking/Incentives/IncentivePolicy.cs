@@ -58,7 +58,23 @@ public sealed record IncentivePolicy
     /// <summary>Cap on the distance multiplier so very far commuters don't earn unbounded points.</summary>
     public int SharedTakenMaxMultiplier { get; init; } = 3;
 
+    /// <summary>Auto-verify a home address (skip manual admin approval) when within the distance cap.</summary>
+    public bool AutoVerifyHomeAddress { get; init; }
+
+    /// <summary>Largest commute distance (km) eligible for auto-verification; farther needs admin review.</summary>
+    public int AutoVerifyMaxDistanceKm { get; init; } = 50;
+
+    /// <summary>Most releases a user can be rewarded for in a day; bounds reserve/release farming.</summary>
+    public int MaxRewardedReleasesPerDay { get; init; } = 2;
+
+    /// <summary>Largest day range a resident may release in one action.</summary>
+    public int MaxReleaseRangeDays { get; init; } = 92;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
+    public bool ShouldAutoVerify(double? distanceKm) =>
+        AutoVerifyHomeAddress && distanceKm is { } km && km > 0 && km <= AutoVerifyMaxDistanceKm;
 
     /// <summary>
     /// Points for taking a shared spot, scaled by the taker's commute distance: the farther they

@@ -57,6 +57,11 @@ public sealed class UserLocationService(
             ? await distanceProvider.DistanceKmAsync(home, lotPoint, cancellationToken)
             : null;
 
+        // Optionally auto-verify when the commute is within the configured plausibility cap;
+        // suspiciously far addresses still fall back to manual admin review.
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        user.HomeVerified = policy.ShouldAutoVerify(user.CommuteDistanceKm);
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }

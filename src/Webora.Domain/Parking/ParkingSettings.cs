@@ -51,6 +51,14 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int SharedTakenMaxMultiplier { get; private set; } = 3;
 
+    public bool AutoVerifyHomeAddress { get; private set; }
+
+    public int AutoVerifyMaxDistanceKm { get; private set; } = 50;
+
+    public int MaxRewardedReleasesPerDay { get; private set; } = 2;
+
+    public int MaxReleaseRangeDays { get; private set; } = 92;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -80,7 +88,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         double? lotLongitude,
         int sharedTakenBasePoints,
         int sharedTakenReferenceKm,
-        int sharedTakenMaxMultiplier)
+        int sharedTakenMaxMultiplier,
+        bool autoVerifyHomeAddress,
+        int autoVerifyMaxDistanceKm,
+        int maxRewardedReleasesPerDay,
+        int maxReleaseRangeDays)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -103,6 +115,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         SharedTakenBasePoints = Math.Max(0, sharedTakenBasePoints);
         SharedTakenReferenceKm = Math.Max(1, sharedTakenReferenceKm);
         SharedTakenMaxMultiplier = Math.Max(1, sharedTakenMaxMultiplier);
+        AutoVerifyHomeAddress = autoVerifyHomeAddress;
+        AutoVerifyMaxDistanceKm = Math.Max(0, autoVerifyMaxDistanceKm);
+        MaxRewardedReleasesPerDay = Math.Max(0, maxRewardedReleasesPerDay);
+        MaxReleaseRangeDays = Math.Clamp(maxReleaseRangeDays, 1, 366);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -124,6 +140,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         SharedTakenBasePoints = SharedTakenBasePoints,
         SharedTakenReferenceKm = SharedTakenReferenceKm,
         SharedTakenMaxMultiplier = SharedTakenMaxMultiplier,
+        AutoVerifyHomeAddress = AutoVerifyHomeAddress,
+        AutoVerifyMaxDistanceKm = AutoVerifyMaxDistanceKm,
+        MaxRewardedReleasesPerDay = MaxRewardedReleasesPerDay,
+        MaxReleaseRangeDays = MaxReleaseRangeDays,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

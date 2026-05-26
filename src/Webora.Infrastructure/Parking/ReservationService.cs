@@ -16,9 +16,6 @@ public sealed class ReservationService(
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
-    /// <summary>Most releases a user can be rewarded for in a day; bounds reserve/release farming.</summary>
-    private const int MaxRewardedReleasesPerDay = 2;
-
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -236,7 +233,7 @@ public sealed class ReservationService(
             e => e.UserId == userId && e.Reason == IncentiveReason.ReleasedReservation && e.OccurredAtUtc >= todayStart,
             cancellationToken);
 
-        if (policy.QualifiesForReleaseReward(reservation.StartUtc, now) && rewardedToday < MaxRewardedReleasesPerDay)
+        if (policy.QualifiesForReleaseReward(reservation.StartUtc, now) && rewardedToday < policy.MaxRewardedReleasesPerDay)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
             score.RewardRelease(policy.ReleasePoints, now);

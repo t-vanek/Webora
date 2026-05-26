@@ -21,4 +21,8 @@ public sealed record ParkingSettingsDto(
     double? LotLongitude,
     int SharedTakenBasePoints,
     int SharedTakenReferenceKm,
-    int SharedTakenMaxMultiplier);
+    int SharedTakenMaxMultiplier,
+    bool AutoVerifyHomeAddress,
+    int AutoVerifyMaxDistanceKm,
+    int MaxRewardedReleasesPerDay,
+    int MaxReleaseRangeDays);

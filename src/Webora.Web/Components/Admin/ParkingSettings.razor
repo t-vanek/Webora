@@ -129,6 +129,23 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
+            <FluentSwitch @bind-Value="_form.AutoVerifyHomeAddress" Label="@L["Parking_Settings_AutoVerify"]" />
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0"
+                                       Label="@L["Parking_Settings_AutoVerifyMaxKm"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.MaxRewardedReleasesPerDay" Min="0"
+                                       Label="@L["Parking_Settings_MaxReleasesPerDay"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseRangeDays" Min="1" Max="366"
+                                       Label="@L["Parking_Settings_MaxRangeDays"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -175,6 +192,10 @@
             SharedTakenBasePoints = s.SharedTakenBasePoints,
             SharedTakenReferenceKm = s.SharedTakenReferenceKm,
             SharedTakenMaxMultiplier = s.SharedTakenMaxMultiplier,
+            AutoVerifyHomeAddress = s.AutoVerifyHomeAddress,
+            AutoVerifyMaxDistanceKm = s.AutoVerifyMaxDistanceKm,
+            MaxRewardedReleasesPerDay = s.MaxRewardedReleasesPerDay,
+            MaxReleaseRangeDays = s.MaxReleaseRangeDays,
         };
     }
 
@@ -198,7 +219,11 @@
             _form.LotLongitude,
             _form.SharedTakenBasePoints,
             _form.SharedTakenReferenceKm,
-            _form.SharedTakenMaxMultiplier);
+            _form.SharedTakenMaxMultiplier,
+            _form.AutoVerifyHomeAddress,
+            _form.AutoVerifyMaxDistanceKm,
+            _form.MaxRewardedReleasesPerDay,
+            _form.MaxReleaseRangeDays);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -234,5 +259,9 @@
         public int SharedTakenBasePoints { get; set; }
         public int SharedTakenReferenceKm { get; set; }
         public int SharedTakenMaxMultiplier { get; set; }
+        public bool AutoVerifyHomeAddress { get; set; }
+        public int AutoVerifyMaxDistanceKm { get; set; }
+        public int MaxRewardedReleasesPerDay { get; set; }
+        public int MaxReleaseRangeDays { get; set; }
     }
 }

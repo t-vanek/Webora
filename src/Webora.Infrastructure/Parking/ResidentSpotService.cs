@@ -103,8 +103,6 @@ public sealed class ResidentSpotService(
         return ParkingResult.Success;
     }
 
-    private const int MaxReleaseRangeDays = 92;
-
     public async Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -121,7 +119,7 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_PastDate");
         }
 
-        if (toDate.DayNumber - fromDate.DayNumber >= MaxReleaseRangeDays)
+        if (toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays)
         {
             return ParkingResult.Failure("Parking_Error_RangeTooLong");
         }

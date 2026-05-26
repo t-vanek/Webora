@@ -430,4 +430,9 @@
   <data name="Admin_UserEdit_HomeVerify" xml:space="preserve"><value>Ověřit adresu</value></data>
   <data name="Admin_UserEdit_HomeUnverify" xml:space="preserve"><value>Zrušit ověření</value></data>
   <data name="Admin_UserEdit_HomeSaved" xml:space="preserve"><value>Uloženo.</value></data>
+  <data name="Parking_Settings_LimitsSection" xml:space="preserve"><value>Ověřování a limity</value></data>
+  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Automaticky schvalovat adresy (do limitu vzdálenosti)</value></data>
+  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Limit pro auto-schválení (km)</value></data>
+  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max. odměněných uvolnění / den</value></data>
+  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max. rozsah uvolnění (dní)</value></data>
 </root>

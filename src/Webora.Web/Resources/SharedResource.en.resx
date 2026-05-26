@@ -430,4 +430,9 @@
   <data name="Admin_UserEdit_HomeVerify" xml:space="preserve"><value>Verify address</value></data>
   <data name="Admin_UserEdit_HomeUnverify" xml:space="preserve"><value>Revoke verification</value></data>
   <data name="Admin_UserEdit_HomeSaved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="Parking_Settings_LimitsSection" xml:space="preserve"><value>Verification and limits</value></data>
+  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Auto-verify addresses (within the distance cap)</value></data>
+  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Auto-verify distance cap (km)</value></data>
+  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max rewarded releases / day</value></data>
+  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max release range (days)</value></data>
 </root>
