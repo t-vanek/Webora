@@ -408,4 +408,17 @@
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>The range is too long.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Nothing to release in the chosen range.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Wasted-share reward clawback (%)</value></data>
+  <data name="Profile_CommuteTitle" xml:space="preserve"><value>Commute to work</value></data>
+  <data name="Profile_CommuteHelp" xml:space="preserve"><value>Enter your home address – we compute the distance to the lot from it. The farther you live, the more points you earn for taking a freed spot.</value></data>
+  <data name="Profile_CommuteDistance" xml:space="preserve"><value>Distance to the lot</value></data>
+  <data name="Profile_HomeAddress" xml:space="preserve"><value>Home address</value></data>
+  <data name="Profile_SaveAddress" xml:space="preserve"><value>Save address</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Distance factor</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>The lot coordinates and the distance-scaled reward for taking a shared spot.</value></data>
+  <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Lot latitude</value></data>
+  <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Lot longitude</value></data>
+  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Base points for taking</value></data>
+  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Reference distance (km)</value></data>
+  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max distance multiplier</value></data>
+  <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Couldn't find that address. Try to refine it.</value></data>
 </root>

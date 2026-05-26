@@ -104,6 +104,31 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DistanceHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="double?" @bind-Value="_form.LotLatitude" Step="0.0001"
+                                       Label="@L["Parking_Settings_LotLat"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="3">
+                    <FluentNumberField TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
+                                       Label="@L["Parking_Settings_LotLon"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="2">
+                    <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenBasePoints" Min="0"
+                                       Label="@L["Parking_Settings_TakenBase"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="2">
+                    <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenReferenceKm" Min="1"
+                                       Label="@L["Parking_Settings_TakenRefKm"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="2">
+                    <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenMaxMultiplier" Min="1"
+                                       Label="@L["Parking_Settings_TakenMaxMult"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -145,6 +170,11 @@
             ResidentMaxShareAllowance = s.ResidentMaxShareAllowance,
             ResidentSharePercentPerAllowance = s.ResidentSharePercentPerAllowance,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
+            LotLatitude = s.LotLatitude,
+            LotLongitude = s.LotLongitude,
+            SharedTakenBasePoints = s.SharedTakenBasePoints,
+            SharedTakenReferenceKm = s.SharedTakenReferenceKm,
+            SharedTakenMaxMultiplier = s.SharedTakenMaxMultiplier,
         };
     }
 
@@ -163,7 +193,12 @@
             _form.ResidentReleaseMaxPoints,
             _form.ResidentMaxShareAllowance,
             _form.ResidentSharePercentPerAllowance,
-            _form.ResidentWastedShareClawbackPercent);
+            _form.ResidentWastedShareClawbackPercent,
+            _form.LotLatitude,
+            _form.LotLongitude,
+            _form.SharedTakenBasePoints,
+            _form.SharedTakenReferenceKm,
+            _form.SharedTakenMaxMultiplier);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -194,5 +229,10 @@
         public int ResidentMaxShareAllowance { get; set; }
         public int ResidentSharePercentPerAllowance { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
+        public double? LotLatitude { get; set; }
+        public double? LotLongitude { get; set; }
+        public int SharedTakenBasePoints { get; set; }
+        public int SharedTakenReferenceKm { get; set; }
+        public int SharedTakenMaxMultiplier { get; set; }
     }
 }

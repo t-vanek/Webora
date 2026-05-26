@@ -48,6 +48,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
             user.Property(u => u.DisplayName).HasMaxLength(256);
             user.Property(u => u.StatusReason).HasMaxLength(512);
+            user.Property(u => u.HomeAddress).HasMaxLength(512);
         });
 
         builder.Entity<AccountAuditEvent>(audit =>

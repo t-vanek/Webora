@@ -16,4 +16,9 @@ public sealed record ParkingSettingsDto(
     int ResidentReleaseMaxPoints,
     int ResidentMaxShareAllowance,
     int ResidentSharePercentPerAllowance,
-    int ResidentWastedShareClawbackPercent);
+    int ResidentWastedShareClawbackPercent,
+    double? LotLatitude,
+    double? LotLongitude,
+    int SharedTakenBasePoints,
+    int SharedTakenReferenceKm,
+    int SharedTakenMaxMultiplier);

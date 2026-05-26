@@ -135,6 +135,22 @@ public sealed class ReservationService(
             await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
         }
 
+        // Taking a shared reserved spot is rewarded by the taker's commute distance (farther = more).
+        if (spot.OwnerId is { } && spot.OwnerId != userId)
+        {
+            var distanceKm = await dbContext.Users.Where(u => u.Id == userId)
+                .Select(u => u.CommuteDistanceKm).FirstOrDefaultAsync(cancellationToken);
+            var takenPoints = policy.ComputeSharedTakenReward(distanceKm);
+            if (takenPoints > 0)
+            {
+                var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+                score.RewardSharedSpotTaken(takenPoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.SharedSpotTaken, takenPoints, reservation.Id, now, spot.Code));
+                await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }

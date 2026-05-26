@@ -408,4 +408,17 @@
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>Rozsah je příliš dlouhý.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Ve zvoleném rozsahu není co uvolnit.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Vrácení odměny za promarněné sdílení (%)</value></data>
+  <data name="Profile_CommuteTitle" xml:space="preserve"><value>Dojezd do práce</value></data>
+  <data name="Profile_CommuteHelp" xml:space="preserve"><value>Zadej domácí adresu – z ní spočítáme vzdálenost k parkovišti. Čím dál bydlíš, tím víc bodů dostaneš za zabrání uvolněného místa.</value></data>
+  <data name="Profile_CommuteDistance" xml:space="preserve"><value>Vzdálenost k parkovišti</value></data>
+  <data name="Profile_HomeAddress" xml:space="preserve"><value>Domácí adresa</value></data>
+  <data name="Profile_SaveAddress" xml:space="preserve"><value>Uložit adresu</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Vzdálenostní faktor</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>Souřadnice parkoviště a odměna za zabrání sdíleného místa škálovaná vzdáleností řidiče.</value></data>
+  <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Zeměpisná šířka parkoviště</value></data>
+  <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Zeměpisná délka parkoviště</value></data>
+  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Základ bodů za zabrání</value></data>
+  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Referenční vzdálenost (km)</value></data>
+  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max. násobič vzdálenosti</value></data>
+  <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Adresu se nepodařilo najít. Zkus ji upřesnit.</value></data>
 </root>

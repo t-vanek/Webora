@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Webora.Application.Accounts;
 using Webora.Application.Administration;
 using Webora.Application.Notifications;
@@ -47,6 +48,20 @@ public static class DependencyInjection
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<IIncentiveService, IncentiveService>();
         services.AddScoped<IResidentSpotService, ResidentSpotService>();
+        services.AddScoped<IUserLocationService, UserLocationService>();
+
+        // Distance scaling for the shared-spot reward. Haversine works offline; a driving-distance
+        // provider can replace IDistanceProvider, and the geocoder base URL is configurable.
+        services.Configure<GeocodingOptions>(configuration.GetSection(GeocodingOptions.SectionName));
+        services.AddSingleton<IDistanceProvider, HaversineDistanceProvider>();
+        services.AddHttpClient<IGeocoder, NominatimGeocoder>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value;
+            var baseUrl = options.NominatimBaseUrl.EndsWith('/') ? options.NominatimBaseUrl : options.NominatimBaseUrl + "/";
+            client.BaseAddress = new Uri(baseUrl);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // ASP.NET Core Identity itself (sign-in, cookies, token providers) is wired in the web
         // host where the ASP.NET shared framework is available. Here we only provide the seeder

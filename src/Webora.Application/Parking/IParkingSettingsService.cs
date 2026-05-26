@@ -11,6 +11,9 @@ public interface IParkingSettingsService
     /// <summary>How often the background maintenance should run.</summary>
     Task<TimeSpan> GetSweepIntervalAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>The parking lot's coordinates, or null when not configured.</summary>
+    Task<GeoPoint?> GetLotLocationAsync(CancellationToken cancellationToken = default);
+
     /// <summary>The full settings read model for the admin editor.</summary>
     Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default);
 

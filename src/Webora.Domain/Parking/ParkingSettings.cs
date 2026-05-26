@@ -41,6 +41,16 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
 
+    public double? LotLatitude { get; private set; }
+
+    public double? LotLongitude { get; private set; }
+
+    public int SharedTakenBasePoints { get; private set; } = 5;
+
+    public int SharedTakenReferenceKm { get; private set; } = 10;
+
+    public int SharedTakenMaxMultiplier { get; private set; } = 3;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -65,7 +75,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         int residentReleaseMaxPoints,
         int residentMaxShareAllowance,
         int residentSharePercentPerAllowance,
-        int residentWastedShareClawbackPercent)
+        int residentWastedShareClawbackPercent,
+        double? lotLatitude,
+        double? lotLongitude,
+        int sharedTakenBasePoints,
+        int sharedTakenReferenceKm,
+        int sharedTakenMaxMultiplier)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -83,6 +98,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentMaxShareAllowance = Math.Max(0, residentMaxShareAllowance);
         ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
         ResidentWastedShareClawbackPercent = Math.Clamp(residentWastedShareClawbackPercent, 0, 100);
+        LotLatitude = lotLatitude;
+        LotLongitude = lotLongitude;
+        SharedTakenBasePoints = Math.Max(0, sharedTakenBasePoints);
+        SharedTakenReferenceKm = Math.Max(1, sharedTakenReferenceKm);
+        SharedTakenMaxMultiplier = Math.Max(1, sharedTakenMaxMultiplier);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -101,6 +121,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentMaxShareAllowance = ResidentMaxShareAllowance,
         ResidentSharePercentPerAllowance = ResidentSharePercentPerAllowance,
         ResidentWastedShareClawbackPercent = ResidentWastedShareClawbackPercent,
+        SharedTakenBasePoints = SharedTakenBasePoints,
+        SharedTakenReferenceKm = SharedTakenReferenceKm,
+        SharedTakenMaxMultiplier = SharedTakenMaxMultiplier,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

@@ -39,6 +39,13 @@ public sealed class ParkingSettingsService(
         return (await GetOrCreateAsync(dbContext, cancellationToken)).SweepInterval;
     }
 
+    public async Task<GeoPoint?> GetLotLocationAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var s = await GetOrCreateAsync(dbContext, cancellationToken);
+        return s is { LotLatitude: { } lat, LotLongitude: { } lon } ? new GeoPoint(lat, lon) : null;
+    }
+
     public async Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -48,7 +55,8 @@ public sealed class ParkingSettingsService(
             s.ReleaseCutoff, s.NoShowGracePeriod, s.ReminderLeadTime,
             s.PeakStart, s.PeakEnd, s.SweepInterval,
             s.ResidentHoldUntil, s.ResidentReleasePointsPerHour, s.ResidentReleaseMaxPoints,
-            s.ResidentMaxShareAllowance, s.ResidentSharePercentPerAllowance, s.ResidentWastedShareClawbackPercent);
+            s.ResidentMaxShareAllowance, s.ResidentSharePercentPerAllowance, s.ResidentWastedShareClawbackPercent,
+            s.LotLatitude, s.LotLongitude, s.SharedTakenBasePoints, s.SharedTakenReferenceKm, s.SharedTakenMaxMultiplier);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -65,7 +73,8 @@ public sealed class ParkingSettingsService(
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
             dto.PeakStart, dto.PeakEnd, dto.SweepInterval,
             dto.ResidentHoldUntil, dto.ResidentReleasePointsPerHour, dto.ResidentReleaseMaxPoints,
-            dto.ResidentMaxShareAllowance, dto.ResidentSharePercentPerAllowance, dto.ResidentWastedShareClawbackPercent);
+            dto.ResidentMaxShareAllowance, dto.ResidentSharePercentPerAllowance, dto.ResidentWastedShareClawbackPercent,
+            dto.LotLatitude, dto.LotLongitude, dto.SharedTakenBasePoints, dto.SharedTakenReferenceKm, dto.SharedTakenMaxMultiplier);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",

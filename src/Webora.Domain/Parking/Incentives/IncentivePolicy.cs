@@ -49,7 +49,32 @@ public sealed record IncentivePolicy
     /// <summary>Percent of a share's reward the resident gives back when the guest no-shows on it.</summary>
     public int ResidentWastedShareClawbackPercent { get; init; } = 25;
 
+    /// <summary>Base points for taking a shared reserved spot, before the distance multiplier.</summary>
+    public int SharedTakenBasePoints { get; init; } = 5;
+
+    /// <summary>Commute distance (km) at which the distance multiplier reaches 1.0.</summary>
+    public int SharedTakenReferenceKm { get; init; } = 10;
+
+    /// <summary>Cap on the distance multiplier so very far commuters don't earn unbounded points.</summary>
+    public int SharedTakenMaxMultiplier { get; init; } = 3;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>
+    /// Points for taking a shared spot, scaled by the taker's commute distance: the farther they
+    /// commute, the more they earn (capped). Unknown or zero distance earns nothing.
+    /// </summary>
+    public int ComputeSharedTakenReward(double? distanceKm)
+    {
+        if (distanceKm is not { } km || km <= 0)
+        {
+            return 0;
+        }
+
+        var reference = Math.Max(1, SharedTakenReferenceKm);
+        var multiplier = Math.Min(km / reference, SharedTakenMaxMultiplier);
+        return (int)Math.Round(SharedTakenBasePoints * multiplier, MidpointRounding.AwayFromZero);
+    }
 
     /// <summary>How many points to claw back from a resident when a share they were rewarded for is wasted.</summary>
     public int ComputeShareClawback(int awardedPoints) =>

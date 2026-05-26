@@ -67,6 +67,13 @@ public class ParkerScore
         UpdatedAtUtc = at;
     }
 
+    /// <summary>A far-commuting user took a shared spot; rewarded by distance.</summary>
+    public void RewardSharedSpotTaken(int points, DateTimeOffset at)
+    {
+        Points += points;
+        UpdatedAtUtc = at;
+    }
+
     /// <summary>A manual administrative correction; does not touch behaviour counters.</summary>
     public void Adjust(int delta, DateTimeOffset at)
     {

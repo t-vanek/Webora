@@ -21,6 +21,9 @@ public enum IncentiveReason
     /// <summary>Part of a share reward clawed back because the guest no-showed on the shared spot.</summary>
     ResidentShareWasted,
 
+    /// <summary>Awarded for taking a shared reserved spot, scaled by the taker's commute distance.</summary>
+    SharedSpotTaken,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

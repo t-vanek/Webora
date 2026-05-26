@@ -6,6 +6,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject INotificationService NotificationService
 @inject ISiteSettingsService SiteSettings
+@inject IUserLocationService UserLocation
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
@@ -18,6 +19,24 @@
             <FluentLabel Typo="Typography.Body">
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
+
+            <FluentLabel Typo="Typography.H4">@L["Profile_CommuteTitle"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_CommuteHelp"]</FluentLabel>
+            @if (_home.DistanceKm is { } km)
+            {
+                <FluentLabel Typo="Typography.Body">@L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong></FluentLabel>
+            }
+            @if (!string.IsNullOrEmpty(_homeError))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
+            }
+            <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                    <FluentTextField Name="HomeInput.Address" @bind-Value="HomeInput.Address"
+                                     Label="@L["Profile_HomeAddress"]" Style="width:360px" />
+                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
+                </FluentStack>
+            </EditForm>
 
             <FluentLabel Typo="Typography.H4">@L["Profile_NotificationSettings"]</FluentLabel>
 
@@ -125,10 +144,39 @@
     private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
+    [SupplyParameterFromForm] private HomeFormModel HomeInput { get; set; } = new();
+    private UserHomeDto _home = new(null, null);
+    private string? _homeError;
+
     protected override async Task OnInitializedAsync()
     {
         _tz = await SiteSettings.GetTimeZoneAsync();
         await ReloadAsync();
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            _home = await UserLocation.GetHomeAsync(userId);
+            HomeInput.Address ??= _home.Address;
+        }
+    }
+
+    private async Task SaveHomeAsync()
+    {
+        _homeError = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            var result = await UserLocation.SetHomeAddressAsync(userId, HomeInput.Address);
+            if (!result.Succeeded)
+            {
+                _homeError = result.Errors.FirstOrDefault();
+            }
+
+            _home = await UserLocation.GetHomeAsync(userId);
+        }
+    }
+
+    private sealed class HomeFormModel
+    {
+        public string? Address { get; set; }
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
