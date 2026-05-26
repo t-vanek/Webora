@@ -4,6 +4,7 @@
 @inject IReservationService Reservations
 @inject IParkingSettingsService ParkingSettings
 @inject IResidentSpotService ResidentSpots
+@inject IUserLocationService UserLocation
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -52,7 +53,7 @@
                     <FluentButton Appearance="Appearance.Outline" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
                 </FluentStack>
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                    @L["Parking_Owned_ReleaseHint"] +@_ownedSpot.PotentialReleasePointsToday @L["Parking_Points"]
+                    @L["Parking_Owned_ReleaseHint"] +@ReleaseRangePoints() @L["Parking_Points"]
                 </FluentLabel>
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
@@ -105,6 +106,12 @@
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
                             <FluentLabel Typo="Typography.H5">@spot.Code</FluentLabel>
                             <FluentLabel Typo="Typography.Body">@spot.Type</FluentLabel>
+                            @if (PointsForSpot(spot) > 0)
+                            {
+                                <FluentLabel Typo="Typography.Body" Style="color: var(--success);">
+                                    @L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]
+                                </FluentLabel>
+                            }
                             <FluentButton Appearance="Appearance.Accent" OnClick="() => ReserveAsync(spot.Id)">
                                 @L["Parking_Reserve"]
                             </FluentButton>
@@ -173,6 +180,7 @@
     private int _allowance;
 
     private IncentivePolicy? _policy;
+    private double? _distanceKm;
 
     private DateTimeOffset Start => new(_day.ToDateTime(_startTime));
     private DateTimeOffset End => new(_day.ToDateTime(_endTime));
@@ -184,8 +192,44 @@
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
         _policy = await ParkingSettings.GetPolicyAsync();
+        _distanceKm = (await UserLocation.GetHomeAsync(_userId)).DistanceKm;
         await ReloadOwnedSpotAsync();
         await ReloadReservationsAsync();
+    }
+
+    // Points a reservation on this spot would earn now: off-peak bonus plus, for a shared reserved
+    // spot, the commute-distance reward.
+    private int PointsForSpot(ParkingSpotDto spot)
+    {
+        if (_policy is null)
+        {
+            return 0;
+        }
+
+        var offPeak = _policy.IsOffPeak(Start) ? _policy.OffPeakBonusPoints : 0;
+        var shared = spot.OwnerId is not null ? _policy.ComputeSharedTakenReward(_distanceKm) : 0;
+        return offPeak + shared;
+    }
+
+    // Total reward for proactively releasing the owned spot across the selected day range.
+    private int ReleaseRangePoints()
+    {
+        if (_policy is null || _ownedSpot is null)
+        {
+            return 0;
+        }
+
+        var from = DateOnly.FromDateTime(_releaseFrom);
+        var to = DateOnly.FromDateTime(_releaseTo);
+        var now = DateTimeOffset.Now;
+        var total = 0;
+        var days = 0;
+        for (var date = from; date <= to && days < 92; date = date.AddDays(1), days++)
+        {
+            total += _policy.ComputeShareReward(_policy.ResidentShareCutoff(date, now.Offset), now, _ownedSpot.MonthlyShareAllowance);
+        }
+
+        return total;
     }
 
     private async Task ReloadOwnedSpotAsync()
