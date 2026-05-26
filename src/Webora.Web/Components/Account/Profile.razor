@@ -288,7 +288,8 @@
     {
         if (await CurrentUserIdAsync() is { } userId)
         {
-            var tomorrow = new DateTimeOffset(DateTime.Today.AddDays(1), DateTimeOffset.Now.Offset);
+            // Start of tomorrow in UTC — a local offset is rejected by Npgsql for 'timestamptz'.
+            var tomorrow = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(1), TimeSpan.Zero);
             await NotificationService.MuteUntilAsync(userId, tomorrow);
             await ReloadAsync();
         }

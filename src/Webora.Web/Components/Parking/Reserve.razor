@@ -249,8 +249,11 @@
     private IncentivePolicy? _policy;
     private double? _distanceKm;
 
-    private DateTimeOffset Start => new(_day.ToDateTime(_startTime));
-    private DateTimeOffset End => new(_day.ToDateTime(_endTime));
+    // The picked wall-clock is treated as UTC: the booking window is stored and compared in UTC
+    // (StartUtc/EndUtc) and peak detection uses UTC times of day, so stamping a local offset here
+    // both breaks peak logic and is rejected by Npgsql for 'timestamp with time zone'.
+    private DateTimeOffset Start => new(DateTime.SpecifyKind(_day.ToDateTime(_startTime), DateTimeKind.Utc));
+    private DateTimeOffset End => new(DateTime.SpecifyKind(_day.ToDateTime(_endTime), DateTimeKind.Utc));
     private bool IsOffPeak => _policy?.IsOffPeak(Start) ?? false;
 
     protected override async Task OnInitializedAsync()
