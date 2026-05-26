@@ -42,13 +42,18 @@
                         <FluentButton Appearance="Appearance.Accent" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
                     }
                     <div>
-                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseDate"]</FluentLabel>
-                        <input type="date" @bind="_releaseDate" class="parking-input" />
+                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseFrom"]</FluentLabel>
+                        <input type="date" @bind="_releaseFrom" class="parking-input" />
                     </div>
-                    <FluentButton Appearance="Appearance.Outline" OnClick="ReleaseOwnedAsync">
-                        @L["Parking_Owned_Release"] (+@_ownedSpot.PotentialReleasePointsToday @L["Parking_Points"])
-                    </FluentButton>
+                    <div>
+                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseTo"]</FluentLabel>
+                        <input type="date" @bind="_releaseTo" class="parking-input" />
+                    </div>
+                    <FluentButton Appearance="Appearance.Outline" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
                 </FluentStack>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                    @L["Parking_Owned_ReleaseHint"] +@_ownedSpot.PotentialReleasePointsToday @L["Parking_Points"]
+                </FluentLabel>
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                     <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
@@ -163,7 +168,8 @@
     private string? _info;
 
     private OwnedSpotDto? _ownedSpot;
-    private DateTime _releaseDate = DateTime.Today;
+    private DateTime _releaseFrom = DateTime.Today;
+    private DateTime _releaseTo = DateTime.Today;
     private int _allowance;
 
     private IncentivePolicy? _policy;
@@ -195,7 +201,9 @@
 
     private async Task ReleaseOwnedAsync()
     {
-        await RunResidentAsync(() => ResidentSpots.ReleaseAsync(_userId, DateOnly.FromDateTime(_releaseDate)), "Parking_Owned_Released");
+        await RunResidentAsync(
+            () => ResidentSpots.ReleaseAsync(_userId, DateOnly.FromDateTime(_releaseFrom), DateOnly.FromDateTime(_releaseTo)),
+            "Parking_Owned_Released");
     }
 
     private async Task SaveAllowanceAsync()

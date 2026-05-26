@@ -103,13 +103,27 @@ public sealed class ResidentSpotService(
         return ParkingResult.Success;
     }
 
-    public async Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly date, CancellationToken cancellationToken = default)
+    private const int MaxReleaseRangeDays = 92;
+
+    public async Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
-        if (date < DateOnly.FromDateTime(now.Date))
+        var today = DateOnly.FromDateTime(now.Date);
+
+        if (toDate < fromDate)
+        {
+            return ParkingResult.Failure("Parking_Error_InvalidRange");
+        }
+
+        if (fromDate < today)
         {
             return ParkingResult.Failure("Parking_Error_PastDate");
+        }
+
+        if (toDate.DayNumber - fromDate.DayNumber >= MaxReleaseRangeDays)
+        {
+            return ParkingResult.Failure("Parking_Error_RangeTooLong");
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -119,28 +133,46 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
         }
 
-        if (await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == date, cancellationToken))
+        var alreadyReleased = (await dbContext.SpotReleases
+            .Where(r => r.SpotId == spot.Id && r.Date >= fromDate && r.Date <= toDate)
+            .Select(r => r.Date)
+            .ToListAsync(cancellationToken)).ToHashSet();
+
+        var rangeStart = new DateTimeOffset(fromDate.ToDateTime(TimeOnly.MinValue), now.Offset);
+        var rangeEnd = new DateTimeOffset(toDate.AddDays(1).ToDateTime(TimeOnly.MinValue), now.Offset);
+        var claimedDays = (await dbContext.Reservations
+            .Where(r => r.SpotId == spot.Id && r.UserId == userId && r.Status == ReservationStatus.CheckedIn
+                && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
+            .Select(r => r.StartUtc)
+            .ToListAsync(cancellationToken))
+            .Select(start => DateOnly.FromDateTime(start.Date))
+            .ToHashSet();
+
+        ParkerScore? score = null;
+        var releasedCount = 0;
+        for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            return ParkingResult.Failure("Parking_Error_AlreadyReleased");
+            if (alreadyReleased.Contains(date) || claimedDays.Contains(date))
+            {
+                continue;
+            }
+
+            var points = policy.ComputeShareReward(policy.ResidentShareCutoff(date, now.Offset), now, spot.MonthlyShareAllowance);
+            dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
+            releasedCount++;
+
+            if (points > 0)
+            {
+                score ??= await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+                score.RewardSharing(points, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
+            }
         }
 
-        var (dayStart, dayEnd) = DayWindow(date, now.Offset);
-        var alreadyClaimed = await dbContext.Reservations.AnyAsync(r => r.SpotId == spot.Id && r.UserId == userId
-            && r.Status == ReservationStatus.CheckedIn && r.StartUtc < dayEnd && r.EndUtc > dayStart, cancellationToken);
-        if (alreadyClaimed)
+        if (releasedCount == 0)
         {
-            return ParkingResult.Failure("Parking_Error_AlreadyClaimed");
-        }
-
-        var points = policy.ComputeShareReward(policy.ResidentShareCutoff(date, now.Offset), now, spot.MonthlyShareAllowance);
-        dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
-
-        if (points > 0)
-        {
-            var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-            score.RewardSharing(points, now);
-            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                userId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
+            return ParkingResult.Failure("Parking_Error_NothingToRelease");
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -13,8 +13,12 @@ public interface IResidentSpotService
     /// <summary>Confirm arrival on the owned spot for today so it is not auto-shared.</summary>
     Task<ParkingResult> ConfirmArrivalAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    /// <summary>Proactively release the owned spot for the given day; awards the graduated reward.</summary>
-    Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly date, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Proactively release the owned spot for every day in the range [fromDate, toDate]. Each day is
+    /// rewarded on its own (advance notice × allowance multiplier); days already released or claimed
+    /// are skipped.
+    /// </summary>
+    Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
     /// <summary>Set how many times a month the resident is willing to share their spot.</summary>
     Task<ParkingResult> SetShareAllowanceAsync(Guid userId, int allowance, CancellationToken cancellationToken = default);
