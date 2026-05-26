@@ -11,7 +11,11 @@ reservation you won't use, and sharing a reserved ("resident") spot — and pena
 
 ## Screenshots
 
-**Reserve a spot** — your reserved (resident) spot, available spots with a live points preview, and your reservations:
+**Reserving a spot** — pick a time, find available spots (each showing the points it would earn), book one, and see it in your reservations:
+
+![Reserving a spot](docs/screenshots/reserve.gif)
+
+The reservation page in detail — your reserved (resident) spot, available spots with a live points preview, and your reservations:
 
 ![Reservation page](docs/screenshots/reserve.png)
 
