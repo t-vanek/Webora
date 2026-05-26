@@ -998,6 +998,8 @@ h1:focus {
 /* --- Responsive: stack the sidebar above content on narrow screens --- */
 .body-content {
     min-width: 0;
+    /* Include the padding in the width so it never forces horizontal page scroll. */
+    box-sizing: border-box;
 }
 
 @media (max-width: 768px) {

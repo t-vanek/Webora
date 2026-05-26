@@ -1,0 +1,16 @@
+{
+  "name": "webora-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "End-to-end Playwright tests for the Webora web app.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "install-browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
