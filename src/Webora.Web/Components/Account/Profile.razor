@@ -50,6 +50,16 @@
                             Appearance="Appearance.Outline" OnSubmit="RemoveHomeAsync" />
             }
 
+            <FluentLabel Typo="Typography.H4">@L["Profile_TeamTitle"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_TeamHelp"]</FluentLabel>
+            <EditForm Model="TeamInput" method="post" OnValidSubmit="SaveDepartmentAsync" FormName="department">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                    <FluentTextField Name="TeamInput.Department" @bind-Value="TeamInput.Department"
+                                     Label="@L["Profile_Team"]" Style="width:360px" />
+                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
+                </FluentStack>
+            </EditForm>
+
             <FluentLabel Typo="Typography.H4">@L["Profile_NotificationSettings"]</FluentLabel>
 
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
@@ -158,6 +168,7 @@
 
 #pragma warning disable BL0008
     [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "department")] private TeamFormModel TeamInput { get; set; } = new();
 #pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
@@ -166,11 +177,30 @@
     {
         _tz = await SiteSettings.GetTimeZoneAsync();
         await ReloadAsync();
-        if (await CurrentUserIdAsync() is { } userId)
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
         {
-            _home = await UserLocation.GetHomeAsync(userId);
+            _home = await UserLocation.GetHomeAsync(user.Id);
             HomeInput.Address ??= _home.Address;
+            TeamInput.Department ??= user.Department;
         }
+    }
+
+    private async Task SaveDepartmentAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            user.Department = string.IsNullOrWhiteSpace(TeamInput.Department) ? null : TeamInput.Department.Trim();
+            await UserManager.UpdateAsync(user);
+        }
+    }
+
+    private sealed class TeamFormModel
+    {
+        public string? Department { get; set; }
     }
 
     private async Task SaveHomeAsync()

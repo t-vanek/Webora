@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Webora.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Webora.Infrastructure.Persistence;
 namespace Webora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WeboraDbContext))]
-    partial class WeboraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526123002_UserDepartment")]
+    partial class UserDepartment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -445,9 +448,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<int>("LastCreditGrantPeriod")
                         .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset?>("LastDecayUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("NextAllowancePenalty")
                         .HasColumnType("integer");
 
@@ -543,46 +543,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AdaptiveDeadbandPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(5);
-
-                    b.Property<int>("AdaptiveGainPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(100);
-
-                    b.Property<int>("AdaptiveIntervalMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(60);
-
-                    b.Property<int>("AdaptivePeakMaxPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(400);
-
-                    b.Property<int>("AdaptivePeakMinPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(100);
-
-                    b.Property<bool>("AdaptivePricingEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("AdaptiveStepMaxPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(25);
-
-                    b.Property<int>("AdaptiveTargetOccupancyPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(85);
-
                     b.Property<bool>("AutoVerifyHomeAddress")
                         .HasColumnType("boolean");
 
@@ -603,9 +563,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(5);
-
-                    b.Property<DateTimeOffset?>("LastAdaptiveAdjustUtc")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<double?>("LotLatitude")
                         .HasColumnType("double precision");
@@ -697,16 +654,6 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.Property<TimeSpan>("ReminderLeadTime")
                         .HasColumnType("interval");
-
-                    b.Property<int>("ReputationDecayIntervalDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
-                    b.Property<int>("ReputationDecayPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(10);
 
                     b.Property<TimeOnly>("ResidentHoldUntil")
                         .HasColumnType("time without time zone");

@@ -9,6 +9,9 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public string? DisplayName { get; set; }
 
+    /// <summary>Team/department the user belongs to; groups the team leaderboard and peer comparison.</summary>
+    public string? Department { get; set; }
+
     public AccountStatus Status { get; set; } = AccountStatus.PendingActivation;
 
     public DateTimeOffset? StatusChangedAtUtc { get; set; }

@@ -477,11 +477,34 @@
   <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Stříbro od (bodů)</value></data>
   <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Zlato od (bodů)</value></data>
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
+  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Rozklad reputace (%)</value></data>
+  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Interval rozkladu (dní)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptivní ceny</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Samoladící regulátor: pravidelně změří obsazenost ve špičce a posune přirážku za špičku směrem k cílové obsazenosti (v mezích a po krocích). Při vypnutí drží ruční hodnotu přirážky.</value></data>
+  <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Zapnout adaptivní ladění cen</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Cílová obsazenost (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Interval ladění (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Zesílení regulátoru</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Pásmo necitlivosti (%)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max. krok přirážky</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max. přirážka za špičku (%)</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>
   <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Bonus k přídělu / úroveň</value></data>
   <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva na cenu / úroveň (%)</value></data>
+  <data name="Profile_TeamTitle" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_TeamHelp" xml:space="preserve"><value>Zařaď se do týmu nebo oddělení – objeví se týmový žebříček a porovnání s kolegy.</value></data>
+  <data name="Profile_Team" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_SaveTeam" xml:space="preserve"><value>Uložit tým</value></data>
+  <data name="Parking_Team_Mine" xml:space="preserve"><value>Můj tým</value></data>
+  <data name="Parking_Team_Rank" xml:space="preserve"><value>Jsi #{0} z {1} v týmu</value></data>
+  <data name="Parking_Team_Avg" xml:space="preserve"><value>průměr týmu</value></data>
+  <data name="Parking_Team_Leaderboard" xml:space="preserve"><value>Žebříček týmů</value></data>
+  <data name="Parking_Team_Name" xml:space="preserve"><value>Tým</value></data>
+  <data name="Parking_Team_Members" xml:space="preserve"><value>Členů</value></data>
+  <data name="Parking_Team_AvgPoints" xml:space="preserve"><value>Ø bodů</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

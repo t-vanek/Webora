@@ -63,6 +63,80 @@ public sealed class IncentiveService(
                 badgesByUser.GetValueOrDefault(t.UserId, []))).ToList();
     }
 
+    public async Task<IReadOnlyList<TeamLeaderboardEntryDto>> GetTeamLeaderboardAsync(int take = 20, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Left-join users to their score so members without activity still count (as zero).
+        var members = await (
+            from u in dbContext.Users.AsNoTracking()
+            where u.Department != null && u.Department != ""
+            join s in dbContext.ParkerScores on u.Id equals s.UserId into ss
+            from s in ss.DefaultIfEmpty()
+            select new { u.Department, Points = s != null ? s.Points : 0, OffPeak = s != null ? s.OffPeakReservations : 0 })
+            .ToListAsync(cancellationToken);
+
+        return members
+            .GroupBy(m => m.Department!)
+            .Select(g => new
+            {
+                Department = g.Key,
+                Count = g.Count(),
+                AvgPoints = g.Average(m => m.Points),
+                AvgOffPeak = g.Average(m => (double)m.OffPeak),
+            })
+            .OrderByDescending(t => t.AvgPoints)
+            .ThenBy(t => t.Department)
+            .Take(take)
+            .Select((t, index) => new TeamLeaderboardEntryDto(
+                index + 1, t.Department, t.Count,
+                (int)Math.Round(t.AvgPoints, MidpointRounding.AwayFromZero),
+                Math.Round(t.AvgOffPeak, 1)))
+            .ToList();
+    }
+
+    public async Task<PeerComparisonDto?> GetPeerComparisonAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var department = await dbContext.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Department)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(department))
+        {
+            return null;
+        }
+
+        var members = await (
+            from u in dbContext.Users.AsNoTracking()
+            where u.Department == department
+            join s in dbContext.ParkerScores on u.Id equals s.UserId into ss
+            from s in ss.DefaultIfEmpty()
+            select new { u.Id, Points = s != null ? s.Points : 0, OffPeak = s != null ? s.OffPeakReservations : 0 })
+            .ToListAsync(cancellationToken);
+
+        if (members.Count == 0)
+        {
+            return null;
+        }
+
+        var me = members.FirstOrDefault(m => m.Id == userId);
+        var myPoints = me?.Points ?? 0;
+        var myOffPeak = me?.OffPeak ?? 0;
+        var rank = members.OrderByDescending(m => m.Points).ThenBy(m => m.Id).ToList().FindIndex(m => m.Id == userId) + 1;
+
+        return new PeerComparisonDto(
+            department,
+            members.Count,
+            rank,
+            myPoints,
+            (int)Math.Round(members.Average(m => m.Points), MidpointRounding.AwayFromZero),
+            myOffPeak,
+            Math.Round(members.Average(m => (double)m.OffPeak), 1));
+    }
+
     public async Task<IReadOnlyList<PointsLedgerEntryDto>> GetHistoryAsync(Guid userId, int take = 50, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);

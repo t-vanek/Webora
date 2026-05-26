@@ -56,6 +56,9 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Poptávkové odměny** — odměna za uvolnění roste s obsazeností a délkou fronty (symetrie k ceně).
 - **Série a úrovně** — bonus za nepřerušenou řadu dokončení a loajalitní tiery (Bronz–Platina).
 - **Výhody za reputaci** — vyšší tier = přednost ve frontě, větší příděl a sleva na cenu.
+- **Rozklad reputace** — body časem slábnou, takže skóre odráží *současné* chování (a tresty se hojí).
+- **Týmové žebříčky** — porovnání oddělení a sociální srovnání s průměrem vlastního týmu.
+- **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
@@ -135,6 +138,11 @@ cena = základ × přirážka_za_špičku × přirážka_za_obsazenost      (zas
   místům), tím výš cena šplhá, až po nastavený strop.
 - Mimo špičku v prázdném parkovišti se platí **základní cena**; ve špičce na plném parkovišti **maximum**.
 
+Volitelně lze zapnout **adaptivní ceny**: proporcionální regulátor pravidelně změří obsazenost
+špičkového okna a sám posouvá přirážku za špičku k **cílové obsazenosti** (např. 85 %) — v pásmu
+necitlivosti, po omezených krocích a v daných mezích. Ve výchozím stavu je vypnutý a je plně laditelný
+za běhu v administraci.
+
 **Tok kreditu:**
 
 | Událost | Dopad na peněženku |
@@ -199,6 +207,12 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
     je obsloužen dřív, ale dlouho čekající nižší tier ho dožene (žádné vyhladovění);
   - **vyšší měsíční příděl** — `základní příděl + bonus × tier`;
   - **sleva na cenu rezervace** — `sleva % × tier` (zastropováno, nikdy zdarma).
+- **Rozklad reputace** — body se jednou za interval násobí `(1 − rozklad %)` (výchozí 10 % / 30 dní,
+  0 = vypnuto). Protože míří k nule z obou stran, získané skóre se musí **udržovat aktivitou** a staré
+  **penalizace se časem hojí**. Tiery i jejich výhody tak sledují současné chování, ne jednorázový vrchol.
+- **Týmové žebříčky a sociální srovnání** — uživatel si v profilu nastaví **tým/oddělení**; žebříček pak
+  ukazuje pořadí týmů (podle průměrné reputace členů) a kartu „můj tým" s pozicí v týmu a porovnáním
+  vlastních čísel s průměrem týmu (normativní motivace).
 
 ### Rezidentní místa
 
@@ -251,8 +265,9 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
 připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
-nevyužité sdílené dny, **uděluje měsíční příděl kreditů** a **obsluhuje frontu** (expiruje prošlé
-nabídky a přidržuje uvolněná místa dalším čekatelům). Lze ji spustit i ručně ze správy míst.
+nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
+a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci** a **ladí adaptivní ceny**. Lze ji
+spustit i ručně ze správy míst.
 
 ### Role a oprávnění
 
@@ -271,8 +286,9 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Body** | uvolnění, bonus mimo špičku, penalizace za no-show |
 | **Tresty za no-show z fronty** | srážka bodů, kreditová pokuta, zákaz fronty (dní), srážka příštího přídělu |
 | **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
-| **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů) |
+| **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
 | **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
+| **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
 | **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky |

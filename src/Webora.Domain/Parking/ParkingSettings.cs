@@ -101,6 +101,31 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int TierDiscountPercent { get; private set; } = 5;
 
+    public int ReputationDecayPercent { get; private set; } = 10;
+
+    public int ReputationDecayIntervalDays { get; private set; } = 30;
+
+    // --- Adaptive pricing controller (self-tunes the peak surcharge toward a target occupancy) ---
+
+    public bool AdaptivePricingEnabled { get; private set; }
+
+    public int AdaptiveTargetOccupancyPercent { get; private set; } = 85;
+
+    public int AdaptiveGainPercent { get; private set; } = 100;
+
+    public int AdaptiveDeadbandPercent { get; private set; } = 5;
+
+    public int AdaptiveStepMaxPercent { get; private set; } = 25;
+
+    public int AdaptivePeakMinPercent { get; private set; } = 100;
+
+    public int AdaptivePeakMaxPercent { get; private set; } = 400;
+
+    public int AdaptiveIntervalMinutes { get; private set; } = 60;
+
+    /// <summary>Controller state: when the peak surcharge was last auto-adjusted.</summary>
+    public DateTimeOffset? LastAdaptiveAdjustUtc { get; private set; }
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -155,7 +180,17 @@ public class ParkingSettings : Entity, IAggregateRoot
         int tierPlatinumPoints,
         int queuePriorityPerTier,
         int tierAllowanceBonus,
-        int tierDiscountPercent)
+        int tierDiscountPercent,
+        int reputationDecayPercent,
+        int reputationDecayIntervalDays,
+        bool adaptivePricingEnabled,
+        int adaptiveTargetOccupancyPercent,
+        int adaptiveGainPercent,
+        int adaptiveDeadbandPercent,
+        int adaptiveStepMaxPercent,
+        int adaptivePeakMinPercent,
+        int adaptivePeakMaxPercent,
+        int adaptiveIntervalMinutes)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -203,6 +238,23 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueuePriorityPerTier = Math.Max(0, queuePriorityPerTier);
         TierAllowanceBonus = Math.Max(0, tierAllowanceBonus);
         TierDiscountPercent = Math.Clamp(tierDiscountPercent, 0, 30);
+        ReputationDecayPercent = Math.Clamp(reputationDecayPercent, 0, 100);
+        ReputationDecayIntervalDays = Math.Max(1, reputationDecayIntervalDays);
+        AdaptivePricingEnabled = adaptivePricingEnabled;
+        AdaptiveTargetOccupancyPercent = Math.Clamp(adaptiveTargetOccupancyPercent, 1, 100);
+        AdaptiveGainPercent = Math.Max(0, adaptiveGainPercent);
+        AdaptiveDeadbandPercent = Math.Clamp(adaptiveDeadbandPercent, 0, 100);
+        AdaptiveStepMaxPercent = Math.Max(0, adaptiveStepMaxPercent);
+        AdaptivePeakMinPercent = Math.Max(100, adaptivePeakMinPercent);
+        AdaptivePeakMaxPercent = Math.Max(AdaptivePeakMinPercent, adaptivePeakMaxPercent);
+        AdaptiveIntervalMinutes = Math.Max(1, adaptiveIntervalMinutes);
+    }
+
+    /// <summary>Applies an adaptive-controller adjustment to the peak surcharge and records the time.</summary>
+    public void ApplyAdaptiveAdjustment(int newPeakPricePercent, DateTimeOffset at)
+    {
+        PeakPricePercent = Math.Max(100, newPeakPricePercent);
+        LastAdaptiveAdjustUtc = at;
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -249,6 +301,16 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueuePriorityPerTier = QueuePriorityPerTier,
         TierAllowanceBonus = TierAllowanceBonus,
         TierDiscountPercent = TierDiscountPercent,
+        ReputationDecayPercent = ReputationDecayPercent,
+        ReputationDecayIntervalDays = ReputationDecayIntervalDays,
+        AdaptivePricingEnabled = AdaptivePricingEnabled,
+        AdaptiveTargetOccupancyPercent = AdaptiveTargetOccupancyPercent,
+        AdaptiveGainPercent = AdaptiveGainPercent,
+        AdaptiveDeadbandPercent = AdaptiveDeadbandPercent,
+        AdaptiveStepMaxPercent = AdaptiveStepMaxPercent,
+        AdaptivePeakMinPercent = AdaptivePeakMinPercent,
+        AdaptivePeakMaxPercent = AdaptivePeakMaxPercent,
+        AdaptiveIntervalMinutes = AdaptiveIntervalMinutes,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

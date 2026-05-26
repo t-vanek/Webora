@@ -18,4 +18,10 @@ public interface IParkingSettingsService
     Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default);
 
     Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lets the adaptive controller nudge the peak surcharge toward target occupancy from the measured
+    /// peak occupancy. No-op unless enabled and the interval has elapsed. Returns whether it changed.
+    /// </summary>
+    Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default);
 }

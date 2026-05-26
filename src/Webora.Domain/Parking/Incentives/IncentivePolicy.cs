@@ -133,7 +133,54 @@ public sealed record IncentivePolicy
     /// <summary>Reservation price discount (percent) per loyalty tier rank, capped so a booking is never free.</summary>
     public int TierDiscountPercent { get; init; } = 5;
 
+    /// <summary>Percent of reputation faded toward zero each decay interval (0 disables decay).</summary>
+    public int ReputationDecayPercent { get; init; } = 10;
+
+    /// <summary>Days between reputation decay steps.</summary>
+    public int ReputationDecayIntervalDays { get; init; } = 30;
+
+    /// <summary>Whether the controller auto-tunes the peak surcharge toward a target occupancy.</summary>
+    public bool AdaptivePricingEnabled { get; init; }
+
+    /// <summary>Target peak-window occupancy (percent) the controller steers toward.</summary>
+    public int AdaptiveTargetOccupancyPercent { get; init; } = 85;
+
+    /// <summary>Controller gain: surcharge points adjusted per unit of occupancy error.</summary>
+    public int AdaptiveGainPercent { get; init; } = 100;
+
+    /// <summary>Occupancy error (percent) within which the controller leaves the surcharge alone.</summary>
+    public int AdaptiveDeadbandPercent { get; init; } = 5;
+
+    /// <summary>Largest change to the peak surcharge the controller may make in one step.</summary>
+    public int AdaptiveStepMaxPercent { get; init; } = 25;
+
+    /// <summary>Lower bound the controller keeps the peak surcharge at or above.</summary>
+    public int AdaptivePeakMinPercent { get; init; } = 100;
+
+    /// <summary>Upper bound the controller keeps the peak surcharge at or below.</summary>
+    public int AdaptivePeakMaxPercent { get; init; } = 400;
+
+    /// <summary>Minimum minutes between controller adjustments.</summary>
+    public int AdaptiveIntervalMinutes { get; init; } = 60;
+
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>
+    /// The peak surcharge the adaptive controller would set given the measured peak occupancy:
+    /// nudge proportionally to the error from target (outside a deadband), bounded per step and overall.
+    /// </summary>
+    public int ComputeAdaptivePeak(double measuredOccupancy)
+    {
+        var error = Math.Clamp(measuredOccupancy, 0.0, 1.0) - AdaptiveTargetOccupancyPercent / 100.0;
+        if (Math.Abs(error) < AdaptiveDeadbandPercent / 100.0)
+        {
+            return PeakPricePercent;
+        }
+
+        var step = Math.Clamp((int)Math.Round(AdaptiveGainPercent * error, MidpointRounding.AwayFromZero),
+            -AdaptiveStepMaxPercent, AdaptiveStepMaxPercent);
+        return Math.Clamp(PeakPricePercent + step, AdaptivePeakMinPercent, Math.Max(AdaptivePeakMinPercent, AdaptivePeakMaxPercent));
+    }
 
     /// <summary>The monthly allowance for a user of the given tier rank (base plus the tier bonus).</summary>
     public int AllowanceForTier(int tierRank) =>

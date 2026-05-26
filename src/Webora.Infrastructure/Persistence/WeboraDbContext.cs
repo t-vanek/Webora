@@ -49,6 +49,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
                 .HasDefaultValue(AccountStatus.PendingActivation);
 
             user.Property(u => u.DisplayName).HasMaxLength(256);
+            user.Property(u => u.Department).HasMaxLength(128);
             user.Property(u => u.StatusReason).HasMaxLength(512);
             user.Property(u => u.HomeAddress).HasMaxLength(512);
         });
@@ -202,6 +203,16 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             settings.Property(s => s.QueuePriorityPerTier).HasDefaultValue(30);
             settings.Property(s => s.TierAllowanceBonus).HasDefaultValue(20);
             settings.Property(s => s.TierDiscountPercent).HasDefaultValue(5);
+            settings.Property(s => s.ReputationDecayPercent).HasDefaultValue(10);
+            settings.Property(s => s.ReputationDecayIntervalDays).HasDefaultValue(30);
+            settings.Property(s => s.AdaptivePricingEnabled).HasDefaultValue(false);
+            settings.Property(s => s.AdaptiveTargetOccupancyPercent).HasDefaultValue(85);
+            settings.Property(s => s.AdaptiveGainPercent).HasDefaultValue(100);
+            settings.Property(s => s.AdaptiveDeadbandPercent).HasDefaultValue(5);
+            settings.Property(s => s.AdaptiveStepMaxPercent).HasDefaultValue(25);
+            settings.Property(s => s.AdaptivePeakMinPercent).HasDefaultValue(100);
+            settings.Property(s => s.AdaptivePeakMaxPercent).HasDefaultValue(400);
+            settings.Property(s => s.AdaptiveIntervalMinutes).HasDefaultValue(60);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

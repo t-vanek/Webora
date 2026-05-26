@@ -628,6 +628,60 @@ public sealed class ReservationService(
         return due.Count;
     }
 
+    public async Task<int> DecayReputationAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        if (policy.ReputationDecayPercent <= 0 || policy.ReputationDecayIntervalDays <= 0)
+        {
+            return 0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var threshold = now.AddDays(-policy.ReputationDecayIntervalDays);
+
+        // Only scores due for a decay step (or never baselined yet).
+        var due = await dbContext.ParkerScores
+            .Where(s => s.LastDecayUtc == null || s.LastDecayUtc <= threshold)
+            .ToListAsync(cancellationToken);
+
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        var decayed = 0;
+        foreach (var score in due)
+        {
+            var delta = score.DecayReputationIfDue(policy.ReputationDecayPercent, policy.ReputationDecayIntervalDays, now);
+            if (delta != 0)
+            {
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    score.UserId, IncentiveReason.ReputationDecay, delta, null, now));
+                decayed++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return decayed;
+    }
+
+    public async Task<double> MeasurePeakOccupancyAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.Date);
+        var start = new DateTimeOffset(today.ToDateTime(policy.PeakStart), now.Offset);
+        var end = new DateTimeOffset(today.ToDateTime(policy.PeakEnd), now.Offset);
+        if (end <= start)
+        {
+            return 0.0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ComputeOccupancyAsync(dbContext, start, end, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
