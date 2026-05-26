@@ -365,9 +365,15 @@ public sealed class ReservationService(
 
             if (rewardEligible)
             {
-                score.RewardRelease(policy.ReleasePoints, now);
+                // Scale the reward by how badly the spot was needed: lot occupancy + people queued for it.
+                var occupancy = await ComputeOccupancyAsync(dbContext, reservation.StartUtc, reservation.EndUtc, cancellationToken);
+                var waitingCount = await dbContext.QueueEntries.CountAsync(q => q.Status == QueueEntryStatus.Waiting
+                    && q.StartUtc < reservation.EndUtc && q.EndUtc > reservation.StartUtc, cancellationToken);
+                var releaseReward = policy.ComputeReleaseReward(occupancy, waitingCount);
+
+                score.RewardRelease(releaseReward, now);
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                    userId, IncentiveReason.ReleasedReservation, policy.ReleasePoints, reservation.Id, now));
+                    userId, IncentiveReason.ReleasedReservation, releaseReward, reservation.Id, now));
                 newBadges = await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
             }
         }

@@ -460,6 +460,11 @@
   <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Queue ban (days)</value></data>
   <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Next allowance cut</value></data>
   <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>You're temporarily barred from the queue because of a previous no-show.</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Demand-based release rewards</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>The release reward grows with demand: an occupancy surcharge plus a bonus per person queued for the spot, capped. Freeing a spot that's in demand pays the most.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus per queued person</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max release reward</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>This spot is currently held for someone in the queue.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>There are still free spots for this window – just reserve one. The queue only opens when the lot is full.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>You're already in the queue for this window.</value></data>

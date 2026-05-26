@@ -35,4 +35,7 @@ public sealed record ParkingSettingsDto(
     int QueueNoShowPenaltyPoints,
     int QueueNoShowCreditPenalty,
     int QueueNoShowBanDays,
-    int QueueNoShowAllowancePenalty);
+    int QueueNoShowAllowancePenalty,
+    int DemandReleaseOccupancyPercent,
+    int DemandReleaseQueueBonus,
+    int MaxReleaseReward);

@@ -460,6 +460,11 @@
   <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
   <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka příštího přídělu</value></data>
   <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>Kvůli předchozímu nedostavení máš dočasně zakázaný vstup do fronty.</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Poptávkové odměny za uvolnění</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>Odměna za uvolnění roste s poptávkou: přirážka podle obsazenosti lotu plus bonus za každého čekajícího ve frontě, zastropováno. Uvolnit místo, když je o něj zájem, se vyplatí nejvíc.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za čekajícího ve frontě</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max. odměna za uvolnění</value></data>
   <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
   <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
   <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>

@@ -79,6 +79,12 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int QueueNoShowAllowancePenalty { get; private set; } = 30;
 
+    public int DemandReleaseOccupancyPercent { get; private set; } = 100;
+
+    public int DemandReleaseQueueBonus { get; private set; } = 5;
+
+    public int MaxReleaseReward { get; private set; } = 40;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -122,7 +128,10 @@ public class ParkingSettings : Entity, IAggregateRoot
         int queueNoShowPenaltyPoints,
         int queueNoShowCreditPenalty,
         int queueNoShowBanDays,
-        int queueNoShowAllowancePenalty)
+        int queueNoShowAllowancePenalty,
+        int demandReleaseOccupancyPercent,
+        int demandReleaseQueueBonus,
+        int maxReleaseReward)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -159,6 +168,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueueNoShowCreditPenalty = Math.Max(0, queueNoShowCreditPenalty);
         QueueNoShowBanDays = Math.Max(0, queueNoShowBanDays);
         QueueNoShowAllowancePenalty = Math.Max(0, queueNoShowAllowancePenalty);
+        DemandReleaseOccupancyPercent = Math.Max(0, demandReleaseOccupancyPercent);
+        DemandReleaseQueueBonus = Math.Max(0, demandReleaseQueueBonus);
+        MaxReleaseReward = Math.Max(ReleasePoints, maxReleaseReward);
     }
 
     public IncentivePolicy ToPolicy() => new()
@@ -194,6 +206,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         QueueNoShowCreditPenalty = QueueNoShowCreditPenalty,
         QueueNoShowBanDays = QueueNoShowBanDays,
         QueueNoShowAllowancePenalty = QueueNoShowAllowancePenalty,
+        DemandReleaseOccupancyPercent = DemandReleaseOccupancyPercent,
+        DemandReleaseQueueBonus = DemandReleaseQueueBonus,
+        MaxReleaseReward = MaxReleaseReward,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

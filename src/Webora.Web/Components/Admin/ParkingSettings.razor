@@ -196,6 +196,23 @@
                 </FluentGridItem>
             </FluentGrid>
 
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DemandRewardSection"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DemandRewardHelp"]</FluentLabel>
+            <FluentGrid Spacing="3">
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseOccupancyPercent" Min="0"
+                                       Label="@L["Parking_Settings_DemandOccupancyPercent"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseQueueBonus" Min="0"
+                                       Label="@L["Parking_Settings_DemandQueueBonus"]" Style="width:100%" />
+                </FluentGridItem>
+                <FluentGridItem xs="6" md="4">
+                    <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseReward" Min="0"
+                                       Label="@L["Parking_Settings_MaxReleaseReward"]" Style="width:100%" />
+                </FluentGridItem>
+            </FluentGrid>
+
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Parking_Settings_Save"]</FluentButton>
         </FluentStack>
     }
@@ -256,6 +273,9 @@
             QueueNoShowCreditPenalty = s.QueueNoShowCreditPenalty,
             QueueNoShowBanDays = s.QueueNoShowBanDays,
             QueueNoShowAllowancePenalty = s.QueueNoShowAllowancePenalty,
+            DemandReleaseOccupancyPercent = s.DemandReleaseOccupancyPercent,
+            DemandReleaseQueueBonus = s.DemandReleaseQueueBonus,
+            MaxReleaseReward = s.MaxReleaseReward,
         };
     }
 
@@ -293,7 +313,10 @@
             _form.QueueNoShowPenaltyPoints,
             _form.QueueNoShowCreditPenalty,
             _form.QueueNoShowBanDays,
-            _form.QueueNoShowAllowancePenalty);
+            _form.QueueNoShowAllowancePenalty,
+            _form.DemandReleaseOccupancyPercent,
+            _form.DemandReleaseQueueBonus,
+            _form.MaxReleaseReward);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -343,5 +366,8 @@
         public int QueueNoShowCreditPenalty { get; set; }
         public int QueueNoShowBanDays { get; set; }
         public int QueueNoShowAllowancePenalty { get; set; }
+        public int DemandReleaseOccupancyPercent { get; set; }
+        public int DemandReleaseQueueBonus { get; set; }
+        public int MaxReleaseReward { get; set; }
     }
 }

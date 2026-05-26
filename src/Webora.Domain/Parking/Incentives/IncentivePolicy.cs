@@ -100,6 +100,15 @@ public sealed record IncentivePolicy
     /// <summary>Credits cut from the user's next monthly allowance after a waitlist-claim no-show.</summary>
     public int QueueNoShowAllowancePenalty { get; init; } = 30;
 
+    /// <summary>Extra percent added to the release reward at full occupancy (mirrors the occupancy price surcharge).</summary>
+    public int DemandReleaseOccupancyPercent { get; init; } = 100;
+
+    /// <summary>Extra release-reward points per person waiting in the queue for the freed window.</summary>
+    public int DemandReleaseQueueBonus { get; init; } = 5;
+
+    /// <summary>Cap on the demand-scaled release reward, however high occupancy and the queue push it.</summary>
+    public int MaxReleaseReward { get; init; } = 40;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>Whether a freshly geocoded address qualifies for automatic verification.</summary>
@@ -166,6 +175,20 @@ public sealed record IncentivePolicy
     /// <summary>Whether a release at the given moment is early enough to be rewarded.</summary>
     public bool QualifiesForReleaseReward(DateTimeOffset start, DateTimeOffset releasedAt) =>
         releasedAt <= start - ReleaseCutoff;
+
+    /// <summary>
+    /// The release reward, scaled by how badly the freed spot was needed: an occupancy surcharge on the
+    /// base reward plus a bonus per person waiting in the queue, capped. Freeing a spot when the lot is
+    /// full and others are queued pays far more than freeing one nobody wanted.
+    /// </summary>
+    public int ComputeReleaseReward(double occupancyRatio, int waitingCount)
+    {
+        var ratio = Math.Clamp(occupancyRatio, 0.0, 1.0);
+        var occupancyReward = ReleasePoints * (1.0 + Math.Max(0, DemandReleaseOccupancyPercent) / 100.0 * ratio);
+        var queueReward = Math.Max(0, DemandReleaseQueueBonus) * Math.Max(0, waitingCount);
+        var reward = (int)Math.Round(occupancyReward + queueReward, MidpointRounding.AwayFromZero);
+        return Math.Clamp(reward, ReleasePoints, Math.Max(ReleasePoints, MaxReleaseReward));
+    }
 
     /// <summary>Whether an un-used reservation has passed its grace period and is now a no-show.</summary>
     public bool IsNoShow(DateTimeOffset start, DateTimeOffset now) =>
