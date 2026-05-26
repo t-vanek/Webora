@@ -151,11 +151,10 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
-        var user = await UserManager.GetUserAsync(state.User);
-        if (user is not null)
+        if (Guid.TryParse(UserManager.GetUserId(state.User), out var userId))
         {
-            _score = await Incentives.GetScoreAsync(user.Id);
-            _peer = await Incentives.GetPeerComparisonAsync(user.Id);
+            _score = await Incentives.GetScoreAsync(userId);
+            _peer = await Incentives.GetPeerComparisonAsync(userId);
         }
 
         _policy = await ParkingSettings.GetPolicyAsync();
