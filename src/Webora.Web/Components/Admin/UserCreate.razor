@@ -16,6 +16,7 @@
 
     <EditForm Model="Input" OnValidSubmit="CreateAsync">
         <DataAnnotationsValidator />
+        <FluentCard Class="profile-section">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             @if (!string.IsNullOrEmpty(_error))
             {
@@ -51,6 +52,7 @@
 
             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentButton>
         </FluentStack>
+        </FluentCard>
     </EditForm>
 </FluentStack>
 
@@ -66,8 +68,7 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
-        var admin = await UserManager.GetUserAsync(state.User);
-        _adminId = admin?.Id ?? Guid.Empty;
+        _adminId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
         _allRoles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
     }
 

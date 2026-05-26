@@ -20,10 +20,13 @@
 
     <FluentTextField @bind-Value="_name" Label="@L["Admin_Roles_Name"]" Style="max-width:480px" />
 
-    <FluentLabel Typo="Typography.H4">@L["Admin_Roles_Permissions"]</FluentLabel>
-    <PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" />
-
-    <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentButton>
+    <FluentCard Class="profile-section">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <FluentLabel Typo="Typography.Subject">@L["Admin_Roles_Permissions"]</FluentLabel>
+            <PermissionEditor Catalog="RoleAdmin.PermissionCatalog" Selected="_selected" />
+            <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentButton>
+        </FluentStack>
+    </FluentCard>
 </FluentStack>
 
 @code {
