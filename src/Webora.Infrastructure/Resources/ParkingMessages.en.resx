@@ -39,4 +39,10 @@
   <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Spot {0} was deactivated by an administrator and your reservation for it may be affected. Please review your reservations and pick another spot if needed.</value></data>
   <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Your spot is shared today</value></data>
   <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>You didn't confirm arrival on your spot {0} before today's cutoff, so it's now in the shared pool for others. Next time you can release it in advance and earn points for it.</value></data>
+  <data name="Parking_Notify_ShareUsed_Title" xml:space="preserve"><value>A colleague used your shared spot</value></data>
+  <data name="Parking_Notify_ShareUsed_Body" xml:space="preserve"><value>Your shared spot {0} was used by someone else today – thanks for sharing it.</value></data>
+  <data name="Parking_Notify_ResidentAssigned_Title" xml:space="preserve"><value>You have a new reserved spot</value></data>
+  <data name="Parking_Notify_ResidentAssigned_Body" xml:space="preserve"><value>You've been assigned reserved spot {0}. Confirm arrival each day, or release it to others to earn points.</value></data>
+  <data name="Parking_Notify_ResidentUnassigned_Title" xml:space="preserve"><value>Reserved spot removed</value></data>
+  <data name="Parking_Notify_ResidentUnassigned_Body" xml:space="preserve"><value>An administrator removed your reserved spot {0}. Please book from the shared pool from now on.</value></data>
 </root>

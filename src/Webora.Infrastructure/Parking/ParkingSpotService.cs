@@ -148,8 +148,28 @@ public sealed class ParkingSpotService(
             return ParkingResult.Failure("Parking_Error_UserNotFound");
         }
 
+        var previousOwner = spot.OwnerId;
         spot.AssignOwner(ownerId);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Tell the affected residents: a removed/replaced owner loses the spot, a new owner gains one.
+        if (previousOwner != ownerId)
+        {
+            if (previousOwner is { } prev)
+            {
+                await notifications.NotifyAsync(prev, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_ResidentUnassigned_Title"],
+                    messages["Parking_Notify_ResidentUnassigned_Body", spot.Code], cancellationToken);
+            }
+
+            if (ownerId is { } newOwner)
+            {
+                await notifications.NotifyAsync(newOwner, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_ResidentAssigned_Title"],
+                    messages["Parking_Notify_ResidentAssigned_Body", spot.Code], cancellationToken);
+            }
+        }
+
         return ParkingResult.Success;
     }
 }

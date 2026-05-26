@@ -267,8 +267,14 @@ public sealed class ReservationService(
         // Reward taking a shared reserved spot, scaled by commute distance — also only on real use.
         var spot = await dbContext.ParkingSpots.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == reservation.SpotId, cancellationToken);
+        Guid? sharedSpotOwner = null;
+        string? sharedSpotCode = null;
         if (spot is { OwnerId: { } owner } && owner != userId)
         {
+            // Tell the resident their shared spot actually got used (their sharing paid off).
+            sharedSpotOwner = owner;
+            sharedSpotCode = spot.Code;
+
             // Only a verified home address counts, so a spoofed far address earns nothing.
             var home = await dbContext.Users.Where(u => u.Id == userId)
                 .Select(u => new { u.CommuteDistanceKm, u.HomeVerified })
@@ -287,6 +293,14 @@ public sealed class ReservationService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
+
+        if (sharedSpotOwner is { } sharedOwnerId)
+        {
+            await notifications.NotifyAsync(sharedOwnerId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_ShareUsed_Title"],
+                messages["Parking_Notify_ShareUsed_Body", sharedSpotCode!], cancellationToken);
+        }
+
         return ParkingResult.Success;
     }
 
