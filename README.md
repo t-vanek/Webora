@@ -67,14 +67,20 @@ vyhrazeného místa) a penalizují nedostavení se.
 
 ## Náhledy
 
-**Kompletní průchod** — přihlášení, rezervace místa (s cenou i body), žebříček a ladění živých nastavení:
+**Registrace** — vytvoření účtu na split-screen obrazovce a potvrzení o aktivačním e-mailu:
 
-![Kompletní průchod](docs/screenshots/walkthrough.gif)
+![Registrace](docs/screenshots/registration.gif)
 
-|  |  |
-| --- | --- |
-| **Rezervace** — vyhrazené místo, volná místa s živým náhledem ceny a bodů, vaše rezervace.<br>![Rezervace](docs/screenshots/reserve.png) | **Žebříček** — skóre, statistiky chování a odznaky.<br>![Žebříček](docs/screenshots/leaderboard.png) |
-| **Správa míst** — správa míst a přiřazování rezidentů.<br>![Správa míst](docs/screenshots/admin-spots.png) | **Nastavení** — pravidla ekonomiky a motivace, laditelná za běhu.<br>![Nastavení](docs/screenshots/admin-settings.png) |
+**Přihlášení a používání** — přihlášení, peněženka v hlavičce, rezervace místa s živým náhledem ceny
+a bodů, a žebříček s úrovní, skóre důvěry a odznaky:
+
+![Přihlášení a používání](docs/screenshots/login.gif)
+
+**Administrace** — správa účtů a rolí, parkovací místa, *Pravidla a ceny* rozdělená do záložek
+(ekonomika, body a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita), nastavení webu
+a revize podezřelých interakcí:
+
+![Administrace](docs/screenshots/administration.gif)
 
 > Spuštění přes `docker compose up --build`, architektura a další technické detaily jsou
 > v [docs/TECHNICAL.md](docs/TECHNICAL.md).
