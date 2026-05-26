@@ -520,6 +520,88 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.ToTable("UserBadges", (string)null);
                 });
 
+            modelBuilder.Entity("Webora.Domain.Parking.ParkingSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AutoVerifyHomeAddress")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("AutoVerifyMaxDistanceKm")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("LotLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("LotLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("MaxReleaseRangeDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxRewardedReleasesPerDay")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeSpan>("NoShowGracePeriod")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("NoShowPenaltyPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffPeakBonusPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("PeakEnd")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly>("PeakStart")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeSpan>("ReleaseCutoff")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("ReleasePoints")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeSpan>("ReminderLeadTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeOnly>("ResidentHoldUntil")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("ResidentMaxShareAllowance")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResidentReleaseMaxPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResidentReleasePointsPerHour")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResidentSharePercentPerAllowance")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResidentWastedShareClawbackPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SharedTakenBasePoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SharedTakenMaxMultiplier")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SharedTakenReferenceKm")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeSpan>("SweepInterval")
+                        .HasColumnType("interval");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ParkingSettings", (string)null);
+                });
+
             modelBuilder.Entity("Webora.Domain.Parking.ParkingSpot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -534,9 +616,18 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<DateOnly?>("LastResidentReminderDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("MonthlyShareAllowance")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -547,6 +638,8 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("ParkingSpots", (string)null);
                 });
@@ -575,6 +668,9 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ReleasedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("ReminderSentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("SpotId")
                         .HasColumnType("uuid");
 
@@ -591,13 +687,47 @@ namespace Webora.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SpotId", "StartUtc");
-
                     b.HasIndex("Status");
+
+                    b.HasIndex("SpotId", "StartUtc");
 
                     b.HasIndex("UserId", "StartUtc");
 
                     b.ToTable("Reservations", (string)null);
+                });
+
+            modelBuilder.Entity("Webora.Domain.Parking.SpotRelease", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AwardedPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ReconciledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ReleasedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SpotId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Date");
+
+                    b.HasIndex("SpotId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("SpotReleases", (string)null);
                 });
 
             modelBuilder.Entity("Webora.Domain.Settings.SiteSettings", b =>
@@ -718,6 +848,9 @@ namespace Webora.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("CommuteDistanceKm")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
@@ -731,6 +864,19 @@ namespace Webora.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("HomeAddress")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<double?>("HomeLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("HomeLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("HomeVerified")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("LockoutEnabled")

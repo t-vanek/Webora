@@ -15,6 +15,18 @@ public enum IncentiveReason
     /// <summary>A reservation was used as booked (check-in through completion).</summary>
     ReservationCompleted,
 
+    /// <summary>A resident proactively released their reserved spot into the shared pool.</summary>
+    ResidentSpotShared,
+
+    /// <summary>Part of a share reward clawed back because the guest no-showed on the shared spot.</summary>
+    ResidentShareWasted,
+
+    /// <summary>A share reward fully reversed because nobody booked the released day (no demand).</summary>
+    ResidentShareUnused,
+
+    /// <summary>Awarded for taking a shared reserved spot, scaled by the taker's commute distance.</summary>
+    SharedSpotTaken,
+
     /// <summary>A manual correction made by an administrator.</summary>
     ManualAdjustment,
 }

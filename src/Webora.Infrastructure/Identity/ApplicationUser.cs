@@ -14,6 +14,19 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset? StatusChangedAtUtc { get; set; }
 
     public string? StatusReason { get; set; }
+
+    /// <summary>The user's home address (self-entered) used to estimate their commute distance.</summary>
+    public string? HomeAddress { get; set; }
+
+    public double? HomeLatitude { get; set; }
+
+    public double? HomeLongitude { get; set; }
+
+    /// <summary>Distance from home to the parking lot in km; scales the shared-spot reward.</summary>
+    public double? CommuteDistanceKm { get; set; }
+
+    /// <summary>Whether an admin has verified the home address; the distance reward needs this.</summary>
+    public bool HomeVerified { get; set; }
 }
 
 public class ApplicationRole : IdentityRole<Guid>

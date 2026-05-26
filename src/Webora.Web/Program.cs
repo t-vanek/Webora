@@ -14,6 +14,7 @@ using Webora.Web.Hosting;
 using Webora.Web.Hubs;
 using Webora.Web.Identity;
 using Webora.Web.Notifications;
+using Webora.Web.Parking;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -48,6 +49,9 @@ builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationPublisher>();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Background maintenance: sends reservation reminders and resolves no-shows on a schedule.
+builder.Services.AddHostedService<ParkingMaintenanceService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();

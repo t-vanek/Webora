@@ -1,0 +1,40 @@
+namespace Webora.Application.Parking;
+
+/// <summary>
+/// Booking and lifecycle of reservations. Mutating operations apply the incentive rules
+/// (off-peak bonus on booking, reward on an in-time release, penalty on a no-show) as part of the
+/// same transaction.
+/// </summary>
+public interface IReservationService
+{
+    /// <summary>Active spots with no conflicting reservation in the given window.</summary>
+    Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
+
+    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+
+    Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
+    /// <summary>The holder used the spot and is now leaving; closes the reservation.</summary>
+    Task<ParkingResult> CompleteAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
+    /// <summary>The holder gives the spot up; rewarded when done early enough to free it.</summary>
+    Task<ParkingResult> ReleaseAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
+    Task<ParkingResult> CancelAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the
+    /// penalty. Intended to be run on a schedule; also exposed for an administrator to trigger.
+    /// Returns the number of reservations resolved.
+    /// </summary>
+    Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a one-time "confirm arrival or release" reminder for reservations whose start is near and
+    /// that have not been checked in or released yet. Intended to be run on a schedule.
+    /// Returns the number of reminders sent.
+    /// </summary>
+    Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default);
+}

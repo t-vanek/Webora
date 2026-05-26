@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Parking_Notify_Reminder_Title" xml:space="preserve"><value>Potvrď příjezd na parkování</value></data>
+  <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Tvá rezervace místa {0} brzy začíná. Potvrď příjezd, nebo místo uvolni pro ostatní – jinak ti propadne jako nedostavení.</value></data>
+  <data name="Parking_Notify_NoShow_Title" xml:space="preserve"><value>Nedostavení k rezervaci</value></data>
+  <data name="Parking_Notify_NoShow_Body" xml:space="preserve"><value>Nepotvrdil(a) jsi příjezd k rezervaci místa {0}, byla označena jako nedostavení a přišel(a) jsi o {1} bodů.</value></data>
+  <data name="Parking_Notify_HoldReminder_Title" xml:space="preserve"><value>Potvrď příjezd na své místo</value></data>
+  <data name="Parking_Notify_HoldReminder_Body" xml:space="preserve"><value>Brzy vyprší držení tvého vyhrazeného místa {0}. Potvrď příjezd, nebo ho uvolni ostatním a získej body.</value></data>
+  <data name="Parking_Notify_ShareWasted_Title" xml:space="preserve"><value>Sdílené místo nikdo nevyužil</value></data>
+  <data name="Parking_Notify_ShareWasted_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd. Vrací se {1} bodů z odměny za sdílení.</value></data>
+  <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd.</value></data>
+  <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>O sdílené místo nebyl zájem</value></data>
+  <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>O tvé sdílené místo {0} nebyl ten den zájem – nikdo si ho nezarezervoval, proto se vrací {1} bodů z odměny.</value></data>
+</root>

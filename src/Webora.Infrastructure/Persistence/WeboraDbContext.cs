@@ -31,6 +31,10 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
     public DbSet<UserBadge> UserBadges => Set<UserBadge>();
 
+    public DbSet<ParkingSettings> ParkingSettings => Set<ParkingSettings>();
+
+    public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -44,6 +48,7 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
 
             user.Property(u => u.DisplayName).HasMaxLength(256);
             user.Property(u => u.StatusReason).HasMaxLength(512);
+            user.Property(u => u.HomeAddress).HasMaxLength(512);
         });
 
         builder.Entity<AccountAuditEvent>(audit =>
@@ -113,6 +118,15 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
             spot.Property(s => s.Notes).HasMaxLength(512);
             spot.HasIndex(s => s.Code).IsUnique();
+            spot.HasIndex(s => s.OwnerId);
+        });
+
+        builder.Entity<SpotRelease>(release =>
+        {
+            release.ToTable("SpotReleases");
+            release.HasKey(r => r.Id);
+            release.HasIndex(r => new { r.SpotId, r.Date }).IsUnique();
+            release.HasIndex(r => new { r.OwnerId, r.Date });
         });
 
         builder.Entity<Reservation>(reservation =>
@@ -148,6 +162,13 @@ public class WeboraDbContext(DbContextOptions<WeboraDbContext> options)
             badge.HasKey(b => b.Id);
             badge.Property(b => b.Badge).HasConversion<string>().HasMaxLength(32);
             badge.HasIndex(b => new { b.UserId, b.Badge }).IsUnique();
+        });
+
+        builder.Entity<ParkingSettings>(settings =>
+        {
+            settings.ToTable("ParkingSettings");
+            settings.HasKey(s => s.Id);
+            settings.Property(s => s.Id).ValueGeneratedNever();
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

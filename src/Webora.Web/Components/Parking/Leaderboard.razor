@@ -1,0 +1,85 @@
+@page "/parking/leaderboard"
+@attribute [HasPermission(Permissions.Parking.ViewLeaderboard)]
+@rendermode InteractiveServer
+@inject IIncentiveService Incentives
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Leaderboard_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Leaderboard_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Parking_Leaderboard_Intro"]</FluentLabel>
+
+    @if (_score is not null)
+    {
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_MyScore"]</FluentLabel>
+                <FluentLabel Typo="Typography.H3">@_score.Points @L["Parking_Points"]</FluentLabel>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_Released"]: @_score.ReservationsReleased</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_OffPeak"]: @_score.OffPeakReservations</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_Completed"]: @_score.ReservationsCompleted</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_NoShows"]: @_score.NoShows</FluentLabel>
+                </FluentStack>
+                @if (_score.Badges.Count > 0)
+                {
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        @foreach (var badge in _score.Badges)
+                        {
+                            <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Badge_{badge}"]</FluentBadge>
+                        }
+                    </FluentStack>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+
+    @if (_leaderboard is null)
+    {
+        <FluentProgressRing />
+    }
+    else if (_leaderboard.Count == 0)
+    {
+        <FluentLabel Typo="Typography.Body">@L["Parking_Leaderboard_Empty"]</FluentLabel>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_leaderboard.AsQueryable()" TGridItem="LeaderboardEntryDto"
+                        GridTemplateColumns="auto 2fr 1fr 1fr 1fr 2fr">
+            <PropertyColumn Property="@(e => e.Rank)" Title="@L["Parking_Rank"]" />
+            <PropertyColumn Property="@(e => e.DisplayName)" Title="@L["Parking_Name"]" />
+            <PropertyColumn Property="@(e => e.Points)" Title="@L["Parking_Points"]" />
+            <PropertyColumn Property="@(e => e.ReservationsReleased)" Title="@L["Parking_Stat_Released"]" />
+            <PropertyColumn Property="@(e => e.OffPeakReservations)" Title="@L["Parking_Stat_OffPeak"]" />
+            <TemplateColumn Title="@L["Parking_Badges"]">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Wrap="true">
+                    @foreach (var badge in context.Badges)
+                    {
+                        <FluentBadge>@L[$"Parking_Badge_{badge}"]</FluentBadge>
+                    }
+                </FluentStack>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ParkerScoreDto? _score;
+    private IReadOnlyList<LeaderboardEntryDto>? _leaderboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            _score = await Incentives.GetScoreAsync(user.Id);
+        }
+
+        _leaderboard = await Incentives.GetLeaderboardAsync();
+    }
+}

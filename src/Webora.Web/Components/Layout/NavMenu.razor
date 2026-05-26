@@ -7,7 +7,25 @@
         @L["Nav_Home"]
     </FluentNavLink>
 
-    @if (_canAdminUsers || _canAdminRoles || _canSettings)
+    @if (_canReserve || _canLeaderboard)
+    {
+        <FluentNavGroup Title="@L["Nav_Parking"]" Expanded="true">
+            @if (_canReserve)
+            {
+                <FluentNavLink Href="parking" Icon="@(new Icons.Regular.Size20.VehicleCar())">
+                    @L["Nav_ParkingReserve"]
+                </FluentNavLink>
+            }
+            @if (_canLeaderboard)
+            {
+                <FluentNavLink Href="parking/leaderboard" Icon="@(new Icons.Regular.Size20.Trophy())">
+                    @L["Nav_ParkingLeaderboard"]
+                </FluentNavLink>
+            }
+        </FluentNavGroup>
+    }
+
+    @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
     {
         <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
             @if (_canAdminUsers)
@@ -20,6 +38,18 @@
             {
                 <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
                     @L["Nav_AdminRoles"]
+                </FluentNavLink>
+            }
+            @if (_canManageSpots)
+            {
+                <FluentNavLink Href="admin/parking/spots" Icon="@(new Icons.Regular.Size20.Map())">
+                    @L["Nav_AdminParking"]
+                </FluentNavLink>
+            }
+            @if (_canManageIncentives)
+            {
+                <FluentNavLink Href="admin/parking/settings" Icon="@(new Icons.Regular.Size20.Options())">
+                    @L["Nav_AdminParkingSettings"]
                 </FluentNavLink>
             }
             @if (_canSettings)
@@ -51,6 +81,10 @@
     private bool _canAdminUsers;
     private bool _canAdminRoles;
     private bool _canSettings;
+    private bool _canReserve;
+    private bool _canLeaderboard;
+    private bool _canManageSpots;
+    private bool _canManageIncentives;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,6 +94,10 @@
             _canAdminUsers = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Users.View);
             _canAdminRoles = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Roles.View);
             _canSettings = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Settings.View);
+            _canReserve = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.Reserve);
+            _canLeaderboard = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ViewLeaderboard);
+            _canManageSpots = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ManageSpots);
+            _canManageIncentives = user.HasClaim(WeboraClaimTypes.Permission, Permissions.Parking.ManageIncentives);
         }
     }
 }

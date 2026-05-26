@@ -52,6 +52,28 @@ public class ParkerScore
         UpdatedAtUtc = at;
     }
 
+    /// <summary>A resident shared their reserved spot with the pool; counts as a release.</summary>
+    public void RewardSharing(int points, DateTimeOffset at)
+    {
+        Points += points;
+        ReservationsReleased++;
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>Claws back part of a share reward when the guest wasted the shared spot.</summary>
+    public void RevokeSharePoints(int points, DateTimeOffset at)
+    {
+        Points -= Math.Abs(points);
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>A far-commuting user took a shared spot; rewarded by distance.</summary>
+    public void RewardSharedSpotTaken(int points, DateTimeOffset at)
+    {
+        Points += points;
+        UpdatedAtUtc = at;
+    }
+
     /// <summary>A manual administrative correction; does not touch behaviour counters.</summary>
     public void Adjust(int delta, DateTimeOffset at)
     {

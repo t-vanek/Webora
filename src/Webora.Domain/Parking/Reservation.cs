@@ -26,6 +26,9 @@ public class Reservation : Entity
 
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
+    /// <summary>When the "confirm arrival or release" reminder was sent, so it is sent only once.</summary>
+    public DateTimeOffset? ReminderSentAtUtc { get; private set; }
+
     private Reservation() { }
 
     public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc)
@@ -73,6 +76,8 @@ public class Reservation : Entity
         TransitionTo(ReservationStatus.Completed);
         CompletedAtUtc = at;
     }
+
+    public void MarkReminderSent(DateTimeOffset at) => ReminderSentAtUtc ??= at;
 
     private void TransitionTo(ReservationStatus target)
     {

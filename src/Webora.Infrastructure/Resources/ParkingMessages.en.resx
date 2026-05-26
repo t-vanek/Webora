@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Parking_Notify_Reminder_Title" xml:space="preserve"><value>Confirm your parking arrival</value></data>
+  <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Your reservation for spot {0} starts soon. Confirm arrival or release it for others – otherwise it will lapse as a no-show.</value></data>
+  <data name="Parking_Notify_NoShow_Title" xml:space="preserve"><value>Missed reservation</value></data>
+  <data name="Parking_Notify_NoShow_Body" xml:space="preserve"><value>You didn't confirm arrival for spot {0}; it was marked as a no-show and you lost {1} points.</value></data>
+  <data name="Parking_Notify_HoldReminder_Title" xml:space="preserve"><value>Confirm arrival on your spot</value></data>
+  <data name="Parking_Notify_HoldReminder_Body" xml:space="preserve"><value>The hold on your reserved spot {0} expires soon. Confirm arrival, or release it to others and earn points.</value></data>
+  <data name="Parking_Notify_ShareWasted_Title" xml:space="preserve"><value>Your shared spot went unused</value></data>
+  <data name="Parking_Notify_ShareWasted_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival. {1} points of the sharing reward were clawed back.</value></data>
+  <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival.</value></data>
+  <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>No demand for your shared spot</value></data>
+  <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
+</root>

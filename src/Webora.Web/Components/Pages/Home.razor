@@ -6,4 +6,12 @@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.PageTitle">@L["Home_Title"]</FluentLabel>
     <FluentLabel Typo="Typography.Body">@L["Home_Welcome"]</FluentLabel>
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
+            <FluentAnchor Href="parking" Appearance="Appearance.Accent">@L["Nav_ParkingReserve"]</FluentAnchor>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewLeaderboard)" Context="board">
+                <FluentAnchor Href="parking/leaderboard" Appearance="Appearance.Outline">@L["Nav_ParkingLeaderboard"]</FluentAnchor>
+            </AuthorizeView>
+        </FluentStack>
+    </AuthorizeView>
 </FluentStack>
