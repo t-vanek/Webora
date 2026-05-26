@@ -18,6 +18,9 @@ public class SpotRelease : Entity
 
     public int AwardedPoints { get; private set; }
 
+    /// <summary>When this release was reconciled (reward kept or clawed back); null = still pending.</summary>
+    public DateTimeOffset? ReconciledAtUtc { get; private set; }
+
     private SpotRelease() { }
 
     public SpotRelease(Guid spotId, Guid ownerId, DateOnly date, DateTimeOffset releasedAtUtc, int awardedPoints)
@@ -28,4 +31,6 @@ public class SpotRelease : Entity
         ReleasedAtUtc = releasedAtUtc;
         AwardedPoints = awardedPoints;
     }
+
+    public void MarkReconciled(DateTimeOffset at) => ReconciledAtUtc ??= at;
 }

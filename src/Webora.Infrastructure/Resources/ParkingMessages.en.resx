@@ -21,4 +21,6 @@
   <data name="Parking_Notify_ShareWasted_Title" xml:space="preserve"><value>Your shared spot went unused</value></data>
   <data name="Parking_Notify_ShareWasted_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival. {1} points of the sharing reward were clawed back.</value></data>
   <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Your shared spot {0} went unused today – the guest didn't confirm arrival.</value></data>
+  <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>No demand for your shared spot</value></data>
+  <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
 </root>

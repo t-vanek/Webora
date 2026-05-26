@@ -46,12 +46,13 @@ public sealed class ParkingMaintenanceService(
             var reminded = await reservations.SendDueRemindersAsync(cancellationToken);
             var residentReminders = await residentSpots.SendDueHoldRemindersAsync(cancellationToken);
             var resolved = await reservations.SweepNoShowsAsync(cancellationToken);
+            var reconciled = await residentSpots.ReconcileUnusedSharesAsync(cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || resolved > 0)
+            if (reminded > 0 || residentReminders > 0 || resolved > 0 || reconciled > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {Resolved} no-shows resolved.",
-                    reminded, residentReminders, resolved);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {Resolved} no-shows resolved, {Reconciled} unused shares reversed.",
+                    reminded, residentReminders, resolved, reconciled);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

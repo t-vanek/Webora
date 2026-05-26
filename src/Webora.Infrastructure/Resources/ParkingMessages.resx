@@ -21,4 +21,6 @@
   <data name="Parking_Notify_ShareWasted_Title" xml:space="preserve"><value>Sdílené místo nikdo nevyužil</value></data>
   <data name="Parking_Notify_ShareWasted_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd. Vrací se {1} bodů z odměny za sdílení.</value></data>
   <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd.</value></data>
+  <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>O sdílené místo nebyl zájem</value></data>
+  <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>O tvé sdílené místo {0} nebyl ten den zájem – nikdo si ho nezarezervoval, proto se vrací {1} bodů z odměny.</value></data>
 </root>

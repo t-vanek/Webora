@@ -28,4 +28,11 @@ public interface IResidentSpotService
     /// Intended for the maintenance loop. Returns the number of reminders sent.
     /// </summary>
     Task<int> SendDueHoldRemindersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reconciles past shared days: a released day that nobody ever booked produced no utilization,
+    /// so its reward is reversed (the share was contingent on actual demand). For the maintenance
+    /// loop. Returns the number of releases clawed back.
+    /// </summary>
+    Task<int> ReconcileUnusedSharesAsync(CancellationToken cancellationToken = default);
 }

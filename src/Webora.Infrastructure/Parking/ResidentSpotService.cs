@@ -269,6 +269,61 @@ public sealed class ResidentSpotService(
         return toNotify.Count;
     }
 
+    public async Task<int> ReconcileUnusedSharesAsync(CancellationToken cancellationToken = default)
+    {
+        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.Date);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var due = await dbContext.SpotReleases
+            .Where(r => r.ReconciledAtUtc == null && r.AwardedPoints > 0 && r.Date < today)
+            .ToListAsync(cancellationToken);
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        var spotIds = due.Select(r => r.SpotId).Distinct().ToList();
+        var codes = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => spotIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+        var notices = new List<(Guid OwnerId, string Code, int Points)>();
+        foreach (var release in due)
+        {
+            release.MarkReconciled(now);
+
+            var (dayStart, dayEnd) = DayWindow(release.Date, now.Offset);
+            // Any reservation that day means there was demand for the spot; only a day nobody ever
+            // booked counts as an unused share and reverses the reward.
+            var hadDemand = await dbContext.Reservations.AnyAsync(r => r.SpotId == release.SpotId
+                && r.StartUtc < dayEnd && r.EndUtc > dayStart, cancellationToken);
+            if (hadDemand)
+            {
+                continue;
+            }
+
+            var score = await GetOrCreateScoreAsync(dbContext, release.OwnerId, cancellationToken);
+            score.RevokeSharePoints(release.AwardedPoints, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                release.OwnerId, IncentiveReason.ResidentShareUnused, -release.AwardedPoints, null, now,
+                $"{codes.GetValueOrDefault(release.SpotId, string.Empty)} {release.Date:yyyy-MM-dd}"));
+            notices.Add((release.OwnerId, codes.GetValueOrDefault(release.SpotId, string.Empty), release.AwardedPoints));
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var (ownerId, code, points) in notices)
+        {
+            await notifications.NotifyAsync(ownerId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                messages["Parking_Notify_ShareUnused_Title"],
+                messages["Parking_Notify_ShareUnused_Body", code, points],
+                cancellationToken);
+        }
+
+        return notices.Count;
+    }
+
     private static (DateTimeOffset start, DateTimeOffset end) DayWindow(DateOnly date, TimeSpan offset)
     {
         var start = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), offset);
