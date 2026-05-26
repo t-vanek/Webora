@@ -208,6 +208,15 @@
   <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>A reservation system for the company car park, with incentive points that reward making the best use of every spot.</value></data>
+  <data name="Home_QuickActions" xml:space="preserve"><value>Quick actions</value></data>
+  <data name="Home_SignedOut" xml:space="preserve"><value>Sign in or create an account to start reserving.</value></data>
+  <data name="Home_Card_Reserve" xml:space="preserve"><value>Book a spot for a time window with credits.</value></data>
+  <data name="Home_Card_Leaderboard" xml:space="preserve"><value>Track your points, tier, streak and badges.</value></data>
+  <data name="Home_Card_Spots" xml:space="preserve"><value>Manage spots and assign residents.</value></data>
+  <data name="Home_Card_Rules" xml:space="preserve"><value>Tune pricing, points and rules at runtime.</value></data>
+  <data name="Home_Card_Users" xml:space="preserve"><value>Manage user accounts.</value></data>
+  <data name="Home_Card_Roles" xml:space="preserve"><value>Define roles and permissions.</value></data>
+  <data name="Home_Card_Settings" xml:space="preserve"><value>Configure the site and identity.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Page not found</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Back to home</value></data>

@@ -208,6 +208,15 @@
   <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
   <data name="Home_Title" xml:space="preserve"><value>Webora</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>Rezervační systém firemního parkoviště s motivačními body za co nejlepší využití míst.</value></data>
+  <data name="Home_QuickActions" xml:space="preserve"><value>Rychlé akce</value></data>
+  <data name="Home_SignedOut" xml:space="preserve"><value>Přihlaste se nebo si vytvořte účet a začněte rezervovat.</value></data>
+  <data name="Home_Card_Reserve" xml:space="preserve"><value>Rezervujte si místo na časové okno za kredit.</value></data>
+  <data name="Home_Card_Leaderboard" xml:space="preserve"><value>Sledujte své body, úroveň, sérii a odznaky.</value></data>
+  <data name="Home_Card_Spots" xml:space="preserve"><value>Spravujte místa a přiřazujte rezidenty.</value></data>
+  <data name="Home_Card_Rules" xml:space="preserve"><value>Laďte ceny, body a pravidla za běhu.</value></data>
+  <data name="Home_Card_Users" xml:space="preserve"><value>Spravujte uživatelské účty.</value></data>
+  <data name="Home_Card_Roles" xml:space="preserve"><value>Definujte role a oprávnění.</value></data>
+  <data name="Home_Card_Settings" xml:space="preserve"><value>Konfigurujte web a identitu.</value></data>
   <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
   <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
   <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>
