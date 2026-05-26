@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Webora.Application.Accounts;
 using Webora.Application.Administration;
 using Webora.Application.Notifications;
@@ -41,8 +42,10 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
 
-        // Parking reservations and the incentive system. The policy is immutable and shared.
-        services.AddSingleton(IncentivePolicy.Default);
+        // Parking reservations and the incentive system. The tunable policy is bound from the
+        // "Parking" configuration section; the derived IncentivePolicy is immutable and shared.
+        services.Configure<ParkingOptions>(configuration.GetSection(ParkingOptions.SectionName));
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ParkingOptions>>().Value.ToPolicy());
         services.AddScoped<IParkingSpotService, ParkingSpotService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<IIncentiveService, IncentiveService>();

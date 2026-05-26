@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Webora.Application.Parking;
+using Webora.Infrastructure.Parking;
 
 namespace Webora.Web.Parking;
 
@@ -11,16 +13,21 @@ namespace Webora.Web.Parking;
 /// </summary>
 public sealed class ParkingMaintenanceService(
     IServiceScopeFactory scopeFactory,
+    IOptions<ParkingOptions> options,
     ILogger<ParkingMaintenanceService> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Run once at startup, then on the interval.
+        // Run once at startup, then on the configured interval.
         await RunOnceAsync(stoppingToken);
 
-        using var timer = new PeriodicTimer(Interval);
+        var interval = options.Value.SweepInterval;
+        if (interval <= TimeSpan.Zero)
+        {
+            interval = TimeSpan.FromMinutes(5);
+        }
+
+        using var timer = new PeriodicTimer(interval);
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
