@@ -31,15 +31,15 @@
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Date"]</FluentLabel>
-                    <input type="date" @bind="_day" @bind:format="yyyy-MM-dd" class="parking-input" />
+                    <input type="date" @bind="_day" class="parking-input" />
                 </div>
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_From"]</FluentLabel>
-                    <input type="time" @bind="_startTime" @bind:format="HH:mm" class="parking-input" />
+                    <input type="time" @bind="_startTime" class="parking-input" />
                 </div>
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_To"]</FluentLabel>
-                    <input type="time" @bind="_endTime" @bind:format="HH:mm" class="parking-input" />
+                    <input type="time" @bind="_endTime" class="parking-input" />
                 </div>
                 <FluentButton Appearance="Appearance.Accent" OnClick="FindAvailableAsync">@L["Parking_Find"]</FluentButton>
             </FluentStack>
@@ -119,17 +119,17 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private Guid _userId;
-    private DateTime _day = DateTime.Today;
-    private DateTime _startTime = DateTime.Today.AddHours(8);
-    private DateTime _endTime = DateTime.Today.AddHours(17);
+    private DateOnly _day = DateOnly.FromDateTime(DateTime.Today);
+    private TimeOnly _startTime = new(8, 0);
+    private TimeOnly _endTime = new(17, 0);
 
     private IReadOnlyList<ParkingSpotDto>? _available;
     private IReadOnlyList<ReservationDto>? _myReservations;
     private string? _error;
     private string? _info;
 
-    private DateTimeOffset Start => new(_day.Date + _startTime.TimeOfDay);
-    private DateTimeOffset End => new(_day.Date + _endTime.TimeOfDay);
+    private DateTimeOffset Start => new(_day.ToDateTime(_startTime));
+    private DateTimeOffset End => new(_day.ToDateTime(_endTime));
     private bool IsOffPeak => Policy.IsOffPeak(Start);
 
     protected override async Task OnInitializedAsync()
