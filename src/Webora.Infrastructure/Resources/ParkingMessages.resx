@@ -37,4 +37,6 @@
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Klub stovky</value></data>
   <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Místo bylo deaktivováno</value></data>
   <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Místo {0} bylo administrátorem deaktivováno a tvá rezervace na něj může být dotčena. Zkontroluj si rezervace a případně si vyber jiné místo.</value></data>
+  <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Tvé místo se dnes sdílí</value></data>
+  <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>Nepotvrdil(a) jsi dnes příjezd na své místo {0} do uzávěrky, proto je teď v sdíleném fondu pro ostatní. Příště ho můžeš uvolnit předem a získat za to body.</value></data>
 </root>

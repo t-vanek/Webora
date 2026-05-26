@@ -30,6 +30,12 @@ public interface IResidentSpotService
     Task<int> SendDueHoldRemindersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Tells residents whose spot auto-shared today — past the hold cutoff without a confirmed arrival
+    /// or a release — once per day. For the maintenance loop. Returns the number of notices sent.
+    /// </summary>
+    Task<int> NotifyDueAutoSharesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reconciles past shared days: a released day that nobody ever booked produced no utilization,
     /// so its reward is reversed (the share was contingent on actual demand). For the maintenance
     /// loop. Returns the number of releases clawed back.

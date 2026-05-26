@@ -37,4 +37,6 @@
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
   <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Parking spot deactivated</value></data>
   <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Spot {0} was deactivated by an administrator and your reservation for it may be affected. Please review your reservations and pick another spot if needed.</value></data>
+  <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Your spot is shared today</value></data>
+  <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>You didn't confirm arrival on your spot {0} before today's cutoff, so it's now in the shared pool for others. Next time you can release it in advance and earn points for it.</value></data>
 </root>

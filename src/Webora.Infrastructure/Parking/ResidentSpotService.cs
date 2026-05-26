@@ -267,6 +267,65 @@ public sealed class ResidentSpotService(
         return toNotify.Count;
     }
 
+    public async Task<int> NotifyDueAutoSharesAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.Date);
+
+        // Auto-share only kicks in once the hold cutoff has passed for today.
+        if (now < policy.ResidentShareCutoff(today, now.Offset))
+        {
+            return 0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var (dayStart, dayEnd) = DayWindow(today, now.Offset);
+
+        var candidates = await dbContext.ParkingSpots
+            .Where(s => s.OwnerId != null && s.LastAutoShareNoticeDate != today)
+            .ToListAsync(cancellationToken);
+
+        var toNotify = new List<(Guid OwnerId, string Code)>();
+        foreach (var spot in candidates)
+        {
+            // A deliberate release isn't an "auto" share; the resident chose it.
+            var releasedToday = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == today, cancellationToken);
+            if (releasedToday)
+            {
+                continue;
+            }
+
+            var claimed = await dbContext.Reservations.AnyAsync(r => r.SpotId == spot.Id && r.UserId == spot.OwnerId
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc < dayEnd && r.EndUtc > dayStart, cancellationToken);
+            if (claimed)
+            {
+                continue;
+            }
+
+            spot.MarkAutoShareNoticed(today);
+            toNotify.Add((spot.OwnerId!.Value, spot.Code));
+        }
+
+        if (toNotify.Count == 0)
+        {
+            return 0;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var (ownerId, code) in toNotify)
+        {
+            await notifications.NotifyAsync(ownerId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_AutoShared_Title"],
+                messages["Parking_Notify_AutoShared_Body", code],
+                cancellationToken);
+        }
+
+        return toNotify.Count;
+    }
+
     public async Task<int> ReconcileUnusedSharesAsync(CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
