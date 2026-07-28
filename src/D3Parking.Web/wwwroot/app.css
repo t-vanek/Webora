@@ -155,6 +155,47 @@ h1:focus {
         color: var(--brand-green);
     }
 
+/* Header controls render as "ghost" icons: transparent at rest, a faint light wash on hover.
+   Fluent's Stealth buttons assume a light surface and paint themselves as solid white boxes on
+   the forced Sherpa header — overriding their design tokens here fixes that for every button in
+   the header (bell, avatar, and the language/theme pair anonymous visitors see) without touching
+   how Stealth looks anywhere else in the app. */
+.app-header fluent-button {
+    --neutral-fill-stealth-rest: transparent;
+    --neutral-fill-stealth-hover: rgba(251, 253, 252, .14);
+    --neutral-fill-stealth-active: rgba(251, 253, 252, .22);
+    --neutral-fill-stealth-focus: rgba(251, 253, 252, .14);
+    --neutral-foreground-rest: var(--brand-on-sherpa);
+    --neutral-foreground-hover: var(--brand-on-sherpa);
+    --neutral-foreground-active: var(--brand-on-sherpa);
+    --neutral-foreground-focus: var(--brand-on-sherpa);
+    --neutral-stroke-rest: transparent;
+    --neutral-stroke-hover: transparent;
+    --neutral-stroke-active: transparent;
+    --neutral-stroke-focus: transparent;
+}
+
+/* Unread count on the bell: lawn green with Sherpa text (8:1), pinned to the icon's corner.
+   The count itself is capped at "9+" in the component. */
+.bell-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--brand-green);
+    color: var(--brand-sherpa);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
 /* Avatar in the header's account menu: initials on the brand violet, sized to line up with the
    neighbouring icon buttons. */
 .account-avatar {
@@ -432,10 +473,11 @@ h1:focus {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 6px 4px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .16);
-    color: var(--foreground-on-accent-rest, #fff);
+    padding: 6px 10px;
+    /* Hranatý tvar drží geometrii značky — pilulka byl jediný oblý prvek v hlavičce. */
+    border-radius: var(--brand-radius);
+    background: rgba(251, 253, 252, .12);
+    color: var(--brand-on-sherpa);
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
@@ -452,17 +494,19 @@ h1:focus {
         opacity: .85;
     }
 
-.wallet-chip__tier {
-    padding: 3px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    background: rgba(255, 255, 255, .22);
+/* Tier as a colour-coded dot (same ramp the old text chips used); the tier name lives in the
+   link's tooltip and on the leaderboard itself. */
+.wallet-chip__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
 }
 
-.wallet-chip__tier--Bronze { background: rgba(251, 253, 252, .22); }
-.wallet-chip__tier--Silver { background: rgba(136, 77, 255, .55); }
-.wallet-chip__tier--Gold { background: var(--brand-violet); }
-.wallet-chip__tier--Platinum { background: var(--brand-green); color: var(--brand-on-green); }
+.wallet-chip__dot--Bronze { background: rgba(251, 253, 252, .45); }
+.wallet-chip__dot--Silver { background: rgba(136, 77, 255, .8); }
+.wallet-chip__dot--Gold { background: var(--brand-violet); }
+.wallet-chip__dot--Platinum { background: var(--brand-green); }
 
 /* --- Leaderboard hero card --- */
 .hero {
@@ -928,9 +972,11 @@ h1:focus {
 .home-tile__ic--board { background: var(--brand-green); color: var(--brand-on-green); }
 .home-tile__ic--spots { background: var(--brand-sherpa); color: var(--brand-on-sherpa); }
 .home-tile__ic--rules { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
-.home-tile__ic--users { background: rgba(2, 52, 68, .10); color: var(--brand-sherpa); }
+/* Neutrální dlaždice jedou na Fluent tokenech, které se v tmavém režimu překlopí samy —
+   pevný sherpa nádech na tmavé kartě mizel. */
+.home-tile__ic--users { background: var(--neutral-fill-secondary-rest, rgba(2, 52, 68, .10)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 .home-tile__ic--roles { background: var(--brand-violet-deep); color: var(--brand-on-violet); }
-.home-tile__ic--settings { background: var(--brand-grey); color: var(--brand-sherpa); }
+.home-tile__ic--settings { background: var(--neutral-fill-secondary-rest, var(--brand-grey)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 
 .home-tile__title {
     font-size: 15px;
@@ -1289,14 +1335,6 @@ h1:focus {
         .wallet-chip small {
             display: none;
         }
-}
-
-/* On true phone widths the tier chip goes too — the number keeps its meaning (it links to the
-   leaderboard where the tier is shown large) and the header tools stay reachable. */
-@media (max-width: 480px) {
-    .wallet-chip__tier {
-        display: none;
-    }
 }
 
 /* Modernise the table panels with a gentle elevation, matching the cards. */

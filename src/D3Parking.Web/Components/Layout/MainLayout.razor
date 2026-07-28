@@ -35,8 +35,9 @@
                 </Authorized>
             </AuthorizeView>
             <NotificationBell @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-            <LanguageSwitcher @rendermode="InteractiveServer" />
-            <ThemeToggle @rendermode="InteractiveServer" />
+            @* One island for the preference corner: the avatar menu when signed in (language and
+               theme live inside it), the standalone language/theme buttons when signed out. It
+               also owns the page's single FluentDesignTheme instance. *@
             <AccountMenu @rendermode="InteractiveServer" />
         </FluentStack>
     </FluentHeader>
@@ -50,7 +51,7 @@
 </FluentLayout>
 
 @* Fluent UI providers live as interactive islands so dialogs, toasts and menus work even when
-   the hosting page is statically rendered. The <ThemeToggle /> in the header also owns the
+   the hosting page is statically rendered. The <AccountMenu /> island in the header owns the
    FluentDesignTheme component that emits the design tokens onto the document. *@
 <FluentToastProvider @rendermode="InteractiveServer" />
 <FluentDialogProvider @rendermode="InteractiveServer" />
