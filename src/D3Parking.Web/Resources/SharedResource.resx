@@ -577,4 +577,10 @@
   <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Převzato</value></data>
   <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
   <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
+  <data name="Home_Today" xml:space="preserve"><value>Dnes</value></data>
+  <data name="Home_NextReservation" xml:space="preserve"><value>Nejbližší rezervace</value></data>
+  <data name="Home_QueueOffer" xml:space="preserve"><value>Nabídka z fronty</value></data>
+  <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Propadne v {0}</value></data>
+  <data name="Home_Wallet" xml:space="preserve"><value>Peněženka a body</value></data>
+  <data name="Home_WalletDetail" xml:space="preserve"><value>Úroveň {0} · série {1}</value></data>
 </root>

@@ -1,13 +1,28 @@
 @page "/"
+@rendermode InteractiveServer
 @inject IStringLocalizer<SharedResource> L
+@inject IReservationService Reservations
+@inject IIncentiveService Incentives
+@inject IResidentSpotService ResidentSpots
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+
+@* The home page is a "today" dashboard, not just a launcher: the states that need attention —
+   today's reservation, a time-boxed queue offer, a resident's held spot — surface here with
+   their primary action attached, because forcing a hop to /parking wastes exactly the minutes
+   the queue offer is counting down. Cards render only when they have something to say; a user
+   with no data sees the hero and the quick-action tiles, same as before. *@
 
 <PageTitle>@L["Home_Title"]</PageTitle>
 
 <div class="home">
-    <section class="home-hero">
+    <section class="home-hero @(_signedIn ? "home-hero--slim" : null)">
         <div class="home-hero__content">
             <h1 class="home-hero__title">@L["Home_Title"]</h1>
-            <p class="home-hero__lead">@L["Home_Welcome"]</p>
+            @if (!_signedIn)
+            {
+                <p class="home-hero__lead">@L["Home_Welcome"]</p>
+            }
             <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
                 <Authorized>
                     <a href="parking" class="home-hero__cta">
@@ -21,6 +36,90 @@
             </AuthorizeView>
         </div>
     </section>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">
+            @L[_error]
+        </FluentMessageBar>
+    }
+
+    @if (_reservation is not null || _queueEntry is not null || _ownedSpot is not null || _score is not null)
+    {
+        <h2 class="home-section">@L["Home_Today"]</h2>
+        <div class="today-grid">
+            @if (_reservation is { } r)
+            {
+                <div class="today-card today-card--reserve">
+                    <span class="today-card__label">@L["Home_NextReservation"]</span>
+                    <span class="today-card__value">@r.SpotCode · @Local(r.StartUtc, "g") – @Local(r.EndUtc, "t")</span>
+                    <span class="today-card__meta">@L[$"Parking_State_{r.Status}"]</span>
+                    <span class="today-card__actions">
+                        @if (r.Status == ReservationStatus.Reserved)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CheckInAsync(_userId, r.Id))">@L["Parking_CheckIn"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.ReleaseAsync(_userId, r.Id))">@L["Parking_Release"]</FluentButton>
+                        }
+                        else if (r.Status == ReservationStatus.CheckedIn)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CompleteAsync(_userId, r.Id))">@L["Parking_Complete"]</FluentButton>
+                        }
+                    </span>
+                </div>
+            }
+
+            @if (_queueEntry is { } q)
+            {
+                <div class="today-card today-card--queue">
+                    <span class="today-card__label">@L[q.Status == QueueEntryStatus.Offered ? "Home_QueueOffer" : "Parking_Queue_MyQueue"]</span>
+                    @if (q.Status == QueueEntryStatus.Offered)
+                    {
+                        <span class="today-card__value">@L["Parking_Queue_OfferedSpot"]: @q.OfferedSpotCode</span>
+                        <span class="today-card__meta">
+                            @(q.OfferExpiresAtUtc is { } exp ? L["Home_OfferExpiresAt", Local(exp, "t")] : null)
+                        </span>
+                        <span class="today-card__actions">
+                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.ClaimQueueOfferAsync(_userId, q.Id))">@L["Parking_Queue_Claim"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="today-card__value">@Local(q.StartUtc, "g") – @Local(q.EndUtc, "t")</span>
+                        <span class="today-card__meta">@L["Parking_Queue_Position"]: @q.Position</span>
+                        <span class="today-card__actions">
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
+                        </span>
+                    }
+                </div>
+            }
+
+            @if (_ownedSpot is { } s)
+            {
+                <div class="today-card today-card--resident">
+                    <span class="today-card__label">@L["Parking_Owned_Title"]</span>
+                    <span class="today-card__value">@s.Code</span>
+                    <span class="today-card__meta">@L[$"Parking_OwnedState_{s.TodayState}"]</span>
+                    @if (s.TodayState == OwnedSpotDayState.Held)
+                    {
+                        <span class="today-card__actions">
+                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_Release"]</FluentButton>
+                        </span>
+                    }
+                </div>
+            }
+
+            @if (_score is { } sc)
+            {
+                <a href="parking/leaderboard" class="today-card today-card--wallet">
+                    <span class="today-card__label">@L["Home_Wallet"]</span>
+                    <span class="today-card__value">@sc.Credits @L["Parking_Credits"] · @sc.Points @L["Parking_Points"]</span>
+                    <span class="today-card__meta">@L["Home_WalletDetail", L[$"Parking_Tier_{sc.Tier}"].Value, sc.CompletionStreak]</span>
+                </a>
+            }
+        </div>
+    }
 
     <AuthorizeView Context="auth">
         <Authorized>
@@ -85,3 +184,76 @@
         </Authorized>
     </AuthorizeView>
 </div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private Guid _userId;
+    private bool _signedIn;
+    private string? _error;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+
+    private ReservationDto? _reservation;
+    private QueueEntryDto? _queueEntry;
+    private OwnedSpotDto? _ownedSpot;
+    private ParkerScoreDto? _score;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null)
+        {
+            return;
+        }
+
+        var user = (await AuthState).User;
+        _signedIn = user.Identity?.IsAuthenticated == true;
+
+        // Claims only — no UserManager DB round-trip. This runs in the layout's render path, and
+        // the dashboard queries below each use their own pooled context (see WalletChip).
+        if (!_signedIn
+            || !user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve)
+            || !Guid.TryParse(UserManager.GetUserId(user), out _userId))
+        {
+            return;
+        }
+
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        // The soonest actionable booking: the service lists newest-first, so re-sort ascending.
+        var upcoming = await Reservations.GetMyReservationsAsync(_userId, upcomingOnly: true);
+        _reservation = upcoming.OrderBy(r => r.StartUtc).FirstOrDefault();
+
+        // A live offer beats a waiting entry — it is the time-boxed one.
+        var queue = await Reservations.GetMyQueueAsync(_userId);
+        _queueEntry = queue.FirstOrDefault(q => q.Status == QueueEntryStatus.Offered)
+            ?? queue.FirstOrDefault(q => q.Status == QueueEntryStatus.Waiting);
+
+        _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
+        _score = await Incentives.GetScoreAsync(_userId);
+    }
+
+    private async Task RunAsync(Func<Task<ParkingResult>> action)
+    {
+        _error = null;
+        var result = await action();
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await LoadAsync();
+    }
+
+    private Task ReleaseOwnedTodayAsync()
+    {
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, _tz).DateTime);
+        return RunAsync(() => ResidentSpots.ReleaseAsync(_userId, today, today));
+    }
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+}

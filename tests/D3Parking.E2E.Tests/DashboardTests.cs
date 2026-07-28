@@ -23,4 +23,16 @@ public class DashboardTests : AdminTest
         await Page.Locator(".home-tile", new() { HasText = "Žebříček" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("parking/leaderboard"));
     }
+
+    [Test]
+    public async Task Today_section_shows_the_wallet_card_with_credits_and_points()
+    {
+        // The wallet card is the one "today" card every parking user has (a score row always
+        // exists for the seeded admin); the reservation/queue/resident cards are data-dependent.
+        await Page.GotoAsync("/");
+        var wallet = Page.Locator(".today-card--wallet");
+        await Expect(wallet).ToBeVisibleAsync();
+        await Expect(wallet).ToContainTextAsync("kreditů");
+        await Expect(wallet).ToContainTextAsync("bodů");
+    }
 }
