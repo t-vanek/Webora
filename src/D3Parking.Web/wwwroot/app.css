@@ -1344,12 +1344,21 @@ h1:focus {
 
 /* --- Nastavení parkování (/admin/parking/settings) --- */
 
+/* fluent-tabs se přizpůsobuje šířce obsahu AKTIVNÍHO tabu (FluentStack zarovnává děti doleva,
+   ne roztažením). Široký tab Ekonomika to maskoval; úzký tab Fronta a špička smrštil celé taby
+   na ~260 px a lišta se sbalila do overflow „+N". Pevná šířka hostitele to řeší u kořene. */
+.settings-page fluent-tabs {
+    width: 100%;
+}
+
 /* Formulář drží čitelnou šířku a nerozlévá se přes celý široký monitor. */
 .settings-panel {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    width: 100%;
     max-width: 880px;
+    box-sizing: border-box;
     padding-top: 12px;
 }
 
