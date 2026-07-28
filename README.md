@@ -66,6 +66,10 @@ vyhrazeného místa) a penalizují nedostavení se.
 
 ## Náhledy
 
+Vizuální styl vychází ze značkového manuálu: plochy v Sherpa Blue, fialová jako akcent interaktivních
+prvků, zelená jako výplň zvýraznění a písmo Sora. Rozhraní je v češtině i angličtině a má světlý
+i tmavý režim.
+
 **Registrace** — vytvoření účtu na split-screen obrazovce a potvrzení o aktivačním e-mailu:
 
 ![Registrace](docs/screenshots/registration.gif)
