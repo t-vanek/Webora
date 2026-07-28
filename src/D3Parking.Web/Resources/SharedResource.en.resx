@@ -581,4 +581,10 @@
   <data name="Parking_Settings_StreakGroup" xml:space="preserve"><value>Streak bonus</value></data>
   <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Reputation decay</value></data>
   <data name="Parking_Settings_TiersGroup" xml:space="preserve"><value>Tier thresholds</value></data>
+  <data name="Home_Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Home_NextReservation" xml:space="preserve"><value>Next reservation</value></data>
+  <data name="Home_QueueOffer" xml:space="preserve"><value>Queue offer</value></data>
+  <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Expires at {0}</value></data>
+  <data name="Home_Wallet" xml:space="preserve"><value>Wallet and points</value></data>
+  <data name="Home_WalletDetail" xml:space="preserve"><value>Tier {0} · streak {1}</value></data>
 </root>

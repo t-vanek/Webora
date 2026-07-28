@@ -924,6 +924,78 @@ h1:focus {
     opacity: .92;
 }
 
+/* Zeštíhlené hero pro přihlášené: nad ním jsou skutečná data, banner popisující aplikaci
+   sám sobě už nemá co říct. */
+.home-hero--slim {
+    padding: 22px 32px;
+}
+
+    .home-hero--slim .home-hero__content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        max-width: none;
+    }
+
+    .home-hero--slim .home-hero__title {
+        font-size: 22px;
+        margin: 0;
+    }
+
+/* --- Karty "Dnes" ---
+   Stavové karty s primární akcí. Levá linka nese barvu podle druhu (stejný jazyk jako
+   spot-card a notif-card); hranatý tvar drží geometrii značky — jednostranná linka a rádius
+   se vylučují. */
+.today-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.today-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    background: var(--neutral-layer-2, var(--brand-white));
+    border: 1px solid var(--brand-hairline);
+    border-left-width: 3px;
+    border-radius: 0;
+    text-decoration: none;
+    color: var(--neutral-foreground-rest);
+}
+
+.today-card--reserve { border-left-color: var(--brand-violet); }
+.today-card--queue { border-left-color: var(--brand-green); }
+.today-card--resident { border-left-color: var(--brand-violet-deep); }
+.today-card--wallet { border-left-color: var(--brand-sherpa); }
+
+.today-card__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.today-card__value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.today-card__meta {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.today-card__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
 .home-section {
     font-size: 16px;
     font-weight: 700;
