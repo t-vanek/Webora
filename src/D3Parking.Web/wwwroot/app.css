@@ -1295,8 +1295,25 @@ h1:focus {
 .notif-card--info { border-left-color: var(--brand-violet); }
 
 /* Wide data grids scroll within their panel instead of pushing the page. */
-.admin-panel {
-    overflow-x: auto;
+/* Vodorovný scroll panelu jen na úzkých obrazovkách — overflow-x:auto vynucuje ořez i svisle,
+   takže na desktopu ukusoval rozbalené seznamy (rezident v tabulce míst). Široké tabulky se na
+   desktop vejdou; mobil scroll dál potřebuje (hlídá ho responzivní test). */
+@media (max-width: 768px) {
+    .admin-panel {
+        overflow-x: auto;
+    }
+}
+
+/* Panel pro formuláře nad tabulkami: vzhled admin-panelu, ale bez jakéhokoli ořezu, aby
+   rozbalovací seznamy mohly přetéct přes jeho hranu. */
+.form-panel {
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--neutral-layer-1, #fff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* --- Responsive: stack the sidebar above content on narrow screens --- */
@@ -1413,3 +1430,135 @@ h1:focus {
 .admin-panel {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
 }
+
+/* --- Nastavení parkování (/admin/parking/settings) --- */
+
+/* fluent-tabs se přizpůsobuje šířce obsahu AKTIVNÍHO tabu (FluentStack zarovnává děti doleva,
+   ne roztažením). Široký tab Ekonomika to maskoval; úzký tab Fronta a špička smrštil celé taby
+   na ~260 px a lišta se sbalila do overflow „+N". Pevná šířka hostitele to řeší u kořene. */
+.settings-page fluent-tabs {
+    width: 100%;
+}
+
+/* Formulář drží čitelnou šířku a nerozlévá se přes celý široký monitor. */
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 880px;
+    box-sizing: border-box;
+    padding-top: 12px;
+}
+
+/* Hlava sekce: název vlevo, vypínač celé skupiny vpravo — vypnutá skupina se ukládá
+   s nulovými hodnotami, což doména čte jako "funkce vypnutá". */
+.settings-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--brand-hairline);
+}
+
+/* auto-fit místo pevných sloupců: pole se přeskládají plynule s šířkou okna,
+   žádné skoky na středních šířkách ani rozpadlé dvojice popisek/pole. */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 16px;
+    width: 100%;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* Slidery potřebují víc místa než stepper — přes dvě kolonky mřížky. */
+.settings-field--wide {
+    grid-column: span 2;
+}
+
+@media (max-width: 520px) {
+    .settings-field--wide {
+        grid-column: span 1;
+    }
+}
+
+.settings-field__label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+}
+
+/* Živá hodnota vedle popisku slideru, ať posuvník nepotřebuje vlastní textové pole. */
+.settings-field__val {
+    font-weight: 700;
+    color: var(--brand-violet-deep);
+    white-space: nowrap;
+}
+
+.settings-field .parking-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* --- Panel notifikací (zvoneček) --- */
+/* Vlastní popover místo FluentCard — fluent-card má výchozí výšku 100 %, což se v absolutní
+   pozici počítá vůči ~40px obalu tlačítka a panel se otevíral jako proužek s posuvníky. */
+.bell-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: min(380px, calc(100vw - 24px));
+    max-height: 420px;
+    overflow-y: auto;
+    background: var(--neutral-layer-2, var(--brand-white));
+    color: var(--neutral-foreground-rest);
+    border: 1px solid var(--brand-hairline);
+    border-top: 3px solid var(--brand-green);
+    border-radius: var(--brand-radius);
+    box-shadow: 0 12px 32px rgba(2, 52, 68, .18);
+    padding: 12px;
+    z-index: 1000;
+    text-align: left;
+}
+
+    /* Položky jsou FluentButton kvůli klikatelnosti; jeho pevná výška a nowrap ale ořezávaly
+       delší zprávy — tady potřebujeme obyčejné víceřádkové řádky. */
+    .bell-panel fluent-button {
+        height: auto;
+        min-height: 0;
+    }
+
+    .bell-panel fluent-button::part(control) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /* Panel je potomkem .app-header, takže na jeho tlačítka dopadá ghost přepis tokenů pro
+       hlavičku (bílý text, světlý hover) — na bílém panelu to znamenalo neviditelné titulky.
+       "inherit" vrátí tokeny na hodnoty motivu zděděné z dokumentu; pozdější pravidlo se
+       stejnou specificitou tu vyhrává nad přepisem hlavičky. */
+    .bell-panel fluent-button {
+        --neutral-fill-stealth-rest: inherit;
+        --neutral-fill-stealth-hover: inherit;
+        --neutral-fill-stealth-active: inherit;
+        --neutral-fill-stealth-focus: inherit;
+        --neutral-foreground-rest: inherit;
+        --neutral-foreground-hover: inherit;
+        --neutral-foreground-active: inherit;
+        --neutral-foreground-focus: inherit;
+        --neutral-stroke-rest: inherit;
+        --neutral-stroke-hover: inherit;
+        --neutral-stroke-active: inherit;
+        --neutral-stroke-focus: inherit;
+    }

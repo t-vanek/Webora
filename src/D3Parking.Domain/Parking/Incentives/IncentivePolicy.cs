@@ -212,9 +212,18 @@ public sealed record IncentivePolicy
     public int AllowanceForTier(int tierRank) =>
         Math.Max(0, MonthlyCreditAllowance) + Math.Max(0, TierAllowanceBonus) * Math.Max(0, tierRank);
 
-    /// <summary>Applies the loyalty-tier discount to a reservation cost (never below 1 credit).</summary>
+    /// <summary>
+    /// Applies the loyalty-tier discount to a reservation cost. A paid booking never drops below
+    /// 1 credit — the floor guards against discounts making parking free, not against the admin
+    /// turning the credit economy off. With a zero base cost (economy disabled) the price stays 0.
+    /// </summary>
     public int ApplyTierDiscount(int cost, int tierRank)
     {
+        if (cost <= 0)
+        {
+            return 0;
+        }
+
         var percent = Math.Clamp(Math.Max(0, TierDiscountPercent) * Math.Max(0, tierRank), 0, 90);
         var discounted = (int)Math.Round(cost * (1.0 - percent / 100.0), MidpointRounding.AwayFromZero);
         return Math.Max(1, discounted);

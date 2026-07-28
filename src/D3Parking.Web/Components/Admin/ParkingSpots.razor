@@ -29,7 +29,10 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
     }
 
-    <FluentCard>
+    @* A plain panel, deliberately not FluentCard: fluent-card ships contain:content, which clips
+       the select's dropped-down listbox to the card edge — the "Typ" menu opened as a sliver
+       peeking from under the panel. *@
+    <div class="form-panel">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             <FluentLabel Typo="Typography.Subject">@L["Parking_Admin_AddSpot"]</FluentLabel>
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
@@ -44,7 +47,7 @@
                 <FluentButton Appearance="Appearance.Accent" OnClick="CreateAsync">@L["Parking_Admin_Add"]</FluentButton>
             </FluentStack>
         </FluentStack>
-    </FluentCard>
+    </div>
 
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
