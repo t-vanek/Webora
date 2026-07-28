@@ -794,6 +794,34 @@ h1:focus {
     max-width: 640px;
 }
 
+/* Na užších obloucích pruhy couvají, text nikdy nesmí ležet na zelené (1,7:1 s bílou).
+   Nejdřív zmizí fialový a zelený se stáhne na proužek u hrany, pod 600 px zůstane čistá
+   plocha Sherpa Blue — identitu drží zelené CTA a podtržení hlavičky. */
+@media (max-width: 900px) {
+    .home-hero::before {
+        display: none;
+    }
+
+    .home-hero::after {
+        width: 64px;
+        right: -18px;
+    }
+
+    .home-hero__content {
+        padding-right: 64px;
+    }
+}
+
+@media (max-width: 600px) {
+    .home-hero::after {
+        display: none;
+    }
+
+    .home-hero__content {
+        padding-right: 0;
+    }
+}
+
 .home-hero__title {
     font-size: 34px;
     font-weight: 700;
@@ -1150,9 +1178,21 @@ h1:focus {
         overflow: visible !important;
     }
 
-        .main > fluent-nav-menu {
-            width: 100% !important;
-            max-width: 100% !important;
+        /* Stacked above the content, the full menu is taller than a phone screen, pushing the
+           actual page a whole viewport away. Cap it and let it scroll internally — the content
+           peeking underneath keeps it discoverable. (A collapsed drawer would be nicer, but the
+           menu renders statically, so a toggle has no circuit to run on.)
+
+           NB: FluentNavMenu renders as div.fluent-nav-menu — a class, not a custom element. The
+           previous element selector never matched anything; the full width came from the column
+           flex stretching its children. */
+        .main > .fluent-nav-menu {
+            /* Width comes from the column flex stretching its children; forcing 100% here adds
+               the menu's own padding on top and pushes the page 4px wide. */
+            box-sizing: border-box;
+            max-height: 45vh;
+            overflow-y: auto;
+            border-bottom: 2px solid var(--brand-hairline);
         }
 
     .body-content {
@@ -1164,12 +1204,25 @@ h1:focus {
     }
 }
 
-/* Keep the header tools from overflowing on small screens: tighten the
-   padding and drop the wallet chip's "credits" word, leaving the number. */
+/* Keep the header tools from overflowing on small screens. Everything in the header has to
+   shrink together: the uppercase brand with its wide tracking, the gaps of the tools row (Fluent
+   emits the gap as an inline style, hence the !important), and the wallet chip's labels. The
+   overflow this fixes was data-dependent — it only appeared once the wallet showed a tier chip
+   and the bell a count — so the numbers below are sized for the widest realistic content. */
 @media (max-width: 600px) {
     .app-header {
         padding-left: .75rem !important;
         padding-right: .75rem !important;
+    }
+
+    .brand-link {
+        font-size: .85rem;
+        letter-spacing: .06em;
+        margin-right: .5rem;
+    }
+
+    .app-header .stack-horizontal {
+        gap: 8px !important;
     }
 
     .wallet-chip {
@@ -1179,6 +1232,14 @@ h1:focus {
         .wallet-chip small {
             display: none;
         }
+}
+
+/* On true phone widths the tier chip goes too — the number keeps its meaning (it links to the
+   leaderboard where the tier is shown large) and the header tools stay reachable. */
+@media (max-width: 480px) {
+    .wallet-chip__tier {
+        display: none;
+    }
 }
 
 /* Modernise the table panels with a gentle elevation, matching the cards. */
