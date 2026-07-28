@@ -672,7 +672,8 @@ h1:focus {
     border-radius: 16px;
     overflow: hidden;
     background: var(--neutral-layer-1, #fff);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, .16);
+    border: 1px solid rgba(2, 52, 68, .06);
+    box-shadow: 0 24px 64px rgba(2, 52, 68, .16);
 }
 
 .auth-shell__brand {
@@ -802,6 +803,304 @@ h1:focus {
 
     .auth-shell__panel {
         padding: 32px;
+    }
+}
+
+/* Podklad auth stránek: plocha s dvěma šikmými pruhy značky v nízké sytosti. Pruhy jsou
+   kreslené gradientem s tvrdými zarážkami (žádné rozostření — brandbook zná jen ostré hrany),
+   ne pseudo-elementy: absolutně pozicovaný pruh přes 240 % výšky by v overflow:auto kontejneru
+   vyrobil zbytečný scrollbar, background nikdy. */
+.auth-body {
+    background: linear-gradient(114deg,
+            transparent 55%,
+            rgba(136, 77, 255, .07) 55%, rgba(136, 77, 255, .07) 62%,
+            transparent 62%, transparent 68%,
+            rgba(137, 225, 3, .09) 68%, rgba(137, 225, 3, .09) 78%,
+            transparent 78%) no-repeat,
+        var(--neutral-layer-4, #f3f3f3);
+    background-size: 100% 100%;
+}
+
+/* --- Veřejný landing (anonymní "/") --- */
+/* Bez sidebaru patří anonymní domovské stránce celá šířka; obsah se drží na 1080 px jako
+   čitelný sloupec. Rytmus ploch kopíruje brandbook: tmavé hero se šikmými pruhy, světlé
+   karty pilířů, kroky a fialový závěrečný pás. */
+.landing {
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 8px 0 56px;
+}
+
+.landing-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--brand-radius-lg);
+    padding: 88px 64px;
+    color: var(--brand-on-sherpa);
+    background: var(--brand-sherpa);
+}
+
+    /* Stejná dvojice šikmých pruhů jako na hero dashboardu — plná barva, tvrdá hrana. */
+    .landing-hero::before,
+    .landing-hero::after {
+        content: "";
+        position: absolute;
+        width: 140px;
+        height: 240%;
+        top: -70%;
+        transform: rotate(24deg);
+        pointer-events: none;
+    }
+
+    .landing-hero::before {
+        right: 16%;
+        background: var(--brand-violet);
+    }
+
+    .landing-hero::after {
+        right: 3%;
+        background: var(--brand-green);
+    }
+
+.landing-hero__content {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+}
+
+.landing-hero__eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, .38);
+    border-radius: var(--brand-radius);
+    margin-bottom: 22px;
+}
+
+.landing-hero__title {
+    font-size: clamp(30px, 4.6vw, 46px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+}
+
+.landing-hero__lead {
+    font-size: 17px;
+    line-height: 1.6;
+    opacity: .92;
+    max-width: 540px;
+    margin: 0 0 32px;
+}
+
+.landing-hero__actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Tlačítka landing stránky: primární je zelená plocha se Sherpa textem (jediné povolené
+   použití zelené u textu, 8:1), sekundární obrys na tmavé. */
+.landing-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 26px;
+    border-radius: var(--brand-radius);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.landing-btn--primary {
+    background: var(--brand-green);
+    color: var(--brand-on-green);
+}
+
+    .landing-btn--primary:hover {
+        background: var(--brand-green-deep);
+        color: var(--brand-on-green);
+    }
+
+.landing-btn--ghost {
+    border: 2px solid rgba(255, 255, 255, .55);
+    color: #fff;
+}
+
+    .landing-btn--ghost:hover {
+        border-color: #fff;
+        background: rgba(255, 255, 255, .08);
+        color: #fff;
+    }
+
+.landing-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.landing-feature {
+    background: var(--neutral-layer-2, #fff);
+    border: 1px solid var(--neutral-stroke-divider-rest, #e5e5e5);
+    border-radius: var(--brand-radius-lg);
+    padding: 28px;
+}
+
+.landing-feature__ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--brand-radius);
+    margin-bottom: 16px;
+}
+
+.landing-feature__ic--reserve {
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+}
+
+.landing-feature__ic--credits {
+    background: var(--brand-sherpa);
+    color: var(--brand-on-sherpa);
+}
+
+.landing-feature__ic--board {
+    background: var(--brand-green);
+    color: var(--brand-on-green);
+}
+
+.landing-feature__title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.landing-feature__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--neutral-foreground-hint, #5a5a5a);
+}
+
+.landing-steps__title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 24px;
+}
+
+.landing-steps__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.landing-step {
+    padding: 4px 0;
+}
+
+.landing-step__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--brand-radius);
+    background: rgba(136, 77, 255, .14);
+    color: var(--brand-violet-deep);
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 14px;
+}
+
+.landing-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.landing-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--neutral-foreground-hint, #5a5a5a);
+}
+
+/* Závěrečný pás: fialová plocha + zelené CTA — párování ploch, kterým brandbook uzavírá. */
+.landing-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+    padding: 48px 32px;
+    border-radius: var(--brand-radius-lg);
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+}
+
+.landing-cta__title {
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Užší obrazovky: pruhy couvají stejně jako u dashboardového hero — text nesmí na zelenou. */
+@media (max-width: 900px) {
+    .landing-hero {
+        padding: 56px 32px;
+    }
+
+    .landing-hero::before {
+        display: none;
+    }
+
+    .landing-hero::after {
+        width: 72px;
+        right: -22px;
+    }
+
+    .landing-hero__content {
+        padding-right: 56px;
+    }
+}
+
+@media (max-width: 600px) {
+    .landing {
+        gap: 36px;
+    }
+
+    .landing-hero {
+        padding: 44px 24px;
+    }
+
+        .landing-hero::after {
+            display: none;
+        }
+
+    .landing-hero__content {
+        padding-right: 0;
+    }
+
+    .landing-hero__actions .landing-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 

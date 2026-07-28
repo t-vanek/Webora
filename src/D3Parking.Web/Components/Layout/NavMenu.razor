@@ -17,7 +17,16 @@
 
    Mobile (≤768px): the off-canvas drawer, always in the expanded look (there is no reason to
    save width on an overlay). Toggle bar under the header opens it; backdrop or navigation closes
-   it. Account and sign-out live in the header's avatar menu. *@
+   it. Account and sign-out live in the header's avatar menu.
+
+   Anonymous visitors get no menu at all — the landing page is the only destination and the
+   header already carries the login/register links, so a sidebar with a single "Home" item was
+   dead weight. Rendering nothing also hands the landing the full content width. *@
+
+@if (!_authenticated)
+{
+    return;
+}
 
 <button type="button"
         class="nav-drawer-toggle"
@@ -136,6 +145,7 @@
 
     private bool _drawerOpen;
     private bool _rail;
+    private bool _authenticated;
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
@@ -164,6 +174,7 @@
         if (AuthState is not null)
         {
             var user = (await AuthState).User;
+            _authenticated = user.Identity?.IsAuthenticated == true;
             _canAdminUsers = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Users.View);
             _canAdminRoles = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Roles.View);
             _canSettings = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Settings.View);

@@ -597,4 +597,23 @@
   <data name="Nav_Short_Settings" xml:space="preserve"><value>Web</value></data>
   <data name="Nav_Collapse" xml:space="preserve"><value>Sbalit</value></data>
   <data name="Nav_Expand" xml:space="preserve"><value>Rozbalit</value></data>
+  <data name="Landing_Headline" xml:space="preserve"><value>Firemní parkování bez tabulek a dohadování</value></data>
+  <data name="Landing_Lead" xml:space="preserve"><value>D3Parking rozděluje místa spravedlivě. Rezervace na pár kliknutí, kredity a dynamické ceny podle obsazenosti a body za férové chování.</value></data>
+  <data name="Landing_CtaLogin" xml:space="preserve"><value>Přihlásit se</value></data>
+  <data name="Landing_CtaRegister" xml:space="preserve"><value>Vytvořit účet</value></data>
+  <data name="Landing_FeaturesTitle" xml:space="preserve"><value>Co D3Parking umí</value></data>
+  <data name="Landing_Feature1_Title" xml:space="preserve"><value>Rezervace na pár kliknutí</value></data>
+  <data name="Landing_Feature1_Desc" xml:space="preserve"><value>Vyberte den a místo, zbytek pohlídá systém — včetně fronty, když je plno.</value></data>
+  <data name="Landing_Feature2_Title" xml:space="preserve"><value>Kredity a dynamické ceny</value></data>
+  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Cena místa se řídí obsazeností. Kdo parkuje mimo špičku, ušetří.</value></data>
+  <data name="Landing_Feature3_Title" xml:space="preserve"><value>Body, série a žebříček</value></data>
+  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Férovost se počítá: sbírejte body za spolehlivost a posouvejte se v žebříčku.</value></data>
+  <data name="Landing_HowTitle" xml:space="preserve"><value>Jak to funguje</value></data>
+  <data name="Landing_Step1_Title" xml:space="preserve"><value>Vytvořte si účet</value></data>
+  <data name="Landing_Step1_Desc" xml:space="preserve"><value>Registrace zabere minutu — stačí e-mail a heslo.</value></data>
+  <data name="Landing_Step2_Title" xml:space="preserve"><value>Zarezervujte si místo</value></data>
+  <data name="Landing_Step2_Desc" xml:space="preserve"><value>Vyberte termín. Když je plno, fronta vám nabídne uvolněné místo sama.</value></data>
+  <data name="Landing_Step3_Title" xml:space="preserve"><value>Parkujte a sbírejte odměny</value></data>
+  <data name="Landing_Step3_Desc" xml:space="preserve"><value>Check-in potvrdí příjezd, nevyužité místo uvolníte jedním klikem.</value></data>
+  <data name="Landing_FinalTitle" xml:space="preserve"><value>Začněte parkovat chytře ještě dnes</value></data>
 </root>
