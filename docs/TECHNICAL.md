@@ -1,4 +1,4 @@
-# Webora — technická dokumentace
+# D3Parking — technická dokumentace
 
 Architektura, nasazení, konfigurace, vývoj a technické poznámky. Produktový a funkční popis
 (motivační systém, kreditová ekonomika, fronta, žebříčky…) najdeš v hlavním [README](../README.md).
@@ -18,28 +18,42 @@ Architektura, nasazení, konfigurace, vývoj a technické poznámky. Produktový
 
 | Projekt | Odpovědnost | Klíčové závislosti |
 | --- | --- | --- |
-| `Webora.Domain` | Entity, hodnotové objekty, doménová pravidla. Bez frameworkových závislostí. | — |
-| `Webora.Application` | Případy užití a Wolverine handlery zpráv. | WolverineFx |
-| `Webora.Infrastructure` | EF Core/Postgres perzistence, Redis cache, ASP.NET Identity, OpenIddict, geokódování. | EF Core, Npgsql, StackExchange.Redis, OpenIddict |
-| `Webora.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine + RabbitMQ, OpenIddict server, údržba. | Serilog, WolverineFx.RabbitMQ, OpenIddict.AspNetCore |
-| `Webora.Web.Client` | Komponenty Blazor WebAssembly klienta. | — |
+| `D3Parking.Domain` | Entity, hodnotové objekty, doménová pravidla. Bez frameworkových závislostí. | — |
+| `D3Parking.Application` | Případy užití a Wolverine handlery zpráv. | WolverineFx |
+| `D3Parking.Infrastructure` | EF Core/SQL Server perzistence, ASP.NET Identity, OpenIddict, SMTP, geokódování. | EF Core, Microsoft.EntityFrameworkCore.SqlServer, MailKit, OpenIddict |
+| `D3Parking.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine, OpenIddict server, údržba. | Serilog, WolverineFx, OpenIddict.AspNetCore |
+| `D3Parking.Web.Client` | Komponenty Blazor WebAssembly klienta. | — |
 
 ## Nasazení
 
-Jediný předpoklad je **Docker** (.NET 10 SDK je potřeba jen pro hostitelský postup ve [Vývoji](#vývoj)).
+Předpoklady jsou **.NET 10 SDK** (runtime pro produkci) a **Microsoft SQL Server** — stačí
+SQL Server Express nebo LocalDB, které je součástí Visual Studia a .NET workloadu pro data.
+Aplikace běží přímo na hostiteli, žádná kontejnerizace se nepoužívá.
 
 ```bash
-docker compose up --build
+# 1. Vytvoření/aktualizace schématu (v Development se aplikuje i automaticky při startu)
+dotnet ef database update --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
+
+# 2. Spuštění
+dotnet run --project src/D3Parking.Web
 ```
 
-Sestaví image aplikace a spustí ji vedle Postgresu, Redisu, RabbitMQ a smtp4dev. Kontejner běží
-v prostředí `Development`, takže při startu aplikuje EF migrace a naseeduje účet administrátora.
+Připojení k databázi je v `ConnectionStrings:SqlServer`; výchozí hodnota míří na LocalDB:
 
-| Služba | URL |
-| --- | --- |
-| Aplikace | http://localhost:8080 |
-| Zachycené e-maily (smtp4dev) | http://localhost:5099 |
-| RabbitMQ management | http://localhost:15672 (`guest` / `guest`) |
+```jsonc
+// LocalDB (výchozí, vývoj na Windows)
+"Server=(localdb)\\MSSQLLocalDB;Database=D3Parking;Trusted_Connection=True;TrustServerCertificate=True"
+
+// Pojmenovaná instance / SQL Server Express s integrovaným ověřením
+"Server=.\\SQLEXPRESS;Database=D3Parking;Trusted_Connection=True;TrustServerCertificate=True"
+
+// Samostatný server s SQL ověřením
+"Server=sql.example.com,1433;Database=D3Parking;User Id=d3parking;Password=***;Encrypt=True"
+```
+
+Pro produkci je vhodné publikovat (`dotnet publish -c Release`) a hostovat pod IIS nebo jako
+službu Windows / systemd za reverzní proxy; přeposílané hlavičky se konfigurují v sekci
+`ForwardedHeaders`. Migrace se v produkci aplikují explicitně krokem 1, ne při startu.
 
 ## Konfigurace
 
@@ -66,7 +80,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ```jsonc
-"Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "Webora/1.0 (parking)" },
+"Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "D3Parking/1.0 (parking)" },
 "Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" }
 ```
 
@@ -76,40 +90,57 @@ Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ## Vývoj
 
-Pro ladění lze spustit jen podpůrné služby a engine z SDK na hostiteli:
+Jedinou vnější závislostí je SQL Server — aplikace nemá žádnou další infrastrukturu:
 
 ```bash
-# 1. Pouze podpůrné služby
-docker compose up -d postgres redis rabbitmq smtp4dev
-
-# 2. Spuštění enginu (Development automaticky aplikuje migrace a naseeduje administrátora)
-dotnet run --project src/Webora.Web
+# Development automaticky aplikuje migrace a naseeduje administrátora
+dotnet run --project src/D3Parking.Web
 ```
 
-Podpůrné služby se konfigurují přes `ConnectionStrings` v `src/Webora.Web/appsettings.json`
-(`Postgres`, `Redis`, `RabbitMq`). Zapojení RabbitMQ se aktivuje jen při nastaveném connection stringu;
-vyprázdnění `ConnectionStrings:RabbitMq` (a `:Redis`) spustí aplikaci jen nad Postgresem. E-maily míří na
-lokální záchytku smtp4dev (`localhost:2525`, bez autentizace); pro produkci nastavte `Smtp:Authentication`
-na `Basic` nebo `OAuth2`.
+E-maily míří na `localhost:25` bez autentizace, což je výchozí port lokální záchytky
+[smtp4dev](https://github.com/rnwood/smtp4dev) — buď desktopové sestavení, nebo .NET nástroj
+(`dotnet tool install -g Rnwood.Smtp4dev`). Zachycené zprávy zobrazuje ve svém okně, případně přes
+REST API na `/api/messages`. Pro produkci nastavte `Smtp:Host`/`Smtp:Port` na reálný relay
+a `Smtp:Authentication` na `Basic` nebo `OAuth2`.
+
+Bez běžící záchytky aplikace funguje dál — odeslání se jen nezdaří na pozadí, request to neshodí
+(viz [Odesílání e-mailů](#technické-poznámky)).
 
 **Databázové migrace** (prostředí `Development` je aplikuje při startu):
 
 ```bash
 # aplikace nejnovějšího schématu
-dotnet ef database update --project src/Webora.Infrastructure --startup-project src/Webora.Web
+dotnet ef database update --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
 
 # přidání migrace po změně modelu
-dotnet ef migrations add <Nazev> --project src/Webora.Infrastructure --startup-project src/Webora.Web
+dotnet ef migrations add <Nazev> --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
 ```
 
 Nástroj `dotnet-ef` se obnoví přes `dotnet tool restore` (připnutý v `dotnet-tools.json`).
+
+**Jednorázové opravy dat** jsou ve složce `scripts/`. Nejsou součástí EF migrací, protože závisí na
+konfiguraci za běhu a pouštějí se ručně. Nasazujete-li přechod na místní čas nad existujícími daty,
+je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-localtime-backfill.sql) —
+časy zadané před tou změnou se ukládaly, jako by wall-clock byl UTC. Skript má zkušební režim
+(`@Apply = 0`) a je idempotentní.
 
 ## Technické poznámky
 
 - **Blazor Web App** s oběma interaktivními režimy; parkovací stránky se vykreslují na serveru
   (`InteractiveServer`), zvoneček notifikací běží na WebAssembly.
-- **Lokalizace:** řetězce UI v `Webora.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
-  v `Webora.Infrastructure/Resources/ParkingMessages.*.resx`.
+- **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
+  v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.
+- **Časové zóny:** vše se ukládá a porovnává v UTC, ale pravidla jsou psaná v **místním čase parkoviště**
+  — okno špičky, denní držení místa rezidentem i hranice dne (denní limity, uvolnění) se vyhodnocují
+  v zóně z `DefaultTimeZoneId` (Nastavení webu → Regionální; bez ní se použije zóna serveru). Převody
+  řeší `SiteTime` v doménové vrstvě, offset se dohledává pro každý okamžik zvlášť, takže letní čas
+  sedí. Zadaný čas rezervace je místní wall-clock a do UTC se převádí až na vstupu.
+- **Odesílání e-mailů:** `IEmailSender` zprávu jen zařadí do lokální Wolverine fronty
+  (`QueuedEmailSender`), takže request nečeká na SMTP a nedostupný mailserver ho neshodí.
+  Doručení obstará `EmailHandler` přes `IEmailTransport` (`SmtpEmailSender`) s opakováním
+  po 5 s / 30 s / 2 min. Fronta je v paměti — zprávy čekající při vypnutí procesu se ztratí;
+  všechny e-maily lze vyžádat znovu. Pro garantované doručení přidejte `WolverineFx.SqlServer`
+  a `PersistMessagesWithSqlServer` (využije stávající databázi, žádná nová infrastruktura).
 - **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší no-shows,
   připomínky, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny a graf důvěry.

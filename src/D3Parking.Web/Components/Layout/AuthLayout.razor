@@ -1,0 +1,101 @@
+@inherits LayoutComponentBase
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject IStringLocalizer<SharedResource> L
+@inject ISiteSettingsService SiteSettings
+
+@*  AuthLayout is the no-sidebar variant of MainLayout used by the Login and Register pages.
+    The full sidebar makes no sense there — the user can't navigate anywhere useful before signing
+    in — so the layout collapses to just the header + the page body. The header keeps the brand and
+    a Login/Register switch so the two sister pages can still flip between each other.  *@
+<FluentLayout>
+    @*  FluentHeader is a flex container, but FluentSpacer only reliably pushes content right when
+        it sits between exactly two flex children. Group everything that belongs on the right into
+        one wrapping FluentStack so the spacer has a clean "brand | (spacer) | tools" split.  *@
+    <FluentHeader Class="app-header" Style="padding: 0 1.5rem">
+        <a href="" class="brand-link">@_siteName</a>
+        <FluentSpacer />
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+            <AuthorizeView>
+                <NotAuthorized>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Center" Width="auto">
+                        <a href="login" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Login"]
+                        </a>
+                        <a href="register" class="header-nav-link">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                            @L["Nav_Register"]
+                        </a>
+                    </FluentStack>
+                    <div class="header-divider" aria-hidden="true"></div>
+                </NotAuthorized>
+            </AuthorizeView>
+            <LanguageSwitcher @rendermode="InteractiveServer" />
+            <ThemeToggle @rendermode="InteractiveServer" />
+        </FluentStack>
+    </FluentHeader>
+
+    @*  Center the single-card auth pages (Login, Register) both horizontally and vertically
+        inside the body area.
+
+        FluentLayout is a flex column (not a grid as I assumed earlier): FluentHeader is the
+        first row, but the next child only fills the remaining vertical space if it has flex:1
+        on itself. MainLayout achieves that with a FluentStack wrapping the body. Without a
+        sidebar we don't need a wrapping stack, so the flex:1 goes straight on FluentBodyContent
+        — that makes it span from below the header to the bottom of the viewport regardless of
+        the header's actual rendered height. Then display:flex with align-items / justify-content
+        center on the same element centers @Body inside it. No min-height calc, no header-height
+        assumption, no inner wrapper div needed.  *@
+    <FluentBodyContent Class="body-content"
+                       Style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem; overflow:auto">
+        <div class="auth-shell">
+            <aside class="auth-shell__brand">
+                <div class="auth-shell__mark">
+                    <FluentIcon Value="@(new Icons.Filled.Size28.VehicleCar())" Color="Color.Custom" CustomColor="#fff" />
+                    <span>@_siteName</span>
+                </div>
+                <div>
+                    <h2 class="auth-shell__headline">@L["Auth_Hero_Headline"]</h2>
+                    <p class="auth-shell__lead">@L["Auth_Hero_Lead"]</p>
+                    <ul class="auth-shell__features">
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature1"]
+                        </li>
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.Money())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature2"]
+                        </li>
+                        <li>
+                            <span class="auth-shell__feat-ic"><FluentIcon Value="@(new Icons.Regular.Size20.Trophy())" Color="Color.Custom" CustomColor="#fff" /></span>
+                            @L["Auth_Hero_Feature3"]
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+            <section class="auth-shell__panel">
+                @Body
+            </section>
+        </div>
+    </FluentBodyContent>
+</FluentLayout>
+
+@* Same provider set as MainLayout so dialogs/toasts/etc. still work from the auth pages. *@
+<FluentToastProvider @rendermode="InteractiveServer" />
+<FluentDialogProvider @rendermode="InteractiveServer" />
+<FluentTooltipProvider @rendermode="InteractiveServer" />
+<FluentMessageBarProvider @rendermode="InteractiveServer" />
+<FluentMenuProvider @rendermode="InteractiveServer" />
+
+<div id="blazor-error-ui" data-nosnippet>
+    @L["Layout_Error"]
+    <a href="." class="reload">@L["Layout_Reload"]</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private string _siteName = "D3Parking";
+
+    protected override async Task OnInitializedAsync() =>
+        _siteName = (await SiteSettings.GetIdentityAsync()).Name ?? "D3Parking";
+}

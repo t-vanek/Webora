@@ -1,0 +1,165 @@
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Localization
+@using D3Parking.Contracts.Notifications
+@using D3Parking.Web.Client.Api
+@implements IAsyncDisposable
+@inject NotificationsApiClient Api
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IStringLocalizer<ClientResource> L
+
+@if (_authenticated)
+{
+    <div style="position:relative">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="ToggleOpen"
+                      Title="@(_muted ? L["Bell_TitleMuted"] : L["Bell_Title"])"
+                      Style="position:relative">
+            <FluentIcon Value="@(_muted
+                ? (Icon)new Icons.Regular.Size24.AlertOff()
+                : new Icons.Regular.Size24.Alert())" />
+            @if (_unreadCount > 0)
+            {
+                <FluentBadge Appearance="Appearance.Accent" Fill="danger"
+                             Style="position:absolute; top:-2px; right:-2px; min-width:18px; padding:0 4px; font-size:0.7rem">
+                    @_unreadCount
+                </FluentBadge>
+            }
+        </FluentButton>
+
+        @if (_open)
+        {
+            <FluentCard Style="position:absolute; right:0; top:100%; margin-top:4px; min-width:320px; max-width:420px; max-height:420px; overflow:auto; z-index:1000">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Subject">@L["Bell_Title"]</FluentLabel>
+                        @if (_unreadCount > 0)
+                        {
+                            <FluentSpacer />
+                            <FluentButton Appearance="Appearance.Hypertext" OnClick="MarkAllRead">
+                                @L["Bell_MarkRead"]
+                            </FluentButton>
+                        }
+                    </FluentStack>
+
+                    @if (_items.Count == 0)
+                    {
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Bell_NoNotifications"]</FluentLabel>
+                    }
+                    else
+                    {
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                            @foreach (var n in _items)
+                            {
+                                <FluentButton Appearance="Appearance.Stealth"
+                                              OnClick="@(() => MarkRead(n.Id))"
+                                              Disabled="@n.IsRead"
+                                              Style="@($"width:100%; text-align:left; padding:6px 8px; border-bottom:1px solid var(--neutral-stroke-divider-rest); justify-content:flex-start; {(n.IsRead ? "" : "font-weight:600")}")">
+                                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" Style="width:100%">
+                                        <span style="font-size:0.85rem">@n.Title</span>
+                                        <span style="font-size:0.8rem; color:var(--neutral-foreground-hint)">@n.Message</span>
+                                    </FluentStack>
+                                </FluentButton>
+                            }
+                        </FluentStack>
+                    }
+                </FluentStack>
+            </FluentCard>
+        }
+    </div>
+}
+
+@code {
+    private HubConnection? _hub;
+    private bool _authenticated;
+    private bool _open;
+    private bool _muted;
+    private int _unreadCount;
+    private List<NotificationDto> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        _authenticated = state.User.Identity?.IsAuthenticated == true;
+        if (!_authenticated)
+        {
+            return;
+        }
+
+        await RefreshAsync();
+        await ConnectAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _unreadCount = await Api.GetUnreadCountAsync();
+            _items = [.. await Api.GetAsync(take: 20)];
+            var prefs = await Api.GetPreferencesAsync();
+            _muted = prefs?.IsCurrentlyMuted ?? false;
+        }
+        catch (HttpRequestException)
+        {
+            // Not reachable / unauthorized — leave the bell empty.
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hubs/notifications"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<NotificationDto>("ReceiveNotification", notification =>
+        {
+            _items.Insert(0, notification);
+            _unreadCount++;
+            return InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            await _hub.StartAsync();
+        }
+        catch
+        {
+            // Real-time unavailable; the bell still works via the initial fetch.
+        }
+    }
+
+    private void ToggleOpen() => _open = !_open;
+
+    private async Task MarkRead(Guid id)
+    {
+        var index = _items.FindIndex(n => n.Id == id);
+        if (index < 0 || _items[index].IsRead)
+        {
+            return;
+        }
+
+        await Api.MarkReadAsync(id);
+        _items[index] = _items[index] with { IsRead = true };
+        if (_unreadCount > 0)
+        {
+            _unreadCount--;
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        await Api.MarkAllReadAsync();
+        _unreadCount = 0;
+        _items = [.. _items.Select(n => n with { IsRead = true })];
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            await _hub.DisposeAsync();
+        }
+    }
+}

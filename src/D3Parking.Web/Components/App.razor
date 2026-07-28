@@ -1,0 +1,50 @@
+﻿@using D3Parking.Web.Hosting
+@using D3Parking.Application.Settings
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ISiteSettingsService SiteSettings
+
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+
+<head>
+    <meta charset="@PageCharset" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @if (!string.IsNullOrWhiteSpace(_description))
+    {
+        <meta name="description" content="@_description" />
+    }
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["D3Parking.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <ReconnectModal />
+    <script>
+        window.d3parkingGetCulture = () => {
+            const match = document.cookie.match(/\.AspNetCore\.Culture=([^;]+)/);
+            if (!match) return null;
+            const value = decodeURIComponent(match[1]);
+            const uic = value.split('|').find(part => part.startsWith('uic='));
+            return uic ? uic.substring(4) : null;
+        };
+    </script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    private string? _description;
+
+    protected override async Task OnInitializedAsync() =>
+        _description = (await SiteSettings.GetIdentityAsync()).Description;
+
+    private string PageCharset =>
+        HttpContextAccessor.HttpContext?.Items[CharsetMiddleware.HttpContextItemKey] as string ?? "utf-8";
+}

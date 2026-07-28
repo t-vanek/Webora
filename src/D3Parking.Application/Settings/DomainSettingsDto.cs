@@ -1,0 +1,51 @@
+using D3Parking.Domain.Settings;
+
+namespace D3Parking.Application.Settings;
+
+/// <summary>The domain section of the site settings.</summary>
+public sealed record DomainSettingsDto(
+    string? CanonicalHost,
+    UrlScheme Scheme,
+    int? Port,
+    bool ForceHttps,
+    bool HstsEnabled,
+    int HstsMaxAgeDays,
+    bool HstsIncludeSubDomains,
+    bool HstsPreload,
+    WwwPreference WwwPreference,
+    IReadOnlyList<string> Aliases);
+
+/// <summary>The regional section of the site settings.</summary>
+public sealed record RegionalSettingsDto(
+    string? DefaultLanguage,
+    string? DefaultTimeZoneId);
+
+/// <summary>The encoding section of the site settings (page and email charsets).</summary>
+public sealed record EncodingSettingsDto(
+    string? PageCharset,
+    string? EmailCharset);
+
+/// <summary>The accounts section of the site settings.</summary>
+public sealed record AccountsSettingsDto(
+    string? DefaultRole);
+
+/// <summary>The general section of the site settings (site identity and URL appearance).</summary>
+public sealed record GeneralSettingsDto(
+    string? SiteName,
+    string? SiteDescription,
+    bool LowercaseUrls,
+    TrailingSlashPolicy TrailingSlash);
+
+/// <summary>Cached public site identity used by the layout and document head.</summary>
+public sealed record SiteIdentityDto(
+    string? Name,
+    string? Description);
+
+/// <summary>The full site settings read model. New sections are added alongside the existing ones.</summary>
+public sealed record SiteSettingsDto(
+    DomainSettingsDto Domain,
+    RegionalSettingsDto Regional,
+    EncodingSettingsDto Encoding,
+    AccountsSettingsDto Accounts,
+    GeneralSettingsDto General,
+    string? CanonicalBaseUrl);

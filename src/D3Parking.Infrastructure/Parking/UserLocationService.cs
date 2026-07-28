@@ -1,0 +1,82 @@
+using Microsoft.EntityFrameworkCore;
+using D3Parking.Application.Parking;
+using D3Parking.Infrastructure.Persistence;
+
+namespace D3Parking.Infrastructure.Parking;
+
+public sealed class UserLocationService(
+    IDbContextFactory<D3ParkingDbContext> dbContextFactory,
+    IGeocoder geocoder,
+    IDistanceProvider distanceProvider,
+    IParkingSettingsService parkingSettings) : IUserLocationService
+{
+    public async Task<UserHomeDto> GetHomeAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await dbContext.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new UserHomeDto(u.HomeAddress, u.CommuteDistanceKm, u.HomeVerified))
+            .FirstOrDefaultAsync(cancellationToken);
+        return user ?? new UserHomeDto(null, null, false);
+    }
+
+    public async Task<ParkingResult> SetHomeAddressAsync(Guid userId, string? address, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return ParkingResult.Failure("Parking_Error_UserNotFound");
+        }
+
+        // Any address change drops verification; an admin must re-verify before it earns rewards.
+        user.HomeVerified = false;
+
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            user.HomeAddress = null;
+            user.HomeLatitude = null;
+            user.HomeLongitude = null;
+            user.CommuteDistanceKm = null;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return ParkingResult.Success;
+        }
+
+        var point = await geocoder.GeocodeAsync(address, cancellationToken);
+        if (point is not { } home)
+        {
+            return ParkingResult.Failure("Parking_Error_GeocodeFailed");
+        }
+
+        user.HomeAddress = address.Trim();
+        user.HomeLatitude = home.Latitude;
+        user.HomeLongitude = home.Longitude;
+
+        var lot = await parkingSettings.GetLotLocationAsync(cancellationToken);
+        user.CommuteDistanceKm = lot is { } lotPoint
+            ? await distanceProvider.DistanceKmAsync(home, lotPoint, cancellationToken)
+            : null;
+
+        // Optionally auto-verify when the commute is within the configured plausibility cap;
+        // suspiciously far addresses still fall back to manual admin review.
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        user.HomeVerified = policy.ShouldAutoVerify(user.CommuteDistanceKm);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> SetHomeVerifiedAsync(Guid userId, bool verified, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return ParkingResult.Failure("Parking_Error_UserNotFound");
+        }
+
+        user.HomeVerified = verified;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+}

@@ -1,0 +1,63 @@
+@page "/account/manage"
+@attribute [Authorize]
+@using D3Parking.Web.Components.Admin
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Manage_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+    <FluentLabel Typo="Typography.PageTitle">@L["Manage_Title"]</FluentLabel>
+
+    @if (_user is not null)
+    {
+        <div class="profile-card">
+            <div class="profile-avatar">@Initials()</div>
+            <div class="profile-meta">
+                <span class="profile-name">@(string.IsNullOrWhiteSpace(_user.DisplayName) ? _user.Email : _user.DisplayName)</span>
+                <span class="profile-sub">@_user.Email</span>
+                <div class="profile-facts">
+                    <StatusBadge Status="_user.Status" />
+                    <span class="profile-sub">@L["Manage_Phone"]: @(_user.PhoneNumber ?? "—")</span>
+                </div>
+            </div>
+        </div>
+
+        <FluentLabel Typo="Typography.Subject">@L["Manage_Actions"]</FluentLabel>
+        <div class="account-actions">
+            <FluentAnchor Href="account/change-password" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePassword"]</FluentAnchor>
+            <FluentAnchor Href="account/change-email" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangeEmail"]</FluentAnchor>
+            <FluentAnchor Href="account/change-phone" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePhone"]</FluentAnchor>
+            <FluentAnchor Href="account/suspend" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_Suspend"]</FluentAnchor>
+            <FluentAnchor Href="account/deactivate" Appearance="Appearance.Outline" Style="width:100%">@L["Manage_Deactivate"]</FluentAnchor>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ApplicationUser? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _user = await UserManager.GetUserAsync(state.User);
+    }
+
+    private string Initials()
+    {
+        var name = _user?.DisplayName;
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var initials = parts.Length >= 2
+                ? $"{parts[0][0]}{parts[1][0]}"
+                : parts[0][..Math.Min(2, parts[0].Length)];
+            return initials.ToUpperInvariant();
+        }
+
+        var email = _user?.Email;
+        return string.IsNullOrEmpty(email) ? "?" : email[..1].ToUpperInvariant();
+    }
+}

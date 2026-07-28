@@ -1,14 +1,13 @@
 <div align="center">
 
-# Webora
+# D3Parking
 
 **Rezervační systém parkovacích míst pro sdílené / firemní parkoviště — s kreditovou ekonomikou
 a motivačním systémem, který maximalizuje využití parkoviště.**
 
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Web%20App-512BD4?logo=blazor&logoColor=white)](https://learn.microsoft.com/aspnet/core/blazor/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![SQL Server](https://img.shields.io/badge/SQL%20Server-2019%2B-CC2927?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
 [![UI](https://img.shields.io/badge/UI-cs%20%2F%20en-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -21,8 +20,8 @@ ve špičce a s obsazeností, takže vzácná místa proudí tam, kde jsou nejv�
 **reputační body**, které odměňují ohleduplné chování (parkování mimo špičku, včasné uvolnění, sdílení
 vyhrazeného místa) a penalizují nedostavení se.
 
-> **Výchozí administrátor:** `admin@webora.local` / `Admin123$` (viz `IdentitySeed` v
-> `src/Webora.Web/appsettings.json`). **Jazyky UI:** čeština (výchozí) a angličtina.
+> **Výchozí administrátor:** `admin@d3parking.local` / `Admin123$` (viz `IdentitySeed` v
+> `src/D3Parking.Web/appsettings.json`). **Jazyky UI:** čeština (výchozí) a angličtina.
 
 > **Technická dokumentace** — architektura, nasazení, konfigurace, vývoj a technické poznámky jsou
 > v samostatném dokumentu [docs/TECHNICAL.md](docs/TECHNICAL.md).
@@ -82,7 +81,7 @@ a revize podezřelých interakcí:
 
 ![Administrace](docs/screenshots/administration.gif)
 
-> Spuštění přes `docker compose up --build`, architektura a další technické detaily jsou
+> Spuštění přes `dotnet run --project src/D3Parking.Web`, architektura a další technické detaily jsou
 > v [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
 ## Jak to funguje

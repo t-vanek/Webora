@@ -1,0 +1,1187 @@
+/* ==========================================================================
+   ZNAČKA — Seyfor brand book
+   ==========================================================================
+   Barvy a písmo pocházejí přímo z brandbooku (Barevnost s. 60–61, Typografie
+   s. 66–76). Tahle vrstva je jediné místo, kde jsou hodnoty zapsané natvrdo;
+   všechno ostatní si je bere přes proměnné.
+
+   Světlý a tmavý režim řídí dál Fluent UI (jeho neutral tokeny se přepínají
+   samy). Značka na to sedá shora: fialová jde do Fluentu jako akcentní barva
+   (FluentDesignTheme CustomColor), Sherpa Blue a zelená se používají jako
+   plochy, které mají v obou režimech stejnou identitu.
+
+   POZOR na kontrast:
+   – Lawn Green má na bílé poměr 1,7:1, takže se NIKDY nesmí použít jako text
+     na světlém podkladu. Je to výplňová barva a píše se na ni Sherpa Blue
+     (7,9:1).
+   – Fialová má na bílé 4,6:1, což AA pro běžný text splňuje jen těsně.
+     Používá se pro interaktivní prvky a bílý text na fialové ploše. */
+
+@font-face {
+    font-family: 'Sora';
+    font-style: normal;
+    font-weight: 100 800; /* variabilní řez, pokrývá celou škálu z brandbooku */
+    font-display: swap;
+    src: url('lib/sora/sora-latin-ext.woff2') format('woff2');
+    /* latin-ext nese českou diakritiku (ř, ž, č, ě, ů, š, ť, ď, ň) */
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Sora';
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url('lib/sora/sora-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+    /* Základní barevnost (s. 60) */
+    --brand-sherpa: #023444;
+    --brand-violet: #884DFF;
+    --brand-green: #89E103;
+    --brand-white: #FBFDFC;
+
+    /* Doplňková barevnost (s. 61) */
+    --brand-pure-white: #FFFFFF;
+    --brand-grey: #F7F7FA;
+    --brand-black: #000000;
+
+    /* Odvozené odstíny pro stavy. Nejsou v brandbooku — vznikly jen ztmavením
+       či zesvětlením základních barev kvůli hover/aktivním stavům a rámečkům. */
+    --brand-sherpa-soft: #0A4A5E;
+    --brand-violet-deep: #6F35E8;
+    --brand-green-deep: #74C000;
+    --brand-hairline: rgba(2, 52, 68, 0.12);
+
+    /* Text na značkových plochách */
+    --brand-on-sherpa: var(--brand-white);
+    --brand-on-violet: var(--brand-white);
+    --brand-on-green: var(--brand-sherpa);
+
+    /* Tvarosloví: brandbook staví na plných plochách a ostré geometrii,
+       proto drobné rádiusy a výrazné odsazení. */
+    --brand-radius: 4px;
+    --brand-radius-lg: 8px;
+
+    --brand-font: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html, body {
+    font-family: var(--brand-font);
+    background-color: var(--neutral-layer-1);
+    color: var(--neutral-foreground-rest);
+    margin: 0;
+    /* Sora je geometrický grotesk — v malých velikostech mu prospěje tenčí kresba. */
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Fluent rozdává vlastní písmo přes --body-font; přebijeme ho značkovým,
+   ať i komponenty Fluentu sázejí Sorou. */
+:root,
+body,
+fluent-design-theme {
+    --body-font: var(--brand-font);
+}
+
+/* Nadpisy: brandbook je sází verzálkami s výrazným prostrkáním (viz nadpisy
+   sekcí "BAREVNOST", "TYPOGRAFIE"). */
+h1, h2, h3,
+.fluent-typography-page-title,
+::deep .fluent-typography-page-title {
+    font-family: var(--brand-font);
+    letter-spacing: 0.01em;
+}
+
+a {
+    color: var(--accent-foreground-rest, var(--brand-violet));
+}
+
+h1:focus {
+    outline: none;
+}
+
+/* Header chrome — shared by MainLayout and AuthLayout. Lives in app.css rather than scoped
+   CSS so both layouts pick the same styles up without duplication.
+
+   The header is the brand's primary surface: Sherpa Blue in both light and dark mode, the way the
+   brand book uses it on covers and section openers. Fluent would otherwise paint it with the accent
+   ramp, which would make it violet. */
+.app-header {
+    background: var(--brand-sherpa) !important;
+    color: var(--brand-on-sherpa);
+    border-bottom: 3px solid var(--brand-green);
+}
+
+/* Brand title in the header. Looks like a label, not a hyperlink — no underline, full opacity.
+   Uppercase with wide tracking mirrors the brand book's section headings. */
+.brand-link {
+    color: var(--brand-on-sherpa);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-right: 1rem;
+}
+
+    .brand-link:hover {
+        text-decoration: none;
+        opacity: 0.85;
+    }
+
+/* Login / Register links in the header for unauthenticated visitors. Same colour token as the
+   brand so they sit on the accent header readably. Underline only on hover — :link / :visited /
+   :active explicitly opted out so browsers don't add their own. The inline-flex + gap places the
+   FluentIcon next to the label; outer spacing between this link and its neighbours is supplied
+   by the parent FluentStack / FluentHeader gap (not by margins here). */
+.header-nav-link,
+.header-nav-link:link,
+.header-nav-link:visited,
+.header-nav-link:active {
+    color: var(--brand-on-sherpa);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+    /* Lawn green as the hover cue — on Sherpa Blue it clears 8:1, so it reads as a highlight
+       rather than decoration. */
+    .header-nav-link:hover {
+        text-decoration: none;
+        color: var(--brand-green);
+    }
+
+/* Thin vertical line that separates the auth links from the icon-button cluster in the header. */
+.header-divider {
+    width: 1px;
+    height: 1.5rem;
+    background-color: var(--brand-green);
+    opacity: 0.5;
+}
+
+/* Blazor framework error bar — shown when the SignalR circuit drops with no recovery. Stays
+   bright lightyellow (color-scheme: light only) so it's hard to miss regardless of theme. */
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+/* Blazor adds .valid/.invalid to inputs as they change so EditForm signals validity inline.
+   The outline + message colour follow Fluent's semantic tokens (rather than fixed hex) so the
+   contrast against the dark-mode background is sensible. */
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid var(--success-rest, #26b050);
+}
+
+.invalid {
+    outline: 1px solid var(--error-rest, #e50000);
+}
+
+.validation-message {
+    color: var(--error-rest, #e50000);
+}
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred."
+    }
+
+/* --- Parking reservation redesign --- */
+.section-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .field > label {
+        font-size: 12px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+.parking-input {
+    padding: 7px 10px;
+    border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 6px;
+    background: var(--neutral-fill-input-rest, transparent);
+    color: var(--neutral-foreground-rest, inherit);
+    font: inherit;
+    min-height: 32px;
+}
+
+.booking-bar__row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.quote-panel {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--neutral-stroke-divider-rest, #e0e0e0);
+}
+
+.price-tag {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.price-tag__num {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+.price-tag__unit {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.quote-meter {
+    min-width: 200px;
+    flex: 1 1 200px;
+}
+
+.quote-meter__head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.meter {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--neutral-fill-secondary-rest, #e6e6e6);
+    overflow: hidden;
+}
+
+.meter__fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .3s ease;
+}
+
+.meter__fill--low { background: var(--brand-green); }
+.meter__fill--mid { background: var(--warning-rest, #f7a900); }
+.meter__fill--high { background: var(--error-rest, #d13438); }
+
+.pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pill--peak { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
+/* Kladný stav nese zelený podklad, ale text je Sherpa Blue — zelená jako barva písma
+   na světlém nesplňuje kontrast v žádné velikosti. */
+.pill--offpeak { background: rgba(137, 225, 3, .28); color: var(--brand-sherpa); }
+.pill--type { background: var(--neutral-fill-secondary-rest, #efefef); color: var(--neutral-foreground-rest, #444); }
+
+.balance-chip {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--neutral-layer-2, #f5f5f5);
+}
+
+.balance-chip--ok { color: var(--brand-sherpa); }
+.balance-chip--low { color: var(--error-rest, #d13438); }
+
+.spot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    width: 100%;
+}
+
+.spot-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-left: 4px solid var(--accent-fill-rest, #0f6cbd);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+    .spot-card:hover {
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+        transform: translateY(-2px);
+    }
+
+/* Kategorie míst. Brandbook dává jen tři chromatické barvy, takže odstíny pro pět typů vznikly
+   jejich odvozením (světlost + sytost), aby zůstaly rozlišitelné a přitom na značce. */
+.spot-card--ElectricCharging { border-left-color: var(--brand-green); }
+.spot-card--Disabled { border-left-color: var(--brand-violet); }
+.spot-card--Visitor { border-left-color: var(--brand-violet-deep); }
+.spot-card--Motorcycle { border-left-color: var(--brand-sherpa-soft); }
+
+.spot-card__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.spot-glyph {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    flex: 0 0 auto;
+}
+
+.spot-card__code {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.spot-card__price { font-size: 14px; }
+
+    .spot-card__price strong {
+        font-size: 18px;
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
+
+.reward-chip {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: rgba(16, 124, 16, .14);
+    color: var(--success-rest, #107c10);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px;
+    border: 1px dashed var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 10px;
+    color: var(--neutral-foreground-hint, #777);
+}
+
+/* --- Header wallet chip --- */
+.wallet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    color: var(--foreground-on-accent-rest, #fff);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+    .wallet-chip:hover {
+        background: rgba(255, 255, 255, .26);
+    }
+
+    .wallet-chip small {
+        font-weight: 400;
+        opacity: .85;
+    }
+
+.wallet-chip__tier {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, .22);
+}
+
+.wallet-chip__tier--Bronze { background: rgba(251, 253, 252, .22); }
+.wallet-chip__tier--Silver { background: rgba(136, 77, 255, .55); }
+.wallet-chip__tier--Gold { background: var(--brand-violet); }
+.wallet-chip__tier--Platinum { background: var(--brand-green); color: var(--brand-on-green); }
+
+/* --- Leaderboard hero card --- */
+.hero {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.hero__ring {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.tier-ring {
+    --pct: 0;
+    --ring-color: var(--accent-fill-rest, #0f6cbd);
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--neutral-fill-secondary-rest, #e6e6e6) 0);
+    display: grid;
+    place-items: center;
+}
+
+/* Úrovně věrnosti postupují od tlumené Sherpa Blue k plné zelené — vzestup je čitelný ze
+   světlosti, takže nepotřebuje kovové odstíny mimo značku. */
+.tier-ring--Bronze { --ring-color: var(--brand-sherpa-soft); }
+.tier-ring--Silver { --ring-color: var(--brand-violet-deep); }
+.tier-ring--Gold { --ring-color: var(--brand-violet); }
+.tier-ring--Platinum { --ring-color: var(--brand-green); }
+
+.tier-ring__inner {
+    width: 98px;
+    height: 98px;
+    border-radius: 50%;
+    background: var(--neutral-layer-1, #fff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ring-color);
+}
+
+.tier-ring__name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--neutral-foreground-rest, #242424);
+}
+
+.hero__next {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.hero__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 280px;
+    min-width: 260px;
+}
+
+.hero__label {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.hero__points {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+    .hero__points strong {
+        font-size: 38px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
+
+    .hero__points span {
+        font-size: 14px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+.hero__chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.trust-meter {
+    max-width: 320px;
+}
+
+.trust-meter__head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.meter__fill--good { background: var(--brand-green); }
+
+.hero__stats {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat__num {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.stat__lbl {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Rank medals */
+.medal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 13px;
+    color: #3a2d00;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45);
+}
+
+/* Stupně vítězů: plné plochy místo kovových přechodů, pořadí čitelné z barvy značky. */
+.medal--1 { background: var(--brand-green); color: var(--brand-on-green); }
+.medal--2 { background: var(--brand-violet); color: var(--brand-on-violet); }
+.medal--3 { background: var(--brand-sherpa); color: var(--brand-on-sherpa); }
+
+.rank-num {
+    padding-left: 9px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Split auth screen (login / register) --- */
+.auth-shell {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    width: 100%;
+    max-width: 940px;
+    min-height: 560px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--neutral-layer-1, #fff);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .16);
+}
+
+.auth-shell__brand {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 44px;
+    color: var(--brand-on-sherpa);
+    background: var(--brand-sherpa);
+    overflow: hidden;
+}
+
+    /* Místo rozostřených kruhů dva šikmé pruhy, kterými brandbook dělí plochy (s. 3).
+       Tvrdá hrana a plná barva — žádný přechod ani průhlednost navíc.
+
+       Drží se u pravé hrany záměrně: text panelu je bílý a na zelené by měl poměr 1,7:1,
+       takže pruhy nesmí zasahovat pod sazbu. */
+    .auth-shell__brand::before,
+    .auth-shell__brand::after {
+        content: "";
+        position: absolute;
+        width: 64px;
+        height: 240%;
+        top: -70%;
+        transform: rotate(24deg);
+        pointer-events: none;
+    }
+
+    .auth-shell__brand::before {
+        right: -7%;
+        background: var(--brand-violet);
+    }
+
+    .auth-shell__brand::after {
+        right: 2%;
+        background: var(--brand-green);
+    }
+
+.auth-shell__mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-shell__headline {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-shell__lead {
+    font-size: 15px;
+    line-height: 1.5;
+    opacity: .92;
+    max-width: 78%;
+    margin: 0 0 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-shell__features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+    /* Sazba nesmí dosáhnout k šikmým pruhům u pravé hrany — bílá na zelené je nečitelná. */
+    max-width: 78%;
+}
+
+    .auth-shell__features li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+    }
+
+.auth-shell__feat-ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .16);
+    flex: 0 0 auto;
+}
+
+.auth-shell__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 44px;
+}
+
+.auth-form {
+    width: 100%;
+    max-width: 380px;
+}
+
+@media (max-width: 820px) {
+    .auth-shell {
+        grid-template-columns: 1fr;
+        max-width: 460px;
+        min-height: 0;
+    }
+
+    .auth-shell__brand {
+        display: none;
+    }
+
+    .auth-shell__panel {
+        padding: 32px;
+    }
+}
+
+/* --- Home dashboard --- */
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Hero jako obálka z brandbooku: plná plocha Sherpa Blue, žádný přechod, a přes ni šikmý
+   zelený pruh — stejné gesto, jakým brandbook prořezává čísla kapitol (s. 3). */
+.home-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--brand-radius-lg);
+    padding: 48px 40px;
+    color: var(--brand-on-sherpa);
+    background: var(--brand-sherpa);
+}
+
+    .home-hero::after {
+        content: "";
+        position: absolute;
+        width: 120px;
+        height: 220%;
+        right: 4%;
+        top: -60%;
+        transform: rotate(24deg);
+        background: var(--brand-green);
+        pointer-events: none;
+    }
+
+    /* Druhý, fialový pruh o kus vedle — dvojice ploch je základní rytmus značky. */
+    .home-hero::before {
+        content: "";
+        position: absolute;
+        width: 120px;
+        height: 220%;
+        right: 13%;
+        top: -60%;
+        transform: rotate(24deg);
+        background: var(--brand-violet);
+        pointer-events: none;
+    }
+
+.home-hero__content {
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
+}
+
+.home-hero__title {
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+}
+
+.home-hero__lead {
+    font-size: 16px;
+    line-height: 1.5;
+    opacity: .92;
+    margin: 0 0 22px;
+}
+
+/* Hlavní výzva k akci je zelená plocha se Sherpa Blue textem — jediné použití zelené,
+   které brandbook u textu připouští (8:1). Hranatý tvar místo pilulky drží geometrii značky. */
+.home-hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--brand-radius);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    background: var(--brand-green);
+    color: var(--brand-on-green);
+}
+
+    .home-hero__cta:hover {
+        background: var(--brand-green-deep);
+        color: var(--brand-on-green);
+    }
+
+.home-hero__note {
+    font-size: 14px;
+    opacity: .92;
+}
+
+.home-section {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.home-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px;
+    border: 1px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-radius: 12px;
+    background: var(--neutral-layer-1, #fff);
+    color: var(--neutral-foreground-rest, inherit);
+    text-decoration: none;
+    transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+
+    .home-tile:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .10);
+        transform: translateY(-2px);
+        border-color: var(--accent-fill-rest, #0f6cbd);
+    }
+
+.home-tile__ic {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+/* Ikony dlaždic střídají tři značkové plochy. Zelená se nikdy nepoužije jako barva textu na
+   světlém — proto je u ní podklad plný a symbol Sherpa Blue. */
+.home-tile__ic--reserve { background: var(--brand-violet); color: var(--brand-on-violet); }
+.home-tile__ic--board { background: var(--brand-green); color: var(--brand-on-green); }
+.home-tile__ic--spots { background: var(--brand-sherpa); color: var(--brand-on-sherpa); }
+.home-tile__ic--rules { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
+.home-tile__ic--users { background: rgba(2, 52, 68, .10); color: var(--brand-sherpa); }
+.home-tile__ic--roles { background: var(--brand-violet-deep); color: var(--brand-on-violet); }
+.home-tile__ic--settings { background: var(--brand-grey); color: var(--brand-sherpa); }
+
+.home-tile__title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.home-tile__desc {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* --- Admin list pages --- */
+.admin-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-head__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-head__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-head__intro {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin: 0;
+}
+
+.count-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(15, 108, 189, .14);
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+.admin-panel {
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 12px;
+    padding: 6px 10px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.role-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: var(--neutral-fill-secondary-rest, #eef3fb);
+    color: var(--neutral-foreground-rest, #444);
+}
+
+.type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+    .type-pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent-fill-rest, #0f6cbd);
+        flex: 0 0 auto;
+    }
+
+.type-pill--ElectricCharging::before { background: var(--brand-green); }
+.type-pill--Disabled::before { background: var(--brand-violet); }
+.type-pill--Visitor::before { background: var(--brand-violet-deep); }
+.type-pill--Motorcycle::before { background: var(--brand-sherpa-soft); }
+
+.state-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.state-pill--on { background: rgba(137, 225, 3, .28); color: var(--brand-sherpa); }
+.state-pill--off { background: var(--neutral-fill-secondary-rest, #ececec); color: var(--neutral-foreground-hint, #6b6b6b); }
+.state-pill--warn { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
+.state-pill--info { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
+
+/* --- Account hub (manage) --- */
+.profile-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    max-width: 640px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 14px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent-fill-rest, #0f6cbd), #16306a);
+    flex: 0 0 auto;
+}
+
+.profile-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.profile-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.profile-sub {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.profile-facts {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 13px;
+}
+
+.account-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 420px;
+}
+
+/* --- Profile page --- */
+.profile-section {
+    max-width: 680px;
+}
+
+/* Destructive-action callout used on the user/role edit pages. */
+.danger-zone {
+    max-width: 680px;
+    border: 1px solid rgba(209, 52, 56, .4);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: rgba(209, 52, 56, .05);
+}
+
+.danger-zone__title {
+    color: var(--error-rest, #d13438);
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+.claims {
+    max-width: 680px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+    .claims > summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .claims ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+    .claims code {
+        color: var(--accent-foreground-rest, #0f6cbd);
+    }
+
+/* --- Polish: keyboard focus & reduced motion --- */
+.home-tile:focus-visible {
+    outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-tile,
+    .spot-card,
+    .meter__fill {
+        transition: none;
+    }
+
+    .home-tile:hover,
+    .spot-card:hover {
+        transform: none;
+    }
+}
+
+/* Centred page loading indicator. */
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+}
+
+/* Notification cards carry a level-coloured spine for quick scanning. */
+.notif-card {
+    border-left: 3px solid var(--neutral-stroke-rest, #e0e0e0);
+}
+
+.notif-card--security { border-left-color: var(--error-rest, #d13438); }
+.notif-card--warning { border-left-color: var(--warning-rest, #f7a900); }
+.notif-card--info { border-left-color: var(--brand-violet); }
+
+/* Wide data grids scroll within their panel instead of pushing the page. */
+.admin-panel {
+    overflow-x: auto;
+}
+
+/* --- Responsive: stack the sidebar above content on narrow screens --- */
+.body-content {
+    min-width: 0;
+    /* Include the padding in the width so it never forces horizontal page scroll. */
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .main {
+        flex-direction: column !important;
+        overflow: visible !important;
+    }
+
+        .main > fluent-nav-menu {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+    .body-content {
+        padding: 1rem !important;
+    }
+
+    .home-hero {
+        padding: 28px 22px;
+    }
+}
+
+/* Keep the header tools from overflowing on small screens: tighten the
+   padding and drop the wallet chip's "credits" word, leaving the number. */
+@media (max-width: 600px) {
+    .app-header {
+        padding-left: .75rem !important;
+        padding-right: .75rem !important;
+    }
+
+    .wallet-chip {
+        padding-left: 8px;
+    }
+
+        .wallet-chip small {
+            display: none;
+        }
+}
+
+/* Modernise the table panels with a gentle elevation, matching the cards. */
+.admin-panel {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
