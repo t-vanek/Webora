@@ -23,7 +23,11 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthenticationStateDeserialization();
 
-builder.Services.AddLocalization();
+// ResourcesPath has to match where the resx actually lives (Resources/ClientResource.resx),
+// exactly like the server registration. Without it the localizer looks for an embedded resource
+// named "…Web.Client.ClientResource" while the compiler emits
+// "…Web.Client.Resources.ClientResource" — nothing matches and every string renders as its key.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 var host = builder.Build();
 
