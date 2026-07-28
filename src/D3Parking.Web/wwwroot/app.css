@@ -1566,6 +1566,14 @@ h1:focus {
 /* --- Sidebar A+B: rozbaleny stav a rail --- */
 /* Vlastni markup misto FluentNavMenu; oba stavy jsou ciste CSS prepnuti tridou .side-nav--rail. */
 
+/* Layout (FluentLayout = div.layout) je flex sloupec, ale vysku ridi obsahem — na oknech
+   vyssich nez stranka koncil kus nad spodni hranou a "flex:1" na .main nemelo co rozdelovat.
+   Minimalni vyska pres cele okno je predpoklad, aby sidebar dosahl az dolu; u delsich stranek
+   se layout normalne roztahne dal a scroluje. */
+.layout {
+    min-height: 100dvh;
+}
+
 /* Na desktopu se drawer obal roztahuje na celou vysku radku .main — FluentStack deti zarovnava
    k horni hrane (stejna vlastnost, ktera smrstovala fluent-tabs na sirku obsahu), takze bez
    align-self by sidebar koncil pod poslednim tlacitkem a zbytek sloupce zustal bez podkladu. */
