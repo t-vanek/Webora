@@ -1,0 +1,343 @@
+@page "/account/profile"
+@attribute [Authorize]
+@using D3Parking.Application.Notifications
+@using D3Parking.Contracts.Notifications
+@using D3Parking.Domain.Notifications
+@inject UserManager<ApplicationUser> UserManager
+@inject INotificationService NotificationService
+@inject ISiteSettingsService SiteSettings
+@inject IUserLocationService UserLocation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Profile_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Profile_Title"]</FluentLabel>
+
+    <AuthorizeView Context="auth">
+        <Authorized>
+            <FluentLabel Typo="Typography.Body">
+                @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
+            </FluentLabel>
+
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_CommuteTitle"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_CommuteHelp"]</FluentLabel>
+                    @if (_home.DistanceKm is { } km)
+                    {
+                        <FluentLabel Typo="Typography.Body">
+                            @L["Profile_CommuteDistance"]: <strong>@km.ToString("0.0") km</strong>
+                            @if (!_home.Verified)
+                            {
+                                <FluentBadge Appearance="Appearance.Accent" Fill="warning" Style="margin-left:8px">@L["Profile_CommutePending"]</FluentBadge>
+                            }
+                        </FluentLabel>
+                    }
+                    @if (!string.IsNullOrEmpty(_homeError))
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
+                    }
+                    <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            <FluentTextField Name="HomeInput.Address" @bind-Value="HomeInput.Address"
+                                             Label="@L["Profile_HomeAddress"]" Style="width:360px" />
+                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
+                        </FluentStack>
+                    </EditForm>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
+                    @if (!string.IsNullOrWhiteSpace(_home.Address))
+                    {
+                        <MuteButton FormName="home-remove" Label="@L["Profile_RemoveAddress"]"
+                                    Appearance="Appearance.Outline" OnSubmit="RemoveHomeAsync" />
+                    }
+                </FluentStack>
+            </FluentCard>
+
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_TeamTitle"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_TeamHelp"]</FluentLabel>
+                    <EditForm Model="TeamInput" method="post" OnValidSubmit="SaveDepartmentAsync" FormName="department">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            <FluentTextField Name="TeamInput.Department" @bind-Value="TeamInput.Department"
+                                             Label="@L["Profile_Team"]" Style="width:360px" />
+                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
+                        </FluentStack>
+                    </EditForm>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_NotificationSettings"]</FluentLabel>
+
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body">@L["Profile_Status"]:</FluentLabel>
+                        @if (_prefs.IsCurrentlyMuted)
+                        {
+                            <FluentBadge Appearance="Appearance.Accent" Fill="warning">
+                                @(_prefs.Muted ? L["Profile_StatusMuted"] : L["Profile_StatusMutedUntil", _prefs.MutedUntilUtc is { } until ? Fmt(until) : ""])
+                            </FluentBadge>
+                        }
+                        else
+                        {
+                            <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_StatusActive"]</FluentBadge>
+                        }
+                        <FluentLabel Typo="Typography.Body" Style="margin-left:12px">@L["Profile_Scope"]:</FluentLabel>
+                        <FluentBadge Appearance="Appearance.Neutral">
+                            @(_prefs.Scope == NotificationScope.SelfServiceOnly ? L["Profile_ScopeSelfService"] : L["Profile_ScopeAll"])
+                        </FluentBadge>
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                        <MuteButton FormName="mute-1h" Label="@L["Profile_Mute1h"]"
+                                    OnSubmit="() => MuteForAsync(TimeSpan.FromHours(1))" />
+                        <MuteButton FormName="mute-8h" Label="@L["Profile_Mute8h"]"
+                                    OnSubmit="() => MuteForAsync(TimeSpan.FromHours(8))" />
+                        <MuteButton FormName="mute-tomorrow" Label="@L["Profile_MuteTomorrow"]"
+                                    OnSubmit="MuteUntilTomorrowAsync" />
+                        <MuteButton FormName="mute-all" Label="@L["Profile_MuteCompletely"]"
+                                    Style="background:var(--warning-rest);color:var(--neutral-foreground-rest)"
+                                    OnSubmit="MuteCompletelyAsync" />
+                        @if (_prefs.IsCurrentlyMuted)
+                        {
+                            <MuteButton FormName="unmute" Label="@L["Profile_Unmute"]"
+                                        Style="background:var(--success-rest);color:var(--neutral-fill-rest)"
+                                        OnSubmit="UnmuteAsync" />
+                        }
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8">
+                        <MuteButton FormName="scope-self" Label="@L["Profile_ScopeSetSelf"]"
+                                    Appearance="Appearance.Neutral"
+                                    OnSubmit="() => SetScopeAsync(NotificationScope.SelfServiceOnly)" />
+                        <MuteButton FormName="scope-all" Label="@L["Profile_ScopeSetAll"]"
+                                    Appearance="Appearance.Neutral"
+                                    OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                <FluentLabel Typo="Typography.H4">@L["Profile_Notifications"]</FluentLabel>
+                @if (_notifications.Any(n => !n.IsRead))
+                {
+                    <FluentBadge Appearance="Appearance.Accent">
+                        @L["Profile_Unread", _notifications.Count(n => !n.IsRead)]
+                    </FluentBadge>
+                    <FluentSpacer />
+                    <MuteButton FormName="mark-all-read"
+                                Label="@L["Profile_MarkAllRead"]"
+                                Appearance="Appearance.Neutral"
+                                OnSubmit="MarkAllRead" />
+                }
+            </FluentStack>
+
+            @if (_notifications.Count == 0)
+            {
+                <div class="empty-state">@L["Profile_NoNotifications"]</div>
+            }
+            else
+            {
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="max-width:680px">
+                    @foreach (var n in _notifications)
+                    {
+                        <FluentCard Class="@($"notif-card notif-card--{LevelClass(n.Level)}")" Style="@(n.IsRead ? null : "background:var(--neutral-layer-2)")">
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                                    <strong>@n.Title</strong>
+                                    @LevelBadge(n.Level)
+                                    <FluentSpacer />
+                                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                        <small>@Fmt(n.CreatedAtUtc)</small>
+                                    </FluentLabel>
+                                </FluentStack>
+                                <FluentLabel Typo="Typography.Body">@n.Message</FluentLabel>
+                            </FluentStack>
+                        </FluentCard>
+                    }
+                </FluentStack>
+            }
+
+            <details class="claims">
+                <summary>@L["Profile_Claims"]</summary>
+                <ul>
+                    @foreach (var claim in auth.User.Claims)
+                    {
+                        <li><code>@claim.Type</code> = @claim.Value</li>
+                    }
+                </ul>
+            </details>
+        </Authorized>
+    </AuthorizeView>
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private IReadOnlyList<NotificationDto> _notifications = [];
+    private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
+
+#pragma warning disable BL0008
+    [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "department")] private TeamFormModel TeamInput { get; set; } = new();
+#pragma warning restore BL0008
+    private UserHomeDto _home = new(null, null, false);
+    private string? _homeError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        await ReloadAsync();
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            _home = await UserLocation.GetHomeAsync(user.Id);
+            HomeInput.Address ??= _home.Address;
+            TeamInput.Department ??= user.Department;
+        }
+    }
+
+    private async Task SaveDepartmentAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            user.Department = string.IsNullOrWhiteSpace(TeamInput.Department) ? null : TeamInput.Department.Trim();
+            await UserManager.UpdateAsync(user);
+        }
+    }
+
+    private sealed class TeamFormModel
+    {
+        public string? Department { get; set; }
+    }
+
+    private async Task SaveHomeAsync()
+    {
+        _homeError = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            var result = await UserLocation.SetHomeAddressAsync(userId, HomeInput.Address);
+            if (!result.Succeeded)
+            {
+                _homeError = result.Errors.FirstOrDefault();
+            }
+
+            _home = await UserLocation.GetHomeAsync(userId);
+        }
+    }
+
+    private async Task RemoveHomeAsync()
+    {
+        _homeError = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await UserLocation.SetHomeAddressAsync(userId, null);
+            HomeInput.Address = null;
+            _home = await UserLocation.GetHomeAsync(userId);
+        }
+    }
+
+    private sealed class HomeFormModel
+    {
+        public string? Address { get; set; }
+    }
+
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
+
+    private async Task<Guid?> CurrentUserIdAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        return user?.Id;
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            _notifications = await NotificationService.GetAsync(userId);
+            _prefs = await NotificationService.GetPreferencesAsync(userId);
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.MarkAllReadAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteForAsync(TimeSpan duration)
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.MuteUntilAsync(userId, DateTimeOffset.UtcNow.Add(duration));
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteUntilTomorrowAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            // Start of the next local day at the site's time zone, sent as the UTC instant it maps to.
+            var tomorrow = SiteTime.Day(SiteTime.Today(DateTimeOffset.UtcNow, _tz).AddDays(1), _tz).Start;
+            await NotificationService.MuteUntilAsync(userId, tomorrow);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task MuteCompletelyAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.MuteAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task UnmuteAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.UnmuteAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task SetScopeAsync(NotificationScope scope)
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.SetScopeAsync(userId, scope);
+            await ReloadAsync();
+        }
+    }
+
+    private static string LevelClass(NotificationLevel level) => level switch
+    {
+        NotificationLevel.Security => "security",
+        NotificationLevel.Warning => "warning",
+        _ => "info",
+    };
+
+    private RenderFragment LevelBadge(NotificationLevel level) => __builder =>
+    {
+        var (fill, key) = level switch
+        {
+            NotificationLevel.Security => ("danger", "Notification_Level_Security"),
+            NotificationLevel.Warning => ("warning", "Notification_Level_Warning"),
+            _ => ("neutral", "Notification_Level_Info"),
+        };
+
+        <FluentBadge Appearance="Appearance.Accent" Fill="@fill">@L[key]</FluentBadge>
+    };
+}

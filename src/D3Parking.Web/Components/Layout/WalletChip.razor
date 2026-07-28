@@ -1,0 +1,41 @@
+@inject IIncentiveService Incentives
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+@if (_score is not null)
+{
+    <a href="parking/leaderboard" class="wallet-chip" title="@L["Parking_MyCredits"]">
+        <span class="wallet-chip__credits">@_score.Credits <small>@L["Parking_Credits"]</small></span>
+        <span class="wallet-chip__tier wallet-chip__tier--@_score.Tier">@L[$"Parking_Tier_{_score.Tier}"]</span>
+    </a>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ParkerScoreDto? _score;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null)
+        {
+            return;
+        }
+
+        var authUser = (await AuthState).User;
+        if (!authUser.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve)
+            && !authUser.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewLeaderboard))
+        {
+            return;
+        }
+
+        // Read the id straight from the auth claims rather than UserManager.GetUserAsync:
+        // this component lives in the layout, so a DB lookup here races the page's own
+        // UserManager call on the circuit-scoped Identity DbContext. GetScoreAsync uses its
+        // own pooled context and is safe to call concurrently.
+        if (Guid.TryParse(UserManager.GetUserId(authUser), out var userId))
+        {
+            _score = await Incentives.GetScoreAsync(userId);
+        }
+    }
+}

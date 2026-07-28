@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Nav_Home" xml:space="preserve"><value>Domů</value></data>
+  <data name="Nav_Menu" xml:space="preserve"><value>Menu</value></data>
+  <data name="Nav_Login" xml:space="preserve"><value>Přihlásit</value></data>
+  <data name="Nav_Register" xml:space="preserve"><value>Registrace</value></data>
+  <data name="Nav_Logout" xml:space="preserve"><value>Odhlásit</value></data>
+  <data name="Nav_MyAccount" xml:space="preserve"><value>Můj účet</value></data>
+  <data name="Language" xml:space="preserve"><value>Jazyk</value></data>
+  <data name="Layout_Error" xml:space="preserve"><value>Došlo k neočekávané chybě.</value></data>
+  <data name="Layout_Reload" xml:space="preserve"><value>Znovu načíst</value></data>
+  <data name="Layout_ThemeSwitchToDark" xml:space="preserve"><value>Přepnout na tmavý režim</value></data>
+  <data name="Layout_ThemeSwitchToLight" xml:space="preserve"><value>Přepnout na světlý režim</value></data>
+  <data name="Common_SignIn" xml:space="preserve"><value>přihlásit se</value></data>
+  <data name="Common_Verifying" xml:space="preserve"><value>Ověřuji…</value></data>
+  <data name="Common_RestoreLink" xml:space="preserve"><value>obnovení účtu</value></data>
+  <data name="Common_AccountNotFound" xml:space="preserve"><value>Účet nenalezen.</value></data>
+  <data name="Field_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Field_NewEmail" xml:space="preserve"><value>Nový e-mail</value></data>
+  <data name="Field_Password" xml:space="preserve"><value>Heslo</value></data>
+  <data name="Field_NewPassword" xml:space="preserve"><value>Nové heslo</value></data>
+  <data name="Field_ConfirmPassword" xml:space="preserve"><value>Heslo znovu</value></data>
+  <data name="Field_CurrentPassword" xml:space="preserve"><value>Současné heslo</value></data>
+  <data name="Field_NewPhone" xml:space="preserve"><value>Nové telefonní číslo</value></data>
+  <data name="Field_Code" xml:space="preserve"><value>Ověřovací kód</value></data>
+  <data name="Login_Title" xml:space="preserve"><value>Přihlášení</value></data>
+  <data name="Login_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Login_Password" xml:space="preserve"><value>Heslo</value></data>
+  <data name="Login_Remember" xml:space="preserve"><value>Zapamatovat přihlášení</value></data>
+  <data name="Login_Submit" xml:space="preserve"><value>Přihlásit se</value></data>
+  <data name="Login_Subtitle" xml:space="preserve"><value>Přihlaste se ke svému účtu</value></data>
+  <data name="Login_NoAccount" xml:space="preserve"><value>Nemáte účet?</value></data>
+  <data name="Login_Invalid" xml:space="preserve"><value>Neplatný e-mail nebo heslo.</value></data>
+  <data name="Login_LockedOut" xml:space="preserve"><value>Účet je dočasně uzamčen.</value></data>
+  <data name="Login_CreateAccount" xml:space="preserve"><value>Vytvořit účet</value></data>
+  <data name="Login_ForgotPassword" xml:space="preserve"><value>Zapomenuté heslo</value></data>
+  <data name="Login_Reactivate" xml:space="preserve"><value>Obnovit deaktivovaný účet</value></data>
+  <data name="Register_Title" xml:space="preserve"><value>Registrace</value></data>
+  <data name="Register_DisplayName" xml:space="preserve"><value>Zobrazované jméno</value></data>
+  <data name="Register_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Register_Password" xml:space="preserve"><value>Heslo</value></data>
+  <data name="Register_ConfirmPassword" xml:space="preserve"><value>Heslo znovu</value></data>
+  <data name="Register_Submit" xml:space="preserve"><value>Vytvořit účet</value></data>
+  <data name="Register_Subtitle" xml:space="preserve"><value>Vytvořte si nový účet</value></data>
+  <data name="Register_HaveAccount" xml:space="preserve"><value>Už máte účet?</value></data>
+  <data name="Register_SignIn" xml:space="preserve"><value>Přihlásit se</value></data>
+  <data name="Register_Success" xml:space="preserve"><value>Účet byl vytvořen. Na zadanou adresu jsme poslali aktivační odkaz — po jeho potvrzení se budete moci přihlásit.</value></data>
+  <data name="Auth_Hero_Headline" xml:space="preserve"><value>Chytré parkování bez papírování</value></data>
+  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Rezervujte si místo, sdílejte ho, když ho nevyužijete, a sbírejte kredity i body za férové chování.</value></data>
+  <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Rezervace místa na pár kliknutí</value></data>
+  <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Kredity a dynamické ceny dle obsazenosti</value></data>
+  <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Žebříček, série a odznaky za spolehlivost</value></data>
+  <data name="ForgotPassword_Title" xml:space="preserve"><value>Zapomenuté heslo</value></data>
+  <data name="ForgotPassword_Submit" xml:space="preserve"><value>Poslat odkaz</value></data>
+  <data name="ForgotPassword_Success" xml:space="preserve"><value>Pokud účet s touto adresou existuje, poslali jsme na něj odkaz pro obnovení hesla.</value></data>
+  <data name="ResetPassword_Title" xml:space="preserve"><value>Obnovení hesla</value></data>
+  <data name="ResetPassword_Submit" xml:space="preserve"><value>Změnit heslo</value></data>
+  <data name="ResetPassword_Success" xml:space="preserve"><value>Heslo bylo změněno.</value></data>
+  <data name="ResetPassword_Invalid" xml:space="preserve"><value>Neplatný odkaz pro obnovení hesla.</value></data>
+  <data name="ForgotReactivation_Title" xml:space="preserve"><value>Obnovení účtu</value></data>
+  <data name="ForgotReactivation_Intro" xml:space="preserve"><value>Pokud jste svůj účet deaktivovali nebo uspali, pošleme vám odkaz pro jeho obnovení.</value></data>
+  <data name="ForgotReactivation_Submit" xml:space="preserve"><value>Poslat odkaz</value></data>
+  <data name="ForgotReactivation_Success" xml:space="preserve"><value>Pokud účet s touto adresou lze obnovit, poslali jsme na něj odkaz pro obnovení.</value></data>
+  <data name="ConfirmEmail_Title" xml:space="preserve"><value>Aktivace účtu</value></data>
+  <data name="ConfirmEmail_Success" xml:space="preserve"><value>Účet byl aktivován.</value></data>
+  <data name="ConfirmEmail_Invalid" xml:space="preserve"><value>Neplatný aktivační odkaz.</value></data>
+  <data name="ConfirmEmailChange_Title" xml:space="preserve"><value>Změna e-mailu</value></data>
+  <data name="ConfirmEmailChange_Success" xml:space="preserve"><value>E-mail byl změněn na {0}.</value></data>
+  <data name="ConfirmEmailChange_Invalid" xml:space="preserve"><value>Neplatný odkaz pro změnu e-mailu.</value></data>
+  <data name="ConfirmReactivation_Title" xml:space="preserve"><value>Obnovení účtu</value></data>
+  <data name="ConfirmReactivation_Success" xml:space="preserve"><value>Účet byl obnoven.</value></data>
+  <data name="ConfirmReactivation_Invalid" xml:space="preserve"><value>Neplatný odkaz pro obnovení účtu.</value></data>
+  <data name="ConfirmSuspend_Title" xml:space="preserve"><value>Uspání účtu</value></data>
+  <data name="ConfirmSuspend_Success" xml:space="preserve"><value>Účet byl uspán.</value></data>
+  <data name="ConfirmSuspend_Invalid" xml:space="preserve"><value>Neplatný odkaz pro uspání účtu.</value></data>
+  <data name="Manage_Title" xml:space="preserve"><value>Můj účet</value></data>
+  <data name="Manage_Actions" xml:space="preserve"><value>Nastavení účtu</value></data>
+  <data name="Manage_Name" xml:space="preserve"><value>Jméno</value></data>
+  <data name="Manage_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Manage_Phone" xml:space="preserve"><value>Telefon</value></data>
+  <data name="Manage_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Manage_ChangePassword" xml:space="preserve"><value>Změnit heslo</value></data>
+  <data name="Manage_ChangeEmail" xml:space="preserve"><value>Změnit e-mail</value></data>
+  <data name="Manage_ChangePhone" xml:space="preserve"><value>Změnit telefon</value></data>
+  <data name="Manage_Suspend" xml:space="preserve"><value>Uspat účet</value></data>
+  <data name="Manage_Deactivate" xml:space="preserve"><value>Deaktivovat účet</value></data>
+  <data name="ChangePassword_Title" xml:space="preserve"><value>Změna hesla</value></data>
+  <data name="ChangePassword_Submit" xml:space="preserve"><value>Změnit heslo</value></data>
+  <data name="ChangePassword_Success" xml:space="preserve"><value>Heslo bylo změněno.</value></data>
+  <data name="ChangeEmail_Title" xml:space="preserve"><value>Změna e-mailu</value></data>
+  <data name="ChangeEmail_Submit" xml:space="preserve"><value>Poslat potvrzení</value></data>
+  <data name="ChangeEmail_Success" xml:space="preserve"><value>Na novou adresu jsme poslali potvrzovací odkaz. Změna se projeví po jeho potvrzení.</value></data>
+  <data name="ChangePhone_Title" xml:space="preserve"><value>Změna telefonu</value></data>
+  <data name="ChangePhone_RequestSubmit" xml:space="preserve"><value>Poslat ověřovací kód</value></data>
+  <data name="ChangePhone_CodeSent" xml:space="preserve"><value>Ověřovací kód jsme poslali na váš e-mail.</value></data>
+  <data name="ChangePhone_ConfirmSubmit" xml:space="preserve"><value>Potvrdit změnu</value></data>
+  <data name="ChangePhone_Success" xml:space="preserve"><value>Telefonní číslo bylo změněno.</value></data>
+  <data name="Deactivate_Title" xml:space="preserve"><value>Deaktivace účtu</value></data>
+  <data name="Deactivate_Intro" xml:space="preserve"><value>Deaktivací se nebudete moci přihlásit. Účet později obnovíte přes obnovení účtu.</value></data>
+  <data name="Deactivate_Submit" xml:space="preserve"><value>Deaktivovat účet</value></data>
+  <data name="Suspend_Title" xml:space="preserve"><value>Uspání účtu</value></data>
+  <data name="Suspend_Intro" xml:space="preserve"><value>Uspání je dočasné. Pro potvrzení vám pošleme e-mail; účet se uspí až po potvrzení.</value></data>
+  <data name="Suspend_Submit" xml:space="preserve"><value>Uspat účet</value></data>
+  <data name="Suspend_Success" xml:space="preserve"><value>Poslali jsme vám potvrzovací e-mail. Uspání dokončíte kliknutím na odkaz v něm.</value></data>
+  <data name="Logout_Title" xml:space="preserve"><value>Odhlášení</value></data>
+  <data name="Logout_Confirm" xml:space="preserve"><value>Opravdu se chcete odhlásit?</value></data>
+  <data name="Logout_Submit" xml:space="preserve"><value>Odhlásit se</value></data>
+  <data name="Logout_NotSignedIn" xml:space="preserve"><value>Nejste přihlášeni.</value></data>
+  <data name="Profile_Title" xml:space="preserve"><value>Profil</value></data>
+  <data name="Profile_SignedInAs" xml:space="preserve"><value>Přihlášen jako</value></data>
+  <data name="Profile_NotificationSettings" xml:space="preserve"><value>Nastavení notifikací</value></data>
+  <data name="Profile_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Profile_StatusMuted" xml:space="preserve"><value>Ztlumeno</value></data>
+  <data name="Profile_StatusMutedUntil" xml:space="preserve"><value>Ztlumeno do {0}</value></data>
+  <data name="Profile_StatusActive" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Profile_Scope" xml:space="preserve"><value>Rozsah</value></data>
+  <data name="Profile_ScopeSelfService" xml:space="preserve"><value>Pouze self-service</value></data>
+  <data name="Profile_ScopeAll" xml:space="preserve"><value>Všechny</value></data>
+  <data name="Profile_Mute1h" xml:space="preserve"><value>Ztlumit 1 h</value></data>
+  <data name="Profile_Mute8h" xml:space="preserve"><value>8 h</value></data>
+  <data name="Profile_MuteTomorrow" xml:space="preserve"><value>Do zítřka</value></data>
+  <data name="Profile_MuteCompletely" xml:space="preserve"><value>Úplně</value></data>
+  <data name="Profile_Unmute" xml:space="preserve"><value>Zrušit ztlumení</value></data>
+  <data name="Profile_ScopeSetSelf" xml:space="preserve"><value>Jen self-service</value></data>
+  <data name="Profile_ScopeSetAll" xml:space="preserve"><value>Všechny notifikace</value></data>
+  <data name="Profile_Notifications" xml:space="preserve"><value>Notifikace</value></data>
+  <data name="Profile_Unread" xml:space="preserve"><value>{0} nepřečtených</value></data>
+  <data name="Profile_MarkAllRead" xml:space="preserve"><value>Označit vše jako přečtené</value></data>
+  <data name="Profile_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
+  <data name="Profile_Claims" xml:space="preserve"><value>Claims</value></data>
+  <data name="Notification_Level_Security" xml:space="preserve"><value>Bezpečnost</value></data>
+  <data name="Notification_Level_Warning" xml:space="preserve"><value>Upozornění</value></data>
+  <data name="Notification_Level_Info" xml:space="preserve"><value>Info</value></data>
+  <data name="Bell_Title" xml:space="preserve"><value>Notifikace</value></data>
+  <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifikace (ztlumeno)</value></data>
+  <data name="Bell_MarkRead" xml:space="preserve"><value>Označit přečtené</value></data>
+  <data name="Bell_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
+  <data name="Nav_AdminUsers" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Nav_AdminRoles" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Admin_Loading" xml:space="preserve"><value>Načítání…</value></data>
+  <data name="Admin_Search" xml:space="preserve"><value>Hledat</value></data>
+  <data name="Admin_Manage" xml:space="preserve"><value>Spravovat</value></data>
+  <data name="Admin_Save" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Admin_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="AccountStatus_PendingActivation" xml:space="preserve"><value>Čeká na aktivaci</value></data>
+  <data name="AccountStatus_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="AccountStatus_Deactivated" xml:space="preserve"><value>Deaktivován</value></data>
+  <data name="AccountStatus_Suspended" xml:space="preserve"><value>Uspán</value></data>
+  <data name="AccountStatus_Blocked" xml:space="preserve"><value>Zablokován</value></data>
+  <data name="Admin_Users_Title" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="Admin_Users_Intro" xml:space="preserve"><value>Spravujte uživatelské účty, jejich stav a přiřazené role.</value></data>
+  <data name="Admin_Roles_Intro" xml:space="preserve"><value>Definujte role a jemná oprávnění, která hlídají UI i služby.</value></data>
+  <data name="Parking_Admin_Intro" xml:space="preserve"><value>Spravujte parkovací místa, jejich stav a přiřazení rezidentů.</value></data>
+  <data name="Admin_Users_SearchPlaceholder" xml:space="preserve"><value>Hledat podle e-mailu nebo jména…</value></data>
+  <data name="Admin_Users_Create" xml:space="preserve"><value>Nový účet</value></data>
+  <data name="Admin_Users_None" xml:space="preserve"><value>Žádné účty.</value></data>
+  <data name="Admin_Users_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Admin_Users_Name" xml:space="preserve"><value>Jméno</value></data>
+  <data name="Admin_Users_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Admin_Users_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="Admin_Users_Phone" xml:space="preserve"><value>Telefon</value></data>
+  <data name="Admin_Users_Password" xml:space="preserve"><value>Heslo</value></data>
+  <data name="Admin_Users_NotFound" xml:space="preserve"><value>Účet nenalezen.</value></data>
+  <data name="Admin_Users_Unconfirmed" xml:space="preserve"><value>nepotvrzeno</value></data>
+  <data name="Admin_UserEdit_Title" xml:space="preserve"><value>Detail účtu</value></data>
+  <data name="Admin_UserEdit_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="Admin_UserEdit_StatusActions" xml:space="preserve"><value>Stav účtu</value></data>
+  <data name="Admin_UserEdit_SelfNoStatus" xml:space="preserve"><value>Stav vlastního účtu zde nelze měnit.</value></data>
+  <data name="Admin_UserEdit_Block" xml:space="preserve"><value>Zablokovat</value></data>
+  <data name="Admin_UserEdit_Unblock" xml:space="preserve"><value>Odblokovat</value></data>
+  <data name="Admin_UserEdit_BlockReason" xml:space="preserve"><value>Důvod (nepovinné)</value></data>
+  <data name="Admin_UserEdit_DangerZone" xml:space="preserve"><value>Nebezpečná zóna</value></data>
+  <data name="Admin_UserEdit_Delete" xml:space="preserve"><value>Smazat účet</value></data>
+  <data name="Admin_UserEdit_DeleteConfirm" xml:space="preserve"><value>Opravdu chcete tento účet trvale smazat?</value></data>
+  <data name="Admin_UserEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
+  <data name="Admin_UserEdit_Audit" xml:space="preserve"><value>Historie</value></data>
+  <data name="Admin_UserEdit_NoAudit" xml:space="preserve"><value>Žádné záznamy.</value></data>
+  <data name="Admin_UserEdit_AuditWhen" xml:space="preserve"><value>Kdy</value></data>
+  <data name="Admin_UserEdit_AuditEvent" xml:space="preserve"><value>Událost</value></data>
+  <data name="Admin_UserEdit_AuditActor" xml:space="preserve"><value>Provedl</value></data>
+  <data name="Admin_UserEdit_AuditDetail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Role byly uloženy.</value></data>
+  <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Účet byl zablokován.</value></data>
+  <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Účet byl odblokován.</value></data>
+  <data name="Admin_Roles_Title" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Admin_Roles_Create" xml:space="preserve"><value>Nová role</value></data>
+  <data name="Admin_Roles_Name" xml:space="preserve"><value>Název role</value></data>
+  <data name="Admin_Roles_Permissions" xml:space="preserve"><value>Oprávnění</value></data>
+  <data name="Admin_Roles_Users" xml:space="preserve"><value>Uživatelé</value></data>
+  <data name="Admin_Roles_Default" xml:space="preserve"><value>výchozí</value></data>
+  <data name="Admin_Roles_NotFound" xml:space="preserve"><value>Role nenalezena.</value></data>
+  <data name="Admin_RoleEdit_Title" xml:space="preserve"><value>Detail role</value></data>
+  <data name="Admin_RoleEdit_Rename" xml:space="preserve"><value>Přejmenovat</value></data>
+  <data name="Admin_RoleEdit_AdminAll" xml:space="preserve"><value>Role Administrator má vždy všechna oprávnění.</value></data>
+  <data name="Admin_RoleEdit_Delete" xml:space="preserve"><value>Smazat roli</value></data>
+  <data name="Admin_RoleEdit_DeleteConfirm" xml:space="preserve"><value>Opravdu chcete tuto roli smazat?</value></data>
+  <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
+  <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role byla přejmenována.</value></data>
+  <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
+  <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
+  <data name="Home_Title" xml:space="preserve"><value>D3Parking</value></data>
+  <data name="Home_Welcome" xml:space="preserve"><value>Rezervační systém firemního parkoviště s motivačními body za co nejlepší využití míst.</value></data>
+  <data name="Home_QuickActions" xml:space="preserve"><value>Rychlé akce</value></data>
+  <data name="Home_SignedOut" xml:space="preserve"><value>Přihlaste se nebo si vytvořte účet a začněte rezervovat.</value></data>
+  <data name="Home_Card_Reserve" xml:space="preserve"><value>Rezervujte si místo na časové okno za kredit.</value></data>
+  <data name="Home_Card_Leaderboard" xml:space="preserve"><value>Sledujte své body, úroveň, sérii a odznaky.</value></data>
+  <data name="Home_Card_Spots" xml:space="preserve"><value>Spravujte místa a přiřazujte rezidenty.</value></data>
+  <data name="Home_Card_Rules" xml:space="preserve"><value>Laďte ceny, body a pravidla za běhu.</value></data>
+  <data name="Home_Card_Users" xml:space="preserve"><value>Spravujte uživatelské účty.</value></data>
+  <data name="Home_Card_Roles" xml:space="preserve"><value>Definujte role a oprávnění.</value></data>
+  <data name="Home_Card_Settings" xml:space="preserve"><value>Konfigurujte web a identitu.</value></data>
+  <data name="NotFound_Title" xml:space="preserve"><value>Stránka nenalezena</value></data>
+  <data name="NotFound_Message" xml:space="preserve"><value>Omlouváme se, požadovaný obsah neexistuje.</value></data>
+  <data name="NotFound_Home" xml:space="preserve"><value>Zpět na úvod</value></data>
+  <data name="ErrorPage_Title" xml:space="preserve"><value>Chyba</value></data>
+  <data name="ErrorPage_Heading" xml:space="preserve"><value>Při zpracování požadavku došlo k chybě.</value></data>
+  <data name="ErrorPage_RequestId" xml:space="preserve"><value>ID požadavku:</value></data>
+  <data name="Auth_AccessDenied_Title" xml:space="preserve"><value>Přístup odepřen</value></data>
+  <data name="Auth_AccessDenied_Message" xml:space="preserve"><value>Nemáte oprávnění k zobrazení této stránky.</value></data>
+  <data name="Reconnect_Rejoining" xml:space="preserve"><value>Obnovuji spojení se serverem…</value></data>
+  <data name="Reconnect_RetryBefore" xml:space="preserve"><value>Spojení se nezdařilo, další pokus za</value></data>
+  <data name="Reconnect_RetryAfter" xml:space="preserve"><value>s.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Spojení se nepodařilo obnovit.</value></data>
+  <data name="Reconnect_FailedHint" xml:space="preserve"><value>Zkuste to znovu nebo načtěte stránku.</value></data>
+  <data name="Reconnect_Retry" xml:space="preserve"><value>Zkusit znovu</value></data>
+  <data name="Reconnect_Paused" xml:space="preserve"><value>Relace byla pozastavena serverem.</value></data>
+  <data name="Reconnect_ResumeFailed" xml:space="preserve"><value>Obnovení relace se nezdařilo.</value></data>
+  <data name="Reconnect_Resume" xml:space="preserve"><value>Pokračovat</value></data>
+  <data name="Nav_AdminSettings" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Nastavení webu</value></data>
+  <data name="Settings_DomainSection" xml:space="preserve"><value>Doména</value></data>
+  <data name="Settings_CanonicalHost" xml:space="preserve"><value>Kanonická doména</value></data>
+  <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>Např. www.example.com – použije se pro absolutní odkazy (e-maily, kanonické URL).</value></data>
+  <data name="Settings_Scheme" xml:space="preserve"><value>Protokol</value></data>
+  <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Settings_PortHelp" xml:space="preserve"><value>Prázdné = výchozí (80/443).</value></data>
+  <data name="Settings_ForceHttps" xml:space="preserve"><value>Vynutit HTTPS (přesměrovat HTTP→HTTPS)</value></data>
+  <data name="Settings_Www" xml:space="preserve"><value>Tvar www</value></data>
+  <data name="Settings_Www_NoPreference" xml:space="preserve"><value>Bez preference</value></data>
+  <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Preferovat www</value></data>
+  <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Preferovat bez www</value></data>
+  <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
+  <data name="Settings_HstsEnabled" xml:space="preserve"><value>Zapnout HSTS</value></data>
+  <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Platnost (dny)</value></data>
+  <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Včetně subdomén</value></data>
+  <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Pozor: zařazení do HSTS preload seznamu je obtížné vrátit zpět a vynutí HTTPS i pro všechny subdomény na dlouhou dobu.</value></data>
+  <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protokol je nastaven na HTTP, ale vynucení HTTPS je zapnuté – přesměrování bude směřovat na HTTPS.</value></data>
+  <data name="Settings_Aliases" xml:space="preserve"><value>Aliasy domén</value></data>
+  <data name="Settings_AliasesHelp" xml:space="preserve"><value>Jeden název domény na řádek.</value></data>
+  <data name="Settings_BaseUrlPreview" xml:space="preserve"><value>Kanonická URL:</value></data>
+  <data name="Settings_NotSet" xml:space="preserve"><value>nenastaveno</value></data>
+  <data name="Settings_EnforcementNote" xml:space="preserve"><value>Vynucení (HTTPS, HSTS, www, aliasy) se aplikuje mimo vývojové prostředí; nerozpoznané domény a localhost zůstávají beze změny.</value></data>
+  <data name="Settings_Saved" xml:space="preserve"><value>Nastavení bylo uloženo.</value></data>
+  <data name="Settings_SaveDomain" xml:space="preserve"><value>Uložit doménu</value></data>
+  <data name="Settings_SaveRegion" xml:space="preserve"><value>Uložit region</value></data>
+  <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
+  <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Výchozí jazyk</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se, když návštěvník nemá vlastní volbu jazyka.</value></data>
+  <data name="Settings_Automatic" xml:space="preserve"><value>Automaticky</value></data>
+  <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Použije se pro zobrazování časů (audit, notifikace).</value></data>
+  <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
+  <data name="Settings_EncodingSection" xml:space="preserve"><value>Kódování</value></data>
+  <data name="Settings_SaveEncoding" xml:space="preserve"><value>Uložit kódování</value></data>
+  <data name="Settings_PageCharset" xml:space="preserve"><value>Kódování stránek</value></data>
+  <data name="Settings_PageCharsetHelp" xml:space="preserve"><value>Znaková sada HTML stránek. Doporučeno UTF-8; jiné hodnoty způsobí překódování odpovědí.</value></data>
+  <data name="Settings_EmailCharset" xml:space="preserve"><value>Kódování e-mailů</value></data>
+  <data name="Settings_EmailCharsetHelp" xml:space="preserve"><value>Znaková sada těla odchozích e-mailů.</value></data>
+  <data name="Settings_AccountsSection" xml:space="preserve"><value>Účty</value></data>
+  <data name="Settings_SaveAccounts" xml:space="preserve"><value>Uložit účty</value></data>
+  <data name="Settings_DefaultRole" xml:space="preserve"><value>Výchozí role nových účtů</value></data>
+  <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automaticky přidělená nově zaregistrovaným účtům.</value></data>
+  <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
+  <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
+  <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
+  <data name="Settings_SiteName" xml:space="preserve"><value>Název webu</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Zobrazí se jako značka v navigaci. Prázdné = „D3Parking“.</value></data>
+  <data name="Settings_SiteDescription" xml:space="preserve"><value>Popis webu</value></data>
+  <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Použije se jako výchozí meta description stránek.</value></data>
+  <data name="Settings_UrlAppearance" xml:space="preserve"><value>Vzhled URL adres (kanonizace cesty).</value></data>
+  <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Malá písmena v URL</value></data>
+  <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Cesty s velkými písmeny se přesměrují na malá (query a soubory se nemění).</value></data>
+  <data name="Settings_TrailingSlash" xml:space="preserve"><value>Koncové lomítko</value></data>
+  <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>Beze změny</value></data>
+  <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Vždy přidat „/“</value></data>
+  <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Vždy odstranit „/“</value></data>
+  <data name="Nav_Parking" xml:space="preserve"><value>Parkování</value></data>
+  <data name="Nav_ParkingReserve" xml:space="preserve"><value>Rezervace místa</value></data>
+  <data name="Nav_ParkingLeaderboard" xml:space="preserve"><value>Žebříček</value></data>
+  <data name="Nav_AdminParking" xml:space="preserve"><value>Parkovací místa</value></data>
+  <data name="Parking_Title" xml:space="preserve"><value>Rezervace parkování</value></data>
+  <data name="Parking_Intro" xml:space="preserve"><value>Rezervujte si místo na vybraný čas. Za uvolnění nevyužité rezervace a parkování mimo špičku získáváte body.</value></data>
+  <data name="Parking_FindTitle" xml:space="preserve"><value>Vyhledat volná místa</value></data>
+  <data name="Parking_Date" xml:space="preserve"><value>Datum</value></data>
+  <data name="Parking_From" xml:space="preserve"><value>Od</value></data>
+  <data name="Parking_To" xml:space="preserve"><value>Do</value></data>
+  <data name="Parking_Find" xml:space="preserve"><value>Najít místa</value></data>
+  <data name="Parking_OffPeakHint" xml:space="preserve"><value>Tento čas je mimo špičku – získáte bonusové body.</value></data>
+  <data name="Parking_Available" xml:space="preserve"><value>Volná místa</value></data>
+  <data name="Parking_NoneAvailable" xml:space="preserve"><value>Pro zvolený čas nejsou volná žádná místa.</value></data>
+  <data name="Parking_Reserve" xml:space="preserve"><value>Rezervovat</value></data>
+  <data name="Parking_MyReservations" xml:space="preserve"><value>Moje rezervace</value></data>
+  <data name="Parking_NoReservations" xml:space="preserve"><value>Zatím nemáte žádné rezervace.</value></data>
+  <data name="Parking_Spot" xml:space="preserve"><value>Místo</value></data>
+  <data name="Parking_When" xml:space="preserve"><value>Kdy</value></data>
+  <data name="Parking_OffPeak" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Yes" xml:space="preserve"><value>Ano</value></data>
+  <data name="Parking_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Parking_CheckIn" xml:space="preserve"><value>Příjezd</value></data>
+  <data name="Parking_Release" xml:space="preserve"><value>Uvolnit</value></data>
+  <data name="Parking_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Parking_Complete" xml:space="preserve"><value>Odjezd</value></data>
+  <data name="Parking_Reserved" xml:space="preserve"><value>Místo bylo rezervováno.</value></data>
+  <data name="Parking_Released" xml:space="preserve"><value>Rezervace byla uvolněna pro ostatní.</value></data>
+  <data name="Parking_State_Reserved" xml:space="preserve"><value>Rezervováno</value></data>
+  <data name="Parking_State_CheckedIn" xml:space="preserve"><value>Na místě</value></data>
+  <data name="Parking_State_Completed" xml:space="preserve"><value>Dokončeno</value></data>
+  <data name="Parking_State_Released" xml:space="preserve"><value>Uvolněno</value></data>
+  <data name="Parking_State_NoShow" xml:space="preserve"><value>Nedostavil se</value></data>
+  <data name="Parking_State_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
+  <data name="Parking_Error_CodeRequired" xml:space="preserve"><value>Zadejte označení místa.</value></data>
+  <data name="Parking_Error_DuplicateCode" xml:space="preserve"><value>Místo s tímto označením už existuje.</value></data>
+  <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>Místo nebylo nalezeno.</value></data>
+  <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>Toto místo není k dispozici.</value></data>
+  <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>Konec musí být po začátku.</value></data>
+  <data name="Parking_Error_PastWindow" xml:space="preserve"><value>Nelze rezervovat čas v minulosti.</value></data>
+  <data name="Parking_Error_SpotConflict" xml:space="preserve"><value>Toto místo je ve zvoleném čase už obsazené.</value></data>
+  <data name="Parking_Error_OwnConflict" xml:space="preserve"><value>V tomto čase už máte jinou rezervaci.</value></data>
+  <data name="Parking_Error_ReservationNotFound" xml:space="preserve"><value>Rezervace nebyla nalezena.</value></data>
+  <data name="Parking_Error_InvalidState" xml:space="preserve"><value>Tuto akci v aktuálním stavu rezervace nelze provést.</value></data>
+  <data name="Parking_Leaderboard_Title" xml:space="preserve"><value>Žebříček</value></data>
+  <data name="Parking_Leaderboard_Intro" xml:space="preserve"><value>Body získáváte za chování, které zlepšuje využití parkoviště.</value></data>
+  <data name="Parking_MyScore" xml:space="preserve"><value>Mé skóre</value></data>
+  <data name="Parking_Points" xml:space="preserve"><value>bodů</value></data>
+  <data name="Parking_Stat_Released" xml:space="preserve"><value>Uvolnění</value></data>
+  <data name="Parking_Stat_OffPeak" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Stat_Completed" xml:space="preserve"><value>Dokončené</value></data>
+  <data name="Parking_Stat_NoShows" xml:space="preserve"><value>Nedostavení</value></data>
+  <data name="Parking_Leaderboard_Empty" xml:space="preserve"><value>Žebříček je zatím prázdný.</value></data>
+  <data name="Parking_Rank" xml:space="preserve"><value>Pořadí</value></data>
+  <data name="Parking_Name" xml:space="preserve"><value>Jméno</value></data>
+  <data name="Parking_Badges" xml:space="preserve"><value>Odznaky</value></data>
+  <data name="Parking_Badge_ConsiderateColleague" xml:space="preserve"><value>Ohleduplný kolega</value></data>
+  <data name="Parking_Badge_OffPeakChampion" xml:space="preserve"><value>Mistr mimo špičku</value></data>
+  <data name="Parking_Badge_ReliableParker" xml:space="preserve"><value>Spolehlivý řidič</value></data>
+  <data name="Parking_Badge_CenturyClub" xml:space="preserve"><value>Klub stovkařů</value></data>
+  <data name="Parking_Badge_Trusted" xml:space="preserve"><value>Důvěryhodný</value></data>
+  <data name="Parking_Trust" xml:space="preserve"><value>Důvěra</value></data>
+  <data name="Parking_Admin_Title" xml:space="preserve"><value>Správa parkovacích míst</value></data>
+  <data name="Parking_Admin_AddSpot" xml:space="preserve"><value>Přidat místo</value></data>
+  <data name="Parking_Admin_Code" xml:space="preserve"><value>Označení</value></data>
+  <data name="Parking_Admin_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
+  <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Vyhodnotit nedostavení</value></data>
+  <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body. Probíhá i automaticky na pozadí.</value></data>
+  <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>
+  <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>Zatím nejsou žádná místa.</value></data>
+  <data name="Parking_Admin_State" xml:space="preserve"><value>Stav</value></data>
+  <data name="Parking_Admin_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
+  <data name="Parking_Admin_Deactivate" xml:space="preserve"><value>Deaktivovat</value></data>
+  <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
+  <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Pravidla a ceny</value></data>
+  <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Bodování a časová pravidla motivačního systému. Změny se projeví okamžitě.</value></data>
+  <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Ekonomika</value></data>
+  <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Body a úrovně</value></data>
+  <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Důvěra a ochrana</value></data>
+  <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a špička</value></data>
+  <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Rezidenti</value></data>
+  <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Lokalita a limity</value></data>
+  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Body</value></data>
+  <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
+  <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
+  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Body za uvolnění</value></data>
+  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Bonus mimo špičku</value></data>
+  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>Postih za nedostavení</value></data>
+  <data name="Parking_Settings_PeakStart" xml:space="preserve"><value>Začátek špičky</value></data>
+  <data name="Parking_Settings_PeakEnd" xml:space="preserve"><value>Konec špičky</value></data>
+  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Uvolnit nejpozději před (min)</value></data>
+  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Tolerance pro příjezd (min)</value></data>
+  <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Připomínka před začátkem (min)</value></data>
+  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Interval kontroly (min)</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Časové hodnoty jsou v minutách.</value></data>
+  <data name="Parking_Settings_Save" xml:space="preserve"><value>Uložit nastavení</value></data>
+  <data name="Parking_Settings_Saved" xml:space="preserve"><value>Nastavení uloženo.</value></data>
+  <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Konec špičky musí být po jejím začátku.</value></data>
+  <data name="Parking_Owned_Title" xml:space="preserve"><value>Tvé vyhrazené místo</value></data>
+  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Drženo pro tebe</value></data>
+  <data name="Parking_OwnedState_Claimed" xml:space="preserve"><value>Potvrzeno – tvé na celý den</value></data>
+  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Sdíleno (zatím volné)</value></data>
+  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Sdíleno – obsazeno jiným</value></data>
+  <data name="Parking_Owned_Confirm" xml:space="preserve"><value>Potvrdit příjezd</value></data>
+  <data name="Parking_Owned_ReleaseDate" xml:space="preserve"><value>Den uvolnění</value></data>
+  <data name="Parking_Owned_Release" xml:space="preserve"><value>Uvolnit</value></data>
+  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Měsíční povolené sdílení</value></data>
+  <data name="Parking_Owned_SaveAllowance" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Parking_Owned_Confirmed" xml:space="preserve"><value>Příjezd potvrzen, místo je tvé.</value></data>
+  <data name="Parking_Owned_Released" xml:space="preserve"><value>Místo bylo uvolněno ostatním.</value></data>
+  <data name="Parking_Owned_AllowanceSaved" xml:space="preserve"><value>Nastavení sdílení uloženo.</value></data>
+  <data name="Parking_Admin_Resident" xml:space="preserve"><value>Rezident</value></data>
+  <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— bez rezidenta —</value></data>
+  <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Rezidenti</value></data>
+  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Držení místa do</value></data>
+  <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Body za hodinu předstihu</value></data>
+  <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Strop bodů za předstih</value></data>
+  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Max. povolené sdílení</value></data>
+  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>% k násobiči za sdílení</value></data>
+  <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>Uživatel nebyl nalezen.</value></data>
+  <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>Toto místo je vyhrazené a v tomto čase není ke sdílení.</value></data>
+  <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>Nemáš přiřazené vyhrazené místo.</value></data>
+  <data name="Parking_Error_AlreadyReleased" xml:space="preserve"><value>Místo už je na tento den uvolněné.</value></data>
+  <data name="Parking_Error_SpotTakenToday" xml:space="preserve"><value>Místo už dnes obsadil někdo jiný.</value></data>
+  <data name="Parking_Error_AlreadyClaimed" xml:space="preserve"><value>Na tento den už máš potvrzený příjezd.</value></data>
+  <data name="Parking_Error_PastDate" xml:space="preserve"><value>Nelze uvolnit den v minulosti.</value></data>
+  <data name="Parking_Owned_ReleaseFrom" xml:space="preserve"><value>Uvolnit od</value></data>
+  <data name="Parking_Owned_ReleaseTo" xml:space="preserve"><value>Uvolnit do</value></data>
+  <data name="Parking_Owned_ReleaseHint" xml:space="preserve"><value>Za uvolnění vybraného rozsahu získáš:</value></data>
+  <data name="Parking_Earn" xml:space="preserve"><value>Získáš</value></data>
+  <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>Konec rozsahu musí být po jeho začátku.</value></data>
+  <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>Rozsah je příliš dlouhý.</value></data>
+  <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Ve zvoleném rozsahu není co uvolnit.</value></data>
+  <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Vrácení odměny za promarněné sdílení (%)</value></data>
+  <data name="Profile_CommuteTitle" xml:space="preserve"><value>Dojezd do práce</value></data>
+  <data name="Profile_CommuteHelp" xml:space="preserve"><value>Zadej domácí adresu – z ní spočítáme vzdálenost k parkovišti. Čím dál bydlíš, tím víc bodů dostaneš za zabrání uvolněného místa.</value></data>
+  <data name="Profile_CommuteDistance" xml:space="preserve"><value>Vzdálenost k parkovišti</value></data>
+  <data name="Profile_HomeAddress" xml:space="preserve"><value>Domácí adresa</value></data>
+  <data name="Profile_SaveAddress" xml:space="preserve"><value>Uložit adresu</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Vzdálenostní faktor</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>Souřadnice parkoviště a odměna za zabrání sdíleného místa škálovaná vzdáleností řidiče.</value></data>
+  <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Zeměpisná šířka parkoviště</value></data>
+  <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Zeměpisná délka parkoviště</value></data>
+  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Základ bodů za zabrání</value></data>
+  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Referenční vzdálenost (km)</value></data>
+  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max. násobič vzdálenosti</value></data>
+  <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Adresu se nepodařilo najít. Zkus ji upřesnit.</value></data>
+  <data name="Profile_CommutePending" xml:space="preserve"><value>Čeká na ověření adminem</value></data>
+  <data name="Profile_CommutePrivacy" xml:space="preserve"><value>Adresa se používá pouze pro výpočet vzdálenosti k parkovišti. Můžeš ji kdykoli odebrat.</value></data>
+  <data name="Profile_RemoveAddress" xml:space="preserve"><value>Odebrat adresu</value></data>
+  <data name="Admin_UserEdit_Commute" xml:space="preserve"><value>Dojezd / adresa</value></data>
+  <data name="Admin_UserEdit_NoHome" xml:space="preserve"><value>Bez adresy</value></data>
+  <data name="Admin_UserEdit_HomeVerified" xml:space="preserve"><value>Ověřeno</value></data>
+  <data name="Admin_UserEdit_HomeUnverified" xml:space="preserve"><value>Neověřeno</value></data>
+  <data name="Admin_UserEdit_HomeVerify" xml:space="preserve"><value>Ověřit adresu</value></data>
+  <data name="Admin_UserEdit_HomeUnverify" xml:space="preserve"><value>Zrušit ověření</value></data>
+  <data name="Admin_UserEdit_HomeSaved" xml:space="preserve"><value>Uloženo.</value></data>
+  <data name="Parking_Settings_LimitsSection" xml:space="preserve"><value>Ověřování a limity</value></data>
+  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Automaticky schvalovat adresy (do limitu vzdálenosti)</value></data>
+  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Limit pro auto-schválení (km)</value></data>
+  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max. odměněných uvolnění / den</value></data>
+  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max. rozsah uvolnění (dní)</value></data>
+  <data name="Parking_Price" xml:space="preserve"><value>Cena</value></data>
+  <data name="Parking_Credits" xml:space="preserve"><value>kreditů</value></data>
+  <data name="Parking_Occupancy" xml:space="preserve"><value>Obsazenost</value></data>
+  <data name="Parking_Peak" xml:space="preserve"><value>Špička</value></data>
+  <data name="Parking_OffPeakLabel" xml:space="preserve"><value>Mimo špičku</value></data>
+  <data name="Parking_Balance" xml:space="preserve"><value>Zůstatek</value></data>
+  <data name="Parking_MyCredits" xml:space="preserve"><value>Kredit</value></data>
+  <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>Nemáš dostatek kreditů na tuto rezervaci.</value></data>
+  <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Ekonomika rezervací</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace = základ × přirážka za špičku × přirážka za obsazenost (zastropováno). Kredit se strhává při rezervaci a vrací se při včasném zrušení nebo uvolnění.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Základní cena (kredity)</value></data>
+  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
+  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
+  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Držení místa z fronty (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Tresty za no-show z fronty</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Nekompromisní postih, když si uživatel převezme místo z fronty a pak nedorazí: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka bodů</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta</value></data>
+  <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka příštího přídělu</value></data>
+  <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>Kvůli předchozímu nedostavení máš dočasně zakázaný vstup do fronty.</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Poptávkové odměny za uvolnění</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>Odměna za uvolnění roste s poptávkou: přirážka podle obsazenosti lotu plus bonus za každého čekajícího ve frontě, zastropováno. Uvolnit místo, když je o něj zájem, se vyplatí nejvíc.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za čekajícího ve frontě</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max. odměna za uvolnění</value></data>
+  <data name="Parking_MyStreak" xml:space="preserve"><value>Série dokončení</value></data>
+  <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronz</value></data>
+  <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
+  <data name="Parking_Tier_Gold" xml:space="preserve"><value>Zlato</value></data>
+  <data name="Parking_Tier_Platinum" xml:space="preserve"><value>Platina</value></data>
+  <data name="Parking_Tier_ToNext" xml:space="preserve"><value>Ještě {0} bodů do úrovně {1}</value></data>
+  <data name="Parking_Tier_Max" xml:space="preserve"><value>Nejvyšší úroveň</value></data>
+  <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Strop bonusu za sérii</value></data>
+  <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Stříbro od (bodů)</value></data>
+  <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Zlato od (bodů)</value></data>
+  <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
+  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Rozklad reputace (%)</value></data>
+  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Interval rozkladu (dní)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptivní ceny</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Samoladící regulátor: pravidelně změří obsazenost ve špičce a posune přirážku za špičku směrem k cílové obsazenosti (v mezích a po krocích). Při vypnutí drží ruční hodnotu přirážky.</value></data>
+  <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Zapnout adaptivní ladění cen</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Cílová obsazenost (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Interval ladění (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Zesílení regulátoru</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Pásmo necitlivosti (%)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max. krok přirážky</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_TrustSection" xml:space="preserve"><value>Graf důvěry</value></data>
+  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Z dokončených rezervací na sdílených místech se sestaví graf interakcí a váženým PageRankem se spočítá skóre důvěry (0–100). Nad prahem se udělí odznak „Důvěryhodný". Odolné vůči gamingu – hrany vyžadují reálné dokončené rezervace.</value></data>
+  <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Počítat graf důvěry</value></data>
+  <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Interval přepočtu (hodin)</value></data>
+  <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Práh odznaku Důvěryhodný (0–100)</value></data>
+  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Anti-collusion (detekce kruhů)</value></data>
+  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Detekuje páry, jejichž sdílecí interakce se příliš soustředí na sebe navzájem (možný farmící kruh), a založí flag k revizi. Automaticky jen ořízne váhu hrany v grafu důvěry; tvrdé akce řeší admin ručně.</value></data>
+  <data name="Parking_Settings_CollusionEnabled" xml:space="preserve"><value>Detekovat podezřelé kruhy</value></data>
+  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Min. vzájemných interakcí</value></data>
+  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Práh koncentrace (%)</value></data>
+  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Strop váhy hrany v důvěře</value></data>
+  <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval skenu (hodin)</value></data>
+  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Přejít na revizi podezřelých interakcí →</value></data>
+  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Podezřelé interakce</value></data>
+  <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Páry, jejichž sdílení se příliš soustředí na sebe navzájem. Posuď a buď ponech k záznamu, nebo zamítni jako planý poplach.</value></data>
+  <data name="Parking_Collusion_Empty" xml:space="preserve"><value>Žádné podezřelé páry.</value></data>
+  <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pár</value></data>
+  <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Vzájemné</value></data>
+  <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Koncentrace</value></data>
+  <data name="Parking_Collusion_Review" xml:space="preserve"><value>Přezkoumáno</value></data>
+  <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Zamítnout</value></data>
+  <data name="Parking_CollusionState_New" xml:space="preserve"><value>Nový</value></data>
+  <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Přezkoumán</value></data>
+  <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Zamítnut</value></data>
+  <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
+  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Bonus k přídělu / úroveň</value></data>
+  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva na cenu / úroveň (%)</value></data>
+  <data name="Profile_TeamTitle" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_TeamHelp" xml:space="preserve"><value>Zařaď se do týmu nebo oddělení – objeví se týmový žebříček a porovnání s kolegy.</value></data>
+  <data name="Profile_Team" xml:space="preserve"><value>Tým / oddělení</value></data>
+  <data name="Profile_SaveTeam" xml:space="preserve"><value>Uložit tým</value></data>
+  <data name="Parking_Team_Mine" xml:space="preserve"><value>Můj tým</value></data>
+  <data name="Parking_Team_Rank" xml:space="preserve"><value>Jsi #{0} z {1} v týmu</value></data>
+  <data name="Parking_Team_Avg" xml:space="preserve"><value>průměr týmu</value></data>
+  <data name="Parking_Team_Leaderboard" xml:space="preserve"><value>Žebříček týmů</value></data>
+  <data name="Parking_Team_Name" xml:space="preserve"><value>Tým</value></data>
+  <data name="Parking_Team_Members" xml:space="preserve"><value>Členů</value></data>
+  <data name="Parking_Team_AvgPoints" xml:space="preserve"><value>Ø bodů</value></data>
+  <data name="Parking_Error_SpotHeld" xml:space="preserve"><value>Toto místo je právě přidržené pro někoho z fronty.</value></data>
+  <data name="Parking_Queue_Error_NotFull" xml:space="preserve"><value>Pro toto okno jsou ještě volná místa – rezervuj přímo. Fronta se otevírá až při plném obsazení.</value></data>
+  <data name="Parking_Queue_Error_Already" xml:space="preserve"><value>Pro toto okno už ve frontě stojíš.</value></data>
+  <data name="Parking_Queue_Error_NotFound" xml:space="preserve"><value>Tato položka fronty neexistuje.</value></data>
+  <data name="Parking_Queue_Error_NoOffer" xml:space="preserve"><value>Pro tuto položku fronty není aktivní nabídka místa.</value></data>
+  <data name="Parking_Queue_Error_OfferExpired" xml:space="preserve"><value>Nabídka místa už vypršela.</value></data>
+  <data name="Parking_Queue_Joined" xml:space="preserve"><value>Přidali jsme tě do fronty. Až se místo uvolní, dáme ti vědět.</value></data>
+  <data name="Parking_Queue_Left" xml:space="preserve"><value>Opustil(a) jsi frontu.</value></data>
+  <data name="Parking_Queue_Claimed" xml:space="preserve"><value>Místo z fronty je tvé – rezervace potvrzena.</value></data>
+  <data name="Parking_Queue_JoinFull" xml:space="preserve"><value>Plno – postavit se do fronty</value></data>
+  <data name="Parking_Queue_MyQueue" xml:space="preserve"><value>Moje fronta</value></data>
+  <data name="Parking_Queue_Position" xml:space="preserve"><value>Pozice</value></data>
+  <data name="Parking_Queue_Claim" xml:space="preserve"><value>Převzít místo</value></data>
+  <data name="Parking_Queue_Leave" xml:space="preserve"><value>Opustit frontu</value></data>
+  <data name="Parking_Queue_OfferedSpot" xml:space="preserve"><value>Přidržené místo</value></data>
+  <data name="Parking_QueueState_Waiting" xml:space="preserve"><value>Čeká</value></data>
+  <data name="Parking_QueueState_Offered" xml:space="preserve"><value>Nabídnuto</value></data>
+  <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Převzato</value></data>
+  <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
+  <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
+</root>

@@ -1,0 +1,146 @@
+@page "/login"
+@layout AuthLayout
+@using System.ComponentModel.DataAnnotations
+@using D3Parking.Infrastructure.Identity
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Login_Title"]</PageTitle>
+
+@*  Static SSR — SignInManager.PasswordSignInAsync writes the auth cookie via the request
+    HttpContext, which is only available during a real form post. Fluent text fields work here
+    because they're form-associated custom elements; the explicit Name attribute on each one
+    tells the browser what key to submit under, matching the [SupplyParameterFromForm] property
+    paths.  *@
+<div class="auth-form">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+            <FluentIcon Value="@(new Icons.Filled.Size32.LockClosed())" Color="Color.Accent" />
+            <FluentLabel Typo="Typography.H2" Style="margin:0">@L["Login_Title"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Login_Subtitle"]</FluentLabel>
+        </FluentStack>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="14">
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @_errorMessage
+                    </FluentMessageBar>
+                }
+                <div>
+                    @*  FluentTextField in v4 doesn't expose an IconStart parameter; instead it
+                        forwards child content into the underlying <fluent-text-field> web
+                        component, which has a `start` slot for leading content. The slot=
+                        attribute on FluentIcon routes its rendered <svg> there.  *@
+                    <FluentTextField Name="Input.Email"
+                                     @bind-Value="Input.Email"
+                                     Label="@L["Login_Email"]"
+                                     TextFieldType="TextFieldType.Email"
+                                     Required="true"
+                                     AutoComplete="username"
+                                     Placeholder="email@example.com"
+                                     Style="width:100%">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" slot="start" />
+                    </FluentTextField>
+                    <ValidationMessage For="() => Input.Email" />
+                </div>
+                <div>
+                    <FluentTextField Name="Input.Password"
+                                     @bind-Value="Input.Password"
+                                     Label="@L["Login_Password"]"
+                                     TextFieldType="TextFieldType.Password"
+                                     Required="true"
+                                     AutoComplete="current-password"
+                                     Style="width:100%">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
+                    </FluentTextField>
+                    <ValidationMessage For="() => Input.Password" />
+                </div>
+                @*  RememberMe defaults to false on the server, so a checkbox that submits nothing
+                    when unchecked still produces the right bind value (key missing → false).  *@
+                <FluentCheckbox Name="Input.RememberMe"
+                                @bind-Value="Input.RememberMe"
+                                Label="@L["Login_Remember"]" />
+                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:4px">
+                    @L["Login_Submit"]
+                </FluentButton>
+            </FluentStack>
+        </EditForm>
+
+        @*  Footer actions as prose rather than a tabular list of links. Primary action ("no
+            account → register") sits as a sentence; secondary self-service flows below.  *@
+        <FluentStack Orientation="Orientation.Vertical"
+                     HorizontalAlignment="HorizontalAlignment.Start"
+                     VerticalGap="6"
+                     Style="font-size:0.9rem; padding-top:8px; border-top:1px solid var(--neutral-stroke-divider-rest)">
+            <span>
+                @L["Login_NoAccount"]
+                <FluentAnchor Href="register" Appearance="Appearance.Hypertext">@L["Login_CreateAccount"]</FluentAnchor>
+            </span>
+            <FluentStack Orientation="Orientation.Horizontal"
+                         HorizontalAlignment="HorizontalAlignment.Start"
+                         HorizontalGap="16"
+                         Style="color:var(--neutral-foreground-hint); font-size:0.85rem">
+                <FluentAnchor Href="account/forgot-password" Appearance="Appearance.Hypertext">@L["Login_ForgotPassword"]</FluentAnchor>
+                <FluentAnchor Href="account/forgot-reactivation" Appearance="Appearance.Hypertext">@L["Login_Reactivate"]</FluentAnchor>
+            </FluentStack>
+        </FluentStack>
+    </FluentStack>
+</div>
+
+@code {
+    // Initializer is required so the form renders on GET; the form supplies a non-null value on POST.
+#pragma warning disable BL0008
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+#pragma warning restore BL0008
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? _errorMessage;
+
+    private async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User {Email} logged in.", Input.Email);
+            NavigationManager.NavigateTo(GetLocalReturnUrl());
+            return;
+        }
+
+        _errorMessage = result.IsLockedOut ? L["Login_LockedOut"] : L["Login_Invalid"];
+    }
+
+    // Guards against open-redirect: only relative, non-protocol-relative paths are honoured.
+    private string GetLocalReturnUrl()
+    {
+        if (string.IsNullOrEmpty(ReturnUrl) || ReturnUrl.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        return ReturnUrl.StartsWith('/') ? ReturnUrl : "/" + ReturnUrl;
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Required))]
+        [EmailAddress(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Email_Invalid))]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Password_Required))]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

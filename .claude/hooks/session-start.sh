@@ -1,8 +1,12 @@
 #!/bin/bash
 # SessionStart hook for Claude Code on the web.
-# Prepares the Webora dev environment: .NET 10 SDK, the Docker daemon and the
-# backing services (Postgres, Redis, RabbitMQ, smtp4dev), the dotnet-ef tool,
-# restored NuGet packages, and the Playwright browser.
+# Prepares the D3Parking dev environment: .NET 10 SDK, the dotnet-ef tool, restored
+# NuGet packages, and the Playwright browser.
+#
+# The app runs against Microsoft SQL Server, which this environment does not
+# host: point ConnectionStrings__SqlServer at a reachable instance before
+# running the app or the E2E suite. Building and unit-level work need no
+# database.
 set -euo pipefail
 
 # This setup only applies to the remote (web) environment; locally the
@@ -42,34 +46,11 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   } >> "$CLAUDE_ENV_FILE"
 fi
 
-# --- Docker daemon ---------------------------------------------------------
-# The web base image ships the Docker CLI but does not start the daemon, so
-# bring it up by hand (the init script trips over ulimit under this sandbox).
-if ! docker info >/dev/null 2>&1; then
-  log "Starting Docker daemon..."
-  nohup dockerd >/tmp/dockerd.log 2>&1 &
-  for _ in $(seq 1 30); do
-    docker info >/dev/null 2>&1 && break
-    sleep 1
-  done
-fi
-if docker info >/dev/null 2>&1; then
-  log "Docker daemon is up."
-else
-  log "WARNING: Docker daemon did not start (see /tmp/dockerd.log); skipping backing services."
-fi
-
-# --- Backing services (Postgres, Redis, RabbitMQ, smtp4dev) ----------------
-if docker info >/dev/null 2>&1; then
-  log "Starting backing services..."
-  docker compose up -d postgres redis rabbitmq smtp4dev
-fi
-
 # --- .NET tools + package restore ------------------------------------------
 log "Restoring the dotnet-ef tool..."
 dotnet tool restore
 log "Restoring NuGet packages..."
-dotnet restore Webora.slnx
+dotnet restore D3Parking.slnx
 
 # --- Playwright ------------------------------------------------------------
 # The base image preinstalls a browser under $PLAYWRIGHT_BROWSERS_PATH; this is
