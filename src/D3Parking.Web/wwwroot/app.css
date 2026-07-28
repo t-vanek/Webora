@@ -1471,3 +1471,22 @@ h1:focus {
         white-space: normal;
         overflow-wrap: anywhere;
     }
+
+    /* Panel je potomkem .app-header, takže na jeho tlačítka dopadá ghost přepis tokenů pro
+       hlavičku (bílý text, světlý hover) — na bílém panelu to znamenalo neviditelné titulky.
+       "inherit" vrátí tokeny na hodnoty motivu zděděné z dokumentu; pozdější pravidlo se
+       stejnou specificitou tu vyhrává nad přepisem hlavičky. */
+    .bell-panel fluent-button {
+        --neutral-fill-stealth-rest: inherit;
+        --neutral-fill-stealth-hover: inherit;
+        --neutral-fill-stealth-active: inherit;
+        --neutral-fill-stealth-focus: inherit;
+        --neutral-foreground-rest: inherit;
+        --neutral-foreground-hover: inherit;
+        --neutral-foreground-active: inherit;
+        --neutral-foreground-focus: inherit;
+        --neutral-stroke-rest: inherit;
+        --neutral-stroke-hover: inherit;
+        --neutral-stroke-active: inherit;
+        --neutral-stroke-focus: inherit;
+    }
