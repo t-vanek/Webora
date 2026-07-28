@@ -25,6 +25,26 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
+    public async Task Sidebar_collapses_to_the_rail_and_expands_back()
+    {
+        await Page.GotoAsync("/");
+        // The nav is an interactive island; wait for the circuit before clicking.
+        await Page.WaitForTimeoutAsync(1500);
+
+        var nav = Page.Locator(".side-nav");
+        var expanded = await nav.BoundingBoxAsync();
+        Assert.That(expanded!.Width, Is.GreaterThan(180), "Expanded sidebar should be ~220px wide.");
+
+        await Page.Locator(".side-nav__collapse").ClickAsync();
+        await Expect(Page.Locator(".side-nav--rail")).ToBeVisibleAsync();
+        var rail = await nav.BoundingBoxAsync();
+        Assert.That(rail!.Width, Is.LessThan(100), "Rail should be ~76px wide.");
+
+        await Page.Locator(".side-nav__collapse").ClickAsync();
+        await Expect(Page.Locator(".side-nav--rail")).ToHaveCountAsync(0);
+    }
+
+    [Test]
     public async Task Today_section_shows_the_wallet_card_with_credits_and_points()
     {
         // The wallet card is the one "today" card every parking user has (a score row always

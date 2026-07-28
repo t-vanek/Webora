@@ -587,4 +587,14 @@
   <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Expires at {0}</value></data>
   <data name="Home_Wallet" xml:space="preserve"><value>Wallet and points</value></data>
   <data name="Home_WalletDetail" xml:space="preserve"><value>Tier {0} · streak {1}</value></data>
+  <data name="Nav_Short_Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Nav_Short_Reserve" xml:space="preserve"><value>Reserve</value></data>
+  <data name="Nav_Short_Leaderboard" xml:space="preserve"><value>Ranking</value></data>
+  <data name="Nav_Short_Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Nav_Short_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Nav_Short_Spots" xml:space="preserve"><value>Spots</value></data>
+  <data name="Nav_Short_Rules" xml:space="preserve"><value>Rules</value></data>
+  <data name="Nav_Short_Settings" xml:space="preserve"><value>Site</value></data>
+  <data name="Nav_Collapse" xml:space="preserve"><value>Collapse</value></data>
+  <data name="Nav_Expand" xml:space="preserve"><value>Expand</value></data>
 </root>

@@ -1,19 +1,23 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @implements IDisposable
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
+@inject ProtectedLocalStorage Storage
 
-@* Interactive island (render mode set at the call site in MainLayout): the layout itself renders
-   statically, but a SignalR circuit already runs on every page, and interactivity is what lets
-   the mobile drawer actually work.
+@* Interactive island (render mode set at the call site in MainLayout). The sidebar is our own
+   markup on plain NavLinks — deliberately not FluentNavMenu, whose internals fought every step
+   of this app's styling (content-sized tabs host, the broken built-in collapse, icon-less group
+   rails). Owning the markup gives us both states cheaply and predictably.
 
-   Desktop (>768px): a plain, always-expanded sidebar. Fluent's own collapse-to-icon-rail is
-   deliberately off (Collapsible=false): the nav groups carry no icons, so the rail rendered as
-   a near-empty strip of chevrons, and re-expanding painted the list over the content — both
-   reported as broken. One hamburger is enough, and it's the drawer's.
-   Mobile (≤768px): the menu is an off-canvas drawer. The toggle bar below the header opens it,
-   the backdrop or any navigation closes it. Account and sign-out live in the header's avatar
-   menu (AccountMenu), so the drawer holds navigation only. *@
+   Desktop (>768px): two states the user switches at the bottom and the choice persists.
+   Expanded (~220px): flat sections with headers, an icon on every item, the active item as a
+   violet fill. Rail (~76px): icon with a SHORT label underneath — with Czech labels an unlabelled
+   icon strip is a guessing game. Sections shrink to separators.
+
+   Mobile (≤768px): the off-canvas drawer, always in the expanded look (there is no reason to
+   save width on an overlay). Toggle bar under the header opens it; backdrop or navigation closes
+   it. Account and sign-out live in the header's avatar menu. *@
 
 <button type="button"
         class="nav-drawer-toggle"
@@ -30,72 +34,108 @@
 }
 
 <div id="app-nav-drawer" class="nav-drawer @(_drawerOpen ? "nav-drawer--open" : string.Empty)">
-    <FluentNavMenu Width="300" Collapsible="false" Title="@L["Nav_Menu"]">
-        <FluentNavLink Href="" Match="NavLinkMatch.All"
-                       Icon="@(new Icons.Regular.Size20.Home())">
-            @L["Nav_Home"]
-        </FluentNavLink>
+    <nav class="side-nav @(_rail ? "side-nav--rail" : string.Empty)" aria-label="@L["Nav_Menu"]">
+        <NavLink href="" Match="NavLinkMatch.All" class="side-nav__item" ActiveClass="side-nav__item--active"
+                 aria-label="@L["Nav_Home"]">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Home())" Color="Color.Custom" CustomColor="currentColor" />
+            <span class="side-nav__label">@L["Nav_Home"]</span>
+            <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Home"]</span>
+        </NavLink>
 
         @if (_canReserve || _canLeaderboard)
         {
-            <FluentNavGroup Title="@L["Nav_Parking"]" Expanded="true">
-                @if (_canReserve)
-                {
-                    <FluentNavLink Href="parking" Icon="@(new Icons.Regular.Size20.VehicleCar())">
-                        @L["Nav_ParkingReserve"]
-                    </FluentNavLink>
-                }
-                @if (_canLeaderboard)
-                {
-                    <FluentNavLink Href="parking/leaderboard" Icon="@(new Icons.Regular.Size20.Trophy())">
-                        @L["Nav_ParkingLeaderboard"]
-                    </FluentNavLink>
-                }
-            </FluentNavGroup>
+            <div class="side-nav__section">
+                <span class="side-nav__section-title">@L["Nav_Parking"]</span>
+            </div>
+            @if (_canReserve)
+            {
+                <NavLink href="parking" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_ParkingReserve"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_ParkingReserve"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Reserve"]</span>
+                </NavLink>
+            }
+            @if (_canLeaderboard)
+            {
+                <NavLink href="parking/leaderboard" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_ParkingLeaderboard"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_ParkingLeaderboard"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Leaderboard"]</span>
+                </NavLink>
+            }
         }
 
         @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
         {
-            <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
-                @if (_canAdminUsers)
-                {
-                    <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
-                        @L["Nav_AdminUsers"]
-                    </FluentNavLink>
-                }
-                @if (_canAdminRoles)
-                {
-                    <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
-                        @L["Nav_AdminRoles"]
-                    </FluentNavLink>
-                }
-                @if (_canManageSpots)
-                {
-                    <FluentNavLink Href="admin/parking/spots" Icon="@(new Icons.Regular.Size20.Map())">
-                        @L["Nav_AdminParking"]
-                    </FluentNavLink>
-                }
-                @if (_canManageIncentives)
-                {
-                    <FluentNavLink Href="admin/parking/settings" Icon="@(new Icons.Regular.Size20.Options())">
-                        @L["Nav_AdminParkingSettings"]
-                    </FluentNavLink>
-                }
-                @if (_canSettings)
-                {
-                    <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
-                        @L["Nav_AdminSettings"]
-                    </FluentNavLink>
-                }
-            </FluentNavGroup>
+            <div class="side-nav__section">
+                <span class="side-nav__section-title">@L["Nav_Administration"]</span>
+            </div>
+            @if (_canAdminUsers)
+            {
+                <NavLink href="admin/users" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminUsers"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminUsers"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Users"]</span>
+                </NavLink>
+            }
+            @if (_canAdminRoles)
+            {
+                <NavLink href="admin/roles" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminRoles"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ShieldKeyhole())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminRoles"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Roles"]</span>
+                </NavLink>
+            }
+            @if (_canManageSpots)
+            {
+                <NavLink href="admin/parking/spots" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminParking"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminParking"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Spots"]</span>
+                </NavLink>
+            }
+            @if (_canManageIncentives)
+            {
+                <NavLink href="admin/parking/settings" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminParkingSettings"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminParkingSettings"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Rules"]</span>
+                </NavLink>
+            }
+            @if (_canSettings)
+            {
+                <NavLink href="admin/settings" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminSettings"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Settings())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminSettings"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Settings"]</span>
+                </NavLink>
+            }
         }
-    </FluentNavMenu>
+
+        <button type="button" class="side-nav__collapse" @onclick="ToggleRailAsync"
+                title="@(_rail ? L["Nav_Expand"] : L["Nav_Collapse"])">
+            <FluentIcon Value="@(_rail
+                ? (Icon)new Icons.Regular.Size20.ChevronDoubleRight()
+                : new Icons.Regular.Size20.ChevronDoubleLeft())" Color="Color.Custom" CustomColor="currentColor" />
+            <span class="side-nav__label">@L["Nav_Collapse"]</span>
+        </button>
+    </nav>
 </div>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
+    private const string RailStorageKey = "nav-rail";
+
     private bool _drawerOpen;
+    private bool _rail;
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
@@ -108,6 +148,12 @@
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
     private void CloseDrawer() => _drawerOpen = false;
+
+    private async Task ToggleRailAsync()
+    {
+        _rail = !_rail;
+        await Storage.SetAsync(RailStorageKey, _rail);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,6 +171,23 @@
             _canLeaderboard = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewLeaderboard);
             _canManageSpots = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots);
             _canManageIncentives = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageIncentives);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        // ProtectedLocalStorage needs JS, so the stored rail preference can only be read after
+        // the first render; the expanded default flashes for one frame at most.
+        var stored = await Storage.GetAsync<bool>(RailStorageKey);
+        if (stored.Success && stored.Value != _rail)
+        {
+            _rail = stored.Value;
+            StateHasChanged();
         }
     }
 

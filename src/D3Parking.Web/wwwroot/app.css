@@ -1562,3 +1562,132 @@ h1:focus {
         --neutral-stroke-active: inherit;
         --neutral-stroke-focus: inherit;
     }
+
+/* --- Sidebar A+B: rozbaleny stav a rail --- */
+/* Vlastni markup misto FluentNavMenu; oba stavy jsou ciste CSS prepnuti tridou .side-nav--rail. */
+.side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 220px;
+    min-height: 100%;
+    padding: 12px 8px;
+    box-sizing: border-box;
+    background: var(--neutral-layer-2, var(--brand-white));
+    border-right: 1px solid var(--brand-hairline);
+    font-family: var(--brand-font);
+}
+
+.side-nav__item,
+.side-nav__item:link,
+.side-nav__item:visited {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--brand-radius);
+    color: var(--neutral-foreground-rest);
+    text-decoration: none;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+    .side-nav__item:hover {
+        background: rgba(136, 77, 255, .10);
+        color: var(--neutral-foreground-rest);
+    }
+
+    /* Aktivni polozka jako fialova vypln — jazyk znacky, viditelny v obou stavech. */
+    .side-nav__item--active,
+    .side-nav__item--active:link,
+    .side-nav__item--active:visited,
+    .side-nav__item--active:hover {
+        background: var(--brand-violet);
+        color: var(--brand-on-violet);
+        font-weight: 600;
+    }
+
+.side-nav__short {
+    display: none;
+}
+
+.side-nav__section {
+    margin: 12px 4px 4px;
+    padding: 0 8px;
+}
+
+.side-nav__section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.side-nav__collapse {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    border-top: 1px solid var(--brand-hairline);
+    background: transparent;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-family: var(--brand-font);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+    .side-nav__collapse:hover {
+        color: var(--neutral-foreground-rest);
+    }
+
+/* Rail: jen na desktopu — v mobilnim draweru zustava rozbalena podoba vzdy,
+   na overlayi neni duvod setrit sirkou. */
+@media (min-width: 769px) {
+    .side-nav--rail {
+        width: 76px;
+        padding: 12px 6px;
+    }
+
+        .side-nav--rail .side-nav__item {
+            flex-direction: column;
+            gap: 3px;
+            padding: 8px 2px;
+            text-align: center;
+        }
+
+        .side-nav--rail .side-nav__label {
+            display: none;
+        }
+
+        /* Kratky popisek pod ikonou — nema ikona zustat hadankou. Neutral secondary,
+           ne muted: 9px text potrebuje slusny kontrast. */
+        .side-nav--rail .side-nav__short {
+            display: block;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: .02em;
+        }
+
+        .side-nav--rail .side-nav__section {
+            margin: 8px 10px;
+            padding: 0;
+            border-top: 1px solid var(--brand-hairline);
+        }
+
+        .side-nav--rail .side-nav__section-title {
+            display: none;
+        }
+
+        .side-nav--rail .side-nav__collapse {
+            justify-content: center;
+            padding: 10px 2px;
+        }
+
+            .side-nav--rail .side-nav__collapse .side-nav__label {
+                display: none;
+            }
+}
