@@ -155,6 +155,63 @@ h1:focus {
         color: var(--brand-green);
     }
 
+/* Header controls render as "ghost" icons: transparent at rest, a faint light wash on hover.
+   Fluent's Stealth buttons assume a light surface and paint themselves as solid white boxes on
+   the forced Sherpa header — overriding their design tokens here fixes that for every button in
+   the header (bell, avatar, and the language/theme pair anonymous visitors see) without touching
+   how Stealth looks anywhere else in the app. */
+.app-header fluent-button {
+    --neutral-fill-stealth-rest: transparent;
+    --neutral-fill-stealth-hover: rgba(251, 253, 252, .14);
+    --neutral-fill-stealth-active: rgba(251, 253, 252, .22);
+    --neutral-fill-stealth-focus: rgba(251, 253, 252, .14);
+    --neutral-foreground-rest: var(--brand-on-sherpa);
+    --neutral-foreground-hover: var(--brand-on-sherpa);
+    --neutral-foreground-active: var(--brand-on-sherpa);
+    --neutral-foreground-focus: var(--brand-on-sherpa);
+    --neutral-stroke-rest: transparent;
+    --neutral-stroke-hover: transparent;
+    --neutral-stroke-active: transparent;
+    --neutral-stroke-focus: transparent;
+}
+
+/* Unread count on the bell: lawn green with Sherpa text (8:1), pinned to the icon's corner.
+   The count itself is capped at "9+" in the component. */
+.bell-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--brand-green);
+    color: var(--brand-sherpa);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/* Avatar in the header's account menu: initials on the brand violet, sized to line up with the
+   neighbouring icon buttons. */
+.account-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
 /* Thin vertical line that separates the auth links from the icon-button cluster in the header. */
 .header-divider {
     width: 1px;
@@ -416,10 +473,11 @@ h1:focus {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 6px 4px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .16);
-    color: var(--foreground-on-accent-rest, #fff);
+    padding: 6px 10px;
+    /* Hranatý tvar drží geometrii značky — pilulka byl jediný oblý prvek v hlavičce. */
+    border-radius: var(--brand-radius);
+    background: rgba(251, 253, 252, .12);
+    color: var(--brand-on-sherpa);
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
@@ -436,17 +494,19 @@ h1:focus {
         opacity: .85;
     }
 
-.wallet-chip__tier {
-    padding: 3px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    background: rgba(255, 255, 255, .22);
+/* Tier as a colour-coded dot (same ramp the old text chips used); the tier name lives in the
+   link's tooltip and on the leaderboard itself. */
+.wallet-chip__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
 }
 
-.wallet-chip__tier--Bronze { background: rgba(251, 253, 252, .22); }
-.wallet-chip__tier--Silver { background: rgba(136, 77, 255, .55); }
-.wallet-chip__tier--Gold { background: var(--brand-violet); }
-.wallet-chip__tier--Platinum { background: var(--brand-green); color: var(--brand-on-green); }
+.wallet-chip__dot--Bronze { background: rgba(251, 253, 252, .45); }
+.wallet-chip__dot--Silver { background: rgba(136, 77, 255, .8); }
+.wallet-chip__dot--Gold { background: var(--brand-violet); }
+.wallet-chip__dot--Platinum { background: var(--brand-green); }
 
 /* --- Leaderboard hero card --- */
 .hero {
@@ -794,6 +854,34 @@ h1:focus {
     max-width: 640px;
 }
 
+/* Na užších obloucích pruhy couvají, text nikdy nesmí ležet na zelené (1,7:1 s bílou).
+   Nejdřív zmizí fialový a zelený se stáhne na proužek u hrany, pod 600 px zůstane čistá
+   plocha Sherpa Blue — identitu drží zelené CTA a podtržení hlavičky. */
+@media (max-width: 900px) {
+    .home-hero::before {
+        display: none;
+    }
+
+    .home-hero::after {
+        width: 64px;
+        right: -18px;
+    }
+
+    .home-hero__content {
+        padding-right: 64px;
+    }
+}
+
+@media (max-width: 600px) {
+    .home-hero::after {
+        display: none;
+    }
+
+    .home-hero__content {
+        padding-right: 0;
+    }
+}
+
 .home-hero__title {
     font-size: 34px;
     font-weight: 700;
@@ -884,9 +972,11 @@ h1:focus {
 .home-tile__ic--board { background: var(--brand-green); color: var(--brand-on-green); }
 .home-tile__ic--spots { background: var(--brand-sherpa); color: var(--brand-on-sherpa); }
 .home-tile__ic--rules { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
-.home-tile__ic--users { background: rgba(2, 52, 68, .10); color: var(--brand-sherpa); }
+/* Neutrální dlaždice jedou na Fluent tokenech, které se v tmavém režimu překlopí samy —
+   pevný sherpa nádech na tmavé kartě mizel. */
+.home-tile__ic--users { background: var(--neutral-fill-secondary-rest, rgba(2, 52, 68, .10)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 .home-tile__ic--roles { background: var(--brand-violet-deep); color: var(--brand-on-violet); }
-.home-tile__ic--settings { background: var(--brand-grey); color: var(--brand-sherpa); }
+.home-tile__ic--settings { background: var(--neutral-fill-secondary-rest, var(--brand-grey)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 
 .home-tile__title {
     font-size: 15px;
@@ -1144,16 +1234,69 @@ h1:focus {
     box-sizing: border-box;
 }
 
+/* --- Navigation drawer ---
+   Desktop: the drawer wrapper is inert (static, auto-sized) and the sidebar behaves exactly as
+   before, including Fluent's own collapse-to-icon-rail. Mobile: the wrapper turns into an
+   off-canvas panel driven by the toggle bar under the header. */
+
+.nav-drawer-toggle {
+    display: none;
+}
+
+.nav-drawer-backdrop {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .main {
         flex-direction: column !important;
         overflow: visible !important;
     }
 
-        .main > fluent-nav-menu {
-            width: 100% !important;
-            max-width: 100% !important;
+    .nav-drawer-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: .6rem 1rem;
+        border: none;
+        border-bottom: 1px solid var(--brand-hairline);
+        background: var(--neutral-layer-2, var(--brand-white));
+        color: var(--neutral-foreground-rest, var(--brand-sherpa));
+        font-family: var(--brand-font);
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .nav-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(300px, 82vw);
+        background: var(--neutral-layer-2, var(--brand-white));
+        border-right: 1px solid var(--brand-hairline);
+        overflow-y: auto;
+        z-index: 60;
+        transform: translateX(-105%);
+        visibility: hidden; /* keeps the closed drawer out of tab order and out of Playwright's sight */
+        transition: transform .2s ease, visibility .2s;
+    }
+
+        .nav-drawer.nav-drawer--open {
+            transform: none;
+            visibility: visible;
+            box-shadow: 4px 0 24px rgba(2, 52, 68, .25);
         }
+
+    .nav-drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 52, 68, .5);
+        z-index: 55;
+    }
 
     .body-content {
         padding: 1rem !important;
@@ -1164,12 +1307,25 @@ h1:focus {
     }
 }
 
-/* Keep the header tools from overflowing on small screens: tighten the
-   padding and drop the wallet chip's "credits" word, leaving the number. */
+/* Keep the header tools from overflowing on small screens. Everything in the header has to
+   shrink together: the uppercase brand with its wide tracking, the gaps of the tools row (Fluent
+   emits the gap as an inline style, hence the !important), and the wallet chip's labels. The
+   overflow this fixes was data-dependent — it only appeared once the wallet showed a tier chip
+   and the bell a count — so the numbers below are sized for the widest realistic content. */
 @media (max-width: 600px) {
     .app-header {
         padding-left: .75rem !important;
         padding-right: .75rem !important;
+    }
+
+    .brand-link {
+        font-size: .85rem;
+        letter-spacing: .06em;
+        margin-right: .5rem;
+    }
+
+    .app-header .stack-horizontal {
+        gap: 8px !important;
     }
 
     .wallet-chip {

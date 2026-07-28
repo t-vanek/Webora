@@ -1,0 +1,148 @@
+@using System.Globalization
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+@* The header's preference corner, one island for everything that needs a circuit up here.
+
+   Signed in: an avatar button opening a menu with the account page, language, theme and
+   sign-out — language and theme moved here from standalone buttons, cutting the header from
+   five controls to three. Signed out: the standalone language and theme buttons render instead,
+   so the login screen keeps both discoverable.
+
+   FluentDesignTheme sits unconditionally at the island root. It must never render inside a
+   conditional branch: hosting it inside AuthorizeView had it disposed mid-render while its
+   queued render was still in flight, which took the whole circuit down with an
+   ObjectDisposedException — killing every interactive control on the page. One island, one
+   always-mounted instance, and the theme item in the menu binds to it directly, so no state
+   ever needs to cross island boundaries.
+
+   FluentMenuProvider lives inside this island for the same reason it lived inside the old
+   LanguageSwitcher: sibling islands each get their own DI scope, so a menu can only find a
+   provider hosted in its own island. *@
+
+<FluentDesignTheme StorageName="theme" @bind-Mode="_themeMode" />
+<FluentMenuProvider />
+
+<AuthorizeView>
+    <Authorized>
+        <FluentButton Id="account-menu-trigger"
+                      Appearance="Appearance.Stealth"
+                      Title="@L["Nav_MyAccount"]"
+                      OnClick="@(() => _accountOpen = !_accountOpen)">
+            <span class="account-avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
+        </FluentButton>
+
+        <FluentMenu Anchor="account-menu-trigger" @bind-Open="_accountOpen">
+            <FluentMenuItem OnClick="@(() => Go("account/manage"))">
+                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.Person())" /></span>
+                @context.User.Identity?.Name
+            </FluentMenuItem>
+
+            <FluentDivider />
+
+            @foreach (var culture in SupportedCultures.All)
+            {
+                var isCurrent = string.Equals(culture, _currentCulture, StringComparison.OrdinalIgnoreCase);
+                <FluentMenuItem OnClick="@(() => SwitchCulture(culture))" Disabled="@isCurrent">
+                    <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.LocalLanguage())" /></span>
+                    @CultureLabel(culture)
+                </FluentMenuItem>
+            }
+
+            <FluentMenuItem OnClick="ToggleTheme">
+                <span slot="start">
+                    <FluentIcon Value="@(_themeMode == DesignThemeModes.Dark
+                        ? (Icon)new Icons.Regular.Size20.WeatherSunny()
+                        : new Icons.Regular.Size20.WeatherMoon())" />
+                </span>
+                @(_themeMode == DesignThemeModes.Dark ? L["Layout_ThemeSwitchToLight"] : L["Layout_ThemeSwitchToDark"])
+            </FluentMenuItem>
+
+            <FluentDivider />
+
+            <FluentMenuItem OnClick="@(() => Go("logout"))">
+                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.SignOut())" /></span>
+                @L["Nav_Logout"]
+            </FluentMenuItem>
+        </FluentMenu>
+    </Authorized>
+    <NotAuthorized>
+        <FluentButton Id="lang-menu-trigger"
+                      Appearance="Appearance.Stealth"
+                      Title="@L["Language"]"
+                      OnClick="@(() => _langOpen = !_langOpen)">
+            <FluentIcon Value="@(new Icons.Regular.Size20.LocalLanguage())"
+                        Color="Color.Custom" CustomColor="currentColor" />
+        </FluentButton>
+
+        <FluentMenu Anchor="lang-menu-trigger" @bind-Open="_langOpen" VerticalThreshold="170">
+            @foreach (var culture in SupportedCultures.All)
+            {
+                var isCurrent = string.Equals(culture, _currentCulture, StringComparison.OrdinalIgnoreCase);
+                <FluentMenuItem OnClick="@(() => SwitchCulture(culture))" Disabled="@isCurrent">
+                    @CultureLabel(culture)
+                </FluentMenuItem>
+            }
+        </FluentMenu>
+
+        <FluentButton Appearance="Appearance.Stealth"
+                      Title="@(_themeMode == DesignThemeModes.Dark ? L["Layout_ThemeSwitchToLight"] : L["Layout_ThemeSwitchToDark"])"
+                      OnClick="ToggleTheme">
+            <FluentIcon Value="@(_themeMode == DesignThemeModes.Dark
+                ? (Icon)new Icons.Regular.Size20.WeatherSunny()
+                : new Icons.Regular.Size20.WeatherMoon())"
+                Color="Color.Custom" CustomColor="currentColor" />
+        </FluentButton>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool _accountOpen;
+    private bool _langOpen;
+    private DesignThemeModes _themeMode = DesignThemeModes.System;
+    private readonly string _currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+    // Full load on purpose: both targets are statically rendered pages, and logout in
+    // particular must arrive as a fresh request so its antiforgery-protected form renders.
+    private void Go(string url) => Nav.NavigateTo(url, forceLoad: true);
+
+    private void ToggleTheme() =>
+        _themeMode = _themeMode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
+
+    private void SwitchCulture(string culture)
+    {
+        _accountOpen = false;
+        _langOpen = false;
+        var relative = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateTo($"/culture/set?culture={culture}&redirectUri={Uri.EscapeDataString(relative)}",
+            forceLoad: true);
+    }
+
+    private static string CultureLabel(string culture)
+    {
+        try
+        {
+            var info = CultureInfo.GetCultureInfo(culture);
+            return $"{culture.ToUpperInvariant()} — {info.NativeName}";
+        }
+        catch (CultureNotFoundException)
+        {
+            return culture.ToUpperInvariant();
+        }
+    }
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        var local = name.Split('@')[0];
+        var parts = local.Split(new[] { '.', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+            : local[..Math.Min(2, local.Length)].ToUpperInvariant();
+    }
+}

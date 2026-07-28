@@ -58,9 +58,20 @@ public class ParkingTests : AdminTest
         await Expect(firstSpot).ToBeVisibleAsync();
         await firstSpot.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Rezervovat") }).ClickAsync();
 
-        // The window is stored as the picked wall-clock in UTC, so the list must show
-        // exactly the picked time — this guards the timezone regression.
+        // The window is stored as the picked wall-clock in UTC, so the list must show exactly the
+        // picked time — this guards the timezone regression. Cancelled leftovers from earlier runs
+        // can carry the same random slot, so the row is pinned down as the one still holding a
+        // Zrušit button: only the fresh Reserved booking has one.
         var csDate = day.ToString("dd.MM.yyyy");
-        await Expect(Page.GetByText(new Regex($"{Regex.Escape(csDate)} {hour}:00"))).ToBeVisibleAsync();
+        var cancelButton = Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Zrušit") });
+        var row = Page.GetByRole(AriaRole.Row, new() { NameRegex = new Regex($"{Regex.Escape(csDate)} {hour}:00") })
+            .Filter(new() { Has = cancelButton });
+        await Expect(row).ToBeVisibleAsync();
+
+        // Clean up: cancel what we just booked. This far ahead of the start the charge refunds in
+        // full, so repeated runs don't drain the admin wallet until the Reserve button disables
+        // (which is exactly how this suite once ground to a halt).
+        await row.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Zrušit") }).ClickAsync();
+        await Expect(row).ToHaveCountAsync(0);
     }
 }

@@ -18,13 +18,13 @@
                       Style="position:relative">
             <FluentIcon Value="@(_muted
                 ? (Icon)new Icons.Regular.Size24.AlertOff()
-                : new Icons.Regular.Size24.Alert())" />
+                : new Icons.Regular.Size24.Alert())"
+                Color="Color.Custom" CustomColor="currentColor" />
             @if (_unreadCount > 0)
             {
-                <FluentBadge Appearance="Appearance.Accent" Fill="danger"
-                             Style="position:absolute; top:-2px; right:-2px; min-width:18px; padding:0 4px; font-size:0.7rem">
-                    @_unreadCount
-                </FluentBadge>
+                @* Capped at 9+ so a pile of unread notifications can't stretch the badge out of
+                   its corner; the exact number is one click away in the panel. *@
+                <span class="bell-badge">@(_unreadCount > 9 ? "9+" : _unreadCount.ToString())</span>
             }
         </FluentButton>
 
