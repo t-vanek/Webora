@@ -1421,3 +1421,36 @@ h1:focus {
     width: 100%;
     box-sizing: border-box;
 }
+
+/* --- Panel notifikací (zvoneček) --- */
+/* Vlastní popover místo FluentCard — fluent-card má výchozí výšku 100 %, což se v absolutní
+   pozici počítá vůči ~40px obalu tlačítka a panel se otevíral jako proužek s posuvníky. */
+.bell-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: min(380px, calc(100vw - 24px));
+    max-height: 420px;
+    overflow-y: auto;
+    background: var(--neutral-layer-2, var(--brand-white));
+    color: var(--neutral-foreground-rest);
+    border: 1px solid var(--brand-hairline);
+    border-top: 3px solid var(--brand-green);
+    border-radius: var(--brand-radius);
+    box-shadow: 0 12px 32px rgba(2, 52, 68, .18);
+    padding: 12px;
+    z-index: 1000;
+    text-align: left;
+}
+
+    /* Položky jsou FluentButton kvůli klikatelnosti; jeho pevná výška a nowrap ale ořezávaly
+       delší zprávy — tady potřebujeme obyčejné víceřádkové řádky. */
+    .bell-panel fluent-button {
+        height: auto;
+        min-height: 0;
+    }
+
+    .bell-panel fluent-button::part(control) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
