@@ -21,7 +21,11 @@
    LanguageSwitcher: sibling islands each get their own DI scope, so a menu can only find a
    provider hosted in its own island. *@
 
-<FluentDesignTheme StorageName="theme" @bind-Mode="_themeMode" />
+@* CustomColor seeds the brand violet into Fluent's accent ramp. It has to be declared on every
+   FluentDesignTheme instance — when this one took over from ThemeToggle for signed-in pages, the
+   missing attribute silently dropped the whole app back to Fluent's default blue for anyone
+   without a leftover localStorage value. *@
+<FluentDesignTheme StorageName="theme" @bind-Mode="_themeMode" CustomColor="#884DFF" />
 <FluentMenuProvider />
 
 <AuthorizeView>
