@@ -1565,6 +1565,17 @@ h1:focus {
 
 /* --- Sidebar A+B: rozbaleny stav a rail --- */
 /* Vlastni markup misto FluentNavMenu; oba stavy jsou ciste CSS prepnuti tridou .side-nav--rail. */
+
+/* Na desktopu se drawer obal roztahuje na celou vysku radku .main — FluentStack deti zarovnava
+   k horni hrane (stejna vlastnost, ktera smrstovala fluent-tabs na sirku obsahu), takze bez
+   align-self by sidebar koncil pod poslednim tlacitkem a zbytek sloupce zustal bez podkladu. */
+@media (min-width: 769px) {
+    .nav-drawer {
+        align-self: stretch;
+        display: flex;
+    }
+}
+
 .side-nav {
     display: flex;
     flex-direction: column;
