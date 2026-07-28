@@ -38,8 +38,12 @@ public class AccountTests : AdminTest
     {
         await Page.GotoAsync("/");
         await Expect(Page.Locator(".wallet-chip")).ToBeVisibleAsync();
-        // The nav link opens a confirmation page; the actual sign-out is a form post.
-        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Odhlásit") }).ClickAsync();
+        // Sign-out moved from the sidebar to the header's avatar menu. The menu is an interactive
+        // island, so give the circuit a moment before clicking.
+        await Page.WaitForTimeoutAsync(1500);
+        await Page.Locator("#account-menu-trigger").ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("Odhlásit") }).ClickAsync();
+        // The menu item opens a confirmation page; the actual sign-out is a form post.
         await Pages.SubmitAsync(Page);
         await Expect(Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Přihlásit") })).ToBeVisibleAsync();
         await Expect(Page.Locator(".wallet-chip")).ToHaveCountAsync(0);

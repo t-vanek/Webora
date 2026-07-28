@@ -54,4 +54,20 @@ public class ResponsiveTests : PageTest
         await Page.GotoAsync("/admin/users");
         Assert.That(await HorizontalOverflowAsync(), Is.LessThanOrEqualTo(1));
     }
+
+    [Test]
+    public async Task Nav_drawer_opens_from_the_toggle_and_closes_after_navigating()
+    {
+        await Page.GotoAsync("/");
+        // The drawer is an interactive island; wait for the circuit before clicking.
+        await Page.WaitForTimeoutAsync(1500);
+
+        await Expect(Page.Locator(".nav-drawer")).ToBeHiddenAsync();
+        await Page.Locator(".nav-drawer-toggle").ClickAsync();
+        await Expect(Page.Locator(".nav-drawer--open")).ToBeVisibleAsync();
+
+        await Page.Locator(".nav-drawer").GetByRole(AriaRole.Link, new() { NameString = "Žebříček" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("leaderboard"));
+        await Expect(Page.Locator(".nav-drawer--open")).ToHaveCountAsync(0);
+    }
 }

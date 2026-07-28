@@ -38,6 +38,9 @@ public class AdminTests : AdminTest
     {
         await Page.GotoAsync("/admin/parking/settings");
         await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
+        // Let the InteractiveServer circuit hydrate before clicking — a click that lands during
+        // the handshake is silently dropped and the tab never switches.
+        await Page.WaitForTimeoutAsync(1500);
         await Page.Locator("fluent-tab", new() { HasText = "Důvěra a ochrana" }).ClickAsync();
         await Expect(Page.GetByText("Graf důvěry", new() { Exact = true })).ToBeVisibleAsync();
     }

@@ -1,82 +1,100 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@implements IDisposable
 @inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
 
-<FluentNavMenu Width="300" Collapsible="true" Title="@L["Nav_Menu"]">
-    <FluentNavLink Href="" Match="NavLinkMatch.All"
-                   Icon="@(new Icons.Regular.Size20.Home())">
-        @L["Nav_Home"]
-    </FluentNavLink>
+@* Interactive island (render mode set at the call site in MainLayout): the layout itself renders
+   statically, but a SignalR circuit already runs on every page for the language/theme toggles,
+   so making the menu interactive costs nothing extra — and it is what lets the collapse button
+   and the mobile drawer actually work.
 
-    @if (_canReserve || _canLeaderboard)
-    {
-        <FluentNavGroup Title="@L["Nav_Parking"]" Expanded="true">
-            @if (_canReserve)
-            {
-                <FluentNavLink Href="parking" Icon="@(new Icons.Regular.Size20.VehicleCar())">
-                    @L["Nav_ParkingReserve"]
-                </FluentNavLink>
-            }
-            @if (_canLeaderboard)
-            {
-                <FluentNavLink Href="parking/leaderboard" Icon="@(new Icons.Regular.Size20.Trophy())">
-                    @L["Nav_ParkingLeaderboard"]
-                </FluentNavLink>
-            }
-        </FluentNavGroup>
-    }
+   Desktop (>768px): a regular sidebar; FluentNavMenu's own hamburger collapses it to an icon rail.
+   Mobile (≤768px): the menu is an off-canvas drawer. The toggle bar below the header opens it,
+   the backdrop or any navigation closes it. Account and sign-out live in the header's avatar
+   menu (AccountMenu), so the drawer holds navigation only. *@
 
-    @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
-    {
-        <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
-            @if (_canAdminUsers)
-            {
-                <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
-                    @L["Nav_AdminUsers"]
-                </FluentNavLink>
-            }
-            @if (_canAdminRoles)
-            {
-                <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
-                    @L["Nav_AdminRoles"]
-                </FluentNavLink>
-            }
-            @if (_canManageSpots)
-            {
-                <FluentNavLink Href="admin/parking/spots" Icon="@(new Icons.Regular.Size20.Map())">
-                    @L["Nav_AdminParking"]
-                </FluentNavLink>
-            }
-            @if (_canManageIncentives)
-            {
-                <FluentNavLink Href="admin/parking/settings" Icon="@(new Icons.Regular.Size20.Options())">
-                    @L["Nav_AdminParkingSettings"]
-                </FluentNavLink>
-            }
-            @if (_canSettings)
-            {
-                <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
-                    @L["Nav_AdminSettings"]
-                </FluentNavLink>
-            }
-        </FluentNavGroup>
-    }
+<button type="button"
+        class="nav-drawer-toggle"
+        aria-expanded="@_drawerOpen"
+        aria-controls="app-nav-drawer"
+        @onclick="ToggleDrawer">
+    <FluentIcon Value="@(new Icons.Regular.Size20.LineHorizontal3())" Color="Color.Custom" CustomColor="currentColor" />
+    @L["Nav_Menu"]
+</button>
 
-    @* Login / Register moved to the header in MainLayout — sidebar only shows account links
-       once the user is signed in. *@
-    <AuthorizeView>
-        <Authorized>
-            <FluentNavLink Href="account/manage" Icon="@(new Icons.Regular.Size20.Person())">
-                @context.User.Identity?.Name
-            </FluentNavLink>
-            <FluentNavLink Href="logout" Icon="@(new Icons.Regular.Size20.SignOut())">
-                @L["Nav_Logout"]
-            </FluentNavLink>
-        </Authorized>
-    </AuthorizeView>
-</FluentNavMenu>
+@if (_drawerOpen)
+{
+    <div class="nav-drawer-backdrop" @onclick="CloseDrawer" aria-hidden="true"></div>
+}
+
+<div id="app-nav-drawer" class="nav-drawer @(_drawerOpen ? "nav-drawer--open" : string.Empty)">
+    <FluentNavMenu Width="300" Collapsible="true" Title="@L["Nav_Menu"]" @bind-Expanded="_menuExpanded">
+        <FluentNavLink Href="" Match="NavLinkMatch.All"
+                       Icon="@(new Icons.Regular.Size20.Home())">
+            @L["Nav_Home"]
+        </FluentNavLink>
+
+        @if (_canReserve || _canLeaderboard)
+        {
+            <FluentNavGroup Title="@L["Nav_Parking"]" Expanded="true">
+                @if (_canReserve)
+                {
+                    <FluentNavLink Href="parking" Icon="@(new Icons.Regular.Size20.VehicleCar())">
+                        @L["Nav_ParkingReserve"]
+                    </FluentNavLink>
+                }
+                @if (_canLeaderboard)
+                {
+                    <FluentNavLink Href="parking/leaderboard" Icon="@(new Icons.Regular.Size20.Trophy())">
+                        @L["Nav_ParkingLeaderboard"]
+                    </FluentNavLink>
+                }
+            </FluentNavGroup>
+        }
+
+        @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
+        {
+            <FluentNavGroup Title="@L["Nav_Administration"]" Expanded="true">
+                @if (_canAdminUsers)
+                {
+                    <FluentNavLink Href="admin/users" Icon="@(new Icons.Regular.Size20.People())">
+                        @L["Nav_AdminUsers"]
+                    </FluentNavLink>
+                }
+                @if (_canAdminRoles)
+                {
+                    <FluentNavLink Href="admin/roles" Icon="@(new Icons.Regular.Size20.ShieldKeyhole())">
+                        @L["Nav_AdminRoles"]
+                    </FluentNavLink>
+                }
+                @if (_canManageSpots)
+                {
+                    <FluentNavLink Href="admin/parking/spots" Icon="@(new Icons.Regular.Size20.Map())">
+                        @L["Nav_AdminParking"]
+                    </FluentNavLink>
+                }
+                @if (_canManageIncentives)
+                {
+                    <FluentNavLink Href="admin/parking/settings" Icon="@(new Icons.Regular.Size20.Options())">
+                        @L["Nav_AdminParkingSettings"]
+                    </FluentNavLink>
+                }
+                @if (_canSettings)
+                {
+                    <FluentNavLink Href="admin/settings" Icon="@(new Icons.Regular.Size20.Settings())">
+                        @L["Nav_AdminSettings"]
+                    </FluentNavLink>
+                }
+            </FluentNavGroup>
+        }
+    </FluentNavMenu>
+</div>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _drawerOpen;
+    private bool _menuExpanded = true;
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
@@ -86,8 +104,16 @@
     private bool _canManageSpots;
     private bool _canManageIncentives;
 
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void CloseDrawer() => _drawerOpen = false;
+
     protected override async Task OnInitializedAsync()
     {
+        // The island persists across enhanced navigations, so the drawer has to close itself
+        // when a link inside it navigates — otherwise it would still cover the new page.
+        Nav.LocationChanged += OnLocationChanged;
+
         if (AuthState is not null)
         {
             var user = (await AuthState).User;
@@ -100,4 +126,15 @@
             _canManageIncentives = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageIncentives);
         }
     }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (_drawerOpen)
+        {
+            _drawerOpen = false;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

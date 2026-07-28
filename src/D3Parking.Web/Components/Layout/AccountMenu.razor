@@ -1,0 +1,52 @@
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+@* The signed-in user's corner of the header: an avatar button opening a small menu with the
+   account page and sign-out. These links used to sit at the bottom of the sidebar, which mixed
+   navigation with identity and made the mobile drawer two rows taller. Runs as an
+   InteractiveServer island (set at the call site) — the menu needs a circuit to open. *@
+
+<AuthorizeView>
+    <Authorized>
+        <FluentButton Id="account-menu-trigger"
+                      Appearance="Appearance.Stealth"
+                      Title="@L["Nav_MyAccount"]"
+                      OnClick="@(() => _open = !_open)">
+            <span class="account-avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
+        </FluentButton>
+
+        <FluentMenu Anchor="account-menu-trigger" @bind-Open="_open">
+            <FluentMenuItem OnClick="@(() => Go("account/manage"))">
+                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.Person())" /></span>
+                @context.User.Identity?.Name
+            </FluentMenuItem>
+            <FluentMenuItem OnClick="@(() => Go("logout"))">
+                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.SignOut())" /></span>
+                @L["Nav_Logout"]
+            </FluentMenuItem>
+        </FluentMenu>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _open;
+
+    // Full load on purpose: both targets are statically rendered pages, and logout in
+    // particular must arrive as a fresh request so its antiforgery-protected form renders.
+    private void Go(string url) => Nav.NavigateTo(url, forceLoad: true);
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        var local = name.Split('@')[0];
+        var parts = local.Split(new[] { '.', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+            : local[..Math.Min(2, local.Length)].ToUpperInvariant();
+    }
+}

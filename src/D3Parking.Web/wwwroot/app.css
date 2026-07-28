@@ -155,6 +155,22 @@ h1:focus {
         color: var(--brand-green);
     }
 
+/* Avatar in the header's account menu: initials on the brand violet, sized to line up with the
+   neighbouring icon buttons. */
+.account-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
 /* Thin vertical line that separates the auth links from the icon-button cluster in the header. */
 .header-divider {
     width: 1px;
@@ -1172,28 +1188,69 @@ h1:focus {
     box-sizing: border-box;
 }
 
+/* --- Navigation drawer ---
+   Desktop: the drawer wrapper is inert (static, auto-sized) and the sidebar behaves exactly as
+   before, including Fluent's own collapse-to-icon-rail. Mobile: the wrapper turns into an
+   off-canvas panel driven by the toggle bar under the header. */
+
+.nav-drawer-toggle {
+    display: none;
+}
+
+.nav-drawer-backdrop {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .main {
         flex-direction: column !important;
         overflow: visible !important;
     }
 
-        /* Stacked above the content, the full menu is taller than a phone screen, pushing the
-           actual page a whole viewport away. Cap it and let it scroll internally — the content
-           peeking underneath keeps it discoverable. (A collapsed drawer would be nicer, but the
-           menu renders statically, so a toggle has no circuit to run on.)
+    .nav-drawer-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: .6rem 1rem;
+        border: none;
+        border-bottom: 1px solid var(--brand-hairline);
+        background: var(--neutral-layer-2, var(--brand-white));
+        color: var(--neutral-foreground-rest, var(--brand-sherpa));
+        font-family: var(--brand-font);
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
 
-           NB: FluentNavMenu renders as div.fluent-nav-menu — a class, not a custom element. The
-           previous element selector never matched anything; the full width came from the column
-           flex stretching its children. */
-        .main > .fluent-nav-menu {
-            /* Width comes from the column flex stretching its children; forcing 100% here adds
-               the menu's own padding on top and pushes the page 4px wide. */
-            box-sizing: border-box;
-            max-height: 45vh;
-            overflow-y: auto;
-            border-bottom: 2px solid var(--brand-hairline);
+    .nav-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(300px, 82vw);
+        background: var(--neutral-layer-2, var(--brand-white));
+        border-right: 1px solid var(--brand-hairline);
+        overflow-y: auto;
+        z-index: 60;
+        transform: translateX(-105%);
+        visibility: hidden; /* keeps the closed drawer out of tab order and out of Playwright's sight */
+        transition: transform .2s ease, visibility .2s;
+    }
+
+        .nav-drawer.nav-drawer--open {
+            transform: none;
+            visibility: visible;
+            box-shadow: 4px 0 24px rgba(2, 52, 68, .25);
         }
+
+    .nav-drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 52, 68, .5);
+        z-index: 55;
+    }
 
     .body-content {
         padding: 1rem !important;
