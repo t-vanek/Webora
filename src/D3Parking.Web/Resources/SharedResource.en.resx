@@ -577,4 +577,8 @@
   <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Claimed</value></data>
   <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Parking_Settings_SectionEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="Parking_Settings_StreakGroup" xml:space="preserve"><value>Streak bonus</value></data>
+  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Reputation decay</value></data>
+  <data name="Parking_Settings_TiersGroup" xml:space="preserve"><value>Tier thresholds</value></data>
 </root>

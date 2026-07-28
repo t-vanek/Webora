@@ -1341,3 +1341,74 @@ h1:focus {
 .admin-panel {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
 }
+
+/* --- Nastavení parkování (/admin/parking/settings) --- */
+
+/* Formulář drží čitelnou šířku a nerozlévá se přes celý široký monitor. */
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 880px;
+    padding-top: 12px;
+}
+
+/* Hlava sekce: název vlevo, vypínač celé skupiny vpravo — vypnutá skupina se ukládá
+   s nulovými hodnotami, což doména čte jako "funkce vypnutá". */
+.settings-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--brand-hairline);
+}
+
+/* auto-fit místo pevných sloupců: pole se přeskládají plynule s šířkou okna,
+   žádné skoky na středních šířkách ani rozpadlé dvojice popisek/pole. */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 16px;
+    width: 100%;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* Slidery potřebují víc místa než stepper — přes dvě kolonky mřížky. */
+.settings-field--wide {
+    grid-column: span 2;
+}
+
+@media (max-width: 520px) {
+    .settings-field--wide {
+        grid-column: span 1;
+    }
+}
+
+.settings-field__label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+}
+
+/* Živá hodnota vedle popisku slideru, ať posuvník nepotřebuje vlastní textové pole. */
+.settings-field__val {
+    font-weight: 700;
+    color: var(--brand-violet-deep);
+    white-space: nowrap;
+}
+
+.settings-field .parking-input {
+    width: 100%;
+    box-sizing: border-box;
+}

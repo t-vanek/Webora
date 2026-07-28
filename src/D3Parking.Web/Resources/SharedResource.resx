@@ -577,4 +577,8 @@
   <data name="Parking_QueueState_Claimed" xml:space="preserve"><value>Převzato</value></data>
   <data name="Parking_QueueState_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
   <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
+  <data name="Parking_Settings_SectionEnabled" xml:space="preserve"><value>Zapnuto</value></data>
+  <data name="Parking_Settings_StreakGroup" xml:space="preserve"><value>Bonus za sérii</value></data>
+  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Rozklad reputace</value></data>
+  <data name="Parking_Settings_TiersGroup" xml:space="preserve"><value>Hranice úrovní</value></data>
 </root>

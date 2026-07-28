@@ -5,6 +5,15 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
+@* Every feature group carries its own on/off switch in the section head. Off = the group's
+   driving values save as zero, which is exactly how the domain already understands "disabled"
+   (zero decay percent skips decay, zero base cost makes bookings free, …) — no schema change.
+   The switch state is derived back from the values on load, and re-enabling a zeroed group
+   seeds the documented defaults so the admin doesn't resurrect a feature into a dead config.
+
+   Bounded percentages render as sliders; open-ended numbers stay stepper fields — fewer places
+   to type, none where a slider would just be a worse keyboard. *@
+
 <PageTitle>@L["Parking_Settings_Title"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
@@ -28,334 +37,290 @@
 
         <FluentTabs @bind-ActiveTabId="_activeTab">
             <FluentTab Id="economy" Label="@L["Parking_Settings_Tab_Economy"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_EconomySection"]</FluentLabel>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_EconomySection"]</FluentLabel>
+                        <FluentSwitch Value="@_economyOn" ValueChanged="ToggleEconomy" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_EconomyHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.BaseReservationCost" Min="0"
-                                               Label="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.PeakPricePercent" Min="100"
-                                               Label="@L["Parking_Settings_PeakPercent"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.OccupancyPricePercent" Min="0"
-                                               Label="@L["Parking_Settings_OccupancyPercent"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MaxReservationCost" Min="0"
-                                               Label="@L["Parking_Settings_MaxCost"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0"
-                                               Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
-                                               Label="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.BaseReservationCost" Min="0" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.PeakPricePercent" Min="100" Step="10" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_PeakPercent"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OccupancyPricePercent" Min="0" Step="10" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_OccupancyPercent"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MaxReservationCost" Min="0" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_MaxCost"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
+                                           Label="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AdaptiveSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AdaptiveSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.AdaptivePricingEnabled" Label="@L["Parking_Settings_SectionEnabled"]" Disabled="@(!_economyOn)" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_AdaptiveHelp"]</FluentLabel>
-                    <FluentSwitch @bind-Value="_form.AdaptivePricingEnabled" Label="@L["Parking_Settings_AdaptiveEnabled"]" />
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveTargetOccupancyPercent" Min="1" Max="100"
-                                               Label="@L["Parking_Settings_AdaptiveTarget"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveIntervalMinutes" Min="1"
-                                               Label="@L["Parking_Settings_AdaptiveInterval"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveGainPercent" Min="0"
-                                               Label="@L["Parking_Settings_AdaptiveGain"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveDeadbandPercent" Min="0" Max="100"
-                                               Label="@L["Parking_Settings_AdaptiveDeadband"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveStepMaxPercent" Min="0"
-                                               Label="@L["Parking_Settings_AdaptiveStepMax"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMinPercent" Min="100"
-                                               Label="@L["Parking_Settings_AdaptivePeakMin"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMaxPercent" Min="100"
-                                               Label="@L["Parking_Settings_AdaptivePeakMax"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                    <div class="settings-grid">
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_AdaptiveTarget"] <span class="settings-field__val">@_form.AdaptiveTargetOccupancyPercent %</span></span>
+                            <FluentSlider TValue="int" Min="1" Max="100" Step="1" @bind-Value="_form.AdaptiveTargetOccupancyPercent"
+                                          Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)" Style="width:100%" />
+                        </div>
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_AdaptiveDeadband"] <span class="settings-field__val">@_form.AdaptiveDeadbandPercent %</span></span>
+                            <FluentSlider TValue="int" Min="0" Max="50" Step="1" @bind-Value="_form.AdaptiveDeadbandPercent"
+                                          Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)" Style="width:100%" />
+                        </div>
+                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveIntervalMinutes" Min="1" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
+                                           Label="@L["Parking_Settings_AdaptiveInterval"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveGainPercent" Min="0" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
+                                           Label="@L["Parking_Settings_AdaptiveGain"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveStepMaxPercent" Min="0" Step="5" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
+                                           Label="@L["Parking_Settings_AdaptiveStepMax"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMinPercent" Min="100" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
+                                           Label="@L["Parking_Settings_AdaptivePeakMin"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMaxPercent" Min="100" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
+                                           Label="@L["Parking_Settings_AdaptivePeakMax"]" Style="width:100%" />
+                    </div>
+                </div>
             </FluentTab>
 
             <FluentTab Id="points" Label="@L["Parking_Settings_Tab_Points"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PointsSection"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ReleasePoints" Min="0"
-                                               Label="@L["Parking_Settings_ReleasePoints"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.OffPeakBonusPoints" Min="0"
-                                               Label="@L["Parking_Settings_OffPeakBonus"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.NoShowPenaltyPoints" Min="0"
-                                               Label="@L["Parking_Settings_NoShowPenalty"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PointsSection"]</FluentLabel>
+                        <FluentSwitch Value="@_pointsOn" ValueChanged="TogglePoints" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.ReleasePoints" Min="0" Disabled="@(!_pointsOn)"
+                                           Label="@L["Parking_Settings_ReleasePoints"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OffPeakBonusPoints" Min="0" Disabled="@(!_pointsOn)"
+                                           Label="@L["Parking_Settings_OffPeakBonus"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.NoShowPenaltyPoints" Min="0" Disabled="@(!_pointsOn)"
+                                           Label="@L["Parking_Settings_NoShowPenalty"]" Style="width:100%" />
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DemandRewardSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DemandRewardSection"]</FluentLabel>
+                        <FluentSwitch Value="@_demandOn" ValueChanged="ToggleDemand" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DemandRewardHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseOccupancyPercent" Min="0"
-                                               Label="@L["Parking_Settings_DemandOccupancyPercent"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseQueueBonus" Min="0"
-                                               Label="@L["Parking_Settings_DemandQueueBonus"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseReward" Min="0"
-                                               Label="@L["Parking_Settings_MaxReleaseReward"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseOccupancyPercent" Min="0" Step="10" Disabled="@(!_demandOn)"
+                                           Label="@L["Parking_Settings_DemandOccupancyPercent"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.DemandReleaseQueueBonus" Min="0" Disabled="@(!_demandOn)"
+                                           Label="@L["Parking_Settings_DemandQueueBonus"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseReward" Min="0" Disabled="@(!_demandOn)"
+                                           Label="@L["Parking_Settings_MaxReleaseReward"]" Style="width:100%" />
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LoyaltySection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_StreakGroup"]</FluentLabel>
+                        <FluentSwitch Value="@_streakOn" ValueChanged="ToggleStreak" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusPerLevel" Min="0" Disabled="@(!_streakOn)"
+                                           Label="@L["Parking_Settings_StreakBonusPerLevel"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusCap" Min="0" Disabled="@(!_streakOn)"
+                                           Label="@L["Parking_Settings_StreakBonusCap"]" Style="width:100%" />
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TiersGroup"]</FluentLabel>
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_LoyaltyHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusPerLevel" Min="0"
-                                               Label="@L["Parking_Settings_StreakBonusPerLevel"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusCap" Min="0"
-                                               Label="@L["Parking_Settings_StreakBonusCap"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TierSilverPoints" Min="0"
-                                               Label="@L["Parking_Settings_TierSilver"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TierGoldPoints" Min="0"
-                                               Label="@L["Parking_Settings_TierGold"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TierPlatinumPoints" Min="0"
-                                               Label="@L["Parking_Settings_TierPlatinum"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ReputationDecayPercent" Min="0" Max="100"
-                                               Label="@L["Parking_Settings_ReputationDecayPercent"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ReputationDecayIntervalDays" Min="1"
-                                               Label="@L["Parking_Settings_ReputationDecayInterval"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.TierSilverPoints" Min="0" Step="10"
+                                           Label="@L["Parking_Settings_TierSilver"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.TierGoldPoints" Min="0" Step="10"
+                                           Label="@L["Parking_Settings_TierGold"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.TierPlatinumPoints" Min="0" Step="10"
+                                           Label="@L["Parking_Settings_TierPlatinum"]" Style="width:100%" />
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TierPerksSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DecayGroup"]</FluentLabel>
+                        <FluentSwitch Value="@_decayOn" ValueChanged="ToggleDecay" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
+                    <div class="settings-grid">
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_ReputationDecayPercent"] <span class="settings-field__val">@_form.ReputationDecayPercent %</span></span>
+                            <FluentSlider TValue="int" Min="1" Max="100" Step="1" @bind-Value="_form.ReputationDecayPercent"
+                                          Disabled="@(!_decayOn)" Style="width:100%" />
+                        </div>
+                        <FluentNumberField TValue="int" @bind-Value="_form.ReputationDecayIntervalDays" Min="1" Disabled="@(!_decayOn)"
+                                           Label="@L["Parking_Settings_ReputationDecayInterval"]" Style="width:100%" />
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TierPerksSection"]</FluentLabel>
+                        <FluentSwitch Value="@_perksOn" ValueChanged="TogglePerks" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_TierPerksHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueuePriorityPerTier" Min="0"
-                                               Label="@L["Parking_Settings_QueuePriorityPerTier"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TierAllowanceBonus" Min="0"
-                                               Label="@L["Parking_Settings_TierAllowanceBonus"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TierDiscountPercent" Min="0" Max="30"
-                                               Label="@L["Parking_Settings_TierDiscountPercent"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueuePriorityPerTier" Min="0" Step="5" Disabled="@(!_perksOn)"
+                                           Label="@L["Parking_Settings_QueuePriorityPerTier"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.TierAllowanceBonus" Min="0" Step="5" Disabled="@(!_perksOn)"
+                                           Label="@L["Parking_Settings_TierAllowanceBonus"]" Style="width:100%" />
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_TierDiscountPercent"] <span class="settings-field__val">@_form.TierDiscountPercent %</span></span>
+                            <FluentSlider TValue="int" Min="0" Max="30" Step="1" @bind-Value="_form.TierDiscountPercent"
+                                          Disabled="@(!_perksOn)" Style="width:100%" />
+                        </div>
+                    </div>
+                </div>
             </FluentTab>
 
             <FluentTab Id="trust" Label="@L["Parking_Settings_Tab_Trust"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TrustSection"]</FluentLabel>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TrustSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.TrustEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_TrustHelp"]</FluentLabel>
-                    <FluentSwitch @bind-Value="_form.TrustEnabled" Label="@L["Parking_Settings_TrustEnabled"]" />
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TrustIntervalHours" Min="1"
-                                               Label="@L["Parking_Settings_TrustInterval"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="4">
-                            <FluentNumberField TValue="int" @bind-Value="_form.TrustedBadgeThreshold" Min="0" Max="100"
-                                               Label="@L["Parking_Settings_TrustThreshold"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.TrustIntervalHours" Min="1" Disabled="@(!_form.TrustEnabled)"
+                                           Label="@L["Parking_Settings_TrustInterval"]" Style="width:100%" />
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_TrustThreshold"] <span class="settings-field__val">@_form.TrustedBadgeThreshold</span></span>
+                            <FluentSlider TValue="int" Min="0" Max="100" Step="5" @bind-Value="_form.TrustedBadgeThreshold"
+                                          Disabled="@(!_form.TrustEnabled)" Style="width:100%" />
+                        </div>
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_CollusionSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_CollusionSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.AntiCollusionEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_CollusionHelp"]</FluentLabel>
-                    <FluentSwitch @bind-Value="_form.AntiCollusionEnabled" Label="@L["Parking_Settings_CollusionEnabled"]" />
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.CollusionMinInteractions" Min="2"
-                                               Label="@L["Parking_Settings_CollusionMin"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.CollusionConcentrationPercent" Min="1" Max="100"
-                                               Label="@L["Parking_Settings_CollusionConcentration"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MaxPairTrustWeight" Min="1"
-                                               Label="@L["Parking_Settings_MaxPairTrustWeight"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.CollusionScanIntervalHours" Min="1"
-                                               Label="@L["Parking_Settings_CollusionInterval"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.CollusionMinInteractions" Min="2" Disabled="@(!_form.AntiCollusionEnabled)"
+                                           Label="@L["Parking_Settings_CollusionMin"]" Style="width:100%" />
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_CollusionConcentration"] <span class="settings-field__val">@_form.CollusionConcentrationPercent %</span></span>
+                            <FluentSlider TValue="int" Min="1" Max="100" Step="1" @bind-Value="_form.CollusionConcentrationPercent"
+                                          Disabled="@(!_form.AntiCollusionEnabled)" Style="width:100%" />
+                        </div>
+                        <FluentNumberField TValue="int" @bind-Value="_form.MaxPairTrustWeight" Min="1" Disabled="@(!_form.AntiCollusionEnabled)"
+                                           Label="@L["Parking_Settings_MaxPairTrustWeight"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.CollusionScanIntervalHours" Min="1" Disabled="@(!_form.AntiCollusionEnabled)"
+                                           Label="@L["Parking_Settings_CollusionInterval"]" Style="width:100%" />
+                    </div>
                     <FluentAnchor Href="/admin/parking/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueuePenaltySection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueuePenaltySection"]</FluentLabel>
+                        <FluentSwitch Value="@_queuePenaltyOn" ValueChanged="ToggleQueuePenalty" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_QueuePenaltyHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowPenaltyPoints" Min="0"
-                                               Label="@L["Parking_Settings_QueueNoShowPoints"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowCreditPenalty" Min="0"
-                                               Label="@L["Parking_Settings_QueueNoShowCredits"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowBanDays" Min="0"
-                                               Label="@L["Parking_Settings_QueueNoShowBanDays"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowAllowancePenalty" Min="0"
-                                               Label="@L["Parking_Settings_QueueNoShowAllowance"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowPenaltyPoints" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
+                                           Label="@L["Parking_Settings_QueueNoShowPoints"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowCreditPenalty" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
+                                           Label="@L["Parking_Settings_QueueNoShowCredits"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowBanDays" Min="0" Disabled="@(!_queuePenaltyOn)"
+                                           Label="@L["Parking_Settings_QueueNoShowBanDays"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowAllowancePenalty" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
+                                           Label="@L["Parking_Settings_QueueNoShowAllowance"]" Style="width:100%" />
+                    </div>
+                </div>
             </FluentTab>
 
             <FluentTab Id="queue" Label="@L["Parking_Settings_Tab_Queue"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PeakSection"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentLabel Typo="Typography.Body">@L["Parking_Settings_PeakStart"]</FluentLabel>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PeakSection"]</FluentLabel>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="settings-field">
+                            <span class="settings-field__label">@L["Parking_Settings_PeakStart"]</span>
                             <input type="time" @bind="_form.PeakStart" class="parking-input" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentLabel Typo="Typography.Body">@L["Parking_Settings_PeakEnd"]</FluentLabel>
+                        </div>
+                        <div class="settings-field">
+                            <span class="settings-field__label">@L["Parking_Settings_PeakEnd"]</span>
                             <input type="time" @bind="_form.PeakEnd" class="parking-input" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                        </div>
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TimingSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TimingSection"]</FluentLabel>
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_MinutesHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ReleaseCutoffMinutes" Min="0"
-                                               Label="@L["Parking_Settings_ReleaseCutoff"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.NoShowGraceMinutes" Min="0"
-                                               Label="@L["Parking_Settings_NoShowGrace"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ReminderLeadMinutes" Min="0"
-                                               Label="@L["Parking_Settings_ReminderLead"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.SweepIntervalMinutes" Min="1"
-                                               Label="@L["Parking_Settings_SweepInterval"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.ReleaseCutoffMinutes" Min="0" Step="5"
+                                           Label="@L["Parking_Settings_ReleaseCutoff"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.NoShowGraceMinutes" Min="0" Step="5"
+                                           Label="@L["Parking_Settings_NoShowGrace"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.ReminderLeadMinutes" Min="0"
+                                           Label="@L["Parking_Settings_ReminderLead"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.SweepIntervalMinutes" Min="1"
+                                           Label="@L["Parking_Settings_SweepInterval"]" Style="width:100%" />
+                    </div>
+                </div>
             </FluentTab>
 
             <FluentTab Id="residents" Label="@L["Parking_Settings_Tab_Residents"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentSection"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentLabel Typo="Typography.Body">@L["Parking_Settings_ResidentHoldUntil"]</FluentLabel>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentSection"]</FluentLabel>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="settings-field">
+                            <span class="settings-field__label">@L["Parking_Settings_ResidentHoldUntil"]</span>
                             <input type="time" @bind="_form.ResidentHoldUntil" class="parking-input" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleasePointsPerHour" Min="0"
-                                               Label="@L["Parking_Settings_ResidentPointsPerHour"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleaseMaxPoints" Min="0"
-                                               Label="@L["Parking_Settings_ResidentMaxPoints"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ResidentMaxShareAllowance" Min="0"
-                                               Label="@L["Parking_Settings_ResidentMaxAllowance"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
-                                               Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.ResidentWastedShareClawbackPercent" Min="0" Max="100"
-                                               Label="@L["Parking_Settings_ResidentClawback"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                        </div>
+                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleasePointsPerHour" Min="0"
+                                           Label="@L["Parking_Settings_ResidentPointsPerHour"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleaseMaxPoints" Min="0" Step="5"
+                                           Label="@L["Parking_Settings_ResidentMaxPoints"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentMaxShareAllowance" Min="0"
+                                           Label="@L["Parking_Settings_ResidentMaxAllowance"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
+                                           Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
+                        <div class="settings-field settings-field--wide">
+                            <span class="settings-field__label">@L["Parking_Settings_ResidentClawback"] <span class="settings-field__val">@_form.ResidentWastedShareClawbackPercent %</span></span>
+                            <FluentSlider TValue="int" Min="0" Max="100" Step="5" @bind-Value="_form.ResidentWastedShareClawbackPercent" Style="width:100%" />
+                        </div>
+                    </div>
+                </div>
             </FluentTab>
 
             <FluentTab Id="location" Label="@L["Parking_Settings_Tab_Location"]">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" Style="max-width:720px;padding-top:12px">
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
+                        <FluentSwitch Value="@_distanceOn" ValueChanged="ToggleDistance" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DistanceHelp"]</FluentLabel>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="double?" @bind-Value="_form.LotLatitude" Step="0.0001"
-                                               Label="@L["Parking_Settings_LotLat"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
-                                               Label="@L["Parking_Settings_LotLon"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="2">
-                            <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenBasePoints" Min="0"
-                                               Label="@L["Parking_Settings_TakenBase"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="2">
-                            <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenReferenceKm" Min="1"
-                                               Label="@L["Parking_Settings_TakenRefKm"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="2">
-                            <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenMaxMultiplier" Min="1"
-                                               Label="@L["Parking_Settings_TakenMaxMult"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="double?" @bind-Value="_form.LotLatitude" Step="0.0001"
+                                           Label="@L["Parking_Settings_LotLat"]" Style="width:100%" />
+                        <FluentNumberField TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
+                                           Label="@L["Parking_Settings_LotLon"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenBasePoints" Min="0" Disabled="@(!_distanceOn)"
+                                           Label="@L["Parking_Settings_TakenBase"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenReferenceKm" Min="1" Disabled="@(!_distanceOn)"
+                                           Label="@L["Parking_Settings_TakenRefKm"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenMaxMultiplier" Min="1" Disabled="@(!_distanceOn)"
+                                           Label="@L["Parking_Settings_TakenMaxMult"]" Style="width:100%" />
+                    </div>
 
-                    <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
+                    </div>
                     <FluentSwitch @bind-Value="_form.AutoVerifyHomeAddress" Label="@L["Parking_Settings_AutoVerify"]" />
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0"
-                                               Label="@L["Parking_Settings_AutoVerifyMaxKm"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MaxRewardedReleasesPerDay" Min="0"
-                                               Label="@L["Parking_Settings_MaxReleasesPerDay"]" Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="3">
-                            <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseRangeDays" Min="1" Max="366"
-                                               Label="@L["Parking_Settings_MaxRangeDays"]" Style="width:100%" />
-                        </FluentGridItem>
-                    </FluentGrid>
-                </FluentStack>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0" Step="5" Disabled="@(!_form.AutoVerifyHomeAddress)"
+                                           Label="@L["Parking_Settings_AutoVerifyMaxKm"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MaxRewardedReleasesPerDay" Min="0"
+                                           Label="@L["Parking_Settings_MaxReleasesPerDay"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseRangeDays" Min="1" Max="366"
+                                           Label="@L["Parking_Settings_MaxRangeDays"]" Style="width:100%" />
+                    </div>
+                </div>
             </FluentTab>
         </FluentTabs>
 
@@ -372,12 +337,111 @@
     private string? _error;
     private string _activeTab = "economy";
 
+    // Section switches. Derived from the stored values on load; on save an off switch forces the
+    // group's driving values to zero, which is what the domain treats as "feature disabled".
+    private bool _economyOn;
+    private bool _pointsOn;
+    private bool _demandOn;
+    private bool _streakOn;
+    private bool _perksOn;
+    private bool _decayOn;
+    private bool _queuePenaltyOn;
+    private bool _distanceOn;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
         var admin = await UserManager.GetUserAsync(state.User);
         _adminId = admin?.Id ?? Guid.Empty;
         await LoadAsync();
+    }
+
+    // Re-enabling a group whose values were saved as zeros would resurrect it into a dead
+    // config, so each toggle seeds the documented defaults (IncentivePolicy.Default) when
+    // everything it governs is zero. Values from the same session survive an off/on flip.
+    private void ToggleEconomy(bool on)
+    {
+        _economyOn = on;
+        if (on && _form!.BaseReservationCost == 0)
+        {
+            _form.BaseReservationCost = 10;
+            _form.PeakPricePercent = 200;
+            _form.OccupancyPricePercent = 100;
+            _form.MaxReservationCost = 40;
+        }
+    }
+
+    private void TogglePoints(bool on)
+    {
+        _pointsOn = on;
+        if (on && _form!.ReleasePoints == 0 && _form.OffPeakBonusPoints == 0 && _form.NoShowPenaltyPoints == 0)
+        {
+            _form.ReleasePoints = 10;
+            _form.OffPeakBonusPoints = 5;
+            _form.NoShowPenaltyPoints = 20;
+        }
+    }
+
+    private void ToggleDemand(bool on)
+    {
+        _demandOn = on;
+        if (on && _form!.DemandReleaseOccupancyPercent == 0 && _form.DemandReleaseQueueBonus == 0)
+        {
+            _form.DemandReleaseOccupancyPercent = 100;
+            _form.DemandReleaseQueueBonus = 5;
+        }
+    }
+
+    private void ToggleStreak(bool on)
+    {
+        _streakOn = on;
+        if (on && _form!.StreakBonusPerLevel == 0)
+        {
+            _form.StreakBonusPerLevel = 2;
+            _form.StreakBonusCap = _form.StreakBonusCap == 0 ? 20 : _form.StreakBonusCap;
+        }
+    }
+
+    private void TogglePerks(bool on)
+    {
+        _perksOn = on;
+        if (on && _form!.QueuePriorityPerTier == 0 && _form.TierAllowanceBonus == 0 && _form.TierDiscountPercent == 0)
+        {
+            _form.QueuePriorityPerTier = 30;
+            _form.TierAllowanceBonus = 20;
+            _form.TierDiscountPercent = 5;
+        }
+    }
+
+    private void ToggleDecay(bool on)
+    {
+        _decayOn = on;
+        if (on && _form!.ReputationDecayPercent == 0)
+        {
+            _form.ReputationDecayPercent = 10;
+        }
+    }
+
+    private void ToggleQueuePenalty(bool on)
+    {
+        _queuePenaltyOn = on;
+        if (on && _form!.QueueNoShowPenaltyPoints == 0 && _form.QueueNoShowCreditPenalty == 0
+            && _form.QueueNoShowBanDays == 0 && _form.QueueNoShowAllowancePenalty == 0)
+        {
+            _form.QueueNoShowPenaltyPoints = 50;
+            _form.QueueNoShowCreditPenalty = 30;
+            _form.QueueNoShowBanDays = 14;
+            _form.QueueNoShowAllowancePenalty = 30;
+        }
+    }
+
+    private void ToggleDistance(bool on)
+    {
+        _distanceOn = on;
+        if (on && _form!.SharedTakenBasePoints == 0)
+        {
+            _form.SharedTakenBasePoints = 5;
+        }
     }
 
     private async Task LoadAsync()
@@ -449,14 +513,26 @@
             CollusionConcentrationPercent = s.CollusionConcentrationPercent,
             CollusionScanIntervalHours = s.CollusionScanIntervalHours,
         };
+
+        _economyOn = s.BaseReservationCost > 0;
+        _pointsOn = s.ReleasePoints > 0 || s.OffPeakBonusPoints > 0 || s.NoShowPenaltyPoints > 0;
+        _demandOn = s.DemandReleaseOccupancyPercent > 0 || s.DemandReleaseQueueBonus > 0;
+        _streakOn = s.StreakBonusPerLevel > 0;
+        _perksOn = s.QueuePriorityPerTier > 0 || s.TierAllowanceBonus > 0 || s.TierDiscountPercent > 0;
+        _decayOn = s.ReputationDecayPercent > 0;
+        _queuePenaltyOn = s.QueueNoShowPenaltyPoints > 0 || s.QueueNoShowCreditPenalty > 0
+            || s.QueueNoShowBanDays > 0 || s.QueueNoShowAllowancePenalty > 0;
+        _distanceOn = s.SharedTakenBasePoints > 0;
     }
 
     private async Task SaveAsync()
     {
         _message = _error = null;
         var dto = new ParkingSettingsDto(
-            _form!.ReleasePoints, _form.OffPeakBonusPoints, _form.NoShowPenaltyPoints,
-            TimeSpan.FromMinutes(_form.ReleaseCutoffMinutes),
+            _pointsOn ? _form!.ReleasePoints : 0,
+            _pointsOn ? _form!.OffPeakBonusPoints : 0,
+            _pointsOn ? _form!.NoShowPenaltyPoints : 0,
+            TimeSpan.FromMinutes(_form!.ReleaseCutoffMinutes),
             TimeSpan.FromMinutes(_form.NoShowGraceMinutes),
             TimeSpan.FromMinutes(_form.ReminderLeadMinutes),
             _form.PeakStart, _form.PeakEnd,
@@ -469,37 +545,37 @@
             _form.ResidentWastedShareClawbackPercent,
             _form.LotLatitude,
             _form.LotLongitude,
-            _form.SharedTakenBasePoints,
+            _distanceOn ? _form.SharedTakenBasePoints : 0,
             _form.SharedTakenReferenceKm,
             _form.SharedTakenMaxMultiplier,
             _form.AutoVerifyHomeAddress,
             _form.AutoVerifyMaxDistanceKm,
             _form.MaxRewardedReleasesPerDay,
             _form.MaxReleaseRangeDays,
-            _form.BaseReservationCost,
-            _form.PeakPricePercent,
-            _form.OccupancyPricePercent,
-            _form.MaxReservationCost,
+            _economyOn ? _form.BaseReservationCost : 0,
+            _economyOn ? _form.PeakPricePercent : 100,
+            _economyOn ? _form.OccupancyPricePercent : 0,
+            _economyOn ? _form.MaxReservationCost : 0,
             _form.MonthlyCreditAllowance,
             _form.QueueOfferMinutes,
-            _form.QueueNoShowPenaltyPoints,
-            _form.QueueNoShowCreditPenalty,
-            _form.QueueNoShowBanDays,
-            _form.QueueNoShowAllowancePenalty,
-            _form.DemandReleaseOccupancyPercent,
-            _form.DemandReleaseQueueBonus,
+            _queuePenaltyOn ? _form.QueueNoShowPenaltyPoints : 0,
+            _queuePenaltyOn ? _form.QueueNoShowCreditPenalty : 0,
+            _queuePenaltyOn ? _form.QueueNoShowBanDays : 0,
+            _queuePenaltyOn ? _form.QueueNoShowAllowancePenalty : 0,
+            _demandOn ? _form.DemandReleaseOccupancyPercent : 0,
+            _demandOn ? _form.DemandReleaseQueueBonus : 0,
             _form.MaxReleaseReward,
-            _form.StreakBonusPerLevel,
+            _streakOn ? _form.StreakBonusPerLevel : 0,
             _form.StreakBonusCap,
             _form.TierSilverPoints,
             _form.TierGoldPoints,
             _form.TierPlatinumPoints,
-            _form.QueuePriorityPerTier,
-            _form.TierAllowanceBonus,
-            _form.TierDiscountPercent,
-            _form.ReputationDecayPercent,
+            _perksOn ? _form.QueuePriorityPerTier : 0,
+            _perksOn ? _form.TierAllowanceBonus : 0,
+            _perksOn ? _form.TierDiscountPercent : 0,
+            _decayOn ? _form.ReputationDecayPercent : 0,
             _form.ReputationDecayIntervalDays,
-            _form.AdaptivePricingEnabled,
+            _form.AdaptivePricingEnabled && _economyOn,
             _form.AdaptiveTargetOccupancyPercent,
             _form.AdaptiveGainPercent,
             _form.AdaptiveDeadbandPercent,
