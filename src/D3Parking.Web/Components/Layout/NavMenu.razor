@@ -4,11 +4,13 @@
 @inject NavigationManager Nav
 
 @* Interactive island (render mode set at the call site in MainLayout): the layout itself renders
-   statically, but a SignalR circuit already runs on every page for the language/theme toggles,
-   so making the menu interactive costs nothing extra — and it is what lets the collapse button
-   and the mobile drawer actually work.
+   statically, but a SignalR circuit already runs on every page, and interactivity is what lets
+   the mobile drawer actually work.
 
-   Desktop (>768px): a regular sidebar; FluentNavMenu's own hamburger collapses it to an icon rail.
+   Desktop (>768px): a plain, always-expanded sidebar. Fluent's own collapse-to-icon-rail is
+   deliberately off (Collapsible=false): the nav groups carry no icons, so the rail rendered as
+   a near-empty strip of chevrons, and re-expanding painted the list over the content — both
+   reported as broken. One hamburger is enough, and it's the drawer's.
    Mobile (≤768px): the menu is an off-canvas drawer. The toggle bar below the header opens it,
    the backdrop or any navigation closes it. Account and sign-out live in the header's avatar
    menu (AccountMenu), so the drawer holds navigation only. *@
@@ -28,7 +30,7 @@
 }
 
 <div id="app-nav-drawer" class="nav-drawer @(_drawerOpen ? "nav-drawer--open" : string.Empty)">
-    <FluentNavMenu Width="300" Collapsible="true" Title="@L["Nav_Menu"]" @bind-Expanded="_menuExpanded">
+    <FluentNavMenu Width="300" Collapsible="false" Title="@L["Nav_Menu"]">
         <FluentNavLink Href="" Match="NavLinkMatch.All"
                        Icon="@(new Icons.Regular.Size20.Home())">
             @L["Nav_Home"]
@@ -94,7 +96,6 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private bool _drawerOpen;
-    private bool _menuExpanded = true;
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
