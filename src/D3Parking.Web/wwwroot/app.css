@@ -1426,6 +1426,22 @@ h1:focus {
         }
 }
 
+/* Select uvnitr FluentDataGrid: bunky gridu maji overflow:hidden (kvuli ellipsis), takze
+   rozbaleny seznam se OREZAVA na vysku bunky — z radku pod nim je videt jen prouzek a
+   moznosti nejdou kliknout. U bunky s fokusem (= otevrenym selectem) se clip uvolni; ellipsis
+   ostatnich bunek zustava. Grid se renderuje jako obycejna tabulka tr/td, ne
+   fluent-data-grid-row. */
+.admin-panel td:focus-within {
+    overflow: visible;
+}
+
+/* ...a jakmile seznam z bunky vyjede, kresli se selecty pozdejsich radku pres nej (vsechny
+   jsou position:relative bez z-indexu = poradi DOM). Z-index patri primo na select — na tr
+   je position/z-index nedefinovane chovani a Chrome tam stacking context nevytvori. */
+.admin-panel fluent-select:focus-within {
+    z-index: 10;
+}
+
 /* Modernise the table panels with a gentle elevation, matching the cards. */
 .admin-panel {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
@@ -1582,6 +1598,19 @@ h1:focus {
         align-self: stretch;
         display: flex;
     }
+}
+
+/* Stejny neduh u obsahu: .body-content je scroll kontejner (overflow:auto), ale konci na spodni
+   hrane OBSAHU, takze vsechno, co pretece niz — treba rozbaleny select u posledniho radku
+   gridu — se orizne, prestoze je na obrazovce misto. Pricina: Fluent v adopted stylesheetu
+   (mimo document.styleSheets!) nastavuje .body-content { height: 100% } — procenta vuci
+   neurcite vysce flexoveho .main padaji na vysku obsahu a height != auto zaroven vypina
+   align-self: stretch. Vratit auto + stretch element natahne pres celou vysku radku .main,
+   takze klipuje az na spodni hrane okna. !important je nutne: adopted stylesheet Fluentu se
+   v kaskade radi az ZA dokumentove styly, takze bezne pravidlo z app.css prohrava. */
+.main > .body-content {
+    height: auto !important;
+    align-self: stretch;
 }
 
 .side-nav {
