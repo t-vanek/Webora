@@ -277,10 +277,10 @@
   <data name="Settings_SaveRegion" xml:space="preserve"><value>Save region</value></data>
   <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
   <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Default language</value></data>
-  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Used when the visitor has no language preference of their own.</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Used for visitors who have not picked a language themselves.</value></data>
   <data name="Settings_Automatic" xml:space="preserve"><value>Automatic</value></data>
   <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Default time zone</value></data>
-  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Used to display times (audit, notifications).</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>The site's time zone. Drives displayed times as well as the daily parking windows — the peak and resident holds.</value></data>
   <data name="Settings_ServerLocal" xml:space="preserve"><value>Server local time</value></data>
   <data name="Settings_EncodingSection" xml:space="preserve"><value>Encoding</value></data>
   <data name="Settings_SaveEncoding" xml:space="preserve"><value>Save encoding</value></data>
@@ -296,7 +296,7 @@
   <data name="Settings_GeneralSection" xml:space="preserve"><value>General</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Save general</value></data>
   <data name="Settings_SiteName" xml:space="preserve"><value>Site name</value></data>
-  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Shown as the brand in the navigation. Empty = “D3Parking”.</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Shown in the header and on the sign-in pages. Empty = “D3Parking”.</value></data>
   <data name="Settings_SiteDescription" xml:space="preserve"><value>Site description</value></data>
   <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Used as the default page meta description.</value></data>
   <data name="Settings_UrlAppearance" xml:space="preserve"><value>URL appearance (path canonicalization).</value></data>
@@ -407,26 +407,28 @@
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Activate</value></data>
   <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Rules &amp; pricing</value></data>
   <data name="Parking_Settings_Title" xml:space="preserve"><value>Parking settings</value></data>
-  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Scoring and timing rules of the incentive system. Changes take effect immediately.</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Prices, points and safeguards of the parking system in one place. Saved changes apply immediately to all further reservations.</value></data>
   <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Economy</value></data>
   <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Points &amp; tiers</value></data>
   <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Trust &amp; protection</value></data>
   <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Queue &amp; peak</value></data>
   <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Residents</value></data>
   <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Location &amp; limits</value></data>
-  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Points</value></data>
+  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Core points</value></data>
+  <data name="Parking_Settings_PointsHelp" xml:space="preserve"><value>Reputation points for everyday behaviour: a reward for releasing a spot in time, a bonus for booking off-peak and a deduction for a lapsed reservation. Every reward also adds the same number of credits to the wallet; the no-show deduction lowers reputation only.</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Peak</value></data>
+  <data name="Parking_Settings_PeakHelp" xml:space="preserve"><value>The daily high-demand window in the site's time zone. Reservations starting inside it pay the peak price surcharge; those outside earn the off-peak bonus.</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Timing</value></data>
-  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Release points</value></data>
-  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Off-peak bonus</value></data>
-  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>No-show penalty</value></data>
+  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Points for releasing in time</value></data>
+  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Off-peak booking bonus (points)</value></data>
+  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>No-show point deduction</value></data>
   <data name="Parking_Settings_PeakStart" xml:space="preserve"><value>Peak start</value></data>
   <data name="Parking_Settings_PeakEnd" xml:space="preserve"><value>Peak end</value></data>
-  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Release at least before (min)</value></data>
-  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Arrival grace (min)</value></data>
+  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Release lead time required for the reward (min)</value></data>
+  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Arrival grace period (min)</value></data>
   <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Reminder before start (min)</value></data>
-  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Check interval (min)</value></data>
-  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Time values are in minutes.</value></data>
+  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Background check interval (min)</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>A reservation not used within the grace period becomes a no-show — points are deducted and the paid credits are not refunded. The background check processes this continuously at the given interval.</value></data>
   <data name="Parking_Settings_Save" xml:space="preserve"><value>Save settings</value></data>
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
@@ -446,11 +448,12 @@
   <data name="Parking_Admin_Resident" xml:space="preserve"><value>Resident</value></data>
   <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— no resident —</value></data>
   <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Residents</value></data>
-  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Hold spot until</value></data>
+  <data name="Parking_Settings_ResidentsHelp" xml:space="preserve"><value>Rules for reserved spots. Each day the spot is held for its resident until the given time; if they do not confirm arrival by then, it is offered to everyone else automatically. Residents who release the spot themselves earn points — the earlier the release and the higher the monthly share allowance on the spot, the more.</value></data>
+  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Hold the spot for its resident until</value></data>
   <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Points per hour of notice</value></data>
-  <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Cap on advance-notice points</value></data>
-  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Max share allowance</value></data>
-  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>% to multiplier per share</value></data>
+  <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Notice points cap</value></data>
+  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Highest monthly share allowance (days)</value></data>
+  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>Reward bonus per allowance day (%)</value></data>
   <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>The user was not found.</value></data>
   <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>This spot is reserved and not shared for that time.</value></data>
   <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>You have no reserved spot assigned.</value></data>
@@ -465,19 +468,19 @@
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>The end of the range must be after its start.</value></data>
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>The range is too long.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Nothing to release in the chosen range.</value></data>
-  <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Wasted-share reward clawback (%)</value></data>
+  <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Reward clawback when the taker no-shows (%)</value></data>
   <data name="Profile_CommuteTitle" xml:space="preserve"><value>Commute to work</value></data>
   <data name="Profile_CommuteHelp" xml:space="preserve"><value>Enter your home address – we compute the distance to the lot from it. The farther you live, the more points you earn for taking a freed spot.</value></data>
   <data name="Profile_CommuteDistance" xml:space="preserve"><value>Distance to the lot</value></data>
   <data name="Profile_HomeAddress" xml:space="preserve"><value>Home address</value></data>
   <data name="Profile_SaveAddress" xml:space="preserve"><value>Save address</value></data>
-  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Distance factor</value></data>
-  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>The lot coordinates and the distance-scaled reward for taking a shared spot.</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Distance-based reward</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>The lot coordinates are used to compute users' commute distance. The reward for taking a shared spot is multiplied by the commute over the reference distance (capped by the multiplier limit) — long-distance commuters earn more. Without a known distance no reward is granted.</value></data>
   <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Lot latitude</value></data>
   <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Lot longitude</value></data>
-  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Base points for taking</value></data>
-  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Reference distance (km)</value></data>
-  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max distance multiplier</value></data>
+  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Base points for taking a shared spot</value></data>
+  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Reference distance (km, 1× multiplier)</value></data>
+  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Distance multiplier cap</value></data>
   <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Couldn't find that address. Try to refine it.</value></data>
   <data name="Profile_CommutePending" xml:space="preserve"><value>Awaiting admin verification</value></data>
   <data name="Profile_CommutePrivacy" xml:space="preserve"><value>The address is used only to compute the distance to the lot. You can remove it at any time.</value></data>
@@ -490,10 +493,11 @@
   <data name="Admin_UserEdit_HomeUnverify" xml:space="preserve"><value>Revoke verification</value></data>
   <data name="Admin_UserEdit_HomeSaved" xml:space="preserve"><value>Saved.</value></data>
   <data name="Parking_Settings_LimitsSection" xml:space="preserve"><value>Verification and limits</value></data>
-  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Auto-verify addresses (within the distance cap)</value></data>
-  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Auto-verify distance cap (km)</value></data>
-  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max rewarded releases / day</value></data>
-  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max release range (days)</value></data>
+  <data name="Parking_Settings_LimitsHelp" xml:space="preserve"><value>Abuse safeguards: home addresses within the limit are verified automatically (farther ones go to the admin), and caps bound how many releases per day are rewarded and how long a range can be released at once.</value></data>
+  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Auto-approve addresses within the limit</value></data>
+  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Auto-approval limit (km)</value></data>
+  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Most rewarded releases per day</value></data>
+  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Longest release range at once (days)</value></data>
   <data name="Parking_Price" xml:space="preserve"><value>Price</value></data>
   <data name="Parking_Credits" xml:space="preserve"><value>credits</value></data>
   <data name="Parking_Occupancy" xml:space="preserve"><value>Occupancy</value></data>
@@ -503,25 +507,25 @@
   <data name="Parking_MyCredits" xml:space="preserve"><value>Credit</value></data>
   <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>You don't have enough credits for this reservation.</value></data>
   <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Reservation economy</value></data>
-  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Reservation price = base × peak surcharge × occupancy surcharge (capped). Credits are charged on booking and refunded on an early enough cancel or release.</value></data>
-  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Base price (credits)</value></data>
-  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Peak surcharge (%)</value></data>
-  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
-  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max price (credits)</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Reservation price in credits: base × peak surcharge × occupancy surcharge, never below the base and never above the cap. Credits are charged when booking; cancelling or releasing early refunds them in full.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Base reservation price (credits)</value></data>
+  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Peak price (% of base)</value></data>
+  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Surcharge at full occupancy (%)</value></data>
+  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Maximum reservation price (credits)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
-  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Queue spot hold (min)</value></data>
-  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Queue no-show penalties</value></data>
-  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Uncompromising penalty when a user claims a spot from the queue and then doesn't show up: a bigger points hit, a credit fine, a temporary queue ban and a cut to next month's allowance.</value></data>
-  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Points penalty</value></data>
-  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Credit fine</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Waitlist offer validity (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Penalties for waitlist no-shows</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Claiming a freed spot from the waitlist and not arriving blocks everyone behind. The penalty is therefore harsher than a normal no-show: a bigger point deduction, a credit fine, a temporary waitlist ban and a cut to the next monthly allowance.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Reputation point deduction</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Credit fine from the wallet</value></data>
   <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Queue ban (days)</value></data>
-  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Next allowance cut</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Cut to the next allowance (credits)</value></data>
   <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>You're temporarily barred from the queue because of a previous no-show.</value></data>
-  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Demand-based release rewards</value></data>
-  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>The release reward grows with demand: an occupancy surcharge plus a bonus per person queued for the spot, capped. Freeing a spot that's in demand pays the most.</value></data>
-  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Occupancy surcharge (%)</value></data>
-  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus per queued person</value></data>
-  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max release reward</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Demand-based release reward</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>The more wanted the freed spot, the more points: the base reward gains an occupancy surcharge plus a bonus per person waiting in the queue, up to the cap. Freeing a spot when demand peaks pays the most.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Surcharge at full occupancy (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus per waiting person (points)</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Maximum release reward (points)</value></data>
   <data name="Parking_MyStreak" xml:space="preserve"><value>Completion streak</value></data>
   <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronze</value></data>
   <data name="Parking_Tier_Silver" xml:space="preserve"><value>Silver</value></data>
@@ -530,37 +534,37 @@
   <data name="Parking_Tier_ToNext" xml:space="preserve"><value>{0} points to {1}</value></data>
   <data name="Parking_Tier_Max" xml:space="preserve"><value>Top tier</value></data>
   <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Streaks and tiers</value></data>
-  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>A reward for an unbroken run of completions (grows with length, capped; a no-show resets it) and the reputation thresholds for the loyalty tiers (Bronze/Silver/Gold/Platinum) that unlock perks.</value></data>
-  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Streak bonus (per level)</value></data>
-  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Streak bonus cap</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Reputation tier thresholds Bronze → Silver → Gold → Platinum. The tier follows the current points and unlocks the perks configured below.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus per streak level (points)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Streak bonus cap (points)</value></data>
   <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Silver from (points)</value></data>
   <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Gold from (points)</value></data>
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platinum from (points)</value></data>
-  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Reputation decay (%)</value></data>
-  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Decay interval (days)</value></data>
-  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptive pricing</value></data>
-  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Self-tuning controller: it periodically measures peak occupancy and nudges the peak surcharge toward the target occupancy (within bounds, in steps). When off, the manual surcharge value stands.</value></data>
+  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Decline per interval (%)</value></data>
+  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Decline interval (days)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptive peak pricing</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>At the given interval the controller measures peak occupancy and nudges the peak price toward the target occupancy — in bounded steps and only within the limits. Deviations inside the deadband are left alone. When disabled, the manually set peak price applies.</value></data>
   <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Enable adaptive price tuning</value></data>
-  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Target occupancy (%)</value></data>
-  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Tuning interval (min)</value></data>
-  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Controller gain</value></data>
-  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Deadband (%)</value></data>
-  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max surcharge step</value></data>
-  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min peak surcharge (%)</value></data>
-  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max peak surcharge (%)</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Target peak occupancy (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Minimum gap between adjustments (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Reaction strength (higher = faster changes)</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Deadband (± % occupancy)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Largest change per step (percentage points)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Peak price lower bound (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Peak price upper bound (%)</value></data>
   <data name="Parking_Settings_TrustSection" xml:space="preserve"><value>Trust graph</value></data>
-  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Builds an interaction graph from completed reservations on shared spots and computes a trust score (0–100) with a weighted PageRank. Above the threshold the "Trusted" badge is awarded. Gaming-resistant — edges require real completed reservations.</value></data>
+  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Completed reservations on shared spots build an interaction graph; a weighted PageRank turns it into a 0–100 trust score. Reaching the threshold awards the “Trusted” badge. Edges only come from genuinely completed reservations, so the score cannot be farmed for free.</value></data>
   <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Compute the trust graph</value></data>
   <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Recompute interval (hours)</value></data>
   <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Trusted badge threshold (0–100)</value></data>
-  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Anti-collusion (ring detection)</value></data>
-  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Detects pairs whose sharing interactions are too concentrated on each other (a possible farming ring) and records a flag for review. The only automatic effect is the trust-graph edge cap; hard action is left to an admin.</value></data>
+  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Collusion protection</value></data>
+  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Looks for pairs whose spot sharing concentrates suspiciously on each other — the typical pattern of coordinated point farming. A finding is stored for manual review; automatically only the pair's weight in the trust graph is capped, sanctions stay with the admin.</value></data>
   <data name="Parking_Settings_CollusionEnabled" xml:space="preserve"><value>Detect suspicious rings</value></data>
-  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Min mutual interactions</value></data>
-  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Concentration threshold (%)</value></data>
-  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Trust edge weight cap</value></data>
+  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Minimum mutual interactions</value></data>
+  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Concentration threshold per pair (%)</value></data>
+  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Pair weight cap in the trust graph</value></data>
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Scan interval (hours)</value></data>
-  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Go to suspicious-interactions review →</value></data>
+  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Open the review of suspicious pairs →</value></data>
   <data name="Parking_Collusion_Title" xml:space="preserve"><value>Suspicious interactions</value></data>
   <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Pairs whose sharing is too concentrated on each other. Review and either keep on record or dismiss as a false positive.</value></data>
   <data name="Parking_Collusion_Empty" xml:space="preserve"><value>No suspicious pairs.</value></data>
@@ -573,10 +577,10 @@
   <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Reviewed</value></data>
   <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Dismissed</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
-  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks for reputation: queue priority, a bigger monthly allowance and a reservation price discount — all growing with the loyalty tier.</value></data>
-  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Queue head start / tier (min)</value></data>
-  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Allowance bonus / tier</value></data>
-  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Price discount / tier (%)</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks growing with each tier reached: an earlier position in the waitlist for freed spots, a higher monthly credit allowance and a discount on the reservation price.</value></data>
+  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Waitlist head start per tier (min)</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Credits added to the monthly allowance per tier</value></data>
+  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Reservation price discount per tier (%)</value></data>
   <data name="Profile_TeamTitle" xml:space="preserve"><value>Team / department</value></data>
   <data name="Profile_TeamHelp" xml:space="preserve"><value>Join a team or department to see the team leaderboard and how you compare with colleagues.</value></data>
   <data name="Profile_Team" xml:space="preserve"><value>Team / department</value></data>
@@ -610,7 +614,9 @@
   <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Expired</value></data>
   <data name="Parking_Settings_SectionEnabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="Parking_Settings_StreakGroup" xml:space="preserve"><value>Streak bonus</value></data>
-  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Reputation decay</value></data>
+  <data name="Parking_Settings_StreakHelp" xml:space="preserve"><value>A reliability reward: each further completed reservation in a row grows the bonus (streak length × bonus per level) up to the cap. A single no-show resets the streak.</value></data>
+  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Gradual reputation decline</value></data>
+  <data name="Parking_Settings_DecayHelp" xml:space="preserve"><value>So tiers reflect current behaviour, points drop by the given percentage toward zero at a regular interval. Active users easily make up for it; past merit alone does not hold a tier.</value></data>
   <data name="Parking_Settings_TiersGroup" xml:space="preserve"><value>Tier thresholds</value></data>
   <data name="Home_Today" xml:space="preserve"><value>Today</value></data>
   <data name="Home_NextReservation" xml:space="preserve"><value>Next reservation</value></data>

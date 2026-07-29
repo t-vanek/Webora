@@ -277,10 +277,10 @@
   <data name="Settings_SaveRegion" xml:space="preserve"><value>Uložit region</value></data>
   <data name="Settings_RegionSection" xml:space="preserve"><value>Region</value></data>
   <data name="Settings_DefaultLanguage" xml:space="preserve"><value>Výchozí jazyk</value></data>
-  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se, když návštěvník nemá vlastní volbu jazyka.</value></data>
+  <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se pro návštěvníky, kteří si jazyk sami nepřepnuli.</value></data>
   <data name="Settings_Automatic" xml:space="preserve"><value>Automaticky</value></data>
   <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
-  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Použije se pro zobrazování časů (audit, notifikace).</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Časové pásmo webu. Řídí zobrazování časů i denní okna parkování — špičku a držení míst rezidentům.</value></data>
   <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
   <data name="Settings_EncodingSection" xml:space="preserve"><value>Kódování</value></data>
   <data name="Settings_SaveEncoding" xml:space="preserve"><value>Uložit kódování</value></data>
@@ -296,7 +296,7 @@
   <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
   <data name="Settings_SiteName" xml:space="preserve"><value>Název webu</value></data>
-  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Zobrazí se jako značka v navigaci. Prázdné = „D3Parking“.</value></data>
+  <data name="Settings_SiteNameHelp" xml:space="preserve"><value>Zobrazuje se v hlavičce a na přihlašovacích stránkách. Prázdné = „D3Parking“.</value></data>
   <data name="Settings_SiteDescription" xml:space="preserve"><value>Popis webu</value></data>
   <data name="Settings_SiteDescriptionHelp" xml:space="preserve"><value>Použije se jako výchozí meta description stránek.</value></data>
   <data name="Settings_UrlAppearance" xml:space="preserve"><value>Vzhled URL adres (kanonizace cesty).</value></data>
@@ -407,26 +407,28 @@
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
   <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Pravidla a ceny</value></data>
   <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
-  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Bodování a časová pravidla motivačního systému. Změny se projeví okamžitě.</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Ceny, body a ochranné mechanismy parkování na jednom místě. Uložené změny platí okamžitě pro všechny další rezervace.</value></data>
   <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Ekonomika</value></data>
   <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Body a úrovně</value></data>
   <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Důvěra a ochrana</value></data>
   <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a špička</value></data>
   <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Rezidenti</value></data>
   <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Lokalita a limity</value></data>
-  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Body</value></data>
+  <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Základní bodování</value></data>
+  <data name="Parking_Settings_PointsHelp" xml:space="preserve"><value>Reputační body za každodenní chování: odměna za včasné uvolnění místa, bonus za rezervaci mimo špičku a srážka za propadlou rezervaci. Každá odměna zároveň připíše stejný počet kreditů do peněženky; srážka za nedostavení snižuje pouze reputaci.</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
+  <data name="Parking_Settings_PeakHelp" xml:space="preserve"><value>Denní okno nejvyšší poptávky v čase parkoviště. Rezervace začínající ve špičce platí cenovou přirážku; rezervace mimo okno získávají bodový bonus.</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
-  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Body za uvolnění</value></data>
-  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Bonus mimo špičku</value></data>
-  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>Postih za nedostavení</value></data>
+  <data name="Parking_Settings_ReleasePoints" xml:space="preserve"><value>Body za včasné uvolnění místa</value></data>
+  <data name="Parking_Settings_OffPeakBonus" xml:space="preserve"><value>Bonus za rezervaci mimo špičku (body)</value></data>
+  <data name="Parking_Settings_NoShowPenalty" xml:space="preserve"><value>Srážka bodů za nedostavení</value></data>
   <data name="Parking_Settings_PeakStart" xml:space="preserve"><value>Začátek špičky</value></data>
   <data name="Parking_Settings_PeakEnd" xml:space="preserve"><value>Konec špičky</value></data>
-  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Uvolnit nejpozději před (min)</value></data>
-  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Tolerance pro příjezd (min)</value></data>
+  <data name="Parking_Settings_ReleaseCutoff" xml:space="preserve"><value>Předstih uvolnění nutný pro odměnu (min)</value></data>
+  <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Tolerance příjezdu (min)</value></data>
   <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Připomínka před začátkem (min)</value></data>
-  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Interval kontroly (min)</value></data>
-  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Časové hodnoty jsou v minutách.</value></data>
+  <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Interval kontroly na pozadí (min)</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>Nevyužitá rezervace se po uplynutí tolerance označí jako nedostavení — se srážkou bodů a bez vrácení zaplacených kreditů. Vyhodnocování běží průběžně na pozadí v zadaném intervalu.</value></data>
   <data name="Parking_Settings_Save" xml:space="preserve"><value>Uložit nastavení</value></data>
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Nastavení uloženo.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Konec špičky musí být po jejím začátku.</value></data>
@@ -446,11 +448,12 @@
   <data name="Parking_Admin_Resident" xml:space="preserve"><value>Rezident</value></data>
   <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— bez rezidenta —</value></data>
   <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Rezidenti</value></data>
-  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Držení místa do</value></data>
-  <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Body za hodinu předstihu</value></data>
+  <data name="Parking_Settings_ResidentsHelp" xml:space="preserve"><value>Pravidla vyhrazených míst. Každý den se místo drží jen pro svého rezidenta do zadaného času; když do té doby nepotvrdí příjezd, nabídne se automaticky ostatním. Kdo místo uvolní sám a s předstihem, získá body — tím víc, čím dřív uvolní a čím vyšší měsíční kvótu sdílení má na místě nastavenou.</value></data>
+  <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Držet místo rezidentovi do</value></data>
+  <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Body za každou hodinu předstihu</value></data>
   <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Strop bodů za předstih</value></data>
-  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Max. povolené sdílení</value></data>
-  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>% k násobiči za sdílení</value></data>
+  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Nejvyšší měsíční kvóta sdílení (dní)</value></data>
+  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>Bonus k odměně za každý den kvóty (%)</value></data>
   <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>Uživatel nebyl nalezen.</value></data>
   <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>Toto místo je vyhrazené a v tomto čase není ke sdílení.</value></data>
   <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>Nemáš přiřazené vyhrazené místo.</value></data>
@@ -465,19 +468,19 @@
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>Konec rozsahu musí být po jeho začátku.</value></data>
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>Rozsah je příliš dlouhý.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Ve zvoleném rozsahu není co uvolnit.</value></data>
-  <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Vrácení odměny za promarněné sdílení (%)</value></data>
+  <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Vratka odměny při nedostavení náhradníka (%)</value></data>
   <data name="Profile_CommuteTitle" xml:space="preserve"><value>Dojezd do práce</value></data>
   <data name="Profile_CommuteHelp" xml:space="preserve"><value>Zadej domácí adresu – z ní spočítáme vzdálenost k parkovišti. Čím dál bydlíš, tím víc bodů dostaneš za zabrání uvolněného místa.</value></data>
   <data name="Profile_CommuteDistance" xml:space="preserve"><value>Vzdálenost k parkovišti</value></data>
   <data name="Profile_HomeAddress" xml:space="preserve"><value>Domácí adresa</value></data>
   <data name="Profile_SaveAddress" xml:space="preserve"><value>Uložit adresu</value></data>
-  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Vzdálenostní faktor</value></data>
-  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>Souřadnice parkoviště a odměna za zabrání sdíleného místa škálovaná vzdáleností řidiče.</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Odměna podle dojezdové vzdálenosti</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>Souřadnice parkoviště slouží k výpočtu dojezdové vzdálenosti uživatelů. Odměna za obsazení sdíleného místa se násobí poměrem dojezdu k referenční vzdálenosti (nejvýše na strop násobiče) — kdo dojíždí z daleka, získá víc. Bez známé vzdálenosti se odměna neuděluje.</value></data>
   <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Zeměpisná šířka parkoviště</value></data>
   <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Zeměpisná délka parkoviště</value></data>
-  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Základ bodů za zabrání</value></data>
-  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Referenční vzdálenost (km)</value></data>
-  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Max. násobič vzdálenosti</value></data>
+  <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Základ bodů za obsazení sdíleného místa</value></data>
+  <data name="Parking_Settings_TakenRefKm" xml:space="preserve"><value>Referenční vzdálenost (km, násobič 1×)</value></data>
+  <data name="Parking_Settings_TakenMaxMult" xml:space="preserve"><value>Strop násobiče vzdálenosti</value></data>
   <data name="Parking_Error_GeocodeFailed" xml:space="preserve"><value>Adresu se nepodařilo najít. Zkus ji upřesnit.</value></data>
   <data name="Profile_CommutePending" xml:space="preserve"><value>Čeká na ověření adminem</value></data>
   <data name="Profile_CommutePrivacy" xml:space="preserve"><value>Adresa se používá pouze pro výpočet vzdálenosti k parkovišti. Můžeš ji kdykoli odebrat.</value></data>
@@ -490,10 +493,11 @@
   <data name="Admin_UserEdit_HomeUnverify" xml:space="preserve"><value>Zrušit ověření</value></data>
   <data name="Admin_UserEdit_HomeSaved" xml:space="preserve"><value>Uloženo.</value></data>
   <data name="Parking_Settings_LimitsSection" xml:space="preserve"><value>Ověřování a limity</value></data>
-  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Automaticky schvalovat adresy (do limitu vzdálenosti)</value></data>
-  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Limit pro auto-schválení (km)</value></data>
-  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Max. odměněných uvolnění / den</value></data>
-  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Max. rozsah uvolnění (dní)</value></data>
+  <data name="Parking_Settings_LimitsHelp" xml:space="preserve"><value>Pojistky proti zneužívání: domácí adresy do zadané vzdálenosti se schvalují automaticky (vzdálenější posuzuje správce) a stropy omezují, kolik uvolnění denně se odměňuje a na jak dlouhé období dopředu lze uvolňovat.</value></data>
+  <data name="Parking_Settings_AutoVerify" xml:space="preserve"><value>Adresy do limitu schvalovat automaticky</value></data>
+  <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Limit automatického schválení (km)</value></data>
+  <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Nejvíce odměněných uvolnění za den</value></data>
+  <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Nejdelší rozsah uvolnění najednou (dní)</value></data>
   <data name="Parking_Price" xml:space="preserve"><value>Cena</value></data>
   <data name="Parking_Credits" xml:space="preserve"><value>kreditů</value></data>
   <data name="Parking_Occupancy" xml:space="preserve"><value>Obsazenost</value></data>
@@ -503,25 +507,25 @@
   <data name="Parking_MyCredits" xml:space="preserve"><value>Kredit</value></data>
   <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>Nemáš dostatek kreditů na tuto rezervaci.</value></data>
   <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Ekonomika rezervací</value></data>
-  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace = základ × přirážka za špičku × přirážka za obsazenost (zastropováno). Kredit se strhává při rezervaci a vrací se při včasném zrušení nebo uvolnění.</value></data>
-  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Základní cena (kredity)</value></data>
-  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Přirážka za špičku (%)</value></data>
-  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
-  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Max. cena (kredity)</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace v kreditech: základ × přirážka ve špičce × přirážka podle zaplněnosti, vždy nejméně základ a nejvýše strop. Kredity se strhávají hned při rezervaci; včasné zrušení nebo uvolnění je vrací v plné výši.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Základní cena rezervace (kredity)</value></data>
+  <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Cena ve špičce (% základní ceny)</value></data>
+  <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka při plném parkovišti (%)</value></data>
+  <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Nejvyšší cena rezervace (kredity)</value></data>
   <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční příděl kreditů</value></data>
-  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Držení místa z fronty (min)</value></data>
-  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Tresty za no-show z fronty</value></data>
-  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Nekompromisní postih, když si uživatel převezme místo z fronty a pak nedorazí: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
-  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka bodů</value></data>
-  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta</value></data>
+  <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Platnost nabídky místa z fronty (min)</value></data>
+  <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Postihy za nedostavení k místu z fronty</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Kdo si převezme uvolněné místo z fronty a nepřijede, zablokoval ho ostatním čekajícím. Postih je proto přísnější než u běžného nedostavení: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížení příštího měsíčního přídělu.</value></data>
+  <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka reputačních bodů</value></data>
+  <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta z peněženky</value></data>
   <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
-  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka příštího přídělu</value></data>
+  <data name="Parking_Settings_QueueNoShowAllowance" xml:space="preserve"><value>Srážka z příštího přídělu (kredity)</value></data>
   <data name="Parking_Queue_Error_Banned" xml:space="preserve"><value>Kvůli předchozímu nedostavení máš dočasně zakázaný vstup do fronty.</value></data>
-  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Poptávkové odměny za uvolnění</value></data>
-  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>Odměna za uvolnění roste s poptávkou: přirážka podle obsazenosti lotu plus bonus za každého čekajícího ve frontě, zastropováno. Uvolnit místo, když je o něj zájem, se vyplatí nejvíc.</value></data>
-  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka za obsazenost (%)</value></data>
-  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za čekajícího ve frontě</value></data>
-  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Max. odměna za uvolnění</value></data>
+  <data name="Parking_Settings_DemandRewardSection" xml:space="preserve"><value>Odměna za uvolnění podle poptávky</value></data>
+  <data name="Parking_Settings_DemandRewardHelp" xml:space="preserve"><value>Čím žádanější uvolněné místo je, tím víc bodů: k základní odměně se přičítá přirážka podle zaplněnosti parkoviště a bonus za každého čekajícího ve frontě, až po strop. Uvolnit místo ve chvíli největšího zájmu se tak vyplatí nejvíc.</value></data>
+  <data name="Parking_Settings_DemandOccupancyPercent" xml:space="preserve"><value>Přirážka při plném parkovišti (%)</value></data>
+  <data name="Parking_Settings_DemandQueueBonus" xml:space="preserve"><value>Bonus za každého čekajícího (body)</value></data>
+  <data name="Parking_Settings_MaxReleaseReward" xml:space="preserve"><value>Nejvyšší odměna za uvolnění (body)</value></data>
   <data name="Parking_MyStreak" xml:space="preserve"><value>Série dokončení</value></data>
   <data name="Parking_Tier_Bronze" xml:space="preserve"><value>Bronz</value></data>
   <data name="Parking_Tier_Silver" xml:space="preserve"><value>Stříbro</value></data>
@@ -530,37 +534,37 @@
   <data name="Parking_Tier_ToNext" xml:space="preserve"><value>Ještě {0} bodů do úrovně {1}</value></data>
   <data name="Parking_Tier_Max" xml:space="preserve"><value>Nejvyšší úroveň</value></data>
   <data name="Parking_Settings_LoyaltySection" xml:space="preserve"><value>Série a úrovně</value></data>
-  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Odměna za nepřerušenou sérii dokončení (roste s délkou, zastropováno; no-show ji vynuluje) a hranice reputačních úrovní (Bronz/Stříbro/Zlato/Platina), které odemykají výhody.</value></data>
-  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za sérii (na úroveň)</value></data>
-  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Strop bonusu za sérii</value></data>
+  <data name="Parking_Settings_LoyaltyHelp" xml:space="preserve"><value>Hranice reputačních úrovní Bronz → Stříbro → Zlato → Platina. Úroveň se určuje z aktuálních bodů a odemyká výhody nastavené v sekci níže.</value></data>
+  <data name="Parking_Settings_StreakBonusPerLevel" xml:space="preserve"><value>Bonus za každý stupeň série (body)</value></data>
+  <data name="Parking_Settings_StreakBonusCap" xml:space="preserve"><value>Strop bonusu za sérii (body)</value></data>
   <data name="Parking_Settings_TierSilver" xml:space="preserve"><value>Stříbro od (bodů)</value></data>
   <data name="Parking_Settings_TierGold" xml:space="preserve"><value>Zlato od (bodů)</value></data>
   <data name="Parking_Settings_TierPlatinum" xml:space="preserve"><value>Platina od (bodů)</value></data>
-  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Rozklad reputace (%)</value></data>
-  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Interval rozkladu (dní)</value></data>
-  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptivní ceny</value></data>
-  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Samoladící regulátor: pravidelně změří obsazenost ve špičce a posune přirážku za špičku směrem k cílové obsazenosti (v mezích a po krocích). Při vypnutí drží ruční hodnotu přirážky.</value></data>
+  <data name="Parking_Settings_ReputationDecayPercent" xml:space="preserve"><value>Pokles za jeden interval (%)</value></data>
+  <data name="Parking_Settings_ReputationDecayInterval" xml:space="preserve"><value>Interval poklesu (dní)</value></data>
+  <data name="Parking_Settings_AdaptiveSection" xml:space="preserve"><value>Adaptivní cena špičky</value></data>
+  <data name="Parking_Settings_AdaptiveHelp" xml:space="preserve"><value>Regulátor v zadaných intervalech měří obsazenost ve špičce a posouvá cenu ve špičce směrem k cílové obsazenosti — po omezených krocích a jen v povolených mezích. Odchylky v pásmu necitlivosti ponechává bez reakce. Po vypnutí platí ručně nastavená cena ve špičce.</value></data>
   <data name="Parking_Settings_AdaptiveEnabled" xml:space="preserve"><value>Zapnout adaptivní ladění cen</value></data>
-  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Cílová obsazenost (%)</value></data>
-  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Interval ladění (min)</value></data>
-  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Zesílení regulátoru</value></data>
-  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Pásmo necitlivosti (%)</value></data>
-  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Max. krok přirážky</value></data>
-  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Min. přirážka za špičku (%)</value></data>
-  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Max. přirážka za špičku (%)</value></data>
+  <data name="Parking_Settings_AdaptiveTarget" xml:space="preserve"><value>Cílová obsazenost ve špičce (%)</value></data>
+  <data name="Parking_Settings_AdaptiveInterval" xml:space="preserve"><value>Nejkratší odstup dvou úprav (min)</value></data>
+  <data name="Parking_Settings_AdaptiveGain" xml:space="preserve"><value>Síla reakce (vyšší = rychlejší změny)</value></data>
+  <data name="Parking_Settings_AdaptiveDeadband" xml:space="preserve"><value>Pásmo necitlivosti (± % obsazenosti)</value></data>
+  <data name="Parking_Settings_AdaptiveStepMax" xml:space="preserve"><value>Největší změna v jednom kroku (procentní body)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMin" xml:space="preserve"><value>Dolní mez ceny ve špičce (%)</value></data>
+  <data name="Parking_Settings_AdaptivePeakMax" xml:space="preserve"><value>Horní mez ceny ve špičce (%)</value></data>
   <data name="Parking_Settings_TrustSection" xml:space="preserve"><value>Graf důvěry</value></data>
-  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Z dokončených rezervací na sdílených místech se sestaví graf interakcí a váženým PageRankem se spočítá skóre důvěry (0–100). Nad prahem se udělí odznak „Důvěryhodný". Odolné vůči gamingu – hrany vyžadují reálné dokončené rezervace.</value></data>
+  <data name="Parking_Settings_TrustHelp" xml:space="preserve"><value>Z dokončených rezervací na sdílených místech se sestavuje graf vzájemných interakcí a váženým algoritmem PageRank se z něj počítá skóre důvěry 0–100. Kdo dosáhne prahu, získá odznak „Důvěryhodný“. Hrany vznikají jen ze skutečně dokončených rezervací, skóre se proto nedá nahnat naprázdno.</value></data>
   <data name="Parking_Settings_TrustEnabled" xml:space="preserve"><value>Počítat graf důvěry</value></data>
   <data name="Parking_Settings_TrustInterval" xml:space="preserve"><value>Interval přepočtu (hodin)</value></data>
   <data name="Parking_Settings_TrustThreshold" xml:space="preserve"><value>Práh odznaku Důvěryhodný (0–100)</value></data>
-  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Anti-collusion (detekce kruhů)</value></data>
-  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Detekuje páry, jejichž sdílecí interakce se příliš soustředí na sebe navzájem (možný farmící kruh), a založí flag k revizi. Automaticky jen ořízne váhu hrany v grafu důvěry; tvrdé akce řeší admin ručně.</value></data>
+  <data name="Parking_Settings_CollusionSection" xml:space="preserve"><value>Ochrana proti domluvě</value></data>
+  <data name="Parking_Settings_CollusionHelp" xml:space="preserve"><value>Vyhledává dvojice, jejichž sdílení míst se podezřele soustředí jen na sebe navzájem — typický vzor domluveného sbírání bodů. Nález založí záznam k ruční revizi; automaticky se pouze omezí váha dvojice v grafu důvěry, tresty zůstávají na rozhodnutí správce.</value></data>
   <data name="Parking_Settings_CollusionEnabled" xml:space="preserve"><value>Detekovat podezřelé kruhy</value></data>
-  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Min. vzájemných interakcí</value></data>
-  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Práh koncentrace (%)</value></data>
-  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Strop váhy hrany v důvěře</value></data>
-  <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval skenu (hodin)</value></data>
-  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Přejít na revizi podezřelých interakcí →</value></data>
+  <data name="Parking_Settings_CollusionMin" xml:space="preserve"><value>Nejméně vzájemných interakcí</value></data>
+  <data name="Parking_Settings_CollusionConcentration" xml:space="preserve"><value>Práh koncentrace na dvojici (%)</value></data>
+  <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Strop váhy dvojice v grafu důvěry</value></data>
+  <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval kontroly (hodin)</value></data>
+  <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Otevřít revizi podezřelých dvojic →</value></data>
   <data name="Parking_Collusion_Title" xml:space="preserve"><value>Podezřelé interakce</value></data>
   <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Páry, jejichž sdílení se příliš soustředí na sebe navzájem. Posuď a buď ponech k záznamu, nebo zamítni jako planý poplach.</value></data>
   <data name="Parking_Collusion_Empty" xml:space="preserve"><value>Žádné podezřelé páry.</value></data>
@@ -573,10 +577,10 @@
   <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Přezkoumán</value></data>
   <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Zamítnut</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
-  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody za reputaci: přednost ve frontě, vyšší měsíční příděl a sleva na cenu rezervace – vše roste s loajalitní úrovní.</value></data>
-  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Přednost ve frontě / úroveň (min)</value></data>
-  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Bonus k přídělu / úroveň</value></data>
-  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva na cenu / úroveň (%)</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody rostoucí s každou dosaženou úrovní: dřívější pořadí ve frontě na uvolněná místa, vyšší měsíční příděl kreditů a sleva z ceny rezervace.</value></data>
+  <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Náskok ve frontě za úroveň (min)</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Kredity k měsíčnímu přídělu za úroveň</value></data>
+  <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva z ceny rezervace za úroveň (%)</value></data>
   <data name="Profile_TeamTitle" xml:space="preserve"><value>Tým / oddělení</value></data>
   <data name="Profile_TeamHelp" xml:space="preserve"><value>Zařaď se do týmu nebo oddělení – objeví se týmový žebříček a porovnání s kolegy.</value></data>
   <data name="Profile_Team" xml:space="preserve"><value>Tým / oddělení</value></data>
@@ -610,7 +614,9 @@
   <data name="Parking_QueueState_Expired" xml:space="preserve"><value>Vypršelo</value></data>
   <data name="Parking_Settings_SectionEnabled" xml:space="preserve"><value>Zapnuto</value></data>
   <data name="Parking_Settings_StreakGroup" xml:space="preserve"><value>Bonus za sérii</value></data>
-  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Rozklad reputace</value></data>
+  <data name="Parking_Settings_StreakHelp" xml:space="preserve"><value>Odměna za spolehlivost: s každou další dokončenou rezervací v řadě roste bonus (délka série × bonus za stupeň) až po strop. Jediné nedostavení sérii vynuluje.</value></data>
+  <data name="Parking_Settings_DecayGroup" xml:space="preserve"><value>Postupný pokles reputace</value></data>
+  <data name="Parking_Settings_DecayHelp" xml:space="preserve"><value>Aby úrovně odrážely současné chování, body v pravidelném intervalu klesají o zadané procento směrem k nule. Kdo je aktivní, pokles snadno dorovná; dávná zásluha sama o sobě úroveň neudrží.</value></data>
   <data name="Parking_Settings_TiersGroup" xml:space="preserve"><value>Hranice úrovní</value></data>
   <data name="Home_Today" xml:space="preserve"><value>Dnes</value></data>
   <data name="Home_NextReservation" xml:space="preserve"><value>Nejbližší rezervace</value></data>
