@@ -76,6 +76,9 @@ vyhrazeného místa) a penalizují nedostavení se.
   a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
 - **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
   Calendar) včetně připomínky 30 minut před začátkem.
+- **Nápověda v aplikaci** — stránka `/help` vysvětluje uživatelům rezervace, kredity, body, frontu,
+  rezidentní místa i postup, když se nedá zaparkovat; správci navíc vidí sekci o návštěvách,
+  neshodách a pravidlech. Lokalizovaná (cs/en).
 - **Návštěvy** — recepce rezervuje návštěvnická místa hostům **bez účtu** (jméno, firma, SPZ,
   hostitel — ten dostane notifikaci, kde jeho návštěva parkuje). Místa typu *Návštěvnické* jsou
   vyčleněná z fondu zaměstnanců a SPZ návštěvy se automaticky páruje v neshodách obsazenosti.

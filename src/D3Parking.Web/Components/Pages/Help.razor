@@ -1,0 +1,279 @@
+@page "/help"
+@using D3Parking.Domain.Parking.Incentives
+@using D3Parking.Web.Authorization
+@inject IParkingSettingsService ParkingSettings
+@inject IResidentSpotService ResidentSpots
+@inject IParkingSpotService Spots
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Help_Title"]</PageTitle>
+
+@* Uživatelská nápověda. Statické SSR — je to čtený text, žádná interaktivita není potřeba
+   (rozbalování řeší nativní <details>), takže stránka nezabírá circuit a funguje i bez JS.
+
+   Obsah se řídí ŽIVOU konfigurací: čísla (ceny, body, lhůty, prahy úrovní) se berou z aktuální
+   policy a sekce vypnutých funkcí se vůbec nevykreslí. Nápověda, která slibuje odměny, jež má
+   admin vypnuté, je horší než žádná. Sekce pro správce navíc respektují oprávnění. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:900px">
+    <div class="admin-head__titles">
+        <FluentLabel Typo="Typography.PageTitle">@L["Help_Title"]</FluentLabel>
+        <p class="admin-head__intro">@L["Help_Intro"]</p>
+    </div>
+
+    @if (_policy is { } policy)
+    {
+        <details class="help-item" open>
+            <summary class="help-item__q">@L["Help_Reserve_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Reserve_A1"]</p>
+                <p>@(_charged ? L["Help_Reserve_A2_Paid", Fmt(policy.ReleaseCutoff)] : L["Help_Reserve_A2_Free"])</p>
+            </div>
+        </details>
+
+        @if (_charged)
+        {
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Credits_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Credits_A1", Credits(policy.BaseReservationCost), Time(policy.PeakStart), Time(policy.PeakEnd), Credits(policy.MaxReservationCost)]</p>
+                    <ul>
+                        <li>
+                            @(policy.TierAllowanceBonus > 0
+                                ? L["Help_Credits_Li1_Tiered", Credits(policy.MonthlyCreditAllowance), policy.TierAllowanceBonus]
+                                : L["Help_Credits_Li1", Credits(policy.MonthlyCreditAllowance)])
+                        </li>
+                        <li>@L["Help_Credits_Li2", Fmt(policy.ReleaseCutoff)]</li>
+                        <li>@L["Help_Credits_Li3"]</li>
+                    </ul>
+                </div>
+            </details>
+        }
+
+        @if (_pointsOn)
+        {
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Points_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Points_A1"]</p>
+                    <ul>
+                        @if (policy.StreakBonusPerLevel > 0)
+                        {
+                            <li>@L["Help_Points_Li1", Points(policy.StreakBonusPerLevel), Points(policy.StreakBonusCap)]</li>
+                        }
+                        @if (policy.OffPeakBonusPoints > 0)
+                        {
+                            <li>@L["Help_Points_Li2", Points(policy.OffPeakBonusPoints), Time(policy.PeakStart), Time(policy.PeakEnd)]</li>
+                        }
+                        @if (policy.ReleasePoints > 0)
+                        {
+                            <li>@L["Help_Points_Li3", policy.ReleasePoints, Points(policy.MaxReleaseReward), policy.MaxRewardedReleasesPerDay]</li>
+                        }
+                        @if (policy.ResidentReleaseMaxPoints > 0 || policy.SharedTakenBasePoints > 0)
+                        {
+                            <li>@L["Help_Points_Li4"]</li>
+                        }
+                    </ul>
+                    @if (_tiersOn)
+                    {
+                        <p>@L["Help_Points_A2", Points(policy.TierSilverPoints), policy.TierGoldPoints, policy.TierPlatinumPoints]</p>
+                        <ul>
+                            @if (policy.QueuePriorityPerTier > 0)
+                            {
+                                <li>@L["Help_Points_Perk_Queue"]</li>
+                            }
+                            @if (policy.TierAllowanceBonus > 0)
+                            {
+                                <li>@L["Help_Points_Perk_Allowance", policy.TierAllowanceBonus]</li>
+                            }
+                            @if (policy.TierDiscountPercent > 0)
+                            {
+                                <li>@L["Help_Points_Perk_Discount", policy.TierDiscountPercent]</li>
+                            }
+                        </ul>
+                    }
+                    @if (policy.ReputationDecayPercent > 0)
+                    {
+                        <p>@L["Help_Points_Decay", policy.ReputationDecayPercent, Days(policy.ReputationDecayIntervalDays)]</p>
+                    }
+                </div>
+            </details>
+        }
+
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_NoShow_Q"]</summary>
+            <div class="help-item__a">
+                <p>
+                    @(policy.NoShowPenaltyPoints > 0
+                        ? L["Help_NoShow_A1_Penalty", Fmt(policy.NoShowGracePeriod), Points(policy.NoShowPenaltyPoints)]
+                        : L["Help_NoShow_A1", Fmt(policy.NoShowGracePeriod)])
+                </p>
+                <p>@L["Help_NoShow_A2"]</p>
+            </div>
+        </details>
+
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Queue_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Queue_A1", policy.QueueOfferMinutes]</p>
+                <p>@(policy.QueuePriorityPerTier > 0 ? L["Help_Queue_A2_Tiered"] : L["Help_Queue_A2"])</p>
+                @if (_queuePenaltyOn)
+                {
+                    <p>@L["Help_Queue_Penalty", Points(policy.QueueNoShowPenaltyPoints), Credits(policy.QueueNoShowCreditPenalty), Days(policy.QueueNoShowBanDays)]</p>
+                }
+            </div>
+        </details>
+
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Blocked_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Blocked_A1"]</p>
+                <p>@L["Help_Blocked_A2"]</p>
+            </div>
+        </details>
+
+        @* Rezidentní pravidla vidí jen ten, koho se týkají: vlastník místa nebo správce míst. *@
+        @if (_ownsSpot)
+        {
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Resident_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Resident_A1", Time(policy.ResidentHoldUntil)]</p>
+                    <p>
+                        @(policy.ResidentReleaseMaxPoints > 0
+                            ? L["Help_Resident_A2_Rewarded", Points(policy.ResidentReleasePointsPerHour), Points(policy.ResidentReleaseMaxPoints)]
+                            : L["Help_Resident_A2"])
+                    </p>
+                </div>
+            </details>
+        }
+
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Notifications_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Notifications_A1"]</p>
+                <p>@L["Help_Notifications_A2"]</p>
+            </div>
+        </details>
+
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Profile_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Profile_A1"]</p>
+                <ul>
+                    @if (policy.SharedTakenBasePoints > 0)
+                    {
+                        <li>@L["Help_Profile_Li1"]</li>
+                    }
+                    <li>@L["Help_Profile_Li2"]</li>
+                    <li>@L["Help_Profile_Li3"]</li>
+                </ul>
+            </div>
+        </details>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)">
+            <FluentLabel Typo="Typography.Subject" Style="margin-top:12px">@L["Help_AdminSection"]</FluentLabel>
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Visitors_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Visitors_A1"]</p>
+                    <p>@L["Help_Visitors_A2"]</p>
+                    @if (!_hasVisitorSpots)
+                    {
+                        @* Bez míst typu Návštěvnické je agenda prázdná — ať správce ví proč. *@
+                        <p><strong>@L["Help_Visitors_NoSpots"]</strong></p>
+                    }
+                </div>
+            </details>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)">
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Mismatch_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Mismatch_A1"]</p>
+                    <p>@L["Help_Mismatch_A2"]</p>
+                </div>
+            </details>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)">
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_Rules_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_Rules_A1"]</p>
+                    <p>
+                        @L["Help_Rules_State_Pricing", policy.AdaptivePricingEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
+                        @L["Help_Rules_State_Campaigns", policy.AvailabilityCampaignsEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
+                    </p>
+                    @if (policy.AvailabilityCampaignsEnabled)
+                    {
+                        <p>@L["Help_Rules_CampaignSetup", Days(policy.AvailabilityMinConsecutiveDays), policy.AvailabilityFreeThresholdPercent, Days(policy.AvailabilityLookaheadDays), policy.AvailabilitySendHourLocal]</p>
+                    }
+                </div>
+            </details>
+        </AuthorizeView>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private IncentivePolicy? _policy;
+    private bool _charged;
+    private bool _pointsOn;
+    private bool _tiersOn;
+    private bool _queuePenaltyOn;
+    private bool _ownsSpot;
+    private bool _hasVisitorSpots;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var policy = await ParkingSettings.GetPolicyAsync();
+        _policy = policy;
+
+        // Which chapters are worth showing at all under the current configuration.
+        _charged = policy.BaseReservationCost > 0;
+        _pointsOn = policy.ReleasePoints > 0 || policy.OffPeakBonusPoints > 0
+            || policy.StreakBonusPerLevel > 0 || policy.SharedTakenBasePoints > 0;
+        _tiersOn = policy.QueuePriorityPerTier > 0 || policy.TierAllowanceBonus > 0 || policy.TierDiscountPercent > 0;
+        _queuePenaltyOn = policy.QueueNoShowPenaltyPoints > 0 || policy.QueueNoShowCreditPenalty > 0
+            || policy.QueueNoShowBanDays > 0;
+
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            var user = await UserManager.GetUserAsync(state.User);
+            if (user is not null)
+            {
+                _ownsSpot = await ResidentSpots.GetMyOwnedSpotAsync(user.Id) is not null;
+
+                // Only the visitor-agenda chapter needs this, and only admins ever see it.
+                if (state.User.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageReservations))
+                {
+                    var spots = await Spots.ListAsync(includeInactive: false);
+                    _hasVisitorSpots = spots.Any(s => s.Type == ParkingSpotType.Visitor);
+                }
+            }
+        }
+    }
+
+    private static string Time(TimeOnly value) => value.ToString("HH\\:mm");
+
+    /// <summary>Whole hours read better than "01:00:00"; anything shorter stays in minutes.</summary>
+    private string Fmt(TimeSpan value) => value.TotalHours >= 1 && value.Minutes == 0
+        ? L["Help_Unit_Hours", (int)value.TotalHours]
+        : L["Help_Unit_Minutes", (int)value.TotalMinutes];
+
+    // Numbers come from the live configuration, so the unit has to inflect with them: Czech needs
+    // "1 bod / 2 body / 5 bodů". The templates therefore take an already-formatted "5 bodů", never
+    // a bare number followed by a fixed noun.
+    private string Points(int count) => $"{count} {L[$"Help_Plural_Points_{Form(count)}"].Value}";
+
+    private string Credits(int count) => $"{count} {L[$"Help_Plural_Credits_{Form(count)}"].Value}";
+
+    private string Days(int count) => $"{count} {L[$"Help_Plural_Days_{Form(count)}"].Value}";
+
+    /// <summary>Czech plural class: 1, 2–4, 5+. English resources map 2 and 5 to the same word.</summary>
+    private static int Form(int count) => count == 1 ? 1 : count is >= 2 and <= 4 ? 2 : 5;
+}

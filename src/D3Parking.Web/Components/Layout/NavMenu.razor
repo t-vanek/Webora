@@ -74,6 +74,14 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Leaderboard"]</span>
                 </NavLink>
             }
+
+            @* Nápověda vysvětluje parkovací pravidla, takže patří do stejné sekce. *@
+            <NavLink href="help" class="side-nav__item" ActiveClass="side-nav__item--active"
+                     aria-label="@L["Nav_Help"]">
+                <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                <span class="side-nav__label">@L["Nav_Help"]</span>
+                <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Help"]</span>
+            </NavLink>
         }
 
         @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives || _canManageReservations)
