@@ -36,18 +36,16 @@ public class AdminTests : AdminTest
     [Test]
     public async Task Spot_generator_creates_a_series_and_marks_it_duplicate_afterwards()
     {
-        await Page.GotoAsync("/admin/parking/spots");
-        await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
 
         // Unique section prefix per run — the database persists between test runs.
         var prefix = $"G{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
 
-        // Hydration slows down as the grid grows, and interactions racing the handshake are
-        // lost: a tab clicked mid-handshake switches only visually and flips back once the
-        // circuit binds, taking the panel (and its inputs) away again. Retry the whole
-        // tab + fill sequence with short timeouts until the live preview responds.
-        // Retry until the preview shows exactly the expected count — visibility alone is not
-        // enough, because one of the two fills can be lost while the other lands.
+        // Even with the circuit attached, the grid re-renders as it grows and a tab clicked
+        // mid-render can flip back, taking the panel (and its inputs) away again. Retry the
+        // whole tab + fill sequence until the live preview shows exactly the expected count —
+        // visibility alone is not enough, because one of the two fills can be lost while the
+        // other lands. The preview assertion doubles as the wait, so there is no blind sleep.
         var countChip = Page.Locator(".batch-preview .count-chip");
         for (var attempt = 0; attempt < 5; attempt++)
         {
@@ -56,16 +54,13 @@ public class AdminTests : AdminTest
                 await Page.Locator("fluent-tab", new() { HasText = "Generátor řady" }).ClickAsync(new() { Timeout = 5000 });
                 await Page.Locator("fluent-text-field#ser-sections input").FillAsync(prefix, new() { Timeout = 5000 });
                 await Page.Locator("fluent-number-field#ser-to input").FillAsync("5", new() { Timeout = 5000 });
-            }
-            catch (TimeoutException)
-            {
-                // The panel flipped away mid-attempt — go around again.
-            }
-
-            await Page.WaitForTimeoutAsync(1200);
-            if (await countChip.IsVisibleAsync() && (await countChip.TextContentAsync())?.Trim() == "5")
-            {
+                await Expect(countChip).ToHaveTextAsync("5", new() { Timeout = 3000 });
                 break;
+            }
+            catch (PlaywrightException)
+            {
+                // The panel flipped away or a fill was lost mid-attempt — go around again.
+                // (Playwright's TimeoutException and the assertion failure both derive from this.)
             }
         }
 
@@ -84,19 +79,25 @@ public class AdminTests : AdminTest
     [Test]
     public async Task Spot_type_changes_inline_from_the_grid()
     {
-        await Page.GotoAsync("/admin/parking/spots");
-        await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
 
-        // Create a throwaway spot to retype. Circuit hydration slows down as the grid grows,
-        // and a click fired during the handshake is silently dropped — retry until the row
-        // appears. FluentDataGrid renders a native table, so rows are plain <tr> elements.
+        // Create a throwaway spot to retype. Even attached, a grid re-render can still swallow
+        // an early click — retry until the new row appears, using the row itself as the wait.
+        // FluentDataGrid renders a native table, so rows are plain <tr> elements.
         var code = $"T{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
         var row = Page.Locator(".admin-panel tr", new() { HasText = code });
         for (var attempt = 0; attempt < 4 && !await row.IsVisibleAsync(); attempt++)
         {
             await Page.Locator("fluent-text-field#single-code input").FillAsync(code);
             await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Přidat|Add)$") }).ClickAsync();
-            await Page.WaitForTimeoutAsync(1200);
+            try
+            {
+                await row.WaitForAsync(new() { Timeout = 3000 });
+            }
+            catch (TimeoutException)
+            {
+                // The click was lost — go around again.
+            }
         }
 
         await Expect(row).ToBeVisibleAsync();
@@ -111,11 +112,10 @@ public class AdminTests : AdminTest
     [Test]
     public async Task Rules_and_pricing_tabs_switch_content()
     {
-        await Page.GotoAsync("/admin/parking/settings");
+        // A click that lands during the circuit handshake is silently dropped and the tab never
+        // switches — wait for the circuit instead of guessing with a sleep.
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
         await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
-        // Let the InteractiveServer circuit hydrate before clicking — a click that lands during
-        // the handshake is silently dropped and the tab never switches.
-        await Page.WaitForTimeoutAsync(1500);
         await Page.Locator("fluent-tab", new() { HasText = "Důvěra a ochrana" }).ClickAsync();
         await Expect(Page.GetByText("Graf důvěry", new() { Exact = true })).ToBeVisibleAsync();
     }
@@ -123,17 +123,18 @@ public class AdminTests : AdminTest
     [Test]
     public async Task Saving_the_rules_and_pricing_form_confirms_success()
     {
-        await Page.GotoAsync("/admin/parking/settings");
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
         await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
-        await Page.WaitForTimeoutAsync(1000); // hydrate the InteractiveServer save button
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit nastavení") }).ClickAsync();
         await Expect(Page.GetByText(new Regex("uloženo|saved", RegexOptions.IgnoreCase))).ToBeVisibleAsync();
     }
 
     [Test]
-    public async Task Collusion_review_shows_the_empty_state()
+    public async Task Collusion_review_renders_its_content()
     {
+        // The shared database persists between runs, so flags may legitimately exist: assert the
+        // page renders one of its two states (empty state or the flag grid), not emptiness.
         await Page.GotoAsync("/admin/parking/collusion");
-        await Expect(Page.Locator(".empty-state")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".empty-state").Or(Page.Locator(".admin-panel")).First).ToBeVisibleAsync();
     }
 }

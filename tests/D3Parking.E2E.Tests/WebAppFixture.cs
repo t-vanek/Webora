@@ -15,8 +15,10 @@ public sealed class WebAppFixture
     public static readonly string BaseUrl =
         Environment.GetEnvironmentVariable("BASE_URL") ?? "http://localhost:5163";
 
+    // Unique per test process: two suites running side by side (e.g. the parallel verification
+    // instance next to the IDE one) must not overwrite each other's saved session.
     public static readonly string AdminStatePath =
-        Path.Combine(Path.GetTempPath(), "d3parking-e2e-admin-state.json");
+        Path.Combine(Path.GetTempPath(), $"d3parking-e2e-admin-state-{Environment.ProcessId}.json");
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
     private Process? _app;
@@ -50,6 +52,15 @@ public sealed class WebAppFixture
         {
             _app.Kill(entireProcessTree: true);
             _app.Dispose();
+        }
+
+        try
+        {
+            File.Delete(AdminStatePath);
+        }
+        catch (IOException)
+        {
+            // A leftover state file is only a stale temp file; never fail the run over it.
         }
     }
 

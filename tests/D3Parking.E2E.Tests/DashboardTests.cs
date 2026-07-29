@@ -11,7 +11,9 @@ public class DashboardTests : AdminTest
     public async Task Home_shows_the_hero_and_quick_action_tiles()
     {
         await Page.GotoAsync("/");
-        await Expect(Page.Locator(".home-hero__title")).ToHaveTextAsync("D3Parking");
+        // The hero shows the site name, which is admin-editable at /admin/settings — assert the
+        // structure (a non-empty title), not the configurable value.
+        await Expect(Page.Locator(".home-hero__title")).Not.ToBeEmptyAsync();
         await Expect(Page.Locator(".home-tile").First).ToBeVisibleAsync();
         Assert.That(await Page.Locator(".home-tile").CountAsync(), Is.GreaterThan(3));
     }
@@ -27,9 +29,8 @@ public class DashboardTests : AdminTest
     [Test]
     public async Task Sidebar_collapses_to_the_rail_and_expands_back()
     {
-        await Page.GotoAsync("/");
         // The nav is an interactive island; wait for the circuit before clicking.
-        await Page.WaitForTimeoutAsync(1500);
+        await Pages.GotoInteractiveAsync(Page, "/");
 
         var nav = Page.Locator(".side-nav");
         var expanded = await nav.BoundingBoxAsync();
