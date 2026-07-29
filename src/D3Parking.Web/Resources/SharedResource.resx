@@ -373,6 +373,13 @@
   <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Zaznamenal(a)</value></data>
   <data name="Parking_Mismatch_Related" xml:space="preserve"><value>Rezervace na místě</value></data>
   <data name="Parking_Mismatch_MailSubject" xml:space="preserve"><value>Parkovací místo {0} — {1}</value></data>
+  <data name="Parking_Mismatch_PlateUnknown" xml:space="preserve"><value>mimo systém</value></data>
+  <data name="Parking_Blocked_PlateLabel" xml:space="preserve"><value>SPZ blokujícího vozidla (nepovinné)</value></data>
+  <data name="Parking_Blocked_PlatePlaceholder" xml:space="preserve"><value>např. 3AB 1234</value></data>
+  <data name="Profile_VehicleTitle" xml:space="preserve"><value>Vozidlo</value></data>
+  <data name="Profile_VehicleHelp" xml:space="preserve"><value>SPZ pomáhá správci dohledat vaše auto, kdyby omylem blokovalo cizí rezervaci — ozve se vám dřív, než se cokoli řeší dál.</value></data>
+  <data name="Profile_VehiclePlate" xml:space="preserve"><value>SPZ vozidla</value></data>
+  <data name="Profile_SaveVehicle" xml:space="preserve"><value>Uložit vozidlo</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>

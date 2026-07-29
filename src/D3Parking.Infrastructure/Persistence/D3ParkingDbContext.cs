@@ -109,10 +109,16 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         {
             mismatch.ToTable("OccupancyMismatches");
             mismatch.HasKey(m => m.Id);
+            mismatch.Property(m => m.BlockerPlate).HasMaxLength(16);
             // The admin view reads per-spot trends newest-first; the reporter index backs the
             // per-user daily report cap.
             mismatch.HasIndex(m => new { m.SpotId, m.ReportedAtUtc });
             mismatch.HasIndex(m => new { m.ReporterId, m.ReportedAtUtc });
+        });
+
+        builder.Entity<Identity.ApplicationUser>(user =>
+        {
+            user.Property(u => u.LicensePlate).HasMaxLength(16);
         });
 
         builder.Entity<ApologyVoucher>(voucher =>

@@ -30,6 +30,12 @@ public class ApplicationUser : IdentityUser<Guid>
 
     /// <summary>Whether an admin has verified the home address; the distance reward needs this.</summary>
     public bool HomeVerified { get; set; }
+
+    /// <summary>
+    /// The user's vehicle license plate (self-entered). Lets the admin match a plate recorded in
+    /// a blocked-spot report to a person; comparison ignores spacing and case.
+    /// </summary>
+    public string? LicensePlate { get; set; }
 }
 
 public class ApplicationRole : IdentityRole<Guid>

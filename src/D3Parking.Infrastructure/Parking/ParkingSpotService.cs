@@ -334,6 +334,7 @@ public sealed class ParkingSpotService(
                                     m.StartUtc,
                                     m.EndUtc,
                                     m.ReportedAtUtc,
+                                    m.BlockerPlate,
                                     ReporterName = reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
                                     ReporterEmail = reporter != null ? reporter.Email : null,
                                     ReplacementCode = replacement != null ? replacement.Code : null,
@@ -344,6 +345,21 @@ public sealed class ParkingSpotService(
         if (mismatches.Count == 0)
         {
             return [];
+        }
+
+        // Recorded plates are matched against registered ones with spacing/dash/case ignored —
+        // a plate is copied off a car in a hurry, "3AB 1234" and "3ab-1234" must still meet.
+        var plateOwners = new Dictionary<string, (string Name, string? Email)>();
+        if (mismatches.Any(m => m.BlockerPlate is not null))
+        {
+            var registered = await dbContext.Users.AsNoTracking()
+                .Where(u => u.LicensePlate != null)
+                .Select(u => new { u.LicensePlate, u.DisplayName, u.Email })
+                .ToListAsync(cancellationToken);
+            foreach (var owner in registered)
+            {
+                plateOwners[NormalizePlate(owner.LicensePlate!)] = (owner.DisplayName ?? owner.Email ?? string.Empty, owner.Email);
+            }
         }
 
         // The admin's shortlist for "who blocked the spot": every reservation that met the
@@ -375,7 +391,14 @@ public sealed class ParkingSpotService(
             .ToListAsync(cancellationToken);
 
         return mismatches
-            .Select(m => new OccupancyMismatchDto(
+            .Select(m =>
+            {
+                (string Name, string? Email)? match = m.BlockerPlate is not null
+                    && plateOwners.TryGetValue(NormalizePlate(m.BlockerPlate), out var owner)
+                        ? owner
+                        : null;
+
+                return new OccupancyMismatchDto(
                 m.Id,
                 m.Code,
                 m.StartUtc,
@@ -384,6 +407,9 @@ public sealed class ParkingSpotService(
                 m.ReporterName,
                 m.ReporterEmail,
                 m.ReplacementCode,
+                m.BlockerPlate,
+                match?.Name,
+                match?.Email,
                 candidates
                     .Where(c => c.SpotId == m.SpotId && c.Id != m.ReservationId
                         && c.StartUtc < m.EndUtc && c.EndUtc > m.StartUtc)
@@ -395,7 +421,12 @@ public sealed class ParkingSpotService(
                         _ => 2,
                     })
                     .Select(c => new MismatchRelatedReservationDto(c.Name, c.Email, c.Status))
-                    .ToList()))
+                    .ToList());
+            })
             .ToList();
     }
+
+    /// <summary>Spacing-, dash- and case-insensitive plate form used for matching.</summary>
+    private static string NormalizePlate(string plate) =>
+        new(plate.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 }

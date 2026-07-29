@@ -12,6 +12,9 @@ public sealed record OccupancyMismatchDto(
     string ReporterName,
     string? ReporterEmail,
     string? RelocatedToSpotCode,
+    string? BlockerPlate,
+    string? BlockerMatchName,
+    string? BlockerMatchEmail,
     IReadOnlyList<MismatchRelatedReservationDto> RelatedReservations);
 
 /// <summary>

@@ -373,6 +373,13 @@
   <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Recorded by</value></data>
   <data name="Parking_Mismatch_Related" xml:space="preserve"><value>Reservations on the spot</value></data>
   <data name="Parking_Mismatch_MailSubject" xml:space="preserve"><value>Parking spot {0} — {1}</value></data>
+  <data name="Parking_Mismatch_PlateUnknown" xml:space="preserve"><value>not in the system</value></data>
+  <data name="Parking_Blocked_PlateLabel" xml:space="preserve"><value>Blocking car's license plate (optional)</value></data>
+  <data name="Parking_Blocked_PlatePlaceholder" xml:space="preserve"><value>e.g. 3AB 1234</value></data>
+  <data name="Profile_VehicleTitle" xml:space="preserve"><value>Vehicle</value></data>
+  <data name="Profile_VehicleHelp" xml:space="preserve"><value>Your license plate helps the admin find you if your car ever blocks someone's reservation by mistake — you get a heads-up before anything escalates.</value></data>
+  <data name="Profile_VehiclePlate" xml:space="preserve"><value>License plate</value></data>
+  <data name="Profile_SaveVehicle" xml:space="preserve"><value>Save vehicle</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>

@@ -42,11 +42,11 @@ public interface IReservationService
 
     /// <summary>
     /// The holder arrived and cannot physically park (the spot is blocked by another car).
-    /// Records an occupancy mismatch, voids the reservation penalty-free with a full refund, and —
-    /// when <paramref name="relocate"/> is set — books the first free spot for the same window
-    /// with the original charge carried over.
+    /// Records an occupancy mismatch (optionally with the blocking car's license plate), voids the
+    /// reservation penalty-free with a full refund, and — when <paramref name="relocate"/> is set —
+    /// books the first free spot for the same window with the original charge carried over.
     /// </summary>
-    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, CancellationToken cancellationToken = default);
+    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, string? blockerPlate = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the

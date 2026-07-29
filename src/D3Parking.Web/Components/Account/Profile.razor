@@ -69,6 +69,20 @@
             </FluentCard>
 
             <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Profile_VehicleTitle"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_VehicleHelp"]</FluentLabel>
+                    <EditForm Model="VehicleInput" method="post" OnValidSubmit="SavePlateAsync" FormName="vehicle">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            <FluentTextField Name="VehicleInput.Plate" @bind-Value="VehicleInput.Plate" Maxlength="16"
+                                             Label="@L["Profile_VehiclePlate"]" Style="width:240px" />
+                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveVehicle"]</FluentButton>
+                        </FluentStack>
+                    </EditForm>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentCard Class="profile-section">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel Typo="Typography.Subject">@L["Profile_NotificationSettings"]</FluentLabel>
 
@@ -183,6 +197,7 @@
 #pragma warning disable BL0008
     [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
     [SupplyParameterFromForm(FormName = "department")] private TeamFormModel TeamInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "vehicle")] private VehicleFormModel VehicleInput { get; set; } = new();
 #pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
@@ -198,6 +213,7 @@
             _home = await UserLocation.GetHomeAsync(user.Id);
             HomeInput.Address ??= _home.Address;
             TeamInput.Department ??= user.Department;
+            VehicleInput.Plate ??= user.LicensePlate;
         }
     }
 
@@ -215,6 +231,25 @@
     private sealed class TeamFormModel
     {
         public string? Department { get; set; }
+    }
+
+    private async Task SavePlateAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is not null)
+        {
+            // Stored upper-cased as typed; the admin matching ignores spacing and dashes anyway.
+            user.LicensePlate = string.IsNullOrWhiteSpace(VehicleInput.Plate)
+                ? null
+                : VehicleInput.Plate.Trim().ToUpperInvariant();
+            await UserManager.UpdateAsync(user);
+        }
+    }
+
+    private sealed class VehicleFormModel
+    {
+        public string? Plate { get; set; }
     }
 
     private async Task SaveHomeAsync()

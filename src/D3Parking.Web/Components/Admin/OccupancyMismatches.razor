@@ -46,13 +46,25 @@
                     @(context.RelocatedToSpotCode ?? "—")
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Parking_Mismatch_Related"]">
-                    @if (context.RelatedReservations.Count == 0)
+                    @if (context.BlockerPlate is null && context.RelatedReservations.Count == 0)
                     {
                         <span>—</span>
                     }
                     else
                     {
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="2">
+                            @if (context.BlockerPlate is { } plate)
+                            {
+                                @* The recorded plate, resolved against registered vehicles: an
+                                   employee gets a name + mailto, anything else is an outsider. *@
+                                <span>
+                                    <strong>@plate</strong> — @(context.BlockerMatchName ?? L["Parking_Mismatch_PlateUnknown"].Value)
+                                    @if (context.BlockerMatchEmail is { } matchEmail)
+                                    {
+                                        <a href="@MailTo(matchEmail, context)" title="@matchEmail">&#9993;</a>
+                                    }
+                                </span>
+                            }
                             @foreach (var related in context.RelatedReservations)
                             {
                                 <span>

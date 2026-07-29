@@ -27,9 +27,15 @@ public class OccupancyMismatch : Entity
     /// <summary>The replacement spot booked for the reporter, when one was free.</summary>
     public Guid? RelocatedToSpotId { get; private set; }
 
+    /// <summary>
+    /// License plate of the blocking vehicle, as the reporter read it off the car (optional).
+    /// The admin view matches it against registered plates to tell an employee from an outsider.
+    /// </summary>
+    public string? BlockerPlate { get; private set; }
+
     private OccupancyMismatch() { }
 
-    public OccupancyMismatch(Guid spotId, Guid reservationId, Guid reporterId, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset reportedAtUtc)
+    public OccupancyMismatch(Guid spotId, Guid reservationId, Guid reporterId, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset reportedAtUtc, string? blockerPlate = null)
     {
         SpotId = spotId;
         ReservationId = reservationId;
@@ -37,6 +43,7 @@ public class OccupancyMismatch : Entity
         StartUtc = startUtc;
         EndUtc = endUtc;
         ReportedAtUtc = reportedAtUtc;
+        BlockerPlate = blockerPlate;
     }
 
     public void MarkRelocated(Guid spotId) => RelocatedToSpotId = spotId;
