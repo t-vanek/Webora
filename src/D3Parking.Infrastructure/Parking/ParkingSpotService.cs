@@ -317,23 +317,85 @@ public sealed class ParkingSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // Reporter and replacement spot are left-joined: a deleted account or spot must not hide
-        // the trend row — the point of the view is the spot's history, not the people involved.
-        return await (from m in dbContext.OccupancyMismatches.AsNoTracking()
-                      join s in dbContext.ParkingSpots.AsNoTracking() on m.SpotId equals s.Id
-                      join u in dbContext.Users.AsNoTracking() on m.ReporterId equals u.Id into reporters
-                      from reporter in reporters.DefaultIfEmpty()
-                      join rs in dbContext.ParkingSpots.AsNoTracking() on m.RelocatedToSpotId equals rs.Id into replacements
-                      from replacement in replacements.DefaultIfEmpty()
-                      orderby m.ReportedAtUtc descending
-                      select new OccupancyMismatchDto(
-                          m.Id,
-                          s.Code,
-                          m.StartUtc,
-                          m.EndUtc,
-                          m.ReportedAtUtc,
-                          reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
-                          replacement != null ? replacement.Code : null))
+        // the trend row.
+        var mismatches = await (from m in dbContext.OccupancyMismatches.AsNoTracking()
+                                join s in dbContext.ParkingSpots.AsNoTracking() on m.SpotId equals s.Id
+                                join u in dbContext.Users.AsNoTracking() on m.ReporterId equals u.Id into reporters
+                                from reporter in reporters.DefaultIfEmpty()
+                                join rs in dbContext.ParkingSpots.AsNoTracking() on m.RelocatedToSpotId equals rs.Id into replacements
+                                from replacement in replacements.DefaultIfEmpty()
+                                orderby m.ReportedAtUtc descending
+                                select new
+                                {
+                                    m.Id,
+                                    m.SpotId,
+                                    m.ReservationId,
+                                    s.Code,
+                                    m.StartUtc,
+                                    m.EndUtc,
+                                    m.ReportedAtUtc,
+                                    ReporterName = reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
+                                    ReporterEmail = reporter != null ? reporter.Email : null,
+                                    ReplacementCode = replacement != null ? replacement.Code : null,
+                                })
             .Take(limit)
             .ToListAsync(cancellationToken);
+
+        if (mismatches.Count == 0)
+        {
+            return [];
+        }
+
+        // The admin's shortlist for "who blocked the spot": every reservation that met the
+        // mismatch window on the same spot (typically a no-show whose car may still be there, or
+        // a checked-in holder who overstayed). Fetched in one sweep over the covered range and
+        // paired in memory — the view is capped at `limit` rows, so this stays small.
+        var spotIds = mismatches.Select(x => x.SpotId).Distinct().ToList();
+        var minStart = mismatches.Min(x => x.StartUtc);
+        var maxEnd = mismatches.Max(x => x.EndUtc);
+        var candidates = await (from r in dbContext.Reservations.AsNoTracking()
+                                join u in dbContext.Users.AsNoTracking() on r.UserId equals u.Id into holders
+                                from holder in holders.DefaultIfEmpty()
+                                where spotIds.Contains(r.SpotId)
+                                    && r.StartUtc < maxEnd && r.EndUtc > minStart
+                                    && (r.Status == ReservationStatus.NoShow
+                                        || r.Status == ReservationStatus.CheckedIn
+                                        || r.Status == ReservationStatus.Completed
+                                        || r.Status == ReservationStatus.Reserved)
+                                select new
+                                {
+                                    r.Id,
+                                    r.SpotId,
+                                    r.StartUtc,
+                                    r.EndUtc,
+                                    r.Status,
+                                    Name = holder != null ? (holder.DisplayName ?? holder.Email ?? string.Empty) : string.Empty,
+                                    Email = holder != null ? holder.Email : null,
+                                })
+            .ToListAsync(cancellationToken);
+
+        return mismatches
+            .Select(m => new OccupancyMismatchDto(
+                m.Id,
+                m.Code,
+                m.StartUtc,
+                m.EndUtc,
+                m.ReportedAtUtc,
+                m.ReporterName,
+                m.ReporterEmail,
+                m.ReplacementCode,
+                candidates
+                    .Where(c => c.SpotId == m.SpotId && c.Id != m.ReservationId
+                        && c.StartUtc < m.EndUtc && c.EndUtc > m.StartUtc)
+                    // No-shows first — that is almost always the answer the admin is looking for.
+                    .OrderBy(c => c.Status switch
+                    {
+                        ReservationStatus.NoShow => 0,
+                        ReservationStatus.CheckedIn => 1,
+                        _ => 2,
+                    })
+                    .Select(c => new MismatchRelatedReservationDto(c.Name, c.Email, c.Status))
+                    .ToList()))
+            .ToList();
     }
 }

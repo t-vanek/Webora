@@ -365,12 +365,14 @@
   <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>A spot's state can be recorded only during the reservation window.</value></data>
   <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>You've reached today's limit for recorded spot states.</value></data>
   <data name="Parking_Mismatch_Title" xml:space="preserve"><value>Occupancy mismatches</value></data>
-  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Drivers recorded that they couldn't park at their reserved spot. The data helps plan capacity and catch recurring problems with specific spots — it does not track offenders.</value></data>
+  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Drivers recorded that they couldn't park at their reserved spot. Each record shows the reservations that met the window on that spot — typically whoever reserved it and never arrived — so you can contact them directly by email.</value></data>
   <data name="Parking_Mismatch_Empty" xml:space="preserve"><value>No mismatches — every spot works as it should.</value></data>
   <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Window</value></data>
   <data name="Parking_Mismatch_ReportedAt" xml:space="preserve"><value>Recorded</value></data>
   <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Replacement spot</value></data>
   <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Recorded by</value></data>
+  <data name="Parking_Mismatch_Related" xml:space="preserve"><value>Reservations on the spot</value></data>
+  <data name="Parking_Mismatch_MailSubject" xml:space="preserve"><value>Parking spot {0} — {1}</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>

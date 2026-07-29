@@ -7,8 +7,9 @@
 
 <PageTitle>@L["Parking_Mismatch_Title"]</PageTitle>
 
-@* Deliberately a trend view of spots, not of people: rows say where parking failed and how it
-   was resolved. The reporter column exists so an admin can spot misuse of the flow itself. *@
+@* Trend view of blocked spots. Every row carries the reservations that met the window on that
+   spot — the admin's shortlist for who to ask (typically the no-show whose car may still be
+   there) — each with a mailto link so the follow-up is one click away. *@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <div class="admin-head__titles">
         <div class="admin-head__title-row">
@@ -33,7 +34,7 @@
     {
         <div class="admin-panel">
             <FluentDataGrid Items="@_mismatches.AsQueryable()" TGridItem="OccupancyMismatchDto"
-                            GridTemplateColumns="1fr 2fr 1.5fr 1fr 1.5fr">
+                            GridTemplateColumns="0.7fr 1.6fr 1.2fr 0.9fr 2fr 1.2fr">
                 <PropertyColumn Property="@(m => m.SpotCode)" Title="@L["Parking_Spot"]" />
                 <TemplateColumn Title="@L["Parking_Mismatch_Window"]">
                     @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
@@ -44,7 +45,37 @@
                 <TemplateColumn Title="@L["Parking_Mismatch_RelocatedTo"]">
                     @(context.RelocatedToSpotCode ?? "—")
                 </TemplateColumn>
-                <PropertyColumn Property="@(m => m.ReporterName)" Title="@L["Parking_Mismatch_Reporter"]" />
+                <TemplateColumn Title="@L["Parking_Mismatch_Related"]">
+                    @if (context.RelatedReservations.Count == 0)
+                    {
+                        <span>—</span>
+                    }
+                    else
+                    {
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="2">
+                            @foreach (var related in context.RelatedReservations)
+                            {
+                                <span>
+                                    @related.Name — @L[$"Parking_State_{related.Status}"]
+                                    @if (related.Email is not null)
+                                    {
+                                        <a href="@MailTo(related.Email, context)" title="@related.Email">&#9993;</a>
+                                    }
+                                </span>
+                            }
+                        </FluentStack>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Mismatch_Reporter"]">
+                    @if (context.ReporterEmail is { } reporterEmail)
+                    {
+                        <a href="@MailTo(reporterEmail, context)" title="@reporterEmail">@context.ReporterName</a>
+                    }
+                    else
+                    {
+                        @context.ReporterName
+                    }
+                </TemplateColumn>
             </FluentDataGrid>
         </div>
     }
@@ -62,4 +93,8 @@
 
     private string Local(DateTimeOffset utc, string format) =>
         TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+
+    // Prefilled mailto so the admin's follow-up is one click: subject carries the spot and day.
+    private string MailTo(string email, OccupancyMismatchDto mismatch) =>
+        $"mailto:{email}?subject={Uri.EscapeDataString(L["Parking_Mismatch_MailSubject", mismatch.SpotCode, Local(mismatch.StartUtc, "d")])}";
 }
