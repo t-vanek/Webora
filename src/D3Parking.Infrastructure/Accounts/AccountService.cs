@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
@@ -9,6 +10,7 @@ using D3Parking.Application.Mapping;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
@@ -37,9 +39,14 @@ public sealed class AccountService(
 
     public async Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default)
     {
-        if (await userManager.FindByEmailAsync(email) is not null)
+        // Never reveal whether the address is taken — the same stance the password-reset and
+        // reactivation flows already take ("always report success"). The probe reports the
+        // generic success and the address's real owner gets an email instead: harmless if the
+        // owner simply forgot they have an account, actionable if someone else is trying theirs.
+        if (await userManager.FindByEmailAsync(email) is { } existing)
         {
-            return AccountResult.Failure(messages["Error_EmailExists"]);
+            await NotifyRegistrationRepeatedAsync(existing, cancellationToken);
+            return AccountResult.Success;
         }
 
         var user = new ApplicationUser
@@ -53,6 +60,15 @@ public sealed class AccountService(
         var created = await userManager.CreateAsync(user, password);
         if (!created.Succeeded)
         {
+            // The concurrent-race variant of the pre-check above: another registration for the
+            // same address landed between the check and the create. Identity's duplicate error
+            // in the response would leak existence just the same, so it maps to the same path.
+            if (IsDuplicate(created) && await userManager.FindByEmailAsync(email) is { } raced)
+            {
+                await NotifyRegistrationRepeatedAsync(raced, cancellationToken);
+                return AccountResult.Success;
+            }
+
             return ToFailure(created);
         }
 
@@ -60,6 +76,19 @@ public sealed class AccountService(
         await AssignDefaultRoleAsync(user, cancellationToken);
         await SendActivationEmailCoreAsync(user, cancellationToken);
         return AccountResult.Success;
+    }
+
+    private static bool IsDuplicate(IdentityResult result) =>
+        result.Errors.Any(e => e.Code is nameof(IdentityErrorDescriber.DuplicateEmail)
+            or nameof(IdentityErrorDescriber.DuplicateUserName));
+
+    private async Task NotifyRegistrationRepeatedAsync(ApplicationUser existing, CancellationToken cancellationToken)
+    {
+        var loginLink = await BuildLinkAsync("login");
+        var resetLink = await BuildLinkAsync("account/forgot-password");
+        await SendAsync(existing, messages["Email_AccountExists_Subject"],
+            messages["Email_AccountExists_Body", loginLink, resetLink]);
+        await AuditAsync(existing.Id, AccountAuditEventType.RegistrationRepeated, "self", null, cancellationToken);
     }
 
     private async Task AssignDefaultRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
@@ -117,6 +146,7 @@ public sealed class AccountService(
             return NotFound();
         }
 
+        var alreadyConfirmed = await userManager.IsEmailConfirmedAsync(user);
         var result = await userManager.ConfirmEmailAsync(user, token);
         if (!result.Succeeded)
         {
@@ -128,7 +158,14 @@ public sealed class AccountService(
             return await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Activated, cancellationToken);
         }
 
-        await AuditAsync(user.Id, AccountAuditEventType.Activated, "self", "email re-confirmed", cancellationToken);
+        // The confirmation link stays valid until the security stamp changes, so it can be
+        // re-clicked; only a confirmation that actually flipped the flag deserves an audit row —
+        // a replay on an already-confirmed account must not keep stamping "Activated" entries.
+        if (!alreadyConfirmed)
+        {
+            await AuditAsync(user.Id, AccountAuditEventType.Activated, "self", "email re-confirmed", cancellationToken);
+        }
+
         return AccountResult.Success;
     }
 
@@ -364,15 +401,10 @@ public sealed class AccountService(
             return AccountResult.Failure(messages["Error_InvalidSuspendToken"]);
         }
 
-        var result = await TransitionAsync(user, AccountStatus.Suspended, "self", null, AccountAuditEventType.Suspended, cancellationToken);
-        if (result.Succeeded)
-        {
-            // Rotating the security stamp makes the used link single-shot (the token embeds the
-            // stamp) and, as a bonus, invalidates the suspended account's other live sessions.
-            await userManager.UpdateSecurityStampAsync(user);
-        }
-
-        return result;
+        // TransitionAsync rotates the security stamp for the non-Active target, which both makes
+        // the used link single-shot (the token embeds the stamp) and invalidates the suspended
+        // account's other live sessions.
+        return await TransitionAsync(user, AccountStatus.Suspended, "self", null, AccountAuditEventType.Suspended, cancellationToken);
     }
 
     public async Task<AccountResult> BlockAsync(Guid userId, Guid adminId, string? reason, CancellationToken cancellationToken = default)
@@ -420,6 +452,20 @@ public sealed class AccountService(
             return AccountResult.Failure(messages["Error_TransitionNotAllowed", user.Status, target]);
         }
 
+        // The guard and the status write ride one serializable transaction on the scoped context
+        // (the same one UserManager saves through), closing the check-then-act window in which two
+        // admins disabling each other could both pass the last-administrator count.
+        await using var transaction = await identityDbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        // Deleting the last administrator and stripping the role are already refused
+        // (UserAdminService); disabling the account is the same lockout through a different door —
+        // a blocked admin cannot sign in, and only an admin could unblock them.
+        if (target != AccountStatus.Active && await IsLastAdministratorAsync(user))
+        {
+            return AccountResult.Failure(messages["Error_LastAdministrator"]);
+        }
+
         user.Status = target;
         user.StatusChangedAtUtc = timeProvider.GetUtcNow();
         user.StatusReason = reason;
@@ -429,6 +475,22 @@ public sealed class AccountService(
         {
             return ToFailure(result);
         }
+
+        // A status that forbids sign-in must also end sign-ins that already happened. Only login
+        // consults the status (D3ParkingSignInManager.CanSignInAsync); existing cookies and Blazor
+        // circuits live on until their security stamp stops validating — so rotate it, and the
+        // blocked/suspended/deactivated user is signed out at the next revalidation instead of
+        // keeping full access indefinitely.
+        if (target != AccountStatus.Active)
+        {
+            var stamped = await userManager.UpdateSecurityStampAsync(user);
+            if (!stamped.Succeeded)
+            {
+                return ToFailure(stamped);
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
 
         await AuditAsync(user.Id, auditType, actor, reason, cancellationToken);
         await NotifyTransitionAsync(user.Id, auditType, actor, reason, cancellationToken);
@@ -472,6 +534,23 @@ public sealed class AccountService(
 
     private Task<ApplicationUser?> FindAsync(Guid userId) => userManager.FindByIdAsync(userId.ToString());
 
+    // Reads through the scoped identity context so the count participates in the caller's
+    // serializable transaction (range locks on the admin role's membership rows).
+    private async Task<bool> IsLastAdministratorAsync(ApplicationUser user)
+    {
+        if (!await userManager.IsInRoleAsync(user, Roles.Administrator))
+        {
+            return false;
+        }
+
+        var adminCount = await (from ur in identityDbContext.UserRoles
+                                join r in identityDbContext.Roles on ur.RoleId equals r.Id
+                                where r.Name == Roles.Administrator
+                                select ur.UserId).CountAsync();
+
+        return adminCount <= 1;
+    }
+
     private Task SendAsync(ApplicationUser user, string subject, string html) =>
         SendToAsync(user.Email!, user.DisplayName, subject, html);
 
@@ -493,6 +572,11 @@ public sealed class AccountService(
     private async Task<string> BuildLinkAsync(string path, params (string Key, string Value)[] query)
     {
         var baseUrl = (await siteSettings.GetCanonicalBaseUrlAsync() ?? options.Value.BaseUrl).TrimEnd('/');
+        if (query.Length == 0)
+        {
+            return $"{baseUrl}/{path}";
+        }
+
         var queryString = string.Join('&', query.Select(q => $"{q.Key}={Uri.EscapeDataString(q.Value)}"));
         return $"{baseUrl}/{path}?{queryString}";
     }

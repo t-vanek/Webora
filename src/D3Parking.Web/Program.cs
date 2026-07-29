@@ -29,6 +29,16 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
+    // Known-benign teardown fault, filtered by its exact signature: when a full-load navigation
+    // or tab close razes a page while a FluentMenu's JS module is still loading, the library's
+    // OnAfterRenderAsync throws ArgumentNullException("jsObjectReference") (fluentui-blazor bug,
+    // still present in 4.14.3) and the dying circuit logs it as an error on every sign-out.
+    // Nothing is lost — the page is gone either way — and every other circuit failure still
+    // logs; an ErrorBoundary cannot catch it (OnAfterRender faults bypass boundaries by design).
+    .Filter.ByExcluding(logEvent =>
+        logEvent.Exception is { } exception
+        && (exception.GetBaseException() as ArgumentNullException)?.ParamName == "jsObjectReference"
+        && exception.ToString().Contains("FluentMenu.OnAfterRenderAsync", StringComparison.Ordinal))
     .WriteTo.Console());
 
 // Application + infrastructure layers (EF Core/SQL Server, OpenIddict stores, identity seeder).
@@ -49,6 +59,7 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
 builder.Services.AddSingleton<SignalRNotificationPublisher>();
 builder.Services.AddScoped<INotificationRealtimePublisher>(sp => new CompositeNotificationPublisher(
+    sp.GetRequiredService<ILogger<CompositeNotificationPublisher>>(),
     sp.GetRequiredService<SignalRNotificationPublisher>(),
     sp.GetService<D3Parking.Infrastructure.Notifications.WebPushNotificationPublisher>()));
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -174,6 +185,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseRequestLocalization();
 
+// Pin the culture the line above negotiated into the culture cookie (when absent), so the
+// _blazor WebSocket handshake and the WASM islands render in the same language as the page.
+app.UseCultureCookie();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -244,7 +259,15 @@ app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext con
             new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/" });
     }
 
-    return Results.LocalRedirect(string.IsNullOrEmpty(redirectUri) ? "/" : redirectUri);
+    // Only ever bounce within the site. Results.LocalRedirect would seem to do that, but it
+    // throws (a 500) at execution time for a non-local URL — and this endpoint's parameter is
+    // attacker-writable (crafted links, URL-mangling mail scanners), so a bad value must fall
+    // back to the home page, not an error page.
+    var localTarget = !string.IsNullOrEmpty(redirectUri)
+        && redirectUri.StartsWith('/') && !redirectUri.StartsWith("//") && !redirectUri.StartsWith("/\\")
+            ? redirectUri
+            : "/";
+    return Results.Redirect(localTarget);
 });
 
 // Apply migrations (development) and seed roles, permissions and the admin account.

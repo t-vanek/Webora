@@ -46,6 +46,25 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
+    public async Task Interactive_islands_stay_in_the_negotiated_culture_after_hydration()
+    {
+        // Regression guard for the split-language page: the static shell renders in the culture
+        // the HTTP request negotiated, but the interactive islands render with the culture of the
+        // _blazor WebSocket handshake — which carries no Accept-Language. Before the culture
+        // cookie was pinned at first load, hydration re-rendered the nav in the server's own
+        // culture (English), leaving one page in two languages.
+        await Pages.GotoInteractiveAsync(Page, "/");
+
+        // Give the just-attached circuit time to replace the prerendered nav; the wrong-culture
+        // re-render arrived within a second of the handshake when this was broken.
+        await Task.Delay(1500);
+
+        var nav = Page.Locator(".side-nav");
+        await Expect(nav).ToContainTextAsync("Rezervace místa");
+        await Expect(nav).Not.ToContainTextAsync("Reserve a spot");
+    }
+
+    [Test]
     public async Task Today_section_shows_the_wallet_card_with_credits_and_points()
     {
         // The wallet card is the one "today" card every parking user has (a score row always

@@ -39,7 +39,12 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
         var scheme = context.Request.Scheme;
         var host = context.Request.Host.Host.ToLowerInvariant();
 
-        if (policy.HstsEnabled && IsHttps(scheme) && !IsLocalOrIp(host))
+        // HSTS is a promise about a specific domain. Stamping it on every DNS name pointed at
+        // this server (staging aliases, internal names) would force HTTPS on them — and their
+        // subdomains — for HstsMaxAgeDays after they stop being served here, so only hosts the
+        // policy recognizes get the header. Without a canonical host there is nothing to
+        // recognize against and the admin's enable applies to whatever host is served.
+        if (policy.HstsEnabled && CanonicalDomainRules.IsHttps(scheme) && !IsLocalOrIp(host) && CanonicalDomainRules.IsRecognizedHost(policy, host))
         {
             var maxAgeSeconds = Math.Max(0, policy.HstsMaxAgeDays) * 86_400L;
             var value = $"max-age={maxAgeSeconds}";
@@ -64,21 +69,25 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
             return;
         }
 
-        var (targetScheme, targetHost, targetPort) = ResolveSchemeHost(policy, scheme, host);
+        var (targetScheme, targetHost, targetPort) = CanonicalDomainRules.ResolveSchemeHost(policy, scheme, host);
         var path = context.Request.Path.HasValue ? context.Request.Path.Value! : "/";
         var canNormalizePath = HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method);
-        var targetPath = NormalizePath(policy, path, canNormalizePath);
+        var targetPath = CanonicalDomainRules.NormalizePath(policy, path, canNormalizePath);
 
         var schemeChanged = !string.Equals(targetScheme, scheme, StringComparison.OrdinalIgnoreCase);
         var hostChanged = !string.Equals(targetHost, host, StringComparison.OrdinalIgnoreCase);
         var pathChanged = !string.Equals(targetPath, path, StringComparison.Ordinal);
-        // The configured canonical port must hold even when scheme and host already match.
-        var currentPort = context.Request.Host.Port ?? DefaultPort(scheme);
-        var portChanged = targetPort is { } configuredPort && configuredPort != currentPort;
+        // Compare effective ports (explicit or the scheme default on each side), so the redirect
+        // decision matches the URL that would actually be emitted — a permanent redirect to the
+        // very URL being served, or to one that only differs in an implied default port, must
+        // never fire.
+        var currentPort = context.Request.Host.Port ?? CanonicalDomainRules.DefaultPort(scheme);
+        var targetPortEffective = targetPort ?? CanonicalDomainRules.DefaultPort(targetScheme);
+        var portChanged = targetPortEffective != currentPort;
 
         if (schemeChanged || hostChanged || pathChanged || portChanged)
         {
-            var portSuffix = targetPort is { } port && port != DefaultPort(targetScheme) ? $":{port}" : string.Empty;
+            var portSuffix = targetPortEffective != CanonicalDomainRules.DefaultPort(targetScheme) ? $":{targetPortEffective}" : string.Empty;
             var location = $"{targetScheme}://{targetHost}{portSuffix}{context.Request.PathBase}{targetPath}{context.Request.QueryString}";
 
             // canNormalizePath == GET/HEAD. Those keep the classic 301; anything else gets 308 so
@@ -100,80 +109,10 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
         await next(context);
     }
 
-    internal static (string Scheme, string Host, int? Port) ResolveSchemeHost(DomainPolicy policy, string scheme, string host)
-    {
-        var targetScheme = policy.ForceHttps ? "https" : scheme;
-        var targetHost = host;
-
-        if (!string.IsNullOrEmpty(policy.CanonicalHost))
-        {
-            var canonical = policy.CanonicalHost;
-            var isAlias = policy.Aliases.Any(a => string.Equals(a, host, StringComparison.OrdinalIgnoreCase));
-            if (!string.Equals(host, canonical, StringComparison.OrdinalIgnoreCase) && (isAlias || IsWwwVariant(host, canonical)))
-            {
-                targetHost = canonical;
-            }
-            // Any other (unrecognized) host is left as-is.
-        }
-        else if (policy.Www == WwwPreference.PreferWww && !host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
-        {
-            targetHost = "www." + host;
-        }
-        else if (policy.Www == WwwPreference.PreferNonWww && host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
-        {
-            targetHost = host[4..];
-        }
-
-        var port = !string.IsNullOrEmpty(policy.CanonicalHost)
-            && string.Equals(targetHost, policy.CanonicalHost, StringComparison.OrdinalIgnoreCase)
-                ? policy.Port
-                : null;
-
-        return (targetScheme, targetHost, port);
-    }
-
-    internal static string NormalizePath(DomainPolicy policy, string path, bool allow)
-    {
-        if (!allow || !IsNormalizablePath(path))
-        {
-            return path;
-        }
-
-        var result = policy.LowercaseUrls ? path.ToLowerInvariant() : path;
-        result = policy.TrailingSlash switch
-        {
-            TrailingSlashPolicy.Remove => result.TrimEnd('/'),
-            TrailingSlashPolicy.Add => result.EndsWith('/') ? result : result + "/",
-            _ => result,
-        };
-
-        return result.Length == 0 ? "/" : result;
-    }
-
-    // Skips the root, framework/Blazor paths (/_framework, /_content, /_blazor) and static files
-    // (a dot in the last segment) so asset URLs are never rewritten.
-    private static bool IsNormalizablePath(string path)
-    {
-        if (path.Length <= 1 || path.StartsWith("/_", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var lastSlash = path.LastIndexOf('/');
-        return path.IndexOf('.', lastSlash + 1) < 0;
-    }
-
-    private static bool IsWwwVariant(string host, string canonical) =>
-        canonical.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
-            ? string.Equals(host, canonical[4..], StringComparison.OrdinalIgnoreCase)
-            : string.Equals(host, "www." + canonical, StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsHttps(string scheme) => string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase);
-
+    // The decision rules (scheme/host/port resolution, path normalization, host recognition)
+    // are pure functions in CanonicalDomainRules (Application layer), pinned by unit tests.
     private static bool IsLocalOrIp(string host) =>
         string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) || IPAddress.TryParse(host, out _);
-
-    private static int DefaultPort(string scheme) => IsHttps(scheme) ? 443 : 80;
 }
 
 public static class CanonicalDomainMiddlewareExtensions

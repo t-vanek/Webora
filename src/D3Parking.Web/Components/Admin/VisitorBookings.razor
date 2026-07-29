@@ -64,7 +64,7 @@
                 <FluentSelect TOption="UserSummary" Items="_users" Width="220px"
                               OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
                               @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
-                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync" Disabled="@(_selectedSpot is null)">
+                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync" Disabled="@(_actionBusy || _selectedSpot is null)">
                     @L["Parking_Visitors_Book"]
                 </FluentButton>
             </FluentStack>
@@ -100,7 +100,7 @@
                 </TemplateColumn>
                 <PropertyColumn Property="@(b => b.CreatedByName)" Title="@L["Parking_Visitors_CreatedBy"]" />
                 <TemplateColumn Align="Align.End">
-                    <FluentButton Appearance="Appearance.Stealth" OnClick="() => CancelAsync(context.Id)">@L["Parking_Cancel"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" OnClick="() => CancelAsync(context.Id)">@L["Parking_Cancel"]</FluentButton>
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
@@ -155,43 +155,73 @@
 
     private async Task ReloadBookingsAsync() => _bookings = await Visitors.ListUpcomingAsync();
 
+    // Single-flight for the booking actions: a double-clicked Book must not fire twice against
+    // the same window (the second would clear the success message and show a conflict error).
+    private bool _actionBusy;
+
     private async Task BookAsync()
     {
-        _error = _info = null;
-        if (_selectedSpot is not { } spot)
+        if (_actionBusy)
         {
             return;
         }
 
-        var result = await Visitors.BookAsync(_userId, spot.Id, Start, End,
-            _visitorName ?? string.Empty, _company, _plate, _selectedHost?.Id);
-        if (result.Succeeded)
+        _actionBusy = true;
+        try
         {
-            _info = "Parking_Visitors_Booked";
-            _visitorName = _company = _plate = null;
-            _selectedHost = null;
-            await ReloadFreeSpotsAsync();
-            await ReloadBookingsAsync();
+            _error = _info = null;
+            if (_selectedSpot is not { } spot)
+            {
+                return;
+            }
+
+            var result = await Visitors.BookAsync(_userId, spot.Id, Start, End,
+                _visitorName ?? string.Empty, _company, _plate, _selectedHost?.Id);
+            if (result.Succeeded)
+            {
+                _info = "Parking_Visitors_Booked";
+                _visitorName = _company = _plate = null;
+                _selectedHost = null;
+                await ReloadFreeSpotsAsync();
+                await ReloadBookingsAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _actionBusy = false;
         }
     }
 
     private async Task CancelAsync(Guid id)
     {
-        _error = _info = null;
-        var result = await Visitors.CancelAsync(id);
-        if (result.Succeeded)
+        if (_actionBusy)
         {
-            _info = "Parking_Visitors_Cancelled";
-            await ReloadFreeSpotsAsync();
-            await ReloadBookingsAsync();
+            return;
         }
-        else
+
+        _actionBusy = true;
+        try
         {
-            _error = result.Errors.FirstOrDefault();
+            _error = _info = null;
+            var result = await Visitors.CancelAsync(id);
+            if (result.Succeeded)
+            {
+                _info = "Parking_Visitors_Cancelled";
+                await ReloadFreeSpotsAsync();
+                await ReloadBookingsAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+        finally
+        {
+            _actionBusy = false;
         }
     }
 

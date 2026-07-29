@@ -41,7 +41,7 @@ public sealed class SiteSettingsService(
             ?? SiteSettings.CreateDefault();
 
         return new DomainPolicy(
-            s.CanonicalHost, s.Port, s.ForceHttps, s.HstsEnabled,
+            s.CanonicalHost, s.Scheme, s.Port, s.ForceHttps, s.HstsEnabled,
             s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases,
             s.LowercaseUrls, s.TrailingSlash);
     }
@@ -119,6 +119,14 @@ public sealed class SiteSettingsService(
 
     public async Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default)
     {
+        // The default role is handed to every self-registered account the moment it activates —
+        // pointing it at Administrator would silently make public registration a privilege
+        // escalation, so the built-in admin role is refused outright.
+        if (string.Equals(accounts.DefaultRole, Domain.Authorization.Roles.Administrator, StringComparison.OrdinalIgnoreCase))
+        {
+            return AccountResult.Failure(messages["Error_DefaultRoleReserved"]);
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         if (!string.IsNullOrWhiteSpace(accounts.DefaultRole) &&
             !await dbContext.Roles.AnyAsync(r => r.Name == accounts.DefaultRole, cancellationToken))

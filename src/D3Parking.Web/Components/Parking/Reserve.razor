@@ -60,7 +60,7 @@
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                     @if (_ownedSpot.TodayState == OwnedSpotDayState.Held)
                     {
-                        <FluentButton Appearance="Appearance.Accent" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
                     }
                     <div>
                         <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseFrom"]</FluentLabel>
@@ -70,7 +70,7 @@
                         <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseTo"]</FluentLabel>
                         <input type="date" @bind="_releaseTo" class="parking-input" />
                     </div>
-                    <FluentButton Appearance="Appearance.Outline" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
                 </FluentStack>
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
                     @L["Parking_Owned_ReleaseHint"] +@ReleaseRangePoints() @L["Parking_Points"]
@@ -79,7 +79,7 @@
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                     <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
                                        Label="@L["Parking_Owned_Allowance"]" />
-                    <FluentButton OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
+                    <FluentButton Disabled="@_actionBusy" OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
                 </FluentStack>
             </FluentStack>
         </FluentCard>
@@ -93,15 +93,15 @@
         <div class="booking-bar__row">
             <div class="field">
                 <label>@L["Parking_Date"]</label>
-                <input type="date" @bind="_day" class="parking-input" />
+                <input type="date" @bind="_day" @bind:after="InvalidateSearch" class="parking-input" />
             </div>
             <div class="field">
                 <label>@L["Parking_From"]</label>
-                <input type="time" @bind="_startTime" class="parking-input" />
+                <input type="time" @bind="_startTime" @bind:after="InvalidateSearch" class="parking-input" />
             </div>
             <div class="field">
                 <label>@L["Parking_To"]</label>
-                <input type="time" @bind="_endTime" class="parking-input" />
+                <input type="time" @bind="_endTime" @bind:after="InvalidateSearch" class="parking-input" />
             </div>
             <FluentButton Appearance="Appearance.Accent" OnClick="FindAvailableAsync">@L["Parking_Find"]</FluentButton>
         </div>
@@ -142,7 +142,7 @@
             <div class="empty-state">
                 <FluentIcon Value="@(new Icons.Regular.Size32.VehicleCar())" Color="Color.Neutral" />
                 <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
-                <FluentButton Appearance="Appearance.Accent" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+                <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
             </div>
         }
         else
@@ -167,7 +167,7 @@
                             <span class="reward-chip">@L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]</span>
                         }
                         <FluentButton Appearance="Appearance.Accent" Style="width:100%"
-                                      Disabled="@(_quote is not null && !_quote.Affordable)"
+                                      Disabled="@(_actionBusy || (_quote is not null && !_quote.Affordable))"
                                       OnClick="() => ReserveAsync(spot.Id)">
                             @L["Parking_Reserve"]
                         </FluentButton>
@@ -194,13 +194,13 @@
                             <FluentLabel Typo="Typography.Body" Style="color: var(--success);">
                                 @L["Parking_Queue_OfferedSpot"]: <strong>@q.OfferedSpotCode</strong>
                             </FluentLabel>
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => ClaimQueueAsync(q.Id)">@L["Parking_Queue_Claim"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="() => ClaimQueueAsync(q.Id)">@L["Parking_Queue_Claim"]</FluentButton>
                         }
                         else
                         {
                             <FluentLabel Typo="Typography.Body">@L["Parking_Queue_Position"]: @q.Position</FluentLabel>
                         }
-                        <FluentButton Appearance="Appearance.Stealth" OnClick="() => LeaveQueueAsync(q.Id)">@L["Parking_Queue_Leave"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" OnClick="() => LeaveQueueAsync(q.Id)">@L["Parking_Queue_Leave"]</FluentButton>
                     </FluentStack>
                 </FluentCard>
             }
@@ -260,9 +260,9 @@
             <TemplateColumn Align="Align.End">
                 @if (context.Status == ReservationStatus.Reserved)
                 {
-                    <FluentButton OnClick="() => CheckInAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_CheckIn"]</FluentButton>
-                    <FluentButton OnClick="() => ReleaseAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
-                    <FluentButton OnClick="() => CancelAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
+                    <FluentButton OnClick="() => CheckInAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_CheckIn"]</FluentButton>
+                    <FluentButton OnClick="() => ReleaseAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
+                    <FluentButton OnClick="() => CancelAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
                     @if (CanReportBlocked(context))
                     {
                         <FluentButton OnClick="() => OpenBlockedPanel(context)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
@@ -275,7 +275,7 @@
                 }
                 else if (context.Status == ReservationStatus.CheckedIn)
                 {
-                    <FluentButton OnClick="() => CompleteAsync(context.Id)" Appearance="Appearance.Accent">@L["Parking_Complete"]</FluentButton>
+                    <FluentButton OnClick="() => CompleteAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Accent">@L["Parking_Complete"]</FluentButton>
                     <FluentAnchor Href="@($"api/parking/reservations/{context.Id}/calendar")"
                                   Download="@($"parkovani-{context.SpotCode}.ics")"
                                   Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
@@ -292,6 +292,8 @@
     private DateOnly _day = DateOnly.FromDateTime(DateTime.Today);
     private TimeOnly _startTime = new(8, 0);
     private TimeOnly _endTime = new(17, 0);
+
+    private bool _actionBusy;
 
     private IReadOnlyList<ParkingSpotDto>? _available;
     private ReservationQuoteDto? _quote;
@@ -344,53 +346,97 @@
 
     private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
 
+    // A changed window makes the shown spots and quote stale — clear them so the only path to
+    // a reservation goes through a fresh search (the visitor agenda does the same).
+    private void InvalidateSearch()
+    {
+        _available = null;
+        _quote = null;
+    }
+
     private async Task JoinQueueAsync()
     {
-        _error = _info = null;
-        var result = await Reservations.JoinQueueAsync(_userId, Start, End);
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = "Parking_Queue_Joined";
-            await ReloadQueueAsync();
+            return;
         }
-        else
+
+        try
         {
-            _error = result.Errors.FirstOrDefault();
+            _error = _info = null;
+            var result = await Reservations.JoinQueueAsync(_userId, Start, End);
+            if (result.Succeeded)
+            {
+                _info = "Parking_Queue_Joined";
+                await ReloadQueueAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+        finally
+        {
+            _actionBusy = false;
         }
     }
 
     private async Task ClaimQueueAsync(Guid id)
     {
-        _error = _info = null;
-        var result = await Reservations.ClaimQueueOfferAsync(_userId, id);
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = "Parking_Queue_Claimed";
-            await ReloadQueueAsync();
-            await ReloadReservationsAsync();
-            if (_available is not null)
+            return;
+        }
+
+        try
+        {
+            _error = _info = null;
+            var result = await Reservations.ClaimQueueOfferAsync(_userId, id);
+            if (result.Succeeded)
             {
-                await FindAvailableAsync();
+                _info = "Parking_Queue_Claimed";
+                await ReloadQueueAsync();
+                await ReloadReservationsAsync();
+                if (_available is not null)
+                {
+                    await FindAvailableAsync();
+                }
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
             }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _actionBusy = false;
         }
     }
 
     private async Task LeaveQueueAsync(Guid id)
     {
-        _error = _info = null;
-        var result = await Reservations.LeaveQueueAsync(_userId, id);
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = "Parking_Queue_Left";
-            await ReloadQueueAsync();
+            return;
         }
-        else
+
+        try
         {
-            _error = result.Errors.FirstOrDefault();
+            _error = _info = null;
+            var result = await Reservations.LeaveQueueAsync(_userId, id);
+            if (result.Succeeded)
+            {
+                _info = "Parking_Queue_Left";
+                await ReloadQueueAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+        finally
+        {
+            _actionBusy = false;
         }
     }
 
@@ -459,21 +505,33 @@
 
     private async Task RunResidentAsync(Func<Task<ParkingResult>> action, string successKey)
     {
-        _error = _info = null;
-        var result = await action();
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = successKey;
-            await ReloadOwnedSpotAsync();
-            await ReloadReservationsAsync();
-            if (_available is not null)
+            return;
+        }
+
+        try
+        {
+            _error = _info = null;
+            var result = await action();
+            if (result.Succeeded)
             {
-                await FindAvailableAsync();
+                _info = successKey;
+                await ReloadOwnedSpotAsync();
+                await ReloadReservationsAsync();
+                if (_available is not null)
+                {
+                    await FindAvailableAsync();
+                }
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
             }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _actionBusy = false;
         }
     }
 
@@ -494,17 +552,29 @@
 
     private async Task ReserveAsync(Guid spotId)
     {
-        _error = _info = null;
-        var result = await Reservations.ReserveAsync(_userId, spotId, Start, End, _useVoucher && _voucher is not null);
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = "Parking_Reserved";
-            await FindAvailableAsync();
-            await ReloadReservationsAsync();
+            return;
         }
-        else
+
+        try
         {
-            _error = result.Errors.FirstOrDefault();
+            _error = _info = null;
+            var result = await Reservations.ReserveAsync(_userId, spotId, Start, End, _useVoucher && _voucher is not null);
+            if (result.Succeeded)
+            {
+                _info = "Parking_Reserved";
+                await FindAvailableAsync();
+                await ReloadReservationsAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+        finally
+        {
+            _actionBusy = false;
         }
     }
 
@@ -577,22 +647,47 @@
     private Task ReleaseAsync(Guid id) => RunAsync(() => Reservations.ReleaseAsync(_userId, id), "Parking_Released");
     private Task CancelAsync(Guid id) => RunAsync(() => Reservations.CancelAsync(_userId, id));
 
+    // Single-flight guard for the money/state actions: the second click of a double-click must
+    // not run (and must not wipe the first one's outcome message).
+    private bool TryBeginAction()
+    {
+        if (_actionBusy)
+        {
+            return false;
+        }
+
+        _actionBusy = true;
+        return true;
+    }
+
     private async Task RunAsync(Func<Task<ParkingResult>> action, string? successKey = null)
     {
-        _error = _info = null;
-        var result = await action();
-        if (result.Succeeded)
+        if (!TryBeginAction())
         {
-            _info = successKey;
-            await ReloadReservationsAsync();
-            if (_available is not null)
+            return;
+        }
+
+        try
+        {
+            _error = _info = null;
+            var result = await action();
+            if (result.Succeeded)
             {
-                await FindAvailableAsync();
+                _info = successKey;
+                await ReloadReservationsAsync();
+                if (_available is not null)
+                {
+                    await FindAvailableAsync();
+                }
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
             }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _actionBusy = false;
         }
     }
 

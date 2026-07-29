@@ -13,7 +13,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- AddDefaultTokenProviders/AddDataProtection for the account-security test harness live in
+         the ASP.NET Core shared framework, not in any NuGet package. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\D3Parking.Application\D3Parking.Application.csproj" />
+    <!-- The concurrency tests exercise the real services against SQL Server (see
+         ReservationConcurrencyTests); unit tests keep depending on Application/Domain only. -->
+    <ProjectReference Include="..\..\src\D3Parking.Infrastructure\D3Parking.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

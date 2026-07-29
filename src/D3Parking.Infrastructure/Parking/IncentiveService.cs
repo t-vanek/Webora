@@ -77,7 +77,10 @@ public sealed class IncentiveService(
             .ToListAsync(cancellationToken);
 
         return members
-            .GroupBy(m => m.Department!)
+            // Case-insensitive like the SQL side: GetPeerComparisonAsync compares departments
+            // under the server's CI collation, so "IT" and "It" are one team there — splitting
+            // them here would show different averages between the two views.
+            .GroupBy(m => m.Department!, StringComparer.OrdinalIgnoreCase)
             .Select(g => new
             {
                 Department = g.Key,

@@ -271,7 +271,12 @@
     // Build option lists once; the empty leading entry stands for "automatic / default" in the UI.
     private IEnumerable<string> LanguageOptions => new[] { string.Empty }.Concat(SupportedCultures.All);
     private IEnumerable<string> TimeZoneOptions => new[] { string.Empty }.Concat(TimeZones.Select(t => t.Id));
-    private IEnumerable<string> RoleOptions => new[] { string.Empty }.Concat(_roles);
+
+    // Administrator is deliberately absent: the default role is granted to every self-registered
+    // account, and the service refuses it too (Error_DefaultRoleReserved) — this just keeps the
+    // impossible choice out of the dropdown.
+    private IEnumerable<string> RoleOptions => new[] { string.Empty }
+        .Concat(_roles.Where(r => !string.Equals(r, D3Parking.Domain.Authorization.Roles.Administrator, StringComparison.OrdinalIgnoreCase)));
 
     protected override async Task OnInitializedAsync()
     {

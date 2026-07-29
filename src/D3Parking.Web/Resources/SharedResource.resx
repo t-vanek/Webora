@@ -342,6 +342,9 @@
   <data name="Parking_State_Cancelled" xml:space="preserve"><value>Zrušeno</value></data>
   <data name="Parking_Error_CodeRequired" xml:space="preserve"><value>Zadejte označení místa.</value></data>
   <data name="Parking_Error_DuplicateCode" xml:space="preserve"><value>Místo s tímto označením už existuje.</value></data>
+  <data name="Parking_Error_VisitorSpotNoOwner" xml:space="preserve"><value>Návštěvnické místo nemůže mít přiřazeného rezidenta.</value></data>
+  <data name="Parking_Error_OwnerHasSpot" xml:space="preserve"><value>Tento uživatel už vlastní jiné místo.</value></data>
+  <data name="Parking_Error_TypeChangeBooked" xml:space="preserve"><value>Typ místa nelze změnit, dokud na něm existují budoucí rezervace nebo návštěvy.</value></data>
   <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>Místo nebylo nalezeno.</value></data>
   <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>Toto místo není k dispozici.</value></data>
   <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>Konec musí být po začátku.</value></data>

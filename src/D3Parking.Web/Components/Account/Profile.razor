@@ -20,6 +20,11 @@
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
 
+            @if (!string.IsNullOrEmpty(_saveError))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@_saveError</FluentMessageBar>
+            }
+
             <FluentCard Class="profile-section">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                     <FluentLabel Typo="Typography.Subject">@L["Profile_CommuteTitle"]</FluentLabel>
@@ -60,8 +65,10 @@
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_TeamHelp"]</FluentLabel>
                     <EditForm Model="TeamInput" method="post" OnValidSubmit="SaveDepartmentAsync" FormName="department">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                            @* Maxlength mirrors the nvarchar(128) column: without it an oversized
+                               value only fails at SaveChanges — an unhandled 500 instead of a message. *@
                             <FluentTextField Name="TeamInput.Department" @bind-Value="TeamInput.Department"
-                                             Label="@L["Profile_Team"]" Style="width:360px" />
+                                             Label="@L["Profile_Team"]" Style="width:360px" Maxlength="128" />
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
                         </FluentStack>
                     </EditForm>
@@ -214,6 +221,7 @@
 #pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
+    private string? _saveError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -237,7 +245,17 @@
         if (user is not null)
         {
             user.Department = string.IsNullOrWhiteSpace(TeamInput.Department) ? null : TeamInput.Department.Trim();
-            await UserManager.UpdateAsync(user);
+            ReportSave(await UserManager.UpdateAsync(user));
+        }
+    }
+
+    // A silently discarded IdentityResult made every failed save look like a success (the page
+    // just re-rendered) — surface the errors through the shared status message instead.
+    private void ReportSave(IdentityResult result)
+    {
+        if (!result.Succeeded)
+        {
+            _saveError = string.Join(" ", result.Errors.Select(e => e.Description));
         }
     }
 
@@ -256,7 +274,7 @@
             user.LicensePlate = string.IsNullOrWhiteSpace(VehicleInput.Plate)
                 ? null
                 : VehicleInput.Plate.Trim().ToUpperInvariant();
-            await UserManager.UpdateAsync(user);
+            ReportSave(await UserManager.UpdateAsync(user));
         }
     }
 

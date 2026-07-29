@@ -39,6 +39,15 @@ public static class DependencyInjection
         // Route Identity's confirmation/reset emails through the application's email abstraction.
         services.AddScoped<IEmailSender<ApplicationUser>, D3Parking.Web.Email.IdentityEmailSender>();
 
+        // Blocking/suspending an account rotates its security stamp; these two make that rotation
+        // actually end live access. The cookie is re-validated against the stamp every 5 minutes
+        // (default 30), and interactive circuits — whose principal is otherwise fixed for the
+        // circuit's whole life — re-check the user, status and stamp on the same cadence.
+        services.Configure<SecurityStampValidatorOptions>(options =>
+            options.ValidationInterval = TimeSpan.FromMinutes(5));
+        services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider,
+            CircuitAuthenticationRevalidator>();
+
         // Align Identity's claim types with what OpenIddict expects when it issues tokens.
         services.Configure<IdentityOptions>(options =>
         {

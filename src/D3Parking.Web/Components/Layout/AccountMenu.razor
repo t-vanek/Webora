@@ -37,10 +37,22 @@
             <span class="account-avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
         </FluentButton>
 
+        @* The navigation items carry a real anchor (data-enhance-nav=false → full document load,
+           same semantics the old NavigateTo(forceLoad) had): a native link works even while the
+           circuit is attaching or gone, when an OnClick would be silently dropped — "clicked
+           Sign out and nothing happened". The split of duties: mouse clicks hit the anchor
+           (stretched over the row in app.css) and navigate natively; the native inline
+           stopPropagation keeps the click from ever reaching the fluent-menu-item element, whose
+           close-and-re-render would race the page teardown and crash the circuit inside
+           FluentMenu's JS interop (a Blazor @onclick:stopPropagation cannot do this — the web
+           component's own listener runs during bubbling, before Blazor's delegated root).
+           Keyboard activation dispatches on the menu item itself, so OnClick stays as the
+           keyboard path. *@
         <FluentMenu Anchor="account-menu-trigger" @bind-Open="_accountOpen">
             <FluentMenuItem OnClick="@(() => Go("account/manage"))">
                 <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.Person())" /></span>
-                @context.User.Identity?.Name
+                <a href="account/manage" data-enhance-nav="false" class="account-menu-link"
+                   onclick="event.stopPropagation()">@context.User.Identity?.Name</a>
             </FluentMenuItem>
 
             <FluentDivider />
@@ -67,7 +79,8 @@
 
             <FluentMenuItem OnClick="@(() => Go("logout"))">
                 <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.SignOut())" /></span>
-                @L["Nav_Logout"]
+                <a href="logout" data-enhance-nav="false" class="account-menu-link"
+                   onclick="event.stopPropagation()">@L["Nav_Logout"]</a>
             </FluentMenuItem>
         </FluentMenu>
     </Authorized>
@@ -104,12 +117,22 @@
 @code {
     private bool _accountOpen;
     private bool _langOpen;
+    private bool _navigating;
     private DesignThemeModes _themeMode = DesignThemeModes.System;
     private readonly string _currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
+    // While a full-load navigation is tearing the page down, the post-event re-render must not
+    // run: FluentMenu.OnAfterRenderAsync would call into the disconnecting JS runtime and take
+    // the circuit down with an ArgumentNullException on every sign-out.
+    protected override bool ShouldRender() => !_navigating;
+
     // Full load on purpose: both targets are statically rendered pages, and logout in
     // particular must arrive as a fresh request so its antiforgery-protected form renders.
-    private void Go(string url) => Nav.NavigateTo(url, forceLoad: true);
+    private void Go(string url)
+    {
+        _navigating = true;
+        Nav.NavigateTo(url, forceLoad: true);
+    }
 
     private void ToggleTheme() =>
         _themeMode = _themeMode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;

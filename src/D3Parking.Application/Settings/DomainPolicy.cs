@@ -5,6 +5,7 @@ namespace D3Parking.Application.Settings;
 /// <summary>A lightweight snapshot of the domain settings used by the enforcement middleware.</summary>
 public sealed record DomainPolicy(
     string? CanonicalHost,
+    UrlScheme Scheme,
     int? Port,
     bool ForceHttps,
     bool HstsEnabled,

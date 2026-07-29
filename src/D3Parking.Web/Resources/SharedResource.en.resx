@@ -342,6 +342,9 @@
   <data name="Parking_State_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="Parking_Error_CodeRequired" xml:space="preserve"><value>Enter a spot code.</value></data>
   <data name="Parking_Error_DuplicateCode" xml:space="preserve"><value>A spot with this code already exists.</value></data>
+  <data name="Parking_Error_VisitorSpotNoOwner" xml:space="preserve"><value>A visitor spot cannot have a resident owner.</value></data>
+  <data name="Parking_Error_OwnerHasSpot" xml:space="preserve"><value>This user already owns another spot.</value></data>
+  <data name="Parking_Error_TypeChangeBooked" xml:space="preserve"><value>The spot type cannot change while it has upcoming reservations or visits.</value></data>
   <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>The spot was not found.</value></data>
   <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>This spot is not available.</value></data>
   <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>The end must be after the start.</value></data>

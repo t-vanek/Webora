@@ -45,6 +45,17 @@ public sealed class CharsetMiddleware(RequestDelegate next)
             return;
         }
 
+        // Buffering is only worth it where HTML can come back. Wrapping every response would
+        // materialize multi-megabyte framework assets in memory, hold SSE streams (the SignalR
+        // fallback transport) until connection end, and turn streaming SSR into buffered pages.
+        // A rare HTML fetch without an Accept header stays UTF-8 — the Content-Type header wins
+        // over the meta tag, so it renders correctly, just without the configured charset.
+        if (!HtmlRequests.AcceptsHtml(context.Request))
+        {
+            await next(context);
+            return;
+        }
+
         var originalBody = context.Response.Body;
         using var buffer = new MemoryStream();
         context.Response.Body = buffer;

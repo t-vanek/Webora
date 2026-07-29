@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using D3Parking.Application.Notifications;
@@ -60,22 +61,53 @@ public sealed class ResidentSpotService(
             state = OwnedSpotDayState.Held;
         }
 
-        var potential = policy.ComputeShareReward(policy.ResidentShareCutoff(today, timeZone), now, spot.MonthlyShareAllowance);
+        // The shown potential must pass the same monthly-allowance gate ReleaseAsync applies when
+        // actually awarding — otherwise a fresh owner (allowance 0) or an exhausted month is
+        // promised points that the release then pays out as zero.
+        var monthFloor = new DateOnly(today.Year, today.Month, 1);
+        var monthCeil = monthFloor.AddMonths(1);
+        var rewardedThisMonth = await dbContext.SpotReleases.CountAsync(
+            r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date < monthCeil,
+            cancellationToken);
+        var potential = rewardedThisMonth < spot.MonthlyShareAllowance
+            ? policy.ComputeShareReward(policy.ResidentShareCutoff(today, timeZone), now, spot.MonthlyShareAllowance)
+            : 0;
         return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, spot.MonthlyShareAllowance,
             policy.ResidentMaxShareAllowance, state, releasedToday, potential);
     }
 
-    public async Task<ParkingResult> ConfirmArrivalAsync(Guid userId, CancellationToken cancellationToken = default)
+    // RetryAsync re-runs a serializable-transaction loser (deadlock victim) from scratch, so the
+    // race with a guest booking resolves to a friendly failure instead of an error page.
+    public Task<ParkingResult> ConfirmArrivalAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ConfirmArrivalCoreAsync(userId, cancellationToken), cancellationToken);
+
+    private async Task<ParkingResult> ConfirmArrivalCoreAsync(Guid userId, CancellationToken cancellationToken)
     {
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, timeZone);
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // This is the one write into Reservations outside ReserveCoreAsync, and it needs the same
+        // protection: at read-committed the takenByOther check and the insert are two separate
+        // steps, so around the auto-share cutoff a guest booking this spot and the owner confirming
+        // arrival could both pass their checks and both insert — two active reservations on one
+        // spot. Serializable makes the checks take range locks, exactly like ReserveCoreAsync.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
         if (spot is null)
         {
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
+        }
+
+        // A deactivated spot is out of the pool entirely — the owner cannot park on it either
+        // (ReserveCoreAsync rejects inactive spots the same way).
+        if (!spot.IsActive)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotInactive");
         }
 
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
@@ -105,10 +137,14 @@ public sealed class ResidentSpotService(
         reservation.CheckIn(now);
         dbContext.Reservations.Add(reservation);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return ParkingResult.Success;
     }
 
-    public async Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
+    public Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ReleaseCoreAsync(userId, fromDate, toDate, cancellationToken), cancellationToken);
+
+    private async Task<ParkingResult> ReleaseCoreAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
@@ -131,6 +167,15 @@ public sealed class ResidentSpotService(
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // The monthly-cap read (rewardedPerMonth below) and the reward inserts must be one atomic
+        // step: at read-committed two parallel releases of disjoint ranges both count zero rewarded
+        // days and both award up to the full allowance — the unique (SpotId, Date) index cannot
+        // catch that because the dates differ. Serializable range-locks the owner's release rows,
+        // the same pattern the daily caps in ReservationService use.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
         if (spot is null)
         {
@@ -209,7 +254,19 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_NothingToRelease");
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // A concurrent release landed the same day between our check and our save; the unique
+            // (SpotId, Date) index is the last line of defence. The days are released either way.
+            // Anything else (a lost deadlock) propagates to the retry wrapper for a fresh attempt.
+            return ParkingResult.Failure("Parking_Error_AlreadyReleased");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -246,8 +303,10 @@ public sealed class ResidentSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
 
+        // Inactive spots are out of the pool entirely — nagging their owners to "confirm or
+        // release" a spot nobody could book would only teach them to ignore the reminders.
         var candidates = await dbContext.ParkingSpots
-            .Where(s => s.OwnerId != null && s.LastResidentReminderDate != today)
+            .Where(s => s.IsActive && s.OwnerId != null && s.LastResidentReminderDate != today)
             .ToListAsync(cancellationToken);
 
         var toNotify = new List<(Guid OwnerId, string Code)>();
@@ -305,8 +364,10 @@ public sealed class ResidentSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
 
+        // Same reason as the hold reminders: a deactivated spot never auto-shares into the pool,
+        // so telling its owner it just did would be false.
         var candidates = await dbContext.ParkingSpots
-            .Where(s => s.OwnerId != null && s.LastAutoShareNoticeDate != today)
+            .Where(s => s.IsActive && s.OwnerId != null && s.LastAutoShareNoticeDate != today)
             .ToListAsync(cancellationToken);
 
         var toNotify = new List<(Guid OwnerId, string Code)>();

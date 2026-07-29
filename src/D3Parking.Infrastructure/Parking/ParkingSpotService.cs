@@ -67,7 +67,17 @@ public sealed class ParkingSpotService(
         }
 
         dbContext.ParkingSpots.Add(new ParkingSpot(code, type, notes));
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent create landed the same code between the check and the save; the unique
+            // index on Code is the last line of defence. Safe to just retry.
+            return ParkingResult.Failure("Parking_Error_DuplicateCode");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -186,10 +196,46 @@ public sealed class ParkingSpotService(
             return ParkingResult.Failure("Parking_Error_DuplicateCode");
         }
 
+        // The employee pool and the visitor agenda are separate booking systems that never see
+        // each other's conflicts. Crossing the boundary with live bookings would double-let the
+        // spot: a visitor spot with a future visit re-typed to Standard immediately reappears in
+        // the employee pool, whose conflict check only reads Reservations (and vice versa).
+        if (type != spot.Type && (type == ParkingSpotType.Visitor) != (spot.Type == ParkingSpotType.Visitor))
+        {
+            var now = timeProvider.GetUtcNow();
+            var hasLiveBookings = spot.Type == ParkingSpotType.Visitor
+                ? await dbContext.VisitorBookings.AnyAsync(b => b.SpotId == id
+                    && b.Status == VisitorBookingStatus.Booked && b.EndUtc > now, cancellationToken)
+                : await dbContext.Reservations.AnyAsync(r => r.SpotId == id
+                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                    && r.EndUtc > now, cancellationToken);
+            if (hasLiveBookings)
+            {
+                return ParkingResult.Failure("Parking_Error_TypeChangeBooked");
+            }
+
+            // Visitor spots never belong to a resident (AssignOwnerAsync refuses them too).
+            if (type == ParkingSpotType.Visitor && spot.OwnerId is not null)
+            {
+                return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
+            }
+        }
+
         spot.Rename(code);
         spot.ChangeType(type);
         spot.UpdateNotes(notes);
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent rename landed the same code between the check and the save; the unique
+            // index on Code is the last line of defence. Safe to just retry.
+            return ParkingResult.Failure("Parking_Error_DuplicateCode");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -249,6 +295,22 @@ public sealed class ParkingSpotService(
             return ParkingResult.Failure("Parking_Error_UserNotFound");
         }
 
+        // Visitor spots belong to the reception's agenda; splicing a resident's flows into it
+        // would cross two booking systems that never see each other's conflicts.
+        if (ownerId is not null && spot.Type == ParkingSpotType.Visitor)
+        {
+            return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
+        }
+
+        // One spot per resident: every resident flow resolves the user's spot with an unordered
+        // FirstOrDefault, so a second assignment would make confirm/release/allowance act on a
+        // nondeterministic one of the two. The filtered unique index on OwnerId backs this.
+        if (ownerId is { } candidate
+            && await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.OwnerId == candidate, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_OwnerHasSpot");
+        }
+
         var previousOwner = spot.OwnerId;
         spot.AssignOwner(ownerId);
 
@@ -271,7 +333,10 @@ public sealed class ParkingSpotService(
                     .Where(r => r.AwardedPoints > 0)
                     .GroupBy(r => r.OwnerId))
                 {
-                    var revoked = ownerRevocations.Sum(r => r.AwardedPoints);
+                    // Whatever the no-show sweep already clawed back from a day's award must not
+                    // be revoked again — ClawedBackPoints exists precisely to cap the total
+                    // penalty at the award, never taking the owner net negative.
+                    var revoked = ownerRevocations.Sum(r => r.AwardedPoints - r.ClawedBackPoints);
                     var ownerScore = await dbContext.ParkerScores
                         .FirstOrDefaultAsync(s => s.UserId == ownerRevocations.Key, cancellationToken);
                     if (ownerScore is not null && revoked > 0)

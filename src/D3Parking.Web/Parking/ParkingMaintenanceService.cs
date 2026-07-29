@@ -57,8 +57,11 @@ public sealed class ParkingMaintenanceService(
             var credited = await StepAsync("monthly credit grants", () => reservations.GrantDueMonthlyCreditsAsync(cancellationToken), 0, cancellationToken);
             var queueOffers = await StepAsync("queue processing", () => reservations.ProcessQueueAsync(cancellationToken), 0, cancellationToken);
             var decayed = await StepAsync("reputation decay", () => reservations.DecayReputationAsync(cancellationToken), 0, cancellationToken);
-            var peakOccupancy = await StepAsync("peak occupancy", () => reservations.MeasurePeakOccupancyAsync(cancellationToken), 0.0, cancellationToken);
-            var repriced = await StepAsync("adaptive pricing", () => settings.AdaptPeakSurchargeAsync(peakOccupancy, cancellationToken), false, cancellationToken);
+            // Null until today's peak window has ended — adapting from a live (or empty) window
+            // drained the surcharge to its minimum every night.
+            var peakOccupancy = await StepAsync("peak occupancy", () => reservations.MeasurePeakOccupancyAsync(cancellationToken), (double?)null, cancellationToken);
+            var repriced = peakOccupancy is { } measuredPeak
+                && await StepAsync("adaptive pricing", () => settings.AdaptPeakSurchargeAsync(measuredPeak, cancellationToken), false, cancellationToken);
             var trustScored = await StepAsync("trust graph", () => trust.ComputeTrustAsync(cancellationToken), 0, cancellationToken);
             var collusionFlagged = await StepAsync("collusion scan", () => collusion.ScanAsync(cancellationToken), 0, cancellationToken);
             var campaignRecipients = await StepAsync("availability campaigns", () => availability.RunDueCampaignsAsync(cancellationToken), 0, cancellationToken);

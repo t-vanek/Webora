@@ -50,4 +50,12 @@ public class ApologyVoucher : Entity
         RedeemedReservationId = null;
         WaivedCredits = 0;
     }
+
+    /// <summary>
+    /// Re-points a redeemed voucher at the replacement reservation when a blocked booking is
+    /// relocated: the promise that a timely cancel/release restores the voucher must follow the
+    /// booking the user actually holds, not the voided one.
+    /// </summary>
+    public void TransferRedemption(Guid replacementReservationId) =>
+        RedeemedReservationId = replacementReservationId;
 }

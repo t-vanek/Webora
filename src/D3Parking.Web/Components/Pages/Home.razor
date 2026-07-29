@@ -127,12 +127,12 @@
                     <span class="today-card__actions">
                         @if (r.Status == ReservationStatus.Reserved)
                         {
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CheckInAsync(_userId, r.Id))">@L["Parking_CheckIn"]</FluentButton>
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.ReleaseAsync(_userId, r.Id))">@L["Parking_Release"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CheckInAsync(_userId, r.Id))">@L["Parking_CheckIn"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.ReleaseAsync(_userId, r.Id))">@L["Parking_Release"]</FluentButton>
                         }
                         else if (r.Status == ReservationStatus.CheckedIn)
                         {
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CompleteAsync(_userId, r.Id))">@L["Parking_Complete"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CompleteAsync(_userId, r.Id))">@L["Parking_Complete"]</FluentButton>
                         }
                     </span>
                 </div>
@@ -152,8 +152,8 @@
                             }
                         </span>
                         <span class="today-card__actions">
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.ClaimQueueOfferAsync(_userId, q.Id))">@L["Parking_Queue_Claim"]</FluentButton>
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.ClaimQueueOfferAsync(_userId, q.Id))">@L["Parking_Queue_Claim"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
                         </span>
                     }
                     else
@@ -161,7 +161,7 @@
                         <span class="today-card__value">@Local(q.StartUtc, "g") – @Local(q.EndUtc, "t")</span>
                         <span class="today-card__meta">@L["Parking_Queue_Position"]: @q.Position</span>
                         <span class="today-card__actions">
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
                         </span>
                     }
                 </div>
@@ -176,8 +176,8 @@
                     @if (s.TodayState == OwnedSpotDayState.Held)
                     {
                         <span class="today-card__actions">
-                            <FluentButton Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_Release"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_Release"]</FluentButton>
                         </span>
                     }
                 </div>
@@ -315,16 +315,33 @@
         _score = await Incentives.GetScoreAsync(_userId);
     }
 
+    // Single-flight: every dashboard action funnels through here, so the guard covers a
+    // double-click on any of them — the second click must not run against already-changed state.
+    private bool _actionBusy;
+
     private async Task RunAsync(Func<Task<ParkingResult>> action)
     {
-        _error = null;
-        var result = await action();
-        if (!result.Succeeded)
+        if (_actionBusy)
         {
-            _error = result.Errors.FirstOrDefault();
+            return;
         }
 
-        await LoadAsync();
+        _actionBusy = true;
+        try
+        {
+            _error = null;
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
     }
 
     private Task ReleaseOwnedTodayAsync()

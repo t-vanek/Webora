@@ -44,7 +44,18 @@ public sealed class NotificationService(
         // Muting suppresses the live push and the email mirror; the notification is still stored.
         if (!preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()))
         {
-            await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+            try
+            {
+                await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // The notification row is stored and the caller's transaction has already
+                // committed — a delivery-infrastructure failure surfacing here would turn a
+                // successful reservation into an error page and invite a duplicate retry. The
+                // bell shows the notification on the next load either way.
+                logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", userId);
+            }
 
             if (email)
             {
