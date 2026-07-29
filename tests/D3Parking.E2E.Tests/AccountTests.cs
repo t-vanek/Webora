@@ -45,7 +45,9 @@ public class AccountTests : AdminTest
         await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("Odhlásit") }).ClickAsync();
         // The menu item opens a confirmation page; the actual sign-out is a form post.
         await Pages.SubmitAsync(Page);
-        await Expect(Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Přihlásit") })).ToBeVisibleAsync();
+        // The anonymous landing has its own "Přihlásit se" hero button, so target the header link
+        // by class — the assertion is about the public header coming back.
+        await Expect(Page.Locator(".header-nav-link[href='login']")).ToBeVisibleAsync();
         await Expect(Page.Locator(".wallet-chip")).ToHaveCountAsync(0);
     }
 }

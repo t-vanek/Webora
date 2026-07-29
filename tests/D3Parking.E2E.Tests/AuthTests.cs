@@ -64,4 +64,15 @@ public class AuthTests : AnonymousTest
         await Page.GotoAsync("/admin/users");
         await Expect(Pages.FluentField(Page, "Input.Email")).ToBeVisibleAsync();
     }
+
+    [Test]
+    public async Task Anonymous_home_is_the_landing_page_without_the_sidebar()
+    {
+        await Page.GotoAsync("/");
+        await Expect(Page.Locator(".landing-hero__title")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".landing-feature")).ToHaveCountAsync(3);
+        // No navigation chrome for visitors — neither the sidebar nor the mobile drawer toggle.
+        await Expect(Page.Locator(".side-nav")).ToHaveCountAsync(0);
+        await Expect(Page.Locator(".nav-drawer-toggle")).ToHaveCountAsync(0);
+    }
 }

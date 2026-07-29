@@ -672,7 +672,8 @@ h1:focus {
     border-radius: 16px;
     overflow: hidden;
     background: var(--neutral-layer-1, #fff);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, .16);
+    border: 1px solid rgba(2, 52, 68, .06);
+    box-shadow: 0 24px 64px rgba(2, 52, 68, .16);
 }
 
 .auth-shell__brand {
@@ -802,6 +803,304 @@ h1:focus {
 
     .auth-shell__panel {
         padding: 32px;
+    }
+}
+
+/* Podklad auth stránek: plocha s dvěma šikmými pruhy značky v nízké sytosti. Pruhy jsou
+   kreslené gradientem s tvrdými zarážkami (žádné rozostření — brandbook zná jen ostré hrany),
+   ne pseudo-elementy: absolutně pozicovaný pruh přes 240 % výšky by v overflow:auto kontejneru
+   vyrobil zbytečný scrollbar, background nikdy. */
+.auth-body {
+    background: linear-gradient(114deg,
+            transparent 55%,
+            rgba(136, 77, 255, .07) 55%, rgba(136, 77, 255, .07) 62%,
+            transparent 62%, transparent 68%,
+            rgba(137, 225, 3, .09) 68%, rgba(137, 225, 3, .09) 78%,
+            transparent 78%) no-repeat,
+        var(--neutral-layer-4, #f3f3f3);
+    background-size: 100% 100%;
+}
+
+/* --- Veřejný landing (anonymní "/") --- */
+/* Bez sidebaru patří anonymní domovské stránce celá šířka; obsah se drží na 1080 px jako
+   čitelný sloupec. Rytmus ploch kopíruje brandbook: tmavé hero se šikmými pruhy, světlé
+   karty pilířů, kroky a fialový závěrečný pás. */
+.landing {
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 8px 0 56px;
+}
+
+.landing-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--brand-radius-lg);
+    padding: 88px 64px;
+    color: var(--brand-on-sherpa);
+    background: var(--brand-sherpa);
+}
+
+    /* Stejná dvojice šikmých pruhů jako na hero dashboardu — plná barva, tvrdá hrana. */
+    .landing-hero::before,
+    .landing-hero::after {
+        content: "";
+        position: absolute;
+        width: 140px;
+        height: 240%;
+        top: -70%;
+        transform: rotate(24deg);
+        pointer-events: none;
+    }
+
+    .landing-hero::before {
+        right: 16%;
+        background: var(--brand-violet);
+    }
+
+    .landing-hero::after {
+        right: 3%;
+        background: var(--brand-green);
+    }
+
+.landing-hero__content {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+}
+
+.landing-hero__eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, .38);
+    border-radius: var(--brand-radius);
+    margin-bottom: 22px;
+}
+
+.landing-hero__title {
+    font-size: clamp(30px, 4.6vw, 46px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+}
+
+.landing-hero__lead {
+    font-size: 17px;
+    line-height: 1.6;
+    opacity: .92;
+    max-width: 540px;
+    margin: 0 0 32px;
+}
+
+.landing-hero__actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Tlačítka landing stránky: primární je zelená plocha se Sherpa textem (jediné povolené
+   použití zelené u textu, 8:1), sekundární obrys na tmavé. */
+.landing-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 26px;
+    border-radius: var(--brand-radius);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.landing-btn--primary {
+    background: var(--brand-green);
+    color: var(--brand-on-green);
+}
+
+    .landing-btn--primary:hover {
+        background: var(--brand-green-deep);
+        color: var(--brand-on-green);
+    }
+
+.landing-btn--ghost {
+    border: 2px solid rgba(255, 255, 255, .55);
+    color: #fff;
+}
+
+    .landing-btn--ghost:hover {
+        border-color: #fff;
+        background: rgba(255, 255, 255, .08);
+        color: #fff;
+    }
+
+.landing-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.landing-feature {
+    background: var(--neutral-layer-2, #fff);
+    border: 1px solid var(--neutral-stroke-divider-rest, #e5e5e5);
+    border-radius: var(--brand-radius-lg);
+    padding: 28px;
+}
+
+.landing-feature__ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--brand-radius);
+    margin-bottom: 16px;
+}
+
+.landing-feature__ic--reserve {
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+}
+
+.landing-feature__ic--credits {
+    background: var(--brand-sherpa);
+    color: var(--brand-on-sherpa);
+}
+
+.landing-feature__ic--board {
+    background: var(--brand-green);
+    color: var(--brand-on-green);
+}
+
+.landing-feature__title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.landing-feature__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--neutral-foreground-hint, #5a5a5a);
+}
+
+.landing-steps__title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 24px;
+}
+
+.landing-steps__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.landing-step {
+    padding: 4px 0;
+}
+
+.landing-step__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--brand-radius);
+    background: rgba(136, 77, 255, .14);
+    color: var(--brand-violet-deep);
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 14px;
+}
+
+.landing-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.landing-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--neutral-foreground-hint, #5a5a5a);
+}
+
+/* Závěrečný pás: fialová plocha + zelené CTA — párování ploch, kterým brandbook uzavírá. */
+.landing-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+    padding: 48px 32px;
+    border-radius: var(--brand-radius-lg);
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+}
+
+.landing-cta__title {
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Užší obrazovky: pruhy couvají stejně jako u dashboardového hero — text nesmí na zelenou. */
+@media (max-width: 900px) {
+    .landing-hero {
+        padding: 56px 32px;
+    }
+
+    .landing-hero::before {
+        display: none;
+    }
+
+    .landing-hero::after {
+        width: 72px;
+        right: -22px;
+    }
+
+    .landing-hero__content {
+        padding-right: 56px;
+    }
+}
+
+@media (max-width: 600px) {
+    .landing {
+        gap: 36px;
+    }
+
+    .landing-hero {
+        padding: 44px 24px;
+    }
+
+        .landing-hero::after {
+            display: none;
+        }
+
+    .landing-hero__content {
+        padding-right: 0;
+    }
+
+    .landing-hero__actions .landing-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -1426,6 +1725,22 @@ h1:focus {
         }
 }
 
+/* Select uvnitr FluentDataGrid: bunky gridu maji overflow:hidden (kvuli ellipsis), takze
+   rozbaleny seznam se OREZAVA na vysku bunky — z radku pod nim je videt jen prouzek a
+   moznosti nejdou kliknout. U bunky s fokusem (= otevrenym selectem) se clip uvolni; ellipsis
+   ostatnich bunek zustava. Grid se renderuje jako obycejna tabulka tr/td, ne
+   fluent-data-grid-row. */
+.admin-panel td:focus-within {
+    overflow: visible;
+}
+
+/* ...a jakmile seznam z bunky vyjede, kresli se selecty pozdejsich radku pres nej (vsechny
+   jsou position:relative bez z-indexu = poradi DOM). Z-index patri primo na select — na tr
+   je position/z-index nedefinovane chovani a Chrome tam stacking context nevytvori. */
+.admin-panel fluent-select:focus-within {
+    z-index: 10;
+}
+
 /* Modernise the table panels with a gentle elevation, matching the cards. */
 .admin-panel {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
@@ -1562,3 +1877,164 @@ h1:focus {
         --neutral-stroke-active: inherit;
         --neutral-stroke-focus: inherit;
     }
+
+/* --- Sidebar A+B: rozbaleny stav a rail --- */
+/* Vlastni markup misto FluentNavMenu; oba stavy jsou ciste CSS prepnuti tridou .side-nav--rail. */
+
+/* Layout (FluentLayout = div.layout) je flex sloupec, ale vysku ridi obsahem — na oknech
+   vyssich nez stranka koncil kus nad spodni hranou a "flex:1" na .main nemelo co rozdelovat.
+   Minimalni vyska pres cele okno je predpoklad, aby sidebar dosahl az dolu; u delsich stranek
+   se layout normalne roztahne dal a scroluje. */
+.layout {
+    min-height: 100dvh;
+}
+
+/* Na desktopu se drawer obal roztahuje na celou vysku radku .main — FluentStack deti zarovnava
+   k horni hrane (stejna vlastnost, ktera smrstovala fluent-tabs na sirku obsahu), takze bez
+   align-self by sidebar koncil pod poslednim tlacitkem a zbytek sloupce zustal bez podkladu. */
+@media (min-width: 769px) {
+    .nav-drawer {
+        align-self: stretch;
+        display: flex;
+    }
+}
+
+/* Stejny neduh u obsahu: .body-content je scroll kontejner (overflow:auto), ale konci na spodni
+   hrane OBSAHU, takze vsechno, co pretece niz — treba rozbaleny select u posledniho radku
+   gridu — se orizne, prestoze je na obrazovce misto. Pricina: Fluent v adopted stylesheetu
+   (mimo document.styleSheets!) nastavuje .body-content { height: 100% } — procenta vuci
+   neurcite vysce flexoveho .main padaji na vysku obsahu a height != auto zaroven vypina
+   align-self: stretch. Vratit auto + stretch element natahne pres celou vysku radku .main,
+   takze klipuje az na spodni hrane okna. !important je nutne: adopted stylesheet Fluentu se
+   v kaskade radi az ZA dokumentove styly, takze bezne pravidlo z app.css prohrava. */
+.main > .body-content {
+    height: auto !important;
+    align-self: stretch;
+}
+
+.side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 220px;
+    min-height: 100%;
+    padding: 12px 8px;
+    box-sizing: border-box;
+    background: var(--neutral-layer-2, var(--brand-white));
+    border-right: 1px solid var(--brand-hairline);
+    font-family: var(--brand-font);
+}
+
+.side-nav__item,
+.side-nav__item:link,
+.side-nav__item:visited {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--brand-radius);
+    color: var(--neutral-foreground-rest);
+    text-decoration: none;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+    .side-nav__item:hover {
+        background: rgba(136, 77, 255, .10);
+        color: var(--neutral-foreground-rest);
+    }
+
+    /* Aktivni polozka jako fialova vypln — jazyk znacky, viditelny v obou stavech. */
+    .side-nav__item--active,
+    .side-nav__item--active:link,
+    .side-nav__item--active:visited,
+    .side-nav__item--active:hover {
+        background: var(--brand-violet);
+        color: var(--brand-on-violet);
+        font-weight: 600;
+    }
+
+.side-nav__short {
+    display: none;
+}
+
+.side-nav__section {
+    margin: 12px 4px 4px;
+    padding: 0 8px;
+}
+
+.side-nav__section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.side-nav__collapse {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    border-top: 1px solid var(--brand-hairline);
+    background: transparent;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-family: var(--brand-font);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+    .side-nav__collapse:hover {
+        color: var(--neutral-foreground-rest);
+    }
+
+/* Rail: jen na desktopu — v mobilnim draweru zustava rozbalena podoba vzdy,
+   na overlayi neni duvod setrit sirkou. */
+@media (min-width: 769px) {
+    .side-nav--rail {
+        width: 76px;
+        padding: 12px 6px;
+    }
+
+        .side-nav--rail .side-nav__item {
+            flex-direction: column;
+            gap: 3px;
+            padding: 8px 2px;
+            text-align: center;
+        }
+
+        .side-nav--rail .side-nav__label {
+            display: none;
+        }
+
+        /* Kratky popisek pod ikonou — nema ikona zustat hadankou. Neutral secondary,
+           ne muted: 9px text potrebuje slusny kontrast. */
+        .side-nav--rail .side-nav__short {
+            display: block;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: .02em;
+        }
+
+        .side-nav--rail .side-nav__section {
+            margin: 8px 10px;
+            padding: 0;
+            border-top: 1px solid var(--brand-hairline);
+        }
+
+        .side-nav--rail .side-nav__section-title {
+            display: none;
+        }
+
+        .side-nav--rail .side-nav__collapse {
+            justify-content: center;
+            padding: 10px 2px;
+        }
+
+            .side-nav--rail .side-nav__collapse .side-nav__label {
+                display: none;
+            }
+}

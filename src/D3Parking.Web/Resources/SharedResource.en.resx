@@ -587,4 +587,33 @@
   <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Expires at {0}</value></data>
   <data name="Home_Wallet" xml:space="preserve"><value>Wallet and points</value></data>
   <data name="Home_WalletDetail" xml:space="preserve"><value>Tier {0} · streak {1}</value></data>
+  <data name="Nav_Short_Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Nav_Short_Reserve" xml:space="preserve"><value>Reserve</value></data>
+  <data name="Nav_Short_Leaderboard" xml:space="preserve"><value>Ranking</value></data>
+  <data name="Nav_Short_Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Nav_Short_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Nav_Short_Spots" xml:space="preserve"><value>Spots</value></data>
+  <data name="Nav_Short_Rules" xml:space="preserve"><value>Rules</value></data>
+  <data name="Nav_Short_Settings" xml:space="preserve"><value>Site</value></data>
+  <data name="Nav_Collapse" xml:space="preserve"><value>Collapse</value></data>
+  <data name="Nav_Expand" xml:space="preserve"><value>Expand</value></data>
+  <data name="Landing_Headline" xml:space="preserve"><value>Company parking without spreadsheets and haggling</value></data>
+  <data name="Landing_Lead" xml:space="preserve"><value>D3Parking shares spots fairly. Reservations in a few clicks, credits with occupancy-driven pricing, and points for fair behaviour.</value></data>
+  <data name="Landing_CtaLogin" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Landing_CtaRegister" xml:space="preserve"><value>Create account</value></data>
+  <data name="Landing_FeaturesTitle" xml:space="preserve"><value>What D3Parking does</value></data>
+  <data name="Landing_Feature1_Title" xml:space="preserve"><value>Reserve in a few clicks</value></data>
+  <data name="Landing_Feature1_Desc" xml:space="preserve"><value>Pick a day and a spot; the system handles the rest — including the queue when the lot is full.</value></data>
+  <data name="Landing_Feature2_Title" xml:space="preserve"><value>Credits and dynamic pricing</value></data>
+  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Spot prices follow occupancy. Park off-peak and save.</value></data>
+  <data name="Landing_Feature3_Title" xml:space="preserve"><value>Points, streaks and a leaderboard</value></data>
+  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Fairness counts: earn points for reliability and climb the leaderboard.</value></data>
+  <data name="Landing_HowTitle" xml:space="preserve"><value>How it works</value></data>
+  <data name="Landing_Step1_Title" xml:space="preserve"><value>Create an account</value></data>
+  <data name="Landing_Step1_Desc" xml:space="preserve"><value>Registration takes a minute — just an e-mail and a password.</value></data>
+  <data name="Landing_Step2_Title" xml:space="preserve"><value>Reserve a spot</value></data>
+  <data name="Landing_Step2_Desc" xml:space="preserve"><value>Pick a date. If the lot is full, the queue offers you a freed spot automatically.</value></data>
+  <data name="Landing_Step3_Title" xml:space="preserve"><value>Park and earn rewards</value></data>
+  <data name="Landing_Step3_Desc" xml:space="preserve"><value>Check-in confirms your arrival; release an unused spot with one click.</value></data>
+  <data name="Landing_FinalTitle" xml:space="preserve"><value>Start parking smarter today</value></data>
 </root>

@@ -7,22 +7,95 @@
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
 
-@* The home page is a "today" dashboard, not just a launcher: the states that need attention —
-   today's reservation, a time-boxed queue offer, a resident's held spot — surface here with
-   their primary action attached, because forcing a hop to /parking wastes exactly the minutes
-   the queue offer is counting down. Cards render only when they have something to say; a user
-   with no data sees the hero and the quick-action tiles, same as before. *@
+@* Signed in, the home page is a "today" dashboard, not just a launcher: the states that need
+   attention — today's reservation, a time-boxed queue offer, a resident's held spot — surface
+   here with their primary action attached, because forcing a hop to /parking wastes exactly the
+   minutes the queue offer is counting down. Cards render only when they have something to say.
+
+   Signed out, it is a landing page instead: with the sidebar gone for anonymous visitors the
+   full width belongs to a hero with both CTAs, the three product pillars and a short "how it
+   works" — everything a colleague deciding whether to register needs, no dashboard chrome. *@
 
 <PageTitle>@L["Home_Title"]</PageTitle>
 
+@if (!_signedIn)
+{
+    <div class="landing">
+        <section class="landing-hero">
+            <div class="landing-hero__content">
+                <span class="landing-hero__eyebrow">@L["Home_Title"]</span>
+                <h1 class="landing-hero__title">@L["Landing_Headline"]</h1>
+                <p class="landing-hero__lead">@L["Landing_Lead"]</p>
+                <div class="landing-hero__actions">
+                    <a href="login" class="landing-btn landing-btn--primary">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
+                        @L["Landing_CtaLogin"]
+                    </a>
+                    <a href="register" class="landing-btn landing-btn--ghost">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
+                        @L["Landing_CtaRegister"]
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-features" aria-label="@L["Landing_FeaturesTitle"]">
+            <div class="landing-feature">
+                <span class="landing-feature__ic landing-feature__ic--reserve">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+                </span>
+                <h2 class="landing-feature__title">@L["Landing_Feature1_Title"]</h2>
+                <p class="landing-feature__desc">@L["Landing_Feature1_Desc"]</p>
+            </div>
+            <div class="landing-feature">
+                <span class="landing-feature__ic landing-feature__ic--credits">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Money())" Color="Color.Custom" CustomColor="currentColor" />
+                </span>
+                <h2 class="landing-feature__title">@L["Landing_Feature2_Title"]</h2>
+                <p class="landing-feature__desc">@L["Landing_Feature2_Desc"]</p>
+            </div>
+            <div class="landing-feature">
+                <span class="landing-feature__ic landing-feature__ic--board">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
+                </span>
+                <h2 class="landing-feature__title">@L["Landing_Feature3_Title"]</h2>
+                <p class="landing-feature__desc">@L["Landing_Feature3_Desc"]</p>
+            </div>
+        </section>
+
+        <section class="landing-steps">
+            <h2 class="landing-steps__title">@L["Landing_HowTitle"]</h2>
+            <ol class="landing-steps__list">
+                <li class="landing-step">
+                    <span class="landing-step__num" aria-hidden="true">1</span>
+                    <h3 class="landing-step__title">@L["Landing_Step1_Title"]</h3>
+                    <p class="landing-step__desc">@L["Landing_Step1_Desc"]</p>
+                </li>
+                <li class="landing-step">
+                    <span class="landing-step__num" aria-hidden="true">2</span>
+                    <h3 class="landing-step__title">@L["Landing_Step2_Title"]</h3>
+                    <p class="landing-step__desc">@L["Landing_Step2_Desc"]</p>
+                </li>
+                <li class="landing-step">
+                    <span class="landing-step__num" aria-hidden="true">3</span>
+                    <h3 class="landing-step__title">@L["Landing_Step3_Title"]</h3>
+                    <p class="landing-step__desc">@L["Landing_Step3_Desc"]</p>
+                </li>
+            </ol>
+        </section>
+
+        <section class="landing-cta">
+            <h2 class="landing-cta__title">@L["Landing_FinalTitle"]</h2>
+            <a href="register" class="landing-btn landing-btn--primary">@L["Landing_CtaRegister"]</a>
+        </section>
+    </div>
+    return;
+}
+
 <div class="home">
-    <section class="home-hero @(_signedIn ? "home-hero--slim" : null)">
+    <section class="home-hero home-hero--slim">
         <div class="home-hero__content">
             <h1 class="home-hero__title">@L["Home_Title"]</h1>
-            @if (!_signedIn)
-            {
-                <p class="home-hero__lead">@L["Home_Welcome"]</p>
-            }
             <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.Reserve)">
                 <Authorized>
                     <a href="parking" class="home-hero__cta">
@@ -30,9 +103,6 @@
                         @L["Nav_ParkingReserve"]
                     </a>
                 </Authorized>
-                <NotAuthorized>
-                    <span class="home-hero__note">@L["Home_SignedOut"]</span>
-                </NotAuthorized>
             </AuthorizeView>
         </div>
     </section>
