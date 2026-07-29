@@ -94,6 +94,7 @@
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PointsSection"]</FluentLabel>
                         <FluentSwitch Value="@_pointsOn" ValueChanged="TogglePoints" Label="@L["Parking_Settings_SectionEnabled"]" />
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PointsHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.ReleasePoints" Min="0" Disabled="@(!_pointsOn)"
                                            Label="@L["Parking_Settings_ReleasePoints"]" Style="width:100%" />
@@ -121,6 +122,7 @@
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_StreakGroup"]</FluentLabel>
                         <FluentSwitch Value="@_streakOn" ValueChanged="ToggleStreak" Label="@L["Parking_Settings_SectionEnabled"]" />
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_StreakHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusPerLevel" Min="0" Disabled="@(!_streakOn)"
                                            Label="@L["Parking_Settings_StreakBonusPerLevel"]" Style="width:100%" />
@@ -145,6 +147,7 @@
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DecayGroup"]</FluentLabel>
                         <FluentSwitch Value="@_decayOn" ValueChanged="ToggleDecay" Label="@L["Parking_Settings_SectionEnabled"]" />
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DecayHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <div class="settings-field settings-field--wide">
                             <span class="settings-field__label">@L["Parking_Settings_ReputationDecayPercent"] <span class="settings-field__val">@_form.ReputationDecayPercent %</span></span>
@@ -234,6 +237,7 @@
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PeakSection"]</FluentLabel>
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PeakHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <div class="settings-field">
                             <span class="settings-field__label">@L["Parking_Settings_PeakStart"]</span>
@@ -267,6 +271,7 @@
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentSection"]</FluentLabel>
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentsHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <div class="settings-field">
                             <span class="settings-field__label">@L["Parking_Settings_ResidentHoldUntil"]</span>
@@ -311,6 +316,7 @@
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_LimitsHelp"]</FluentLabel>
                     <FluentSwitch @bind-Value="_form.AutoVerifyHomeAddress" Label="@L["Parking_Settings_AutoVerify"]" />
                     <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0" Step="5" Disabled="@(!_form.AutoVerifyHomeAddress)"
