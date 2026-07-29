@@ -28,6 +28,48 @@ public static class Pages
         await Field(page, "Input.Password").FillAsync(password);
         await SubmitAsync(page);
     }
+
+    /// <summary>
+    /// Navigates and waits for the InteractiveServer circuit to attach before returning: the
+    /// _blazor websocket must open and the server must answer over it (handshake ack + first
+    /// render batch). This replaces the fixed "hydration" sleeps — those guessed, and a click
+    /// fired during the handshake is silently dropped, which made the suite flaky on slow runs.
+    /// SignalR keep-alive pings backstop the wait, so it can never hang past the timeout.
+    /// </summary>
+    public static async Task GotoInteractiveAsync(IPage page, string url)
+    {
+        var attached = new TaskCompletionSource();
+
+        void OnWebSocket(object? _, IWebSocket socket)
+        {
+            if (!socket.Url.Contains("_blazor", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var frames = 0;
+            socket.FrameReceived += (_, _) =>
+            {
+                // Frame 1 is the SignalR handshake ack, frame 2 the first render batch — after
+                // that the interactive islands have their event handlers wired.
+                if (Interlocked.Increment(ref frames) >= 2)
+                {
+                    attached.TrySetResult();
+                }
+            };
+        }
+
+        page.WebSocket += OnWebSocket;
+        try
+        {
+            await page.GotoAsync(url);
+            await attached.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        finally
+        {
+            page.WebSocket -= OnWebSocket;
+        }
+    }
 }
 
 /// <summary>Base for specs that run signed out.</summary>

@@ -36,11 +36,10 @@ public class AccountTests : AdminTest
     [Test]
     public async Task Signing_out_returns_to_the_public_header()
     {
-        await Page.GotoAsync("/");
-        await Expect(Page.Locator(".wallet-chip")).ToBeVisibleAsync();
         // Sign-out moved from the sidebar to the header's avatar menu. The menu is an interactive
-        // island, so give the circuit a moment before clicking.
-        await Page.WaitForTimeoutAsync(1500);
+        // island, so wait for the circuit before clicking.
+        await Pages.GotoInteractiveAsync(Page, "/");
+        await Expect(Page.Locator(".wallet-chip")).ToBeVisibleAsync();
         await Page.Locator("#account-menu-trigger").ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("Odhlásit") }).ClickAsync();
         // The menu item opens a confirmation page; the actual sign-out is a form post.

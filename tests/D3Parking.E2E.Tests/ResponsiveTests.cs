@@ -58,9 +58,8 @@ public class ResponsiveTests : PageTest
     [Test]
     public async Task Nav_drawer_opens_from_the_toggle_and_closes_after_navigating()
     {
-        await Page.GotoAsync("/");
         // The drawer is an interactive island; wait for the circuit before clicking.
-        await Page.WaitForTimeoutAsync(1500);
+        await Pages.GotoInteractiveAsync(Page, "/");
 
         await Expect(Page.Locator(".nav-drawer")).ToBeHiddenAsync();
         await Page.Locator(".nav-drawer-toggle").ClickAsync();

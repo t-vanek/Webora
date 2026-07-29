@@ -20,9 +20,8 @@ public class ParkingTests : AdminTest
     [Test]
     public async Task Searching_a_window_shows_a_price_quote()
     {
-        await Page.GotoAsync("/parking");
+        await Pages.GotoInteractiveAsync(Page, "/parking");
         await Expect(Page.Locator(".booking-bar__row input[type=date]")).ToBeVisibleAsync();
-        await Page.WaitForTimeoutAsync(1500); // let the InteractiveServer circuit hydrate
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Najít") }).ClickAsync();
         await Expect(Page.Locator(".price-tag__num")).ToBeVisibleAsync();
         await Expect(Page.Locator(".quote-meter .meter")).ToBeVisibleAsync();
@@ -32,10 +31,9 @@ public class ParkingTests : AdminTest
     [Test]
     public async Task Reserving_a_future_window_round_trips_the_picked_time()
     {
-        await Page.GotoAsync("/parking");
+        await Pages.GotoInteractiveAsync(Page, "/parking");
         var bar = Page.Locator(".booking-bar__row");
         await Expect(bar.Locator("input[type=date]")).ToBeVisibleAsync();
-        await Page.WaitForTimeoutAsync(1500);
 
         // A few days out (never "in the past") at a two-digit hour, randomised so
         // re-runs don't collide on an already-booked spot.
