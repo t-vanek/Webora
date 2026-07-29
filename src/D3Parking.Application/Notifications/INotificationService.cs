@@ -38,6 +38,9 @@ public interface INotificationService
 
     Task SetScopeAsync(Guid userId, NotificationScope scope, CancellationToken cancellationToken = default);
 
+    /// <summary>Opt-in/out for the proactive availability tips (independent of the category scope).</summary>
+    Task SetAvailabilityOptInAsync(Guid userId, bool allow, CancellationToken cancellationToken = default);
+
     // Web Push subscriptions of the user's browser installations.
     Task SubscribeToPushAsync(Guid userId, PushSubscriptionDto subscription, CancellationToken cancellationToken = default);
 

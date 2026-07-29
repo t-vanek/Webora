@@ -43,6 +43,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<ApologyVoucher> ApologyVouchers => Set<ApologyVoucher>();
 
+    public DbSet<AvailabilityCampaign> AvailabilityCampaigns => Set<AvailabilityCampaign>();
+
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -119,6 +121,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         builder.Entity<Identity.ApplicationUser>(user =>
         {
             user.Property(u => u.LicensePlate).HasMaxLength(16);
+        });
+
+        builder.Entity<AvailabilityCampaign>(campaign =>
+        {
+            campaign.ToTable("AvailabilityCampaigns");
+            campaign.HasKey(c => c.Id);
+            // Dedup lookups: newest campaign, and period-overlap checks.
+            campaign.HasIndex(c => c.CreatedAtUtc);
+            campaign.HasIndex(c => new { c.PeriodStart, c.PeriodEnd });
         });
 
         builder.Entity<ApologyVoucher>(voucher =>

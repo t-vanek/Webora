@@ -6,4 +6,5 @@ public sealed record NotificationPreferencesDto(
     bool Muted,
     DateTimeOffset? MutedUntilUtc,
     bool IsCurrentlyMuted,
-    NotificationScope Scope);
+    NotificationScope Scope,
+    bool AllowAvailability);

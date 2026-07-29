@@ -380,6 +380,17 @@
   <data name="Profile_VehicleHelp" xml:space="preserve"><value>SPZ pomáhá správci dohledat vaše auto, kdyby omylem blokovalo cizí rezervaci — ozve se vám dřív, než se cokoli řeší dál.</value></data>
   <data name="Profile_VehiclePlate" xml:space="preserve"><value>SPZ vozidla</value></data>
   <data name="Profile_SaveVehicle" xml:space="preserve"><value>Uložit vozidlo</value></data>
+  <data name="Profile_AvailabilityTips" xml:space="preserve"><value>Tipy na volnou kapacitu</value></data>
+  <data name="Profile_AvailabilityOn" xml:space="preserve"><value>zapnuté</value></data>
+  <data name="Profile_AvailabilityOff" xml:space="preserve"><value>vypnuté</value></data>
+  <data name="Profile_AvailabilityTurnOff" xml:space="preserve"><value>Vypnout tipy</value></data>
+  <data name="Profile_AvailabilityTurnOn" xml:space="preserve"><value>Zapnout tipy</value></data>
+  <data name="Parking_Settings_AvailabilitySection" xml:space="preserve"><value>Oznámení volné kapacity</value></data>
+  <data name="Parking_Settings_AvailabilityHelp" xml:space="preserve"><value>Proaktivní tip „parkoviště je z velké části volné" — pošle se nejvýše jednou denně (jen pracovní dny), když je v horizontu souvislý úsek dní pod prahem obsazenosti. Jde jen do zvonečku a push, nikdy e-mailem; uživatelé mají vlastní vypínač v profilu.</value></data>
+  <data name="Parking_Settings_AvailabilityLookahead" xml:space="preserve"><value>Horizont (dny dopředu)</value></data>
+  <data name="Parking_Settings_AvailabilityThreshold" xml:space="preserve"><value>Práh obsazenosti (%)</value></data>
+  <data name="Parking_Settings_AvailabilityMinDays" xml:space="preserve"><value>Min. souvislých dní</value></data>
+  <data name="Parking_Settings_AvailabilitySendHour" xml:space="preserve"><value>Hodina odeslání (lokálně)</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>

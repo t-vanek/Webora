@@ -380,6 +380,17 @@
   <data name="Profile_VehicleHelp" xml:space="preserve"><value>Your license plate helps the admin find you if your car ever blocks someone's reservation by mistake — you get a heads-up before anything escalates.</value></data>
   <data name="Profile_VehiclePlate" xml:space="preserve"><value>License plate</value></data>
   <data name="Profile_SaveVehicle" xml:space="preserve"><value>Save vehicle</value></data>
+  <data name="Profile_AvailabilityTips" xml:space="preserve"><value>Free-capacity tips</value></data>
+  <data name="Profile_AvailabilityOn" xml:space="preserve"><value>on</value></data>
+  <data name="Profile_AvailabilityOff" xml:space="preserve"><value>off</value></data>
+  <data name="Profile_AvailabilityTurnOff" xml:space="preserve"><value>Turn tips off</value></data>
+  <data name="Profile_AvailabilityTurnOn" xml:space="preserve"><value>Turn tips on</value></data>
+  <data name="Parking_Settings_AvailabilitySection" xml:space="preserve"><value>Free-capacity announcements</value></data>
+  <data name="Parking_Settings_AvailabilityHelp" xml:space="preserve"><value>Proactive "the lot is wide open" tip — sent at most once a day (workdays only) when the lookahead contains a consecutive stretch of days under the occupancy threshold. Bell and push only, never email; users have their own switch in the profile.</value></data>
+  <data name="Parking_Settings_AvailabilityLookahead" xml:space="preserve"><value>Lookahead (days ahead)</value></data>
+  <data name="Parking_Settings_AvailabilityThreshold" xml:space="preserve"><value>Occupancy threshold (%)</value></data>
+  <data name="Parking_Settings_AvailabilityMinDays" xml:space="preserve"><value>Min. consecutive days</value></data>
+  <data name="Parking_Settings_AvailabilitySendHour" xml:space="preserve"><value>Send hour (local)</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>

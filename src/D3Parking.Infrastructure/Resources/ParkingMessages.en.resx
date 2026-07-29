@@ -25,6 +25,8 @@
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
   <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Monthly credit added</value></data>
   <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>Apology voucher</value></data>
+  <data name="Parking_Notify_Availability_Title" xml:space="preserve"><value>The lot is wide open</value></data>
+  <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are booked. Booking now is cheap, and off-peak stays earn points — pick your slot on the Reserve page.</value></data>
   <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>For the trouble with your parking spot you have a voucher for one free reservation (peak included). Valid for 30 days; redeem it by ticking the box when booking.</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because you have a D3Parking account and this notice concerns your parking.</value></data>
   <data name="Email_Chrome_Settings" xml:space="preserve"><value>You can adjust notifications in your in-app profile.</value></data>
