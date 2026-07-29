@@ -1,3 +1,5 @@
+using Lib.Net.Http.WebPush;
+using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +41,24 @@ public static class DependencyInjection
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.
         services.AddScoped<INotificationService, NotificationService>();
         services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
+
+        // Web Push (VAPID). The publisher is only registered when keys are configured — the web
+        // host folds it into its composite realtime publisher via GetService, and the API returns
+        // 204 for the public key so the client hides the toggle.
+        services.Configure<WebPushOptions>(configuration.GetSection(WebPushOptions.SectionName));
+        var webPushOptions = configuration.GetSection(WebPushOptions.SectionName).Get<WebPushOptions>() ?? new WebPushOptions();
+        if (webPushOptions.IsConfigured)
+        {
+            services.AddHttpClient<PushServiceClient>()
+                .AddTypedClient(http => new PushServiceClient(http)
+                {
+                    DefaultAuthentication = new VapidAuthentication(webPushOptions.PublicKey, webPushOptions.PrivateKey)
+                    {
+                        Subject = webPushOptions.Subject,
+                    },
+                });
+            services.AddScoped<WebPushNotificationPublisher>();
+        }
 
         // Parking reservations and the incentive system. The tunable policy is stored in the
         // database (admin-editable) and read through IParkingSettingsService (cached).

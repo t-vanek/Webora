@@ -9,6 +9,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<ClientResource> L
+@inject IJSRuntime JS
 
 @if (_authenticated)
 {
@@ -40,11 +41,26 @@
                         @if (_unreadCount > 0)
                         {
                             <FluentSpacer />
-                            <FluentButton Appearance="Appearance.Hypertext" OnClick="MarkAllRead">
+                            @* Lightweight, not Hypertext: FluentButton throws on Hypertext since
+                               Fluent UI 4.x, which killed the whole bell render when unread > 0. *@
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="MarkAllRead">
                                 @L["Bell_MarkRead"]
                             </FluentButton>
                         }
                     </FluentStack>
+
+                    @if (_pushAvailable)
+                    {
+                        @* Web Push for this device (an installed PWA gets notified even when
+                           closed). Only shown when the server has keys and the browser supports it. *@
+                        <FluentSwitch Value="@_pushEnabled"
+                                      ValueChanged="@(v => OnPushToggleAsync(v))"
+                                      Disabled="@(_pushBusy || _pushBlocked)"
+                                      Title="@(_pushBlocked ? L["Bell_PushBlocked"] : null)"
+                                      Style="font-size:0.85rem">
+                            @L["Bell_PushToggle"]
+                        </FluentSwitch>
+                    }
 
                     @if (_items.Count == 0)
                     {
@@ -80,6 +96,13 @@
     private bool _muted;
     private int _unreadCount;
     private List<NotificationDto> _items = [];
+
+    private IJSObjectReference? _pushModule;
+    private string? _pushPublicKey;
+    private bool _pushAvailable;
+    private bool _pushEnabled;
+    private bool _pushBlocked;
+    private bool _pushBusy;
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,6 +156,102 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !_authenticated)
+        {
+            return;
+        }
+
+        // Web Push is a pure progressive enhancement: without server keys, browser support or a
+        // secure context the toggle simply never shows up.
+        try
+        {
+            var key = await Api.GetPushPublicKeyAsync();
+            if (key is null)
+            {
+                return;
+            }
+
+            _pushModule = await JS.InvokeAsync<IJSObjectReference>("import", "./push.js");
+            var state = await _pushModule.InvokeAsync<PushState>("getState");
+            if (!state.Supported)
+            {
+                return;
+            }
+
+            _pushPublicKey = key.PublicKey;
+            _pushAvailable = true;
+            _pushEnabled = state.Subscribed;
+            _pushBlocked = state.Permission == "denied";
+            StateHasChanged();
+        }
+        catch
+        {
+            // Push unavailable (network, old browser) — the bell keeps working without it.
+        }
+    }
+
+    private async Task OnPushToggleAsync(bool enable)
+    {
+        if (_pushModule is null || _pushPublicKey is null || _pushBusy)
+        {
+            return;
+        }
+
+        _pushBusy = true;
+        try
+        {
+            if (enable)
+            {
+                var subscription = await _pushModule.InvokeAsync<PushSubscriptionPayload?>("subscribe", _pushPublicKey);
+                if (subscription is null)
+                {
+                    // The user declined the permission prompt.
+                    _pushBlocked = true;
+                    _pushEnabled = false;
+                }
+                else
+                {
+                    await Api.SubscribePushAsync(new PushSubscriptionDto(subscription.Endpoint, subscription.P256dh, subscription.Auth));
+                    _pushEnabled = true;
+                }
+            }
+            else
+            {
+                var endpoint = await _pushModule.InvokeAsync<string?>("unsubscribe");
+                if (endpoint is not null)
+                {
+                    await Api.UnsubscribePushAsync(endpoint);
+                }
+
+                _pushEnabled = false;
+            }
+        }
+        catch
+        {
+            // Network/server failure — realign the toggle with the browser's actual state.
+            try
+            {
+                var state = await _pushModule.InvokeAsync<PushState>("getState");
+                _pushEnabled = state.Subscribed;
+                _pushBlocked = state.Permission == "denied";
+            }
+            catch
+            {
+                _pushEnabled = false;
+            }
+        }
+        finally
+        {
+            _pushBusy = false;
+        }
+    }
+
+    private sealed record PushState(bool Supported, string Permission, bool Subscribed);
+
+    private sealed record PushSubscriptionPayload(string Endpoint, string P256dh, string Auth);
+
     private void ToggleOpen() => _open = !_open;
 
     private async Task MarkRead(Guid id)
@@ -163,6 +282,18 @@
         if (_hub is not null)
         {
             await _hub.DisposeAsync();
+        }
+
+        if (_pushModule is not null)
+        {
+            try
+            {
+                await _pushModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The page is already gone — nothing to clean up.
+            }
         }
     }
 }

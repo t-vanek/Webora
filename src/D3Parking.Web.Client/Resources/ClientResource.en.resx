@@ -16,4 +16,6 @@
   <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifications (muted)</value></data>
   <data name="Bell_MarkRead" xml:space="preserve"><value>Mark read</value></data>
   <data name="Bell_NoNotifications" xml:space="preserve"><value>No notifications.</value></data>
+  <data name="Bell_PushToggle" xml:space="preserve"><value>Notifications on this device</value></data>
+  <data name="Bell_PushBlocked" xml:space="preserve"><value>Notifications are blocked in the browser. Allow them in the site settings.</value></data>
 </root>

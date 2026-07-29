@@ -19,6 +19,11 @@
     <link rel="stylesheet" href="@Assets["D3Parking.Web.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#023444" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="@_siteName" />
     <HeadOutlet />
 </head>
 
@@ -42,9 +47,14 @@
 
 @code {
     private string? _description;
+    private string _siteName = "D3Parking";
 
-    protected override async Task OnInitializedAsync() =>
-        _description = (await SiteSettings.GetIdentityAsync()).Description;
+    protected override async Task OnInitializedAsync()
+    {
+        var identity = await SiteSettings.GetIdentityAsync();
+        _description = identity.Description;
+        _siteName = string.IsNullOrWhiteSpace(identity.Name) ? "D3Parking" : identity.Name;
+    }
 
     private string PageCharset =>
         HttpContextAccessor.HttpContext?.Items[CharsetMiddleware.HttpContextItemKey] as string ?? "utf-8";

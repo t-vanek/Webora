@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -37,6 +38,38 @@ public sealed class NotificationsApiClient(HttpClient http, AntiforgeryTokenProv
 
     public Task MarkAllReadAsync(CancellationToken cancellationToken = default) =>
         SendPostAsync($"{Base}/read-all", cancellationToken);
+
+    /// <summary>Null means Web Push is not configured on the server (the endpoint returns 204).</summary>
+    public async Task<PushPublicKeyDto?> GetPushPublicKeyAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await http.GetAsync($"{Base}/push/public-key", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NoContent)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PushPublicKeyDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task SubscribePushAsync(PushSubscriptionDto subscription, CancellationToken cancellationToken = default)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{Base}/push/subscription")
+        {
+            Content = JsonContent.Create(subscription, options: JsonOptions),
+        };
+        await antiforgery.AttachAsync(request, cancellationToken);
+        using var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task UnsubscribePushAsync(string endpoint, CancellationToken cancellationToken = default)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"{Base}/push/subscription?endpoint={Uri.EscapeDataString(endpoint)}");
+        await antiforgery.AttachAsync(request, cancellationToken);
+        using var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 
     private async Task SendPostAsync(string url, CancellationToken cancellationToken)
     {

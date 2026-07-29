@@ -16,4 +16,6 @@
   <data name="Bell_TitleMuted" xml:space="preserve"><value>Notifikace (ztlumeno)</value></data>
   <data name="Bell_MarkRead" xml:space="preserve"><value>Označit přečtené</value></data>
   <data name="Bell_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
+  <data name="Bell_PushToggle" xml:space="preserve"><value>Oznámení v tomto zařízení</value></data>
+  <data name="Bell_PushBlocked" xml:space="preserve"><value>Oznámení jsou v prohlížeči zablokovaná. Povolte je v nastavení webu.</value></data>
 </root>
