@@ -11,87 +11,79 @@
 <PageTitle>@L["Login_Title"]</PageTitle>
 
 @*  Static SSR — SignInManager.PasswordSignInAsync writes the auth cookie via the request
-    HttpContext, which is only available during a real form post. Fluent text fields work here
-    because they're form-associated custom elements; the explicit Name attribute on each one
-    tells the browser what key to submit under, matching the [SupplyParameterFromForm] property
-    paths.  *@
-<div class="auth-form">
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-            <FluentIcon Value="@(new Icons.Filled.Size32.LockClosed())" Color="Color.Accent" />
-            <FluentLabel Typo="Typography.H2" Style="margin:0">@L["Login_Title"]</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Login_Subtitle"]</FluentLabel>
-        </FluentStack>
+    HttpContext, which is only available during a real form post. The fields are plain Blazor
+    InputText components (native <input>): in static SSR they derive the submitted name from the
+    binding expression ("Input.Email"), matching the [SupplyParameterFromForm] property paths.
+    Native inputs also let the brand styling own the whole field box — icon, focus ring and the
+    password-reveal button (progressive enhancement wired up in app.js).  *@
+<AuthTabs Active="AuthTabs.AuthTab.Login" />
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-            <DataAnnotationsValidator />
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="14">
-                @if (!string.IsNullOrEmpty(_errorMessage))
-                {
-                    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                        @_errorMessage
-                    </FluentMessageBar>
-                }
-                <div>
-                    @*  FluentTextField in v4 doesn't expose an IconStart parameter; instead it
-                        forwards child content into the underlying <fluent-text-field> web
-                        component, which has a `start` slot for leading content. The slot=
-                        attribute on FluentIcon routes its rendered <svg> there.  *@
-                    <FluentTextField Name="Input.Email"
-                                     @bind-Value="Input.Email"
-                                     Label="@L["Login_Email"]"
-                                     TextFieldType="TextFieldType.Email"
-                                     Required="true"
-                                     AutoComplete="username"
-                                     Placeholder="email@example.com"
-                                     Style="width:100%">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" slot="start" />
-                    </FluentTextField>
-                    <ValidationMessage For="() => Input.Email" />
-                </div>
-                <div>
-                    <FluentTextField Name="Input.Password"
-                                     @bind-Value="Input.Password"
-                                     Label="@L["Login_Password"]"
-                                     TextFieldType="TextFieldType.Password"
-                                     Required="true"
-                                     AutoComplete="current-password"
-                                     Style="width:100%">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
-                    </FluentTextField>
-                    <ValidationMessage For="() => Input.Password" />
-                </div>
-                @*  RememberMe defaults to false on the server, so a checkbox that submits nothing
-                    when unchecked still produces the right bind value (key missing → false).  *@
-                <FluentCheckbox Name="Input.RememberMe"
-                                @bind-Value="Input.RememberMe"
-                                Label="@L["Login_Remember"]" />
-                <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:4px">
-                    @L["Login_Submit"]
-                </FluentButton>
-            </FluentStack>
-        </EditForm>
+<header class="auth-head">
+    <h1 class="auth-head__title">@L["Login_Heading"]</h1>
+    <p class="auth-head__sub">@L["Login_Subtitle"]</p>
+</header>
 
-        @*  Footer actions as prose rather than a tabular list of links. Primary action ("no
-            account → register") sits as a sentence; secondary self-service flows below.  *@
-        <FluentStack Orientation="Orientation.Vertical"
-                     HorizontalAlignment="HorizontalAlignment.Start"
-                     VerticalGap="6"
-                     Style="font-size:0.9rem; padding-top:8px; border-top:1px solid var(--neutral-stroke-divider-rest)">
-            <span>
-                @L["Login_NoAccount"]
-                <FluentAnchor Href="register" Appearance="Appearance.Hypertext">@L["Login_CreateAccount"]</FluentAnchor>
-            </span>
-            <FluentStack Orientation="Orientation.Horizontal"
-                         HorizontalAlignment="HorizontalAlignment.Start"
-                         HorizontalGap="16"
-                         Style="color:var(--neutral-foreground-hint); font-size:0.85rem">
-                <FluentAnchor Href="account/forgot-password" Appearance="Appearance.Hypertext">@L["Login_ForgotPassword"]</FluentAnchor>
-                <FluentAnchor Href="account/forgot-reactivation" Appearance="Appearance.Hypertext">@L["Login_Reactivate"]</FluentAnchor>
-            </FluentStack>
-        </FluentStack>
-    </FluentStack>
-</div>
+<EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="auth-form">
+    <DataAnnotationsValidator />
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="auth-alert auth-alert--error" role="alert">
+            <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            <span>@_errorMessage</span>
+        </div>
+    }
+
+    <div class="auth-field">
+        <label class="auth-field__label" for="login-email">@L["Login_Email"]</label>
+        <div class="auth-field__box">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+            <InputText id="login-email"
+                       @bind-Value="Input.Email"
+                       type="email"
+                       autocomplete="username"
+                       required
+                       placeholder="email@example.com" />
+        </div>
+        <ValidationMessage For="() => Input.Email" />
+    </div>
+
+    <div class="auth-field">
+        <div class="auth-field__labelrow">
+            <label class="auth-field__label" for="login-password">@L["Login_Password"]</label>
+            <a class="auth-field__aux" href="account/forgot-password">@L["Login_ForgotPassword"]</a>
+        </div>
+        <div class="auth-field__box">
+            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+            <InputText id="login-password"
+                       @bind-Value="Input.Password"
+                       type="password"
+                       autocomplete="current-password"
+                       required />
+            <button type="button" class="auth-field__reveal" data-pw-toggle
+                    aria-pressed="false" aria-label="@L["Auth_ShowPassword"]"
+                    data-label-show="@L["Auth_ShowPassword"]" data-label-hide="@L["Auth_HidePassword"]">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Eye())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--show" />
+                <FluentIcon Value="@(new Icons.Regular.Size20.EyeOff())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--hide" />
+            </button>
+        </div>
+        <ValidationMessage For="() => Input.Password" />
+    </div>
+
+    @*  RememberMe defaults to false on the server, so a checkbox that submits nothing
+        when unchecked still produces the right bind value (key missing → false).  *@
+    <label class="auth-check">
+        <InputCheckbox @bind-Value="Input.RememberMe" />
+        <span>@L["Login_Remember"]</span>
+    </label>
+
+    <button type="submit" class="auth-submit">@L["Login_Submit"]</button>
+</EditForm>
+
+<footer class="auth-foot">
+    <p>@L["Login_NoAccount"] <a href="register">@L["Login_CreateAccount"]</a></p>
+    <p class="auth-foot__aux"><a href="account/forgot-reactivation">@L["Login_Reactivate"]</a></p>
+</footer>
 
 @code {
     // Initializer is required so the form renders on GET; the form supplies a non-null value on POST.

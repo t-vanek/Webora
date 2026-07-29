@@ -8,97 +8,118 @@
 
 <PageTitle>@L["Register_Title"]</PageTitle>
 
-<div class="auth-form">
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-            <FluentIcon Value="@(new Icons.Filled.Size32.PersonAdd())" Color="Color.Accent" />
-            <FluentLabel Typo="Typography.H2" Style="margin:0">@L["Register_Title"]</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Register_Subtitle"]</FluentLabel>
-        </FluentStack>
+<AuthTabs Active="AuthTabs.AuthTab.Register" />
 
-        @if (_registered)
+@if (_registered)
+{
+    @*  Potvrzení místo formuláře: velký zelený znak (Sherpa symbol na zelené ploše — jediné
+        párování, které brandbook u zelené povoluje), titulek a CTA zpět na přihlášení.  *@
+    <div class="auth-done">
+        <span class="auth-done__ic">
+            <FluentIcon Value="@(new Icons.Filled.Size32.CheckmarkCircle())" Color="Color.Custom" CustomColor="#023444" />
+        </span>
+        <h1 class="auth-done__title">@L["Register_Success_Title"]</h1>
+        <p class="auth-done__text">@L["Register_Success"]</p>
+        <a class="auth-submit auth-submit--inline" href="login">@L["Register_Success_Cta"]</a>
+    </div>
+}
+else
+{
+    <header class="auth-head">
+        <h1 class="auth-head__title">@L["Register_Heading"]</h1>
+        <p class="auth-head__sub">@L["Register_Subtitle"]</p>
+    </header>
+
+    @*  Static SSR form — native InputText fields derive their submitted names from the binding
+        expressions ("Input.Email"), matching the [SupplyParameterFromForm] property paths.
+        The password-reveal buttons and the strength meter are progressive enhancements from
+        app.js; without JS the form is still fully usable.  *@
+    <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register" class="auth-form">
+        <DataAnnotationsValidator />
+
+        @if (!string.IsNullOrEmpty(_error))
         {
-            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-                @L["Register_Success"]
-            </FluentMessageBar>
-        }
-        else
-        {
-            <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-                <DataAnnotationsValidator />
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="14">
-                    @if (!string.IsNullOrEmpty(_error))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                            @_error
-                        </FluentMessageBar>
-                    }
-                    @*  FluentTextField in v4 doesn't expose an IconStart parameter; instead it
-                        forwards child content into the underlying <fluent-text-field> web
-                        component, which has a `start` slot for leading content. The slot=
-                        attribute on FluentIcon routes its rendered <svg> there.  *@
-                    <FluentTextField Name="Input.DisplayName"
-                                     @bind-Value="Input.DisplayName"
-                                     Label="@L["Register_DisplayName"]"
-                                     AutoComplete="name"
-                                     Style="width:100%">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.Person())" slot="start" />
-                    </FluentTextField>
-                    <div>
-                        <FluentTextField Name="Input.Email"
-                                         @bind-Value="Input.Email"
-                                         Label="@L["Register_Email"]"
-                                         TextFieldType="TextFieldType.Email"
-                                         Required="true"
-                                         AutoComplete="username"
-                                         Placeholder="email@example.com"
-                                         Style="width:100%">
-                            <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" slot="start" />
-                        </FluentTextField>
-                        <ValidationMessage For="() => Input.Email" />
-                    </div>
-                    <div>
-                        <FluentTextField Name="Input.Password"
-                                         @bind-Value="Input.Password"
-                                         Label="@L["Register_Password"]"
-                                         TextFieldType="TextFieldType.Password"
-                                         Required="true"
-                                         AutoComplete="new-password"
-                                         Style="width:100%">
-                            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
-                        </FluentTextField>
-                        <ValidationMessage For="() => Input.Password" />
-                    </div>
-                    <div>
-                        <FluentTextField Name="Input.ConfirmPassword"
-                                         @bind-Value="Input.ConfirmPassword"
-                                         Label="@L["Register_ConfirmPassword"]"
-                                         TextFieldType="TextFieldType.Password"
-                                         Required="true"
-                                         AutoComplete="new-password"
-                                         Style="width:100%">
-                            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" slot="start" />
-                        </FluentTextField>
-                        <ValidationMessage For="() => Input.ConfirmPassword" />
-                    </div>
-                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" Style="width:100%; margin-top:4px">
-                        @L["Register_Submit"]
-                    </FluentButton>
-                </FluentStack>
-            </EditForm>
+            <div class="auth-alert auth-alert--error" role="alert">
+                <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                <span>@_error</span>
+            </div>
         }
 
-        @*  Footer prose: 'Already have an account? Sign in.'  *@
-        <FluentStack Orientation="Orientation.Vertical"
-                     HorizontalAlignment="HorizontalAlignment.Start"
-                     Style="font-size:0.9rem; padding-top:8px; border-top:1px solid var(--neutral-stroke-divider-rest)">
-            <span>
-                @L["Register_HaveAccount"]
-                <FluentAnchor Href="login" Appearance="Appearance.Hypertext">@L["Register_SignIn"]</FluentAnchor>
-            </span>
-        </FluentStack>
-    </FluentStack>
-</div>
+        <div class="auth-field">
+            <div class="auth-field__labelrow">
+                <label class="auth-field__label" for="reg-name">@L["Register_DisplayName"]</label>
+                <span class="auth-field__optional">@L["Auth_Optional"]</span>
+            </div>
+            <div class="auth-field__box">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Person())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+                <InputText id="reg-name"
+                           @bind-Value="Input.DisplayName"
+                           autocomplete="name" />
+            </div>
+        </div>
+
+        <div class="auth-field">
+            <label class="auth-field__label" for="reg-email">@L["Register_Email"]</label>
+            <div class="auth-field__box">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+                <InputText id="reg-email"
+                           @bind-Value="Input.Email"
+                           type="email"
+                           autocomplete="username"
+                           required
+                           placeholder="email@example.com" />
+            </div>
+            <ValidationMessage For="() => Input.Email" />
+        </div>
+
+        <div class="auth-field">
+            <label class="auth-field__label" for="reg-password">@L["Register_Password"]</label>
+            <div class="auth-field__box">
+                <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+                <InputText id="reg-password"
+                           @bind-Value="Input.Password"
+                           type="password"
+                           autocomplete="new-password"
+                           required
+                           data-strength />
+                <button type="button" class="auth-field__reveal" data-pw-toggle
+                        aria-pressed="false" aria-label="@L["Auth_ShowPassword"]"
+                        data-label-show="@L["Auth_ShowPassword"]" data-label-hide="@L["Auth_HidePassword"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Eye())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--show" />
+                    <FluentIcon Value="@(new Icons.Regular.Size20.EyeOff())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--hide" />
+                </button>
+            </div>
+            <div class="auth-strength" data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <p class="auth-field__hint">@L["Register_PasswordHint"]</p>
+            <ValidationMessage For="() => Input.Password" />
+        </div>
+
+        <div class="auth-field">
+            <label class="auth-field__label" for="reg-confirm">@L["Register_ConfirmPassword"]</label>
+            <div class="auth-field__box">
+                <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+                <InputText id="reg-confirm"
+                           @bind-Value="Input.ConfirmPassword"
+                           type="password"
+                           autocomplete="new-password"
+                           required />
+                <button type="button" class="auth-field__reveal" data-pw-toggle
+                        aria-pressed="false" aria-label="@L["Auth_ShowPassword"]"
+                        data-label-show="@L["Auth_ShowPassword"]" data-label-hide="@L["Auth_HidePassword"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Eye())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--show" />
+                    <FluentIcon Value="@(new Icons.Regular.Size20.EyeOff())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__eye auth-field__eye--hide" />
+                </button>
+            </div>
+            <ValidationMessage For="() => Input.ConfirmPassword" />
+        </div>
+
+        <button type="submit" class="auth-submit">@L["Register_Submit"]</button>
+    </EditForm>
+
+    <footer class="auth-foot">
+        <p>@L["Register_HaveAccount"] <a href="login">@L["Register_SignIn"]</a></p>
+    </footer>
+}
 
 @code {
 #pragma warning disable BL0008

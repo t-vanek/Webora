@@ -662,163 +662,558 @@ h1:focus {
     font-variant-numeric: tabular-nums;
 }
 
-/* --- Split auth screen (login / register) --- */
-.auth-shell {
+/* --- Auth: celoplošný split-screen (login / registrace) ---
+   Levá polovina je plná plocha Sherpa Blue se šikmými pruhy značky (stejné gesto jako hero na
+   landing page), pravá nese formulář na neutrálních Fluent tokenech, takže se světlý/tmavý režim
+   přepíná sám. Pod 900 px levý panel mizí a značku přebírá kompaktní varianta v horní liště. */
+.auth-split {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    width: 100%;
-    max-width: 940px;
-    min-height: 560px;
-    border-radius: 16px;
-    overflow: hidden;
-    background: var(--neutral-layer-1, #fff);
-    border: 1px solid rgba(2, 52, 68, .06);
-    box-shadow: 0 24px 64px rgba(2, 52, 68, .16);
+    grid-template-columns: minmax(400px, 46%) 1fr;
+    min-height: 100dvh;
 }
 
-.auth-shell__brand {
+.auth-split__aside {
     position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 40px;
-    padding: 44px;
+    gap: 48px;
+    padding: 44px 48px;
     color: var(--brand-on-sherpa);
     background: var(--brand-sherpa);
-    overflow: hidden;
 }
 
-    /* Místo rozostřených kruhů dva šikmé pruhy, kterými brandbook dělí plochy (s. 3).
-       Tvrdá hrana a plná barva — žádný přechod ani průhlednost navíc.
-
-       Drží se u pravé hrany záměrně: text panelu je bílý a na zelené by měl poměr 1,7:1,
-       takže pruhy nesmí zasahovat pod sazbu. */
-    .auth-shell__brand::before,
-    .auth-shell__brand::after {
+    /* Dvojice šikmých pruhů, kterými brandbook dělí plochy — tvrdá hrana, plná barva.
+       Drží se u pravé hrany záměrně: sazba panelu je bílá a na zelené by měla poměr 1,7:1,
+       takže pruhy nesmí zasahovat pod text. */
+    .auth-split__aside::before,
+    .auth-split__aside::after {
         content: "";
         position: absolute;
-        width: 64px;
+        width: 84px;
         height: 240%;
         top: -70%;
         transform: rotate(24deg);
         pointer-events: none;
     }
 
-    .auth-shell__brand::before {
-        right: -7%;
+    .auth-split__aside::before {
+        right: -3%;
         background: var(--brand-violet);
     }
 
-    .auth-shell__brand::after {
-        right: 2%;
+    .auth-split__aside::after {
+        right: 9%;
         background: var(--brand-green);
     }
 
-.auth-shell__mark {
-    display: flex;
+.auth-brand {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    font-size: 20px;
+    gap: 12px;
+    align-self: flex-start;
+    color: var(--brand-on-sherpa);
+    text-decoration: none;
+    font-size: 17px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    position: relative;
-    z-index: 1;
 }
 
-.auth-shell__headline {
-    font-size: 28px;
+    .auth-brand:hover {
+        text-decoration: none;
+        opacity: .88;
+    }
+
+.auth-brand__ic {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--brand-radius);
+    background: rgba(251, 253, 252, .14);
+    flex: 0 0 auto;
+}
+
+/* Kompaktní značka v horní liště formulářové poloviny — viditelná jen bez levého panelu. */
+.auth-brand--compact {
+    display: none;
+    color: var(--neutral-foreground-rest, var(--brand-sherpa));
+    font-size: 15px;
+}
+
+    .auth-brand--compact .auth-brand__ic {
+        width: 34px;
+        height: 34px;
+        background: var(--brand-sherpa);
+    }
+
+.auth-hero {
+    position: relative;
+    z-index: 1;
+    max-width: 30rem;
+}
+
+.auth-hero__headline {
+    font-size: clamp(26px, 2.6vw, 34px);
     font-weight: 700;
-    line-height: 1.18;
+    line-height: 1.15;
     letter-spacing: 0.01em;
     text-transform: uppercase;
-    margin: 0 0 12px;
-    position: relative;
-    z-index: 1;
+    margin: 0 0 14px;
 }
 
-.auth-shell__lead {
+.auth-hero__lead {
     font-size: 15px;
-    line-height: 1.5;
+    line-height: 1.6;
     opacity: .92;
-    max-width: 78%;
-    margin: 0 0 24px;
-    position: relative;
-    z-index: 1;
+    max-width: 26rem;
+    margin: 0 0 30px;
 }
 
-.auth-shell__features {
+.auth-hero__features {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    position: relative;
-    z-index: 1;
-    /* Sazba nesmí dosáhnout k šikmým pruhům u pravé hrany — bílá na zelené je nečitelná. */
-    max-width: 78%;
+    max-width: 26rem;
 }
 
-    .auth-shell__features li {
+    .auth-hero__features li {
         display: flex;
         align-items: center;
         gap: 12px;
         font-size: 14px;
     }
 
-.auth-shell__feat-ic {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .16);
+.auth-hero__feat-ic {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--brand-radius);
+    background: rgba(251, 253, 252, .14);
     flex: 0 0 auto;
 }
 
-.auth-shell__panel {
+.auth-split__legal {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-size: 12px;
+    opacity: .6;
+}
+
+/* Pravá polovina: horní lišta s přepínači jazyka/motivu, pod ní vycentrovaná karta. */
+.auth-split__pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.auth-topbar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 44px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+}
+
+.auth-topbar__tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.auth-split__center {
+    flex: 1;
+    display: flex;
+    padding: 12px 24px 40px;
+}
+
+/* margin:auto centruje v obou osách a na nízkých oknech bezpečně přeteče do scrollu
+   (align-items:center by horní okraj vyšší karty ořízl). */
+.auth-card {
+    margin: auto;
+    width: 100%;
+    max-width: 410px;
+}
+
+/* Segmentový přepínač Přihlášení | Registrace. */
+.auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 28px;
+    border-radius: var(--brand-radius-lg);
+    background: var(--neutral-fill-secondary-rest, var(--brand-grey));
+}
+
+.auth-tabs__tab {
+    text-align: center;
+    padding: 9px 12px;
+    border-radius: var(--brand-radius);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    text-decoration: none;
+}
+
+    .auth-tabs__tab:hover {
+        color: var(--neutral-foreground-rest, #242424);
+        text-decoration: none;
+    }
+
+.auth-tabs__tab--active {
+    background: var(--neutral-layer-1, #fff);
+    color: var(--accent-foreground-rest, var(--brand-violet-deep));
+    box-shadow: 0 1px 3px rgba(2, 52, 68, .16);
+}
+
+    .auth-tabs__tab--active:hover {
+        color: var(--accent-foreground-rest, var(--brand-violet-deep));
+    }
+
+.auth-head {
+    margin: 0 0 24px;
+}
+
+.auth-head__title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+}
+
+.auth-head__sub {
+    font-size: 14px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin: 0;
+}
+
+/* Chybová hlášení formuláře. */
+.auth-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--brand-radius);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+    .auth-alert svg {
+        flex: 0 0 auto;
+        margin-top: 1px;
+    }
+
+.auth-alert--error {
+    background: rgba(209, 52, 56, .08);
+    border: 1px solid rgba(209, 52, 56, .35);
+    color: var(--error-rest, #d13438);
 }
 
 .auth-form {
-    width: 100%;
-    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-@media (max-width: 820px) {
-    .auth-shell {
-        grid-template-columns: 1fr;
-        max-width: 460px;
-        min-height: 0;
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-field__labelrow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.auth-field__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-foreground-rest, #242424);
+}
+
+.auth-field__aux {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent-foreground-rest, var(--brand-violet-deep));
+    text-decoration: none;
+}
+
+    .auth-field__aux:hover {
+        text-decoration: underline;
     }
 
-    .auth-shell__brand {
+.auth-field__optional {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Rámeček pole vlastní celý box; vnitřní input je bez vlastního orámování. */
+.auth-field__box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: var(--brand-radius);
+    background: var(--neutral-fill-input-rest, transparent);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+    .auth-field__box:focus-within {
+        border-color: var(--brand-violet);
+        box-shadow: 0 0 0 3px rgba(136, 77, 255, .22);
+    }
+
+    /* Validace: stav přebírá rámeček z tříd, které Blazor dává vnitřnímu inputu. */
+    .auth-field__box:has(input.invalid) {
+        border-color: var(--error-rest, #d13438);
+    }
+
+    .auth-field__box input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: none;
+        background: transparent;
+        padding: 12px 0;
+        font: inherit;
+        font-size: 15px;
+        color: var(--neutral-foreground-rest, #242424);
+    }
+
+        /* Globální validační obrysy (.invalid/.valid outline) nese box, ne vnitřní input. */
+        .auth-field__box input.invalid,
+        .auth-field__box input.valid.modified:not([type=checkbox]) {
+            outline: none;
+        }
+
+        .auth-field__box input::placeholder {
+            color: var(--neutral-foreground-hint, #8a8a8a);
+            opacity: .75;
+        }
+
+.auth-field__icon {
+    flex: 0 0 auto;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Odhalení hesla — tlačítko uvnitř boxu; oko/přeškrtnuté oko přepíná app.js třídou is-on. */
+.auth-field__reveal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    padding: 6px;
+    margin-right: -6px;
+    border-radius: var(--brand-radius);
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    cursor: pointer;
+}
+
+    .auth-field__reveal:hover {
+        color: var(--neutral-foreground-rest, #242424);
+    }
+
+    .auth-field__reveal:focus-visible {
+        outline: 2px solid var(--brand-violet);
+    }
+
+    .auth-field__reveal .auth-field__eye--hide {
         display: none;
     }
 
-    .auth-shell__panel {
-        padding: 32px;
+    .auth-field__reveal.is-on .auth-field__eye--show {
+        display: none;
     }
+
+    .auth-field__reveal.is-on .auth-field__eye--hide {
+        display: inline;
+    }
+
+/* Ukazatel síly hesla — plní ho app.js přes data-score; bez JS zůstane neutrální. */
+.auth-strength {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 2px;
 }
 
-/* Podklad auth stránek: plocha s dvěma šikmými pruhy značky v nízké sytosti. Pruhy jsou
-   kreslené gradientem s tvrdými zarážkami (žádné rozostření — brandbook zná jen ostré hrany),
-   ne pseudo-elementy: absolutně pozicovaný pruh přes 240 % výšky by v overflow:auto kontejneru
-   vyrobil zbytečný scrollbar, background nikdy. */
-.auth-body {
-    background: linear-gradient(114deg,
-            transparent 55%,
-            rgba(136, 77, 255, .07) 55%, rgba(136, 77, 255, .07) 62%,
-            transparent 62%, transparent 68%,
-            rgba(137, 225, 3, .09) 68%, rgba(137, 225, 3, .09) 78%,
-            transparent 78%) no-repeat,
-        var(--neutral-layer-4, #f3f3f3);
-    background-size: 100% 100%;
+    .auth-strength i {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--neutral-fill-secondary-rest, #e6e6e6);
+        transition: background .2s ease;
+    }
+
+.auth-strength[data-score="1"] i:nth-child(1) { background: var(--error-rest, #d13438); }
+.auth-strength[data-score="2"] i:nth-child(-n+2) { background: var(--warning-rest, #f7a900); }
+.auth-strength[data-score="3"] i:nth-child(-n+3) { background: var(--brand-green); }
+.auth-strength[data-score="4"] i { background: var(--brand-green-deep); }
+
+.auth-field__hint {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin: 2px 0 0;
+}
+
+.auth-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    align-self: flex-start;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+
+    .auth-check input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--brand-violet);
+    }
+
+/* Hlavní tlačítko: fialová plocha, verzálky a hranatý tvar podle geometrie značky. */
+.auth-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 20px;
+    margin-top: 6px;
+    border: 0;
+    border-radius: var(--brand-radius);
+    background: var(--brand-violet);
+    color: var(--brand-on-violet);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+    .auth-submit:hover {
+        background: var(--brand-violet-deep);
+        color: var(--brand-on-violet);
+    }
+
+    .auth-submit:focus-visible {
+        outline: 2px solid var(--brand-green);
+        outline-offset: 2px;
+    }
+
+.auth-submit--inline {
+    width: auto;
+    padding: 12px 28px;
+}
+
+.auth-foot {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--neutral-stroke-divider-rest, #e5e5e5);
+    font-size: 14px;
+}
+
+    .auth-foot p {
+        margin: 0 0 6px;
+    }
+
+    .auth-foot a {
+        font-weight: 600;
+        color: var(--accent-foreground-rest, var(--brand-violet-deep));
+        text-decoration: none;
+    }
+
+        .auth-foot a:hover {
+            text-decoration: underline;
+        }
+
+.auth-foot__aux {
+    font-size: 12.5px;
+}
+
+    .auth-foot__aux a {
+        font-weight: 400;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+        text-decoration: underline;
+    }
+
+/* Potvrzení po registraci. */
+.auth-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding: 12px 0;
+}
+
+.auth-done__ic {
+    display: inline-grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--brand-radius-lg);
+    background: var(--brand-green);
+}
+
+.auth-done__title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.auth-done__text {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin: 0;
+    max-width: 34rem;
+}
+
+.auth-done .auth-submit--inline {
+    margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+    .auth-split {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-split__aside {
+        display: none;
+    }
+
+    .auth-brand--compact {
+        display: inline-flex;
+    }
+
+    .auth-split__center {
+        padding: 8px 20px 32px;
+    }
 }
 
 /* --- Veřejný landing (anonymní "/") --- */
