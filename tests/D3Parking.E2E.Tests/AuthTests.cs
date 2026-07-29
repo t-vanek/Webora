@@ -42,6 +42,8 @@ public class AuthTests : AnonymousTest
         await Pages.Field(Page, "Input.Email").FillAsync(email);
         await Pages.Field(Page, "Input.Password").FillAsync("Heslo12345!");
         await Pages.Field(Page, "Input.ConfirmPassword").FillAsync("Heslo12345!");
+        // The optional fleet plate must not get in the way of a plain registration.
+        await Pages.Field(Page, "Input.LicensePlate").FillAsync("9ZZ 0000");
         await Pages.SubmitAsync(Page);
         await Expect(Page.GetByText(new Regex("aktivační odkaz|activation link", RegexOptions.IgnoreCase)))
             .ToBeVisibleAsync();

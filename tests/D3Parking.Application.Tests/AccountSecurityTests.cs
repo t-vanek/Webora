@@ -102,8 +102,8 @@ public class AccountSecurityTests
         var accounts = CreateAccountService(scope);
 
         var email = $"probe-{Guid.NewGuid():N}@test.local";
-        var first = await accounts.RegisterAsync(email, "Str0ng!Password", null, CancellationToken.None);
-        var second = await accounts.RegisterAsync(email, "Different!Passw0rd", null, CancellationToken.None);
+        var first = await accounts.RegisterAsync(email, "Str0ng!Password", null, null, CancellationToken.None);
+        var second = await accounts.RegisterAsync(email, "Different!Passw0rd", null, null, CancellationToken.None);
 
         Assert.That(first.Succeeded, Is.True);
         Assert.That(second.Succeeded, Is.True,
@@ -209,6 +209,7 @@ public class AccountSecurityTests
         new NullEmailSender(),
         new AccountAuditMapper(),
         new NullNotificationService(),
+        new NullFleetService(),
         new FakeSiteSettings(),
         new PassthroughLocalizer<AccountMessages>(),
         Options.Create(new AccountOptions()),
@@ -237,8 +238,4 @@ public class AccountSecurityTests
         }
     }
 
-    private sealed class NullEmailSender : IEmailSender
-    {
-        public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
 }

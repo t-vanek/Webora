@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Notifications;
+using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Contracts.Notifications;
 using D3Parking.Domain.Notifications;
@@ -60,6 +62,49 @@ internal sealed class FakeSiteSettings : ISiteSettingsService
     public Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<SiteIdentityDto> GetIdentityAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+}
+
+internal sealed class NullEmailSender : IEmailSender
+{
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+}
+
+/// <summary>No fleet involvement: every status is NoPlate and every mutation trivially succeeds.</summary>
+internal sealed class NullFleetService : IFleetService
+{
+    public Task<IReadOnlyList<CompanyVehicleDto>> ListAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<CompanyVehicleDto>>([]);
+
+    public Task<ParkingResult> CreateAsync(string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> UpdateAsync(Guid id, string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> PairManuallyAsync(Guid id, Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> UnpairAsync(Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<PairingStatusDto> GetMyPairingStatusAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new PairingStatusDto(VehiclePairingState.NoPlate, null, null, null, null));
+
+    public Task<ParkingResult> RequestPairingCodeAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task<ParkingResult> ConfirmPairingAsync(Guid userId, string code, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Success);
+
+    public Task SyncUserPlateAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task NotifyPairableAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 internal sealed class NullNotificationService : INotificationService

@@ -69,4 +69,14 @@
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>Nedostavil(a) ses k místu {0}, které sis převzal(a) z fronty. Tvrdá penalizace: −{1} bodů, −{2} kreditů, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
   <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Podezřelé sdílecí interakce</value></data>
   <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>Detekováno {0} nových podezřelých párů sdílení. Zkontroluj je v administraci (Podezřelé interakce).</value></data>
+  <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Potvrzovací kód pro spárování vozidla</value></data>
+  <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;Pro spárování firemního vozidla &lt;strong&gt;{0}&lt;/strong&gt; s vaším účtem zadejte v profilu tento kód:&lt;/p&gt;</value></data>
+  <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>Kód platí jen krátce. Pokud jste o spárování nežádali, tento e-mail ignorujte.</value></data>
+  <data name="Fleet_Notify_Paired_Title" xml:space="preserve"><value>Vozidlo spárováno</value></data>
+  <data name="Fleet_Notify_Paired_Body" xml:space="preserve"><value>Tvůj účet je teď spárovaný s firemním vozidlem {0}.</value></data>
+  <data name="Fleet_Notify_Unpaired_Title" xml:space="preserve"><value>Spárování vozidla zrušeno</value></data>
+  <data name="Fleet_Notify_Unpaired_Body" xml:space="preserve"><value>Spárování s firemním vozidlem {0} bylo zrušeno. Pokud to nečekáš, ozvi se správci.</value></data>
+  <data name="Fleet_Mismatch_Vehicle" xml:space="preserve"><value>Firemní vůz {0}</value></data>
+  <data name="Fleet_Notify_Pairable_Title" xml:space="preserve"><value>Firemní vozidlo čeká na spárování</value></data>
+  <data name="Fleet_Notify_Pairable_Body" xml:space="preserve"><value>Tvá SPZ {0} odpovídá firemnímu vozidlu. Dokonči spárování v profilu potvrzovacím kódem.</value></data>
 </root>

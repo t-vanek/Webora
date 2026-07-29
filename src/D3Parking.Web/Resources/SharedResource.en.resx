@@ -818,4 +818,59 @@
   <data name="Landing_Step3_Title" xml:space="preserve"><value>Park and earn rewards</value></data>
   <data name="Landing_Step3_Desc" xml:space="preserve"><value>Check-in confirms your arrival; release an unused spot with one click.</value></data>
   <data name="Landing_FinalTitle" xml:space="preserve"><value>Start parking smarter today</value></data>
+  <data name="Nav_AdminFleet" xml:space="preserve"><value>Company fleet</value></data>
+  <data name="Nav_Short_Fleet" xml:space="preserve"><value>Fleet</value></data>
+  <data name="Fleet_Admin_Title" xml:space="preserve"><value>Company fleet</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>The registry of company vehicles by license plate. When a user saves a plate to their profile and the vehicle's driver email matches their account, they can pair with the vehicle using an emailed confirmation code — and become the resident of its assigned spot.</value></data>
+  <data name="Fleet_Admin_AddTitle" xml:space="preserve"><value>Add a vehicle</value></data>
+  <data name="Fleet_Admin_EditTitle" xml:space="preserve"><value>Edit vehicle {0}</value></data>
+  <data name="Fleet_Admin_Plate" xml:space="preserve"><value>License plate</value></data>
+  <data name="Fleet_Admin_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Fleet_Admin_DriverEmail" xml:space="preserve"><value>Driver email</value></data>
+  <data name="Fleet_Admin_Spot" xml:space="preserve"><value>Parking spot</value></data>
+  <data name="Fleet_Admin_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Fleet_Admin_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Fleet_Admin_Save" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Fleet_Admin_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Fleet_Admin_EmailHint" xml:space="preserve"><value>Self-service pairing requires all three: a matching plate in the profile, a driver email equal to the account's email, and an emailed confirmation code. A vehicle without a driver email (pool car) can only be paired manually here.</value></data>
+  <data name="Fleet_Admin_NoVehicles" xml:space="preserve"><value>No vehicles yet.</value></data>
+  <data name="Fleet_Admin_PairedUser" xml:space="preserve"><value>Paired account</value></data>
+  <data name="Fleet_Admin_State" xml:space="preserve"><value>State</value></data>
+  <data name="Fleet_Admin_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Fleet_Admin_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Fleet_Admin_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Fleet_Admin_Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Fleet_Admin_Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="Fleet_Admin_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Fleet_Admin_NoSpot" xml:space="preserve"><value>— none —</value></data>
+  <data name="Fleet_Admin_NotPaired" xml:space="preserve"><value>— not paired —</value></data>
+  <data name="Fleet_Error_PlateRequired" xml:space="preserve"><value>Enter a license plate.</value></data>
+  <data name="Fleet_Error_DuplicatePlate" xml:space="preserve"><value>A vehicle with this plate is already registered, or the chosen spot was just taken by another vehicle.</value></data>
+  <data name="Fleet_Error_VehicleNotFound" xml:space="preserve"><value>The vehicle was not found.</value></data>
+  <data name="Fleet_Error_VehicleInactive" xml:space="preserve"><value>The vehicle is inactive.</value></data>
+  <data name="Fleet_Error_AlreadyPaired" xml:space="preserve"><value>The vehicle is already paired with another account.</value></data>
+  <data name="Fleet_Error_UserAlreadyPaired" xml:space="preserve"><value>The account is already paired with another vehicle.</value></data>
+  <data name="Fleet_Error_NotPairable" xml:space="preserve"><value>Self-service pairing is not available. Please contact an administrator.</value></data>
+  <data name="Fleet_Error_PlateMissing" xml:space="preserve"><value>Save your license plate to your profile first.</value></data>
+  <data name="Fleet_Error_CodeThrottled" xml:space="preserve"><value>A code was sent a moment ago — try again in a minute.</value></data>
+  <data name="Fleet_Error_CodeInvalid" xml:space="preserve"><value>The code is invalid or expired.</value></data>
+  <data name="Fleet_Error_TooManyAttempts" xml:space="preserve"><value>Too many attempts. Try again in 15 minutes.</value></data>
+  <data name="Fleet_Error_SpotOccupied" xml:space="preserve"><value>The vehicle's spot already has another resident. Please contact an administrator.</value></data>
+  <data name="Fleet_Error_SpotTaken" xml:space="preserve"><value>This spot is already assigned to another vehicle.</value></data>
+  <data name="Fleet_Error_VisitorSpot" xml:space="preserve"><value>A visitor spot cannot be assigned to a fleet vehicle.</value></data>
+  <data name="Profile_Vehicle_PairedBadge" xml:space="preserve"><value>Company vehicle</value></data>
+  <data name="Profile_Vehicle_Paired" xml:space="preserve"><value>Paired with company vehicle {0}.</value></data>
+  <data name="Profile_Vehicle_PairedSpot" xml:space="preserve"><value>Your resident spot: {0}</value></data>
+  <data name="Profile_Vehicle_PairedHint" xml:space="preserve"><value>Removing the plate from your profile dissolves the pairing and releases the resident spot.</value></data>
+  <data name="Profile_Vehicle_FleetMatch" xml:space="preserve"><value>The plate matches company vehicle {0}.</value></data>
+  <data name="Profile_Vehicle_SpotInfo" xml:space="preserve"><value>The vehicle has parking spot {0} assigned — pairing makes you its resident.</value></data>
+  <data name="Profile_Vehicle_CodeIntro" xml:space="preserve"><value>Confirm ownership with a code we will send to your account's email.</value></data>
+  <data name="Profile_Vehicle_SendCode" xml:space="preserve"><value>Send verification code</value></data>
+  <data name="Profile_Vehicle_ResendCode" xml:space="preserve"><value>Resend the code</value></data>
+  <data name="Profile_Vehicle_CodeSent" xml:space="preserve"><value>The verification code was sent to your email.</value></data>
+  <data name="Profile_Vehicle_Code" xml:space="preserve"><value>Verification code</value></data>
+  <data name="Profile_Vehicle_ConfirmCode" xml:space="preserve"><value>Confirm pairing</value></data>
+  <data name="Profile_Vehicle_NotPairable" xml:space="preserve"><value>This plate is in the company fleet registry, but self-service pairing is not available. Please contact an administrator.</value></data>
+  <data name="Register_LicensePlate" xml:space="preserve"><value>License plate</value></data>
+  <data name="Register_LicensePlateHint" xml:space="preserve"><value>If you drive a company car, the plate connects you with the fleet after your account is activated.</value></data>
 </root>

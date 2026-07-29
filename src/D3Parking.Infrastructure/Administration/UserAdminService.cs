@@ -269,6 +269,17 @@ public sealed class UserAdminService(
                 .ExecuteDeleteAsync(cancellationToken);
         }
 
+        // A paired company vehicle loses its driver but stays in the registry for the next one.
+        // The owned-spot reset above has already returned the residency the pairing carried.
+        await dbContext.CompanyVehicles
+            .Where(v => v.PairedUserId == userId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(v => v.PairedUserId, (Guid?)null)
+                .SetProperty(v => v.PairedAtUtc, (DateTimeOffset?)null)
+                .SetProperty(v => v.PairingCodeSentAtUtc, (DateTimeOffset?)null)
+                .SetProperty(v => v.PairingAttempts, 0)
+                .SetProperty(v => v.PairingAttemptsWindowStartUtc, (DateTimeOffset?)null), cancellationToken);
+
         // Active bookings would otherwise hold spots until the no-show sweep penalized a ghost.
         await dbContext.Reservations
             .Where(r => r.UserId == userId

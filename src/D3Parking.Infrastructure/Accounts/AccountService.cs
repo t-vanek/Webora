@@ -8,6 +8,7 @@ using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Mapping;
 using D3Parking.Application.Notifications;
+using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
@@ -28,6 +29,7 @@ public sealed class AccountService(
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
     INotificationService notifications,
+    IFleetService fleet,
     ISiteSettingsService siteSettings,
     IStringLocalizer<AccountMessages> messages,
     IOptions<AccountOptions> options,
@@ -37,7 +39,7 @@ public sealed class AccountService(
     private const string SuspendTokenPurpose = "SuspendAccount";
     private const string ReactivateTokenPurpose = "ReactivateAccount";
 
-    public async Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> RegisterAsync(string email, string password, string? displayName, string? licensePlate = null, CancellationToken cancellationToken = default)
     {
         // Never reveal whether the address is taken — the same stance the password-reset and
         // reactivation flows already take ("always report success"). The probe reports the
@@ -54,6 +56,7 @@ public sealed class AccountService(
             UserName = email,
             Email = email,
             DisplayName = displayName,
+            LicensePlate = NormalizeStoredPlate(licensePlate),
             Status = AccountStatus.PendingActivation,
         };
 
@@ -81,6 +84,19 @@ public sealed class AccountService(
     private static bool IsDuplicate(IdentityResult result) =>
         result.Errors.Any(e => e.Code is nameof(IdentityErrorDescriber.DuplicateEmail)
             or nameof(IdentityErrorDescriber.DuplicateUserName));
+
+    // Stored upper-cased as typed, same as the profile page; clamped to the nvarchar(16) column
+    // so a hand-crafted POST cannot turn registration into a SQL truncation error.
+    private static string? NormalizeStoredPlate(string? plate)
+    {
+        if (string.IsNullOrWhiteSpace(plate))
+        {
+            return null;
+        }
+
+        var value = plate.Trim().ToUpperInvariant();
+        return value.Length <= 16 ? value : value[..16];
+    }
 
     private async Task NotifyRegistrationRepeatedAsync(ApplicationUser existing, CancellationToken cancellationToken)
     {
@@ -155,7 +171,23 @@ public sealed class AccountService(
 
         if (user.Status == AccountStatus.PendingActivation)
         {
-            return await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Activated, cancellationToken);
+            var activated = await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Activated, cancellationToken);
+            if (activated.Succeeded)
+            {
+                // The plate given at registration may already match a pairable fleet vehicle;
+                // point the fresh account at the confirmation step. Advisory only — a failure
+                // here must not turn a completed activation into an error page.
+                try
+                {
+                    await fleet.NotifyPairableAsync(user.Id, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogWarning(ex, "Fleet pairing nudge after activation of {UserId} failed", user.Id);
+                }
+            }
+
+            return activated;
         }
 
         // The confirmation link stays valid until the security stamp changes, so it can be
