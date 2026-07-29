@@ -169,7 +169,7 @@ reputaci i peněženku**:
 | Obsazení sdíleného místa | při dokončení | obsazení sdíleného rezidentního místa; škálováno dojezdem |
 | Sdílení rezidenta | při proaktivním uvolnění | dle předstihu + měsíčního přídělu rezidenta |
 | Penalizace za no-show | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě; u rezervace vytvořené až po začátku okna běží lhůta od vytvoření |
-| Vratka sdílení | smyčkou / rekonciliací | promarněný nebo nerezervovaný sdílený den |
+| Vratka sdílení | smyčkou / rekonciliací | promarněný nebo nerezervovaný sdílený den; součet srážek za den je zastropován přiznanou odměnou (den nikdy nejde do minusu) |
 
 Účetní kniha (ledger) eviduje vedle reputačních důvodů i pohyby peněženky: **měsíční příděl kreditu**,
 **stržení za rezervaci** a **vrácení kreditu**. Odznaky: *Ohleduplný kolega*, *Šampion mimo špičku*,
