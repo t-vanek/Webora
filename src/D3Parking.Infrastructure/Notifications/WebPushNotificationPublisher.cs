@@ -44,7 +44,13 @@ public sealed class WebPushNotificationPublisher(
             tag = notification.Id,
         }, PayloadJson);
 
-        foreach (var subscription in subscriptions)
+        // Deliveries run concurrently: the publish is awaited inline by NotifyAsync (and thus by
+        // whatever user action created the notification), so total latency must be bound by the
+        // slowest single push service, not by the sum over all of the user's devices. HttpClient
+        // handles concurrent sends; the DbContext does not, so dead subscriptions are only
+        // collected here and deleted in one pass afterwards.
+        var deadSubscriptions = new System.Collections.Concurrent.ConcurrentBag<Guid>();
+        await Task.WhenAll(subscriptions.Select(async subscription =>
         {
             var target = new PushServiceSubscription { Endpoint = subscription.Endpoint };
             target.SetKey(PushEncryptionKeyName.P256DH, subscription.P256dh);
@@ -56,14 +62,20 @@ public sealed class WebPushNotificationPublisher(
             }
             catch (PushServiceClientException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
             {
-                await dbContext.PushSubscriptions
-                    .Where(s => s.Id == subscription.Id)
-                    .ExecuteDeleteAsync(cancellationToken);
+                deadSubscriptions.Add(subscription.Id);
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to deliver a push notification to {Endpoint}.", subscription.Endpoint);
             }
+        }));
+
+        if (!deadSubscriptions.IsEmpty)
+        {
+            var deadIds = deadSubscriptions.ToList();
+            await dbContext.PushSubscriptions
+                .Where(s => deadIds.Contains(s.Id))
+                .ExecuteDeleteAsync(cancellationToken);
         }
     }
 }
