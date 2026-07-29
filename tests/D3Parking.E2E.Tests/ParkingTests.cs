@@ -64,12 +64,21 @@ public class ParkingTests : AdminTest
         var cancelButton = Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Zrušit") });
         var row = Page.GetByRole(AriaRole.Row, new() { NameRegex = new Regex($"{Regex.Escape(csDate)} {hour}:00") })
             .Filter(new() { Has = cancelButton });
-        await Expect(row).ToBeVisibleAsync();
-
-        // Clean up: cancel what we just booked. This far ahead of the start the charge refunds in
-        // full, so repeated runs don't drain the admin wallet until the Reserve button disables
-        // (which is exactly how this suite once ground to a halt).
-        await row.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Zrušit") }).ClickAsync();
-        await Expect(row).ToHaveCountAsync(0);
+        try
+        {
+            await Expect(row).ToBeVisibleAsync();
+        }
+        finally
+        {
+            // Clean up even when the assertion fails: a leaked reservation keeps blocking its
+            // random slot for future runs and slowly drains the admin wallet until the Reserve
+            // button disables (which is exactly how this suite once ground to a halt). This far
+            // ahead of the start the charge refunds in full.
+            if (await row.CountAsync() > 0)
+            {
+                await row.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Zrušit") }).ClickAsync();
+                await Expect(row).ToHaveCountAsync(0);
+            }
+        }
     }
 }

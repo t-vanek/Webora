@@ -37,7 +37,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // ASP.NET Core Identity (cookie sign-in) + OpenIddict authorization server + permission-based RBAC.
 builder.Services.AddD3ParkingIdentity();
-builder.Services.AddIdentityServer();
+builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddPermissionAuthorization();
 
 // Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
@@ -134,6 +134,20 @@ builder.Host.UseWolverine(opts =>
 });
 
 var app = builder.Build();
+
+// Development certificates regenerate with the machine/container, so in production every issued
+// token would die on redeploy. Keep working, but warn loudly until real ones are configured.
+if (!app.Environment.IsDevelopment())
+{
+    var identityCertificates = app.Configuration.GetSection(IdentityServerCertificateOptions.SectionName)
+        .Get<IdentityServerCertificateOptions>() ?? new IdentityServerCertificateOptions();
+    if (!identityCertificates.HasSigning || !identityCertificates.HasEncryption)
+    {
+        app.Logger.LogWarning(
+            "OpenIddict is running on development certificates. Configure the IdentityServer section "
+            + "(PFX signing/encryption certificates) before relying on issued tokens in production.");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

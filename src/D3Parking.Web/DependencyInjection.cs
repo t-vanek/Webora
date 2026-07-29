@@ -1,8 +1,10 @@
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
 using D3Parking.Web.Authorization;
+using D3Parking.Web.Identity;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace D3Parking.Web;
@@ -94,8 +96,11 @@ public static class DependencyInjection
     /// Adds the OpenIddict authorization server and token validation. The OpenIddict EF stores
     /// themselves are registered by the infrastructure layer (AddCore).
     /// </summary>
-    public static IServiceCollection AddIdentityServer(this IServiceCollection services)
+    public static IServiceCollection AddIdentityServer(this IServiceCollection services, IConfiguration configuration)
     {
+        var certificates = configuration.GetSection(IdentityServerCertificateOptions.SectionName)
+            .Get<IdentityServerCertificateOptions>() ?? new IdentityServerCertificateOptions();
+
         services.AddOpenIddict()
             .AddServer(options =>
             {
@@ -107,9 +112,28 @@ public static class DependencyInjection
                        .AllowClientCredentialsFlow()
                        .AllowRefreshTokenFlow();
 
-                // Development credentials. Replace with real certificates before production.
-                options.AddDevelopmentEncryptionCertificate()
-                       .AddDevelopmentSigningCertificate();
+                // Real certificates come from configuration ("IdentityServer" section, PFX files).
+                // Without them the development certificates keep everything working, but they
+                // regenerate with the machine/container — Program.cs warns outside Development.
+                if (certificates.HasSigning)
+                {
+                    options.AddSigningCertificate(X509CertificateLoader.LoadPkcs12FromFile(
+                        certificates.SigningCertificatePath!, certificates.SigningCertificatePassword));
+                }
+                else
+                {
+                    options.AddDevelopmentSigningCertificate();
+                }
+
+                if (certificates.HasEncryption)
+                {
+                    options.AddEncryptionCertificate(X509CertificateLoader.LoadPkcs12FromFile(
+                        certificates.EncryptionCertificatePath!, certificates.EncryptionCertificatePassword));
+                }
+                else
+                {
+                    options.AddDevelopmentEncryptionCertificate();
+                }
 
                 options.UseAspNetCore()
                        .EnableAuthorizationEndpointPassthrough()
