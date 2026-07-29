@@ -44,9 +44,9 @@
                 <TemplateColumn Align="Align.End">
                     @if (context.Status == CollusionFlagStatus.New)
                     {
-                        <FluentButton OnClick="() => ReviewAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
+                        <FluentButton OnClick="() => ReviewAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
                     }
-                    <FluentButton OnClick="() => DismissAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
+                    <FluentButton OnClick="() => DismissAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
@@ -67,15 +67,28 @@
 
     private async Task ReloadAsync() => _flags = await Collusion.GetFlagsAsync();
 
-    private async Task ReviewAsync(Guid id)
-    {
-        await Collusion.ReviewAsync(id);
-        await ReloadAsync();
-    }
+    private bool _actionBusy;
 
-    private async Task DismissAsync(Guid id)
+    private async Task ReviewAsync(Guid id) => await RunAsync(() => Collusion.ReviewAsync(id));
+
+    private async Task DismissAsync(Guid id) => await RunAsync(() => Collusion.DismissAsync(id));
+
+    private async Task RunAsync(Func<Task> action)
     {
-        await Collusion.DismissAsync(id);
-        await ReloadAsync();
+        if (_actionBusy)
+        {
+            return;
+        }
+
+        _actionBusy = true;
+        try
+        {
+            await action();
+            await ReloadAsync();
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
     }
 }

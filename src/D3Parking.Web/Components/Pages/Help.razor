@@ -1,4 +1,8 @@
 @page "/help"
+@* Signed-in only: the page renders the live pricing, penalty and anti-abuse configuration —
+   the navigation offers it inside the permissioned parking section, and the admin chapters
+   below are additionally gated per permission. *@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using D3Parking.Domain.Parking.Incentives
 @using D3Parking.Web.Authorization
 @inject IParkingSettingsService ParkingSettings

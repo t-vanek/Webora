@@ -61,7 +61,17 @@ public sealed class ResidentSpotService(
             state = OwnedSpotDayState.Held;
         }
 
-        var potential = policy.ComputeShareReward(policy.ResidentShareCutoff(today, timeZone), now, spot.MonthlyShareAllowance);
+        // The shown potential must pass the same monthly-allowance gate ReleaseAsync applies when
+        // actually awarding — otherwise a fresh owner (allowance 0) or an exhausted month is
+        // promised points that the release then pays out as zero.
+        var monthFloor = new DateOnly(today.Year, today.Month, 1);
+        var monthCeil = monthFloor.AddMonths(1);
+        var rewardedThisMonth = await dbContext.SpotReleases.CountAsync(
+            r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date < monthCeil,
+            cancellationToken);
+        var potential = rewardedThisMonth < spot.MonthlyShareAllowance
+            ? policy.ComputeShareReward(policy.ResidentShareCutoff(today, timeZone), now, spot.MonthlyShareAllowance)
+            : 0;
         return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, spot.MonthlyShareAllowance,
             policy.ResidentMaxShareAllowance, state, releasedToday, potential);
     }
@@ -293,8 +303,10 @@ public sealed class ResidentSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
 
+        // Inactive spots are out of the pool entirely — nagging their owners to "confirm or
+        // release" a spot nobody could book would only teach them to ignore the reminders.
         var candidates = await dbContext.ParkingSpots
-            .Where(s => s.OwnerId != null && s.LastResidentReminderDate != today)
+            .Where(s => s.IsActive && s.OwnerId != null && s.LastResidentReminderDate != today)
             .ToListAsync(cancellationToken);
 
         var toNotify = new List<(Guid OwnerId, string Code)>();
@@ -352,8 +364,10 @@ public sealed class ResidentSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
 
+        // Same reason as the hold reminders: a deactivated spot never auto-shares into the pool,
+        // so telling its owner it just did would be false.
         var candidates = await dbContext.ParkingSpots
-            .Where(s => s.OwnerId != null && s.LastAutoShareNoticeDate != today)
+            .Where(s => s.IsActive && s.OwnerId != null && s.LastAutoShareNoticeDate != today)
             .ToListAsync(cancellationToken);
 
         var toNotify = new List<(Guid OwnerId, string Code)>();

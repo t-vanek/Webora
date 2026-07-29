@@ -592,7 +592,7 @@ public sealed class ReservationService(
         // A voucher-paid booking gets its voucher back on the same timely terms as a refund.
         if (timely)
         {
-            await RestoreVoucherAsync(dbContext, reservation.Id, cancellationToken);
+            await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
         }
 
         var newBadges = new List<ParkingBadge>();
@@ -678,7 +678,7 @@ public sealed class ReservationService(
 
         if (timely)
         {
-            await RestoreVoucherAsync(dbContext, reservation.Id, cancellationToken);
+            await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -747,18 +747,6 @@ public sealed class ReservationService(
             reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now, recordedPlate);
         dbContext.OccupancyMismatches.Add(mismatch);
 
-        // The apology: one reservation free of charge, peak included. At most one unredeemed
-        // voucher per user and it expires — the report is trust-based, and this is what keeps the
-        // apology from becoming a mint for faked mismatches.
-        var voucherGranted = false;
-        var holdsUsableVoucher = await dbContext.ApologyVouchers.AnyAsync(v =>
-            v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
-        if (!holdsUsableVoucher)
-        {
-            dbContext.ApologyVouchers.Add(new ApologyVoucher(userId, mismatch.Id, now, now + ApologyVoucherValidity));
-            voucherGranted = true;
-        }
-
         // Void without penalty: the driver stands in front of an occupied spot through no fault
         // of their own, so the charge comes back in full no matter how close to the start. The
         // spot stays bookable in the system (the squatter may leave any minute); repeated
@@ -773,6 +761,7 @@ public sealed class ReservationService(
         }
 
         string? relocatedCode = null;
+        Reservation? replacement = null;
         if (relocate)
         {
             var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -793,7 +782,7 @@ public sealed class ReservationService(
             {
                 // Carry the original charge over: the refund above plus an identical charge here
                 // nets to zero for the wallet while the ledger keeps a clean trail of the move.
-                var replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
+                replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
                     reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue);
                 dbContext.Reservations.Add(replacement);
                 if (reservation.CreditsCharged > 0)
@@ -809,6 +798,34 @@ public sealed class ReservationService(
                     .Select(s => s.Code)
                     .FirstAsync(cancellationToken);
             }
+        }
+
+        // A voucher that paid for the voided booking follows the same no-fault principle as the
+        // credit refund: relocated, it re-points at the replacement (so its restore-on-timely-
+        // cancel promise stays fulfillable); not relocated, it comes back — the free reservation
+        // was consumed with zero parking received.
+        if (replacement is not null)
+        {
+            var redeemedVoucher = await dbContext.ApologyVouchers
+                .FirstOrDefaultAsync(v => v.RedeemedReservationId == reservation.Id, cancellationToken);
+            redeemedVoucher?.TransferRedemption(replacement.Id);
+        }
+        else
+        {
+            await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
+        }
+
+        // The apology: one reservation free of charge, peak included. At most one unredeemed
+        // voucher per user and it expires — the report is trust-based, and this is what keeps the
+        // apology from becoming a mint for faked mismatches. Evaluated after any voucher restore
+        // above, so a restored voucher counts against the cap instead of stacking with a fresh one.
+        var voucherGranted = false;
+        var holdsUsableVoucher = await dbContext.ApologyVouchers.AnyAsync(v =>
+            v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
+        if (!holdsUsableVoucher)
+        {
+            dbContext.ApologyVouchers.Add(new ApologyVoucher(userId, mismatch.Id, now, now + ApologyVoucherValidity));
+            voucherGranted = true;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -847,6 +864,7 @@ public sealed class ReservationService(
     private async Task<int> SweepNoShowsCoreAsync(CancellationToken cancellationToken)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var threshold = now - policy.NoShowGracePeriod;
@@ -916,7 +934,11 @@ public sealed class ReservationService(
             (Guid OwnerId, string Code, int Clawback)? ownerNotice = null;
             if (spots.TryGetValue(reservation.SpotId, out var spot) && spot.OwnerId is { } ownerId && ownerId != reservation.UserId)
             {
-                var date = DateOnly.FromDateTime(reservation.StartUtc.Date);
+                // SpotRelease.Date is the site-local calendar day; DateOnly.FromDateTime on the
+                // stored offset only matched by the accident of every writer using site-local
+                // offsets — a UTC-normalized start near local midnight would miss the release
+                // row and silently skip the owner's clawback.
+                var date = SiteTime.Today(reservation.StartUtc, timeZone);
                 // Tracked on purpose: the release accumulates ClawedBackPoints, which caps the
                 // day's total clawback at its awarded reward — several no-shows on one shared day
                 // must not stack percentages past what the owner ever earned. Within this batch
@@ -1151,7 +1173,7 @@ public sealed class ReservationService(
         return decayed;
     }
 
-    public async Task<double> MeasurePeakOccupancyAsync(CancellationToken cancellationToken = default)
+    public async Task<double?> MeasurePeakOccupancyAsync(CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
@@ -1161,11 +1183,37 @@ public sealed class ReservationService(
         var end = SiteTime.At(today, policy.PeakEnd, timeZone);
         if (end <= start)
         {
-            return 0.0;
+            return null;
+        }
+
+        // The controller wants "how full was today's peak", which only exists once the window is
+        // over. Measured live, the number was near-zero every night and weekend (completed
+        // reservations drop out of Reserved/CheckedIn), and the controller dutifully walked the
+        // surcharge down to its minimum by every morning regardless of real peak demand.
+        if (now < end)
+        {
+            return null;
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await ComputeOccupancyAsync(dbContext, start, end, cancellationToken);
+        var activeSpots = await dbContext.ParkingSpots.CountAsync(
+            s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
+        if (activeSpots == 0)
+        {
+            return null;
+        }
+
+        // Completed counts — the spot was genuinely used during the window; no-shows and cancels
+        // do not, they represent demand that never parked.
+        var occupied = await dbContext.Reservations
+            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn
+                    || r.Status == ReservationStatus.Completed)
+                && r.StartUtc < end && r.EndUtc > start)
+            .Select(r => r.SpotId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        return Math.Min(1.0, (double)occupied / activeSpots);
     }
 
     public async Task<IReadOnlyList<QueueEntryDto>> GetMyQueueAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -1500,12 +1548,26 @@ public sealed class ReservationService(
     }
 
     // Returns a redeemed voucher to its holder when the booking it paid for was given up early
-    // enough to re-let the spot — the same terms under which credits are refunded.
-    private static async Task RestoreVoucherAsync(D3ParkingDbContext dbContext, Guid reservationId, CancellationToken cancellationToken)
+    // enough to re-let the spot — the same terms under which credits are refunded. The restore
+    // honors the one-unredeemed-voucher cap: if the holder meanwhile earned another usable
+    // voucher, re-arming this one would let redeem→report→release cycles stockpile the very
+    // value the cap exists to bound.
+    private static async Task RestoreVoucherAsync(D3ParkingDbContext dbContext, Guid reservationId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var voucher = await dbContext.ApologyVouchers
             .FirstOrDefaultAsync(v => v.RedeemedReservationId == reservationId, cancellationToken);
-        voucher?.Restore();
+        if (voucher is null)
+        {
+            return;
+        }
+
+        var holdsAnotherUsable = await dbContext.ApologyVouchers.AnyAsync(v =>
+            v.UserId == voucher.UserId && v.Id != voucher.Id
+            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
+        if (!holdsAnotherUsable)
+        {
+            voucher.Restore();
+        }
     }
 
     // Raw availability for a window (active, unreserved, owned-spot visibility) without the waitlist

@@ -120,9 +120,11 @@
                     else
                     {
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="max-width:480px">
+                            @* Maxlength mirrors StatusReason's nvarchar(512): an oversized reason
+                               would otherwise throw in the event handler and take the circuit down. *@
                             <FluentTextField @bind-Value="_blockReason"
                                              Placeholder="@L["Admin_UserEdit_BlockReason"]"
-                                             Style="flex:1" />
+                                             Style="flex:1" Maxlength="512" />
                             <FluentButton OnClick="BlockAsync" Appearance="Appearance.Accent" Style="background:var(--error-rest);color:var(--neutral-fill-rest)">
                                 @L["Admin_UserEdit_Block"]
                             </FluentButton>

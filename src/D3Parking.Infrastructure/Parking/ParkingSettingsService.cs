@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using D3Parking.Application.Parking;
+using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Common;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
@@ -12,6 +14,8 @@ namespace D3Parking.Infrastructure.Parking;
 public sealed class ParkingSettingsService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     IMemoryCache cache,
+    // For the site time zone only: the adaptive controller runs once per *local* day.
+    ISiteSettingsService siteSettings,
     TimeProvider timeProvider,
     ILogger<ParkingSettingsService> logger) : IParkingSettingsService
 {
@@ -126,8 +130,14 @@ public sealed class ParkingSettingsService(
             return false;
         }
 
+        // One adjustment per local day: the measurement is "today's finished peak window", a value
+        // that stays constant for the rest of the day — re-applying the controller to it every
+        // AdaptiveIntervalMinutes would compound the same step over and over (the interval setting
+        // remains for the admin UI but no longer drives extra in-day adjustments).
         var now = timeProvider.GetUtcNow();
-        if (settings.LastAdaptiveAdjustUtc is { } last && (now - last).TotalMinutes < settings.AdaptiveIntervalMinutes)
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        if (settings.LastAdaptiveAdjustUtc is { } last
+            && SiteTime.Today(last, timeZone) == SiteTime.Today(now, timeZone))
         {
             return false;
         }

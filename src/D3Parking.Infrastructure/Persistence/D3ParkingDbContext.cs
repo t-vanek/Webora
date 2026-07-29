@@ -193,7 +193,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
             spot.Property(s => s.Notes).HasMaxLength(512);
             spot.HasIndex(s => s.Code).IsUnique();
-            spot.HasIndex(s => s.OwnerId);
+            // One spot per resident: every resident flow resolves "the user's spot" with a single
+            // FirstOrDefault, so duplicate ownership would make those flows nondeterministic.
+            // AssignOwnerAsync checks first; the filtered unique index is the backstop.
+            spot.HasIndex(s => s.OwnerId).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
         });
 
         builder.Entity<SpotRelease>(release =>
