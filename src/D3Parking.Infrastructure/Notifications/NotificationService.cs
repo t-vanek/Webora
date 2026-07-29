@@ -147,7 +147,7 @@ public sealed class NotificationService(
             .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
 
         return preferences is null
-            ? new NotificationPreferencesDto(false, null, false, NotificationScope.All)
+            ? new NotificationPreferencesDto(false, null, false, NotificationScope.All, AllowAvailability: true)
             : ToDto(preferences);
     }
 
@@ -180,6 +180,14 @@ public sealed class NotificationService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var preferences = await GetOrCreatePreferencesAsync(dbContext, userId, cancellationToken);
         preferences.SetScope(scope);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetAvailabilityOptInAsync(Guid userId, bool allow, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var preferences = await GetOrCreatePreferencesAsync(dbContext, userId, cancellationToken);
+        preferences.SetAvailabilityOptIn(allow);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -248,5 +256,5 @@ public sealed class NotificationService(
     }
 
     private NotificationPreferencesDto ToDto(NotificationPreferences preferences) =>
-        new(preferences.Muted, preferences.MutedUntilUtc, preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()), preferences.Scope);
+        new(preferences.Muted, preferences.MutedUntilUtc, preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()), preferences.Scope, preferences.AllowAvailability);
 }

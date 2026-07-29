@@ -76,6 +76,11 @@ vyhrazeného místa) a penalizují nedostavení se.
   a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
 - **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
   Calendar) včetně připomínky 30 minut před začátkem.
+- **Oznámení volné kapacity** — když je ve výhledu souvislý úsek dní z velké části volný, aplikace
+  to (max. 1× denně, jen pracovní dny) připomene zvonečkem a push notifikací všem bez rezervace
+  v období. Záměrně jen **stabilní agregát daleko dopředu** — nikdy okamžitá volnost jednoho místa,
+  takže zpráva nemůže „vyprchat" ani rozpoutat závod o konkrétní místo (rezervace je stejně
+  serializovaná). Prahy laditelné v administraci; uživatelé mají vlastní vypínač v profilu.
 
 ## Náhledy
 

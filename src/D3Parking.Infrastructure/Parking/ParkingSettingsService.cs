@@ -68,7 +68,9 @@ public sealed class ParkingSettingsService(
             s.AdaptiveStepMaxPercent, s.AdaptivePeakMinPercent, s.AdaptivePeakMaxPercent, s.AdaptiveIntervalMinutes,
             s.TrustEnabled, s.TrustIntervalHours, s.TrustedBadgeThreshold,
             s.MaxPairTrustWeight, s.AntiCollusionEnabled, s.CollusionMinInteractions,
-            s.CollusionConcentrationPercent, s.CollusionScanIntervalHours);
+            s.CollusionConcentrationPercent, s.CollusionScanIntervalHours,
+            s.AvailabilityCampaignsEnabled, s.AvailabilityLookaheadDays, s.AvailabilityFreeThresholdPercent,
+            s.AvailabilityMinConsecutiveDays, s.AvailabilitySendHourLocal);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -98,7 +100,9 @@ public sealed class ParkingSettingsService(
             dto.AdaptiveStepMaxPercent, dto.AdaptivePeakMinPercent, dto.AdaptivePeakMaxPercent, dto.AdaptiveIntervalMinutes,
             dto.TrustEnabled, dto.TrustIntervalHours, dto.TrustedBadgeThreshold,
             dto.MaxPairTrustWeight, dto.AntiCollusionEnabled, dto.CollusionMinInteractions,
-            dto.CollusionConcentrationPercent, dto.CollusionScanIntervalHours);
+            dto.CollusionConcentrationPercent, dto.CollusionScanIntervalHours,
+            dto.AvailabilityCampaignsEnabled, dto.AvailabilityLookaheadDays, dto.AvailabilityFreeThresholdPercent,
+            dto.AvailabilityMinConsecutiveDays, dto.AvailabilitySendHourLocal);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",

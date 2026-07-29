@@ -189,6 +189,18 @@ public sealed record IncentivePolicy
     /// <summary>Hours between collusion scans.</summary>
     public int CollusionScanIntervalHours { get; init; } = 24;
 
+    // --- Availability campaigns (proactive "the lot is wide open" tips) ---
+
+    public bool AvailabilityCampaignsEnabled { get; init; } = true;
+
+    public int AvailabilityLookaheadDays { get; init; } = 14;
+
+    public int AvailabilityFreeThresholdPercent { get; init; } = 25;
+
+    public int AvailabilityMinConsecutiveDays { get; init; } = 3;
+
+    public int AvailabilitySendHourLocal { get; init; } = 9;
+
     public static IncentivePolicy Default { get; } = new();
 
     /// <summary>

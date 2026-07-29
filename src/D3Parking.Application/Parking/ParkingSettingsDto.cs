@@ -64,4 +64,9 @@ public sealed record ParkingSettingsDto(
     bool AntiCollusionEnabled,
     int CollusionMinInteractions,
     int CollusionConcentrationPercent,
-    int CollusionScanIntervalHours);
+    int CollusionScanIntervalHours,
+    bool AvailabilityCampaignsEnabled,
+    int AvailabilityLookaheadDays,
+    int AvailabilityFreeThresholdPercent,
+    int AvailabilityMinConsecutiveDays,
+    int AvailabilitySendHourLocal);

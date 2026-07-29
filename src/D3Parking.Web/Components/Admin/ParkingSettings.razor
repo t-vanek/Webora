@@ -215,6 +215,22 @@
                     <FluentAnchor Href="/admin/parking/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
 
                     <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AvailabilitySection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.AvailabilityCampaignsEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_AvailabilityHelp"]</FluentLabel>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityLookaheadDays" Min="1" Max="60" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
+                                           Label="@L["Parking_Settings_AvailabilityLookahead"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityFreeThresholdPercent" Min="1" Max="100" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
+                                           Label="@L["Parking_Settings_AvailabilityThreshold"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityMinConsecutiveDays" Min="1" Max="30" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
+                                           Label="@L["Parking_Settings_AvailabilityMinDays"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilitySendHourLocal" Min="0" Max="23" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
+                                           Label="@L["Parking_Settings_AvailabilitySendHour"]" Style="width:100%" />
+                    </div>
+
+                    <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueuePenaltySection"]</FluentLabel>
                         <FluentSwitch Value="@_queuePenaltyOn" ValueChanged="ToggleQueuePenalty" Label="@L["Parking_Settings_SectionEnabled"]" />
                     </div>
@@ -518,6 +534,11 @@
             CollusionMinInteractions = s.CollusionMinInteractions,
             CollusionConcentrationPercent = s.CollusionConcentrationPercent,
             CollusionScanIntervalHours = s.CollusionScanIntervalHours,
+            AvailabilityCampaignsEnabled = s.AvailabilityCampaignsEnabled,
+            AvailabilityLookaheadDays = s.AvailabilityLookaheadDays,
+            AvailabilityFreeThresholdPercent = s.AvailabilityFreeThresholdPercent,
+            AvailabilityMinConsecutiveDays = s.AvailabilityMinConsecutiveDays,
+            AvailabilitySendHourLocal = s.AvailabilitySendHourLocal,
         };
 
         _economyOn = s.BaseReservationCost > 0;
@@ -596,7 +617,12 @@
             _form.AntiCollusionEnabled,
             _form.CollusionMinInteractions,
             _form.CollusionConcentrationPercent,
-            _form.CollusionScanIntervalHours);
+            _form.CollusionScanIntervalHours,
+            _form.AvailabilityCampaignsEnabled,
+            _form.AvailabilityLookaheadDays,
+            _form.AvailabilityFreeThresholdPercent,
+            _form.AvailabilityMinConsecutiveDays,
+            _form.AvailabilitySendHourLocal);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -675,5 +701,10 @@
         public int CollusionMinInteractions { get; set; }
         public int CollusionConcentrationPercent { get; set; }
         public int CollusionScanIntervalHours { get; set; }
+        public bool AvailabilityCampaignsEnabled { get; set; }
+        public int AvailabilityLookaheadDays { get; set; }
+        public int AvailabilityFreeThresholdPercent { get; set; }
+        public int AvailabilityMinConsecutiveDays { get; set; }
+        public int AvailabilitySendHourLocal { get; set; }
     }
 }

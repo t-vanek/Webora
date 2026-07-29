@@ -152,6 +152,22 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>State: when the collusion scan last ran.</summary>
     public DateTimeOffset? LastCollusionScanUtc { get; private set; }
 
+    // --- Availability campaigns (proactive "the lot is wide open" tips, bell + push only) ---
+
+    public bool AvailabilityCampaignsEnabled { get; private set; } = true;
+
+    /// <summary>How many days ahead the projected occupancy is scanned.</summary>
+    public int AvailabilityLookaheadDays { get; private set; } = 14;
+
+    /// <summary>A day counts as "wide open" below this projected occupancy.</summary>
+    public int AvailabilityFreeThresholdPercent { get; private set; } = 25;
+
+    /// <summary>Minimum run of consecutive wide-open days before a campaign fires.</summary>
+    public int AvailabilityMinConsecutiveDays { get; private set; } = 3;
+
+    /// <summary>Local hour of day at which a due campaign is sent (weekdays only).</summary>
+    public int AvailabilitySendHourLocal { get; private set; } = 9;
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -224,7 +240,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         bool antiCollusionEnabled,
         int collusionMinInteractions,
         int collusionConcentrationPercent,
-        int collusionScanIntervalHours)
+        int collusionScanIntervalHours,
+        bool availabilityCampaignsEnabled,
+        int availabilityLookaheadDays,
+        int availabilityFreeThresholdPercent,
+        int availabilityMinConsecutiveDays,
+        int availabilitySendHourLocal)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -290,6 +311,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         CollusionMinInteractions = Math.Max(2, collusionMinInteractions);
         CollusionConcentrationPercent = Math.Clamp(collusionConcentrationPercent, 1, 100);
         CollusionScanIntervalHours = Math.Max(1, collusionScanIntervalHours);
+        AvailabilityCampaignsEnabled = availabilityCampaignsEnabled;
+        AvailabilityLookaheadDays = Math.Clamp(availabilityLookaheadDays, 1, 60);
+        AvailabilityFreeThresholdPercent = Math.Clamp(availabilityFreeThresholdPercent, 1, 100);
+        AvailabilityMinConsecutiveDays = Math.Clamp(availabilityMinConsecutiveDays, 1, 30);
+        AvailabilitySendHourLocal = Math.Clamp(availabilitySendHourLocal, 0, 23);
     }
 
     /// <summary>Records when the trust graph was last recomputed.</summary>
@@ -367,6 +393,11 @@ public class ParkingSettings : Entity, IAggregateRoot
         CollusionMinInteractions = CollusionMinInteractions,
         CollusionConcentrationPercent = CollusionConcentrationPercent,
         CollusionScanIntervalHours = CollusionScanIntervalHours,
+        AvailabilityCampaignsEnabled = AvailabilityCampaignsEnabled,
+        AvailabilityLookaheadDays = AvailabilityLookaheadDays,
+        AvailabilityFreeThresholdPercent = AvailabilityFreeThresholdPercent,
+        AvailabilityMinConsecutiveDays = AvailabilityMinConsecutiveDays,
+        AvailabilitySendHourLocal = AvailabilitySendHourLocal,
     };
 
     private static TimeSpan Clamp(TimeSpan value) => value < TimeSpan.Zero ? TimeSpan.Zero : value;

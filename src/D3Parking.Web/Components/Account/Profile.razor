@@ -130,6 +130,19 @@
                                     Appearance="Appearance.Neutral"
                                     OnSubmit="() => SetScopeAsync(NotificationScope.All)" />
                     </FluentStack>
+
+                    @* The availability tips are the one non-transactional category, so they get
+                       their own switch — turning them off must not cost any real notification. *@
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body">@L["Profile_AvailabilityTips"]:</FluentLabel>
+                        <FluentBadge Appearance="Appearance.Neutral">
+                            @(_prefs.AllowAvailability ? L["Profile_AvailabilityOn"] : L["Profile_AvailabilityOff"])
+                        </FluentBadge>
+                        <MuteButton FormName="availability-toggle"
+                                    Label="@(_prefs.AllowAvailability ? L["Profile_AvailabilityTurnOff"] : L["Profile_AvailabilityTurnOn"])"
+                                    Appearance="Appearance.Neutral"
+                                    OnSubmit="ToggleAvailabilityAsync" />
+                    </FluentStack>
                 </FluentStack>
             </FluentCard>
 
@@ -191,7 +204,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private IReadOnlyList<NotificationDto> _notifications = [];
-    private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All);
+    private NotificationPreferencesDto _prefs = new(false, null, false, NotificationScope.All, AllowAvailability: true);
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
 #pragma warning disable BL0008
@@ -306,6 +319,15 @@
         if (await CurrentUserIdAsync() is { } userId)
         {
             await NotificationService.MarkAllReadAsync(userId);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ToggleAvailabilityAsync()
+    {
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            await NotificationService.SetAvailabilityOptInAsync(userId, !_prefs.AllowAvailability);
             await ReloadAsync();
         }
     }
