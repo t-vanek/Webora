@@ -647,7 +647,7 @@ public sealed class ReservationService(
         return ParkingResult.Success;
     }
 
-    public async Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, CancellationToken cancellationToken = default)
+    public async Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, string? blockerPlate = null, CancellationToken cancellationToken = default)
     {
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -686,8 +686,17 @@ public sealed class ReservationService(
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
+        // The plate is read off a stranger's car in a hurry — keep it verbatim (trimmed, upper-
+        // cased, capped to the column); the admin view does the tolerant matching.
+        string? recordedPlate = null;
+        if (!string.IsNullOrWhiteSpace(blockerPlate))
+        {
+            var trimmed = blockerPlate.Trim().ToUpperInvariant();
+            recordedPlate = trimmed.Length > 16 ? trimmed[..16] : trimmed;
+        }
+
         var mismatch = new OccupancyMismatch(
-            reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now);
+            reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now, recordedPlate);
         dbContext.OccupancyMismatches.Add(mismatch);
 
         // The apology: one reservation free of charge, peak included. At most one unredeemed

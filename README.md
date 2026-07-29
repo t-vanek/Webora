@@ -196,6 +196,10 @@ Obojí **bez rizika no-show penalizace**.
   u každého záznamu i **rezervace, které se s oknem na místě potkaly** — typicky toho, kdo si místo
   rezervoval a nedorazil — a může držitele i ohlašovatele rovnou **kontaktovat e-mailem**
   (předvyplněný mailto s místem a dnem).
+- **SPZ blokujícího vozidla:** řidič ji může při záznamu rovnou opsat (nepovinné pole — stojí přímo
+  u auta). Správce ji vidí spárovanou s **registrovanými vozidly zaměstnanců** (SPZ v profilu,
+  porovnání ignoruje mezery a velikost písmen): shoda = jméno + e-mail na jeden klik, jinak
+  **potvrzený vůz mimo systém** — a tedy podklad pro ostrahu či odtah dle řádu parkoviště.
 - **Omluvný kupón:** za potíž náleží kupón na **jednu rezervaci zdarma včetně špičkové ceny**.
   Uplatní se zaškrtnutím při rezervaci, platí 30 dní, drží se max. 1 nevyčerpaný na uživatele
   a **včasné zrušení/uvolnění ho vrací**. Fronta je záměrně bez kupónů (odchod od vzácného

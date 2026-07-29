@@ -217,6 +217,11 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_Blocked_Title", blocked.SpotCode]</FluentLabel>
                 <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_Text"]</FluentLabel>
+                @* Optional: the plate of the blocking car — the driver is standing right at it,
+                   and it lets the admin tell an employee from an outsider. *@
+                <FluentTextField @bind-Value="_blockerPlate" Maxlength="16" Style="width:280px"
+                                 Label="@L["Parking_Blocked_PlateLabel"]"
+                                 Placeholder="@L["Parking_Blocked_PlatePlaceholder"]" />
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                     <FluentButton Appearance="Appearance.Accent" Disabled="@_blockedBusy"
                                   OnClick="() => ReportBlockedAsync(relocate: true)">@L["Parking_Blocked_Relocate"]</FluentButton>
@@ -506,6 +511,7 @@
     private ReservationDto? _blockedTarget;
     private bool _blockedBusy;
     private string? _blockedMessage;
+    private string? _blockerPlate;
 
     private ApologyVoucherDto? _voucher;
     private bool _useVoucher;
@@ -523,6 +529,7 @@
     private void OpenBlockedPanel(ReservationDto reservation)
     {
         _error = _info = _blockedMessage = null;
+        _blockerPlate = null;
         _blockedTarget = reservation;
     }
 
@@ -536,7 +543,7 @@
         _blockedBusy = true;
         try
         {
-            var outcome = await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate);
+            var outcome = await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate, _blockerPlate);
             if (!outcome.Succeeded)
             {
                 _error = outcome.Error;
