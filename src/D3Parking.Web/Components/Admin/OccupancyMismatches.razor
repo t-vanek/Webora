@@ -59,6 +59,10 @@
                                    employee gets a name + mailto, anything else is an outsider. *@
                                 <span>
                                     <strong>@plate</strong> — @(context.BlockerMatchName ?? L["Parking_Mismatch_PlateUnknown"].Value)
+                                    @if (context.BlockerMatchIsVisitor)
+                                    {
+                                        <text> (@L["Parking_Mismatch_PlateVisitor"])</text>
+                                    }
                                     @if (context.BlockerMatchEmail is { } matchEmail)
                                     {
                                         <a href="@MailTo(matchEmail, context)" title="@matchEmail">&#9993;</a>

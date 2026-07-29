@@ -132,7 +132,8 @@ public sealed class AvailabilityCampaignService(
         var firstDay = today.AddDays(1);
         var lastDay = today.AddDays(policy.AvailabilityLookaheadDays);
 
-        var unownedActive = await dbContext.ParkingSpots.CountAsync(s => s.IsActive && s.OwnerId == null, cancellationToken);
+        var unownedActive = await dbContext.ParkingSpots.CountAsync(
+            s => s.IsActive && s.OwnerId == null && s.Type != ParkingSpotType.Visitor, cancellationToken);
         var releasedPerDay = (await dbContext.SpotReleases
                 .Where(r => r.Date >= firstDay && r.Date <= lastDay)
                 .Join(dbContext.ParkingSpots.Where(s => s.IsActive && s.OwnerId != null),

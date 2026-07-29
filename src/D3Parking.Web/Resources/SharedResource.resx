@@ -391,6 +391,28 @@
   <data name="Parking_Settings_AvailabilityThreshold" xml:space="preserve"><value>Práh obsazenosti (%)</value></data>
   <data name="Parking_Settings_AvailabilityMinDays" xml:space="preserve"><value>Min. souvislých dní</value></data>
   <data name="Parking_Settings_AvailabilitySendHour" xml:space="preserve"><value>Hodina odeslání (lokálně)</value></data>
+  <data name="Nav_AdminVisitors" xml:space="preserve"><value>Návštěvy</value></data>
+  <data name="Nav_Short_Visitors" xml:space="preserve"><value>Návštěvy</value></data>
+  <data name="Parking_Visitors_Title" xml:space="preserve"><value>Návštěvy</value></data>
+  <data name="Parking_Visitors_Intro" xml:space="preserve"><value>Rezervace návštěvnických míst pro hosty bez účtu. Návštěvnická místa jsou vyčleněná z běžného fondu zaměstnanců — spravují se jen tady.</value></data>
+  <data name="Parking_Visitors_NewBooking" xml:space="preserve"><value>Nová rezervace pro návštěvu</value></data>
+  <data name="Parking_Visitors_Date" xml:space="preserve"><value>Datum</value></data>
+  <data name="Parking_Visitors_From" xml:space="preserve"><value>Od</value></data>
+  <data name="Parking_Visitors_To" xml:space="preserve"><value>Do</value></data>
+  <data name="Parking_Visitors_NoFreeSpots" xml:space="preserve"><value>Pro zvolené okno není volné žádné návštěvnické místo. Zkontrolujte, že existují aktivní místa typu „Návštěvnické".</value></data>
+  <data name="Parking_Visitors_Name" xml:space="preserve"><value>Jméno návštěvy</value></data>
+  <data name="Parking_Visitors_Company" xml:space="preserve"><value>Firma</value></data>
+  <data name="Parking_Visitors_Plate" xml:space="preserve"><value>SPZ</value></data>
+  <data name="Parking_Visitors_Host" xml:space="preserve"><value>Za kým jde (hostitel)</value></data>
+  <data name="Parking_Visitors_Book" xml:space="preserve"><value>Rezervovat pro návštěvu</value></data>
+  <data name="Parking_Visitors_Upcoming" xml:space="preserve"><value>Nadcházející návštěvy</value></data>
+  <data name="Parking_Visitors_Empty" xml:space="preserve"><value>Žádné nadcházející návštěvy.</value></data>
+  <data name="Parking_Visitors_CreatedBy" xml:space="preserve"><value>Zadal(a)</value></data>
+  <data name="Parking_Visitors_Booked" xml:space="preserve"><value>Návštěva má rezervované místo.</value></data>
+  <data name="Parking_Visitors_Cancelled" xml:space="preserve"><value>Rezervace návštěvy byla zrušena.</value></data>
+  <data name="Parking_Visitor_Error_NameRequired" xml:space="preserve"><value>Vyplňte jméno návštěvy.</value></data>
+  <data name="Parking_Visitor_Error_NotVisitorSpot" xml:space="preserve"><value>Toto místo je vyhrazené návštěvám a spravuje ho recepce.</value></data>
+  <data name="Parking_Mismatch_PlateVisitor" xml:space="preserve"><value>návštěva</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>

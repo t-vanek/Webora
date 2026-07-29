@@ -15,6 +15,7 @@ public sealed record OccupancyMismatchDto(
     string? BlockerPlate,
     string? BlockerMatchName,
     string? BlockerMatchEmail,
+    bool BlockerMatchIsVisitor,
     IReadOnlyList<MismatchRelatedReservationDto> RelatedReservations);
 
 /// <summary>

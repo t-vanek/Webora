@@ -1,0 +1,200 @@
+@page "/admin/parking/visitors"
+@attribute [HasPermission(Permissions.Parking.ManageReservations)]
+@rendermode InteractiveServer
+@inject IVisitorBookingService Visitors
+@inject IUserAdminService UserAdmin
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Visitors_Title"]</PageTitle>
+
+@* Reception agenda for Visitor-type spots: guests have no accounts, so the booking carries the
+   visitor's name/company/plate and (optionally) the visited employee, who gets a bell heads-up.
+   Visitor spots are excluded from the employee pool, so this page is the only competition. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Visitors_Title"]</FluentLabel>
+            @if (_bookings is { Count: > 0 })
+            {
+                <span class="count-chip">@_bookings.Count</span>
+            }
+        </div>
+        <p class="admin-head__intro">@L["Parking_Visitors_Intro"]</p>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
+    }
+
+    <div class="form-panel">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Visitors_NewBooking"]</FluentLabel>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                <div>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_Date"]</FluentLabel>
+                    <input type="date" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                </div>
+                <div>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_From"]</FluentLabel>
+                    <input type="time" @bind="_from" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                </div>
+                <div>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_To"]</FluentLabel>
+                    <input type="time" @bind="_to" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                </div>
+                <FluentSelect TOption="ParkingSpotDto" Items="_freeSpots" Width="140px"
+                              OptionText="@(s => s.Code)" OptionValue="@(s => s.Id.ToString())"
+                              @bind-SelectedOption="_selectedSpot" Label="@L["Parking_Spot"]" />
+            </FluentStack>
+            @if (_freeSpots.Count == 0)
+            {
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Visitors_NoFreeSpots"]</FluentLabel>
+            }
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                <FluentTextField @bind-Value="_visitorName" Label="@L["Parking_Visitors_Name"]" Style="width:220px" Maxlength="128" />
+                <FluentTextField @bind-Value="_company" Label="@L["Parking_Visitors_Company"]" Style="width:200px" Maxlength="128" />
+                <FluentTextField @bind-Value="_plate" Label="@L["Parking_Visitors_Plate"]" Style="width:150px" Maxlength="16" />
+                <FluentSelect TOption="UserSummary" Items="_users" Width="220px"
+                              OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
+                              @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
+                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync" Disabled="@(_selectedSpot is null)">
+                    @L["Parking_Visitors_Book"]
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </div>
+
+    <FluentLabel Typo="Typography.Subject">@L["Parking_Visitors_Upcoming"]</FluentLabel>
+    @if (_bookings is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_bookings.Count == 0)
+    {
+        <div class="empty-state">@L["Parking_Visitors_Empty"]</div>
+    }
+    else
+    {
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_bookings.AsQueryable()" TGridItem="VisitorBookingDto"
+                            GridTemplateColumns="0.7fr 1.6fr 1.4fr 1fr 1fr 1.2fr auto">
+                <PropertyColumn Property="@(b => b.SpotCode)" Title="@L["Parking_Spot"]" />
+                <TemplateColumn Title="@L["Parking_When"]">
+                    @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Visitors_Name"]">
+                    @context.VisitorName@(context.Company is { } company ? $" ({company})" : string.Empty)
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Visitors_Plate"]">
+                    @(context.LicensePlate ?? "—")
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Visitors_Host"]">
+                    @(context.HostName ?? "—")
+                </TemplateColumn>
+                <PropertyColumn Property="@(b => b.CreatedByName)" Title="@L["Parking_Visitors_CreatedBy"]" />
+                <TemplateColumn Align="Align.End">
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="() => CancelAsync(context.Id)">@L["Parking_Cancel"]</FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private Guid _userId;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+
+    private DateOnly _day = DateOnly.FromDateTime(DateTime.Today);
+    private TimeOnly _from = new(8, 0);
+    private TimeOnly _to = new(17, 0);
+
+    private IReadOnlyList<ParkingSpotDto> _freeSpots = [];
+    private ParkingSpotDto? _selectedSpot;
+    private IReadOnlyList<UserSummary> _users = [];
+    private UserSummary? _selectedHost;
+    private IReadOnlyList<VisitorBookingDto>? _bookings;
+
+    private string? _visitorName;
+    private string? _company;
+    private string? _plate;
+    private string? _error;
+    private string? _info;
+
+    private DateTimeOffset Start => SiteTime.At(_day, _from, _tz);
+    private DateTimeOffset End => SiteTime.At(_day, _to, _tz);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        _userId = user?.Id ?? Guid.Empty;
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        _users = await UserAdmin.ListAsync(null);
+        await ReloadFreeSpotsAsync();
+        await ReloadBookingsAsync();
+    }
+
+    private async Task ReloadFreeSpotsAsync()
+    {
+        _freeSpots = End <= Start ? [] : await Visitors.GetFreeSpotsAsync(Start, End);
+        if (_selectedSpot is { } selected && _freeSpots.All(s => s.Id != selected.Id))
+        {
+            _selectedSpot = null;
+        }
+    }
+
+    private async Task ReloadBookingsAsync() => _bookings = await Visitors.ListUpcomingAsync();
+
+    private async Task BookAsync()
+    {
+        _error = _info = null;
+        if (_selectedSpot is not { } spot)
+        {
+            return;
+        }
+
+        var result = await Visitors.BookAsync(_userId, spot.Id, Start, End,
+            _visitorName ?? string.Empty, _company, _plate, _selectedHost?.Id);
+        if (result.Succeeded)
+        {
+            _info = "Parking_Visitors_Booked";
+            _visitorName = _company = _plate = null;
+            _selectedHost = null;
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        _error = _info = null;
+        var result = await Visitors.CancelAsync(id);
+        if (result.Succeeded)
+        {
+            _info = "Parking_Visitors_Cancelled";
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
+        }
+        else
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+}

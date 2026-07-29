@@ -391,6 +391,28 @@
   <data name="Parking_Settings_AvailabilityThreshold" xml:space="preserve"><value>Occupancy threshold (%)</value></data>
   <data name="Parking_Settings_AvailabilityMinDays" xml:space="preserve"><value>Min. consecutive days</value></data>
   <data name="Parking_Settings_AvailabilitySendHour" xml:space="preserve"><value>Send hour (local)</value></data>
+  <data name="Nav_AdminVisitors" xml:space="preserve"><value>Visitors</value></data>
+  <data name="Nav_Short_Visitors" xml:space="preserve"><value>Visitors</value></data>
+  <data name="Parking_Visitors_Title" xml:space="preserve"><value>Visitors</value></data>
+  <data name="Parking_Visitors_Intro" xml:space="preserve"><value>Bookings of visitor spots for guests without an account. Visitor spots are carved out of the employee pool — they are managed only here.</value></data>
+  <data name="Parking_Visitors_NewBooking" xml:space="preserve"><value>New visitor booking</value></data>
+  <data name="Parking_Visitors_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Parking_Visitors_From" xml:space="preserve"><value>From</value></data>
+  <data name="Parking_Visitors_To" xml:space="preserve"><value>To</value></data>
+  <data name="Parking_Visitors_NoFreeSpots" xml:space="preserve"><value>No visitor spot is free for the chosen window. Make sure active spots of the "Visitor" type exist.</value></data>
+  <data name="Parking_Visitors_Name" xml:space="preserve"><value>Visitor name</value></data>
+  <data name="Parking_Visitors_Company" xml:space="preserve"><value>Company</value></data>
+  <data name="Parking_Visitors_Plate" xml:space="preserve"><value>Plate</value></data>
+  <data name="Parking_Visitors_Host" xml:space="preserve"><value>Visiting (host)</value></data>
+  <data name="Parking_Visitors_Book" xml:space="preserve"><value>Book for the visitor</value></data>
+  <data name="Parking_Visitors_Upcoming" xml:space="preserve"><value>Upcoming visits</value></data>
+  <data name="Parking_Visitors_Empty" xml:space="preserve"><value>No upcoming visits.</value></data>
+  <data name="Parking_Visitors_CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="Parking_Visitors_Booked" xml:space="preserve"><value>The visitor has a booked spot.</value></data>
+  <data name="Parking_Visitors_Cancelled" xml:space="preserve"><value>The visitor booking was cancelled.</value></data>
+  <data name="Parking_Visitor_Error_NameRequired" xml:space="preserve"><value>Fill in the visitor's name.</value></data>
+  <data name="Parking_Visitor_Error_NotVisitorSpot" xml:space="preserve"><value>This spot is reserved for visitors and managed by the reception.</value></data>
+  <data name="Parking_Mismatch_PlateVisitor" xml:space="preserve"><value>visitor</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>
