@@ -372,6 +372,10 @@
   <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Náhradní místo</value></data>
   <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Zaznamenal(a)</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
+  <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
+  <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Jako omluvu jsme vám přidali kupón na jednu rezervaci zdarma (i ve špičce) — platí 30 dní.</value></data>
+  <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>Omluvný kupón už není k dispozici.</value></data>
   <data name="Email_Confirm_Subject" xml:space="preserve"><value>Potvrďte svůj e-mail</value></data>
   <data name="Email_Confirm_Heading" xml:space="preserve"><value>Vítejte ve D3Parking</value></data>
   <data name="Email_Confirm_Intro" xml:space="preserve"><value>Potvrďte prosím svou e-mailovou adresu kliknutím na následující odkaz:</value></data>

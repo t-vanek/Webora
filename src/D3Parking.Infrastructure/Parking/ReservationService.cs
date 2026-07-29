@@ -34,6 +34,10 @@ public sealed class ReservationService(
     // Daily cap on "I can't park" reports per user — see ReportBlockedSpotAsync.
     private const int MaxBlockedReportsPerDay = 2;
 
+    // How long the apology voucher (one free reservation) stays redeemable. Together with the
+    // one-unredeemed-voucher-per-user rule this caps what faked mismatch reports could ever mint.
+    private static readonly TimeSpan ApologyVoucherValidity = TimeSpan.FromDays(30);
+
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -94,10 +98,21 @@ public sealed class ReservationService(
             .ToListAsync(cancellationToken);
     }
 
-    public Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default) =>
-        ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, queueEntryId: null, cancellationToken);
+    public Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default) =>
+        ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, queueEntryId: null, useVoucher, cancellationToken);
 
-    private async Task<ParkingResult> ReserveCoreAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool fromQueue, Guid? queueEntryId, CancellationToken cancellationToken)
+    public async Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        return await dbContext.ApologyVouchers.AsNoTracking()
+            .Where(v => v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now)
+            .OrderBy(v => v.ExpiresAtUtc)
+            .Select(v => new ApologyVoucherDto(v.Id, v.ExpiresAtUtc))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<ParkingResult> ReserveCoreAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool fromQueue, Guid? queueEntryId, bool useVoucher, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         if (endUtc <= startUtc)
@@ -206,16 +221,39 @@ public sealed class ReservationService(
         var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
         var cost = policy.ApplyTierDiscount(policy.ComputeReservationCost(!isOffPeak, occupancy), tierRank);
 
-        if (score.Credits < cost)
+        // The apology voucher absorbs the whole dynamic price — peak surcharge included — instead
+        // of the wallet. It is redeemed inside this transaction; a timely cancel/release restores
+        // it (see RestoreVoucherAsync), the same terms under which credits would be refunded.
+        ApologyVoucher? voucher = null;
+        if (useVoucher)
+        {
+            voucher = await dbContext.ApologyVouchers
+                .Where(v => v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now)
+                .OrderBy(v => v.ExpiresAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (voucher is null)
+            {
+                return ParkingResult.Failure("Parking_Error_VoucherUnavailable");
+            }
+        }
+
+        if (voucher is null && score.Credits < cost)
         {
             return ParkingResult.Failure("Parking_Error_InsufficientCredit");
         }
 
-        score.ChargeCredits(cost, now);
-        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, cost, fromQueue);
+        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, voucher is null ? cost : 0, fromQueue);
         dbContext.Reservations.Add(reservation);
-        dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-            userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
+        if (voucher is not null)
+        {
+            voucher.Redeem(reservation.Id, cost, now);
+        }
+        else
+        {
+            score.ChargeCredits(cost, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
+        }
 
         // A successful booking supersedes the user's own overlapping waitlist entries: they could
         // never claim a second spot for the same window (own-conflict), so a lingering entry would
@@ -499,6 +537,12 @@ public sealed class ReservationService(
             cancellationToken);
         var rewardEligible = timely && rewardedToday < policy.MaxRewardedReleasesPerDay;
 
+        // A voucher-paid booking gets its voucher back on the same timely terms as a refund.
+        if (timely)
+        {
+            await RestoreVoucherAsync(dbContext, reservation.Id, cancellationToken);
+        }
+
         var newBadges = new List<ParkingBadge>();
         if ((timely && reservation.CreditsCharged > 0) || rewardEligible)
         {
@@ -554,13 +598,20 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Cancel();
 
-        // Cancelling early enough to re-let the spot refunds the charge; a late cancel forfeits it.
-        if (reservation.CreditsCharged > 0 && policy.QualifiesForReleaseReward(reservation.StartUtc, now))
+        // Cancelling early enough to re-let the spot refunds the charge (or restores the apology
+        // voucher that paid for it); a late cancel forfeits them.
+        var timely = policy.QualifiesForReleaseReward(reservation.StartUtc, now);
+        if (timely && reservation.CreditsCharged > 0)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
             score.RefundCredits(reservation.CreditsCharged, now);
             dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
                 userId, IncentiveReason.ReservationRefund, reservation.CreditsCharged, reservation.Id, now));
+        }
+
+        if (timely)
+        {
+            await RestoreVoucherAsync(dbContext, reservation.Id, cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -612,6 +663,18 @@ public sealed class ReservationService(
         var mismatch = new OccupancyMismatch(
             reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now);
         dbContext.OccupancyMismatches.Add(mismatch);
+
+        // The apology: one reservation free of charge, peak included. At most one unredeemed
+        // voucher per user and it expires — the report is trust-based, and this is what keeps the
+        // apology from becoming a mint for faked mismatches.
+        var voucherGranted = false;
+        var holdsUsableVoucher = await dbContext.ApologyVouchers.AnyAsync(v =>
+            v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
+        if (!holdsUsableVoucher)
+        {
+            dbContext.ApologyVouchers.Add(new ApologyVoucher(userId, mismatch.Id, now, now + ApologyVoucherValidity));
+            voucherGranted = true;
+        }
 
         // Void without penalty: the driver stands in front of an occupied spot through no fault
         // of their own, so the charge comes back in full no matter how close to the start. The
@@ -668,7 +731,16 @@ public sealed class ReservationService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return relocatedCode is null ? BlockedSpotOutcome.Recorded : BlockedSpotOutcome.Relocated(relocatedCode);
+        if (voucherGranted)
+        {
+            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_VoucherGranted_Title"],
+                messages["Parking_Notify_VoucherGranted_Body"], cancellationToken);
+        }
+
+        return relocatedCode is null
+            ? BlockedSpotOutcome.Recorded(voucherGranted)
+            : BlockedSpotOutcome.Relocated(relocatedCode, voucherGranted);
     }
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)
@@ -1089,8 +1161,10 @@ public sealed class ReservationService(
 
         // Claiming is just reserving the held spot — same dynamic price and balance check as any booking,
         // but flagged so a no-show on it is punished harder. The offer is re-checked and marked claimed
-        // inside that booking's transaction, so the two can't come apart.
-        return await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, queueEntryId, cancellationToken);
+        // inside that booking's transaction, so the two can't come apart. Vouchers stay out of the
+        // queue path on purpose — a scarce claimed spot carries the harsher no-show package, and a
+        // "free" claim would make walking away from it painless.
+        return await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, queueEntryId, useVoucher: false, cancellationToken);
     }
 
     public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)
@@ -1202,6 +1276,15 @@ public sealed class ReservationService(
         }
 
         return offers.Count;
+    }
+
+    // Returns a redeemed voucher to its holder when the booking it paid for was given up early
+    // enough to re-let the spot — the same terms under which credits are refunded.
+    private static async Task RestoreVoucherAsync(D3ParkingDbContext dbContext, Guid reservationId, CancellationToken cancellationToken)
+    {
+        var voucher = await dbContext.ApologyVouchers
+            .FirstOrDefaultAsync(v => v.RedeemedReservationId == reservationId, cancellationToken);
+        voucher?.Restore();
     }
 
     // Raw availability for a window (active, unreserved, owned-spot visibility) without the waitlist

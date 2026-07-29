@@ -64,7 +64,8 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
   (nebo plnou vratku) bez rizika no-show; neshody obsazenosti se evidují per místo pro správce —
-  záměrně bez viníka (max. 2 záznamy na uživatele a den).
+  záměrně bez viníka (max. 2 záznamy na uživatele a den). Jako omluva náleží **kupón na jednu
+  rezervaci zdarma** (i ve špičce, platnost 30 dní, max. 1 nevyčerpaný; včasné zrušení ho vrací).
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).

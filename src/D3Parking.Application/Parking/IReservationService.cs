@@ -18,7 +18,14 @@ public interface IReservationService
 
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
-    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Books a spot. With <paramref name="useVoucher"/> the caller's apology voucher covers the
+    /// whole dynamic price (peak included) instead of the wallet.
+    /// </summary>
+    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default);
+
+    /// <summary>The caller's usable apology voucher (one free reservation), or null.</summary>
+    Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 

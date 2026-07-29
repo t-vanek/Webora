@@ -41,6 +41,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<OccupancyMismatch> OccupancyMismatches => Set<OccupancyMismatch>();
 
+    public DbSet<ApologyVoucher> ApologyVouchers => Set<ApologyVoucher>();
+
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -111,6 +113,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // per-user daily report cap.
             mismatch.HasIndex(m => new { m.SpotId, m.ReportedAtUtc });
             mismatch.HasIndex(m => new { m.ReporterId, m.ReportedAtUtc });
+        });
+
+        builder.Entity<ApologyVoucher>(voucher =>
+        {
+            voucher.ToTable("ApologyVouchers");
+            voucher.HasKey(v => v.Id);
+            // Lookup shape: "the user's usable voucher" and "the voucher paid for reservation X".
+            voucher.HasIndex(v => new { v.UserId, v.RedeemedAtUtc, v.ExpiresAtUtc });
+            voucher.HasIndex(v => v.RedeemedReservationId);
         });
 
         builder.Entity<SiteSettings>(settings =>
