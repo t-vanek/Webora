@@ -64,9 +64,10 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
-  (nebo plnou vratku) bez rizika no-show; neshody obsazenosti se evidují per místo pro správce —
-  záměrně bez viníka (max. 2 záznamy na uživatele a den). Jako omluva náleží **kupón na jednu
-  rezervaci zdarma** (i ve špičce, platnost 30 dní, max. 1 nevyčerpaný; včasné zrušení ho vrací).
+  (nebo plnou vratku) bez rizika no-show (max. 2 záznamy na uživatele a den). Správce u každé
+  neshody vidí i rezervace, které se s oknem na místě potkaly (typicky nedostavení), a může
+  držitele rovnou kontaktovat e-mailem. Jako omluva náleží **kupón na jednu rezervaci zdarma**
+  (i ve špičce, platnost 30 dní, max. 1 nevyčerpaný; včasné zrušení ho vrací).
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -95,7 +96,8 @@ volných míst — a nahoře banner **omluvného kupónu** na rezervaci zdarma:
 
 ![Žebříček](docs/screenshots/leaderboard.png)
 
-**Neshody obsazenosti** — trend „nedalo se zaparkovat" per místo pro správce; záměrně bez viníka:
+**Neshody obsazenosti** — trend „nedalo se zaparkovat" per místo pro správce, včetně rezervací,
+které se s oknem potkaly, a kontaktu e-mailem:
 
 ![Neshody obsazenosti](docs/screenshots/mismatches.png)
 
@@ -189,9 +191,11 @@ nedostavením se: tlačítko **„Nemůžu zaparkovat"** (dostupné v okně chec
 (peněženka net nula), **„Jen zaznamenat stav"** rezervaci zruší s plnou vratkou bez ohledu na cutoff.
 Obojí **bez rizika no-show penalizace**.
 
-- Celý tok je záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega. Eviduje se
-  jen **stav místa** (neshoda obsazenosti) a správce vidí na `/admin/parking/mismatches` trend per
-  místo — opakované problémy konkrétního místa, ne seznam viníků.
+- Pro řidiče je tok záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega,
+  eviduje se **stav místa** (neshoda obsazenosti). Správce ale na `/admin/parking/mismatches` vidí
+  u každého záznamu i **rezervace, které se s oknem na místě potkaly** — typicky toho, kdo si místo
+  rezervoval a nedorazil — a může držitele i ohlašovatele rovnou **kontaktovat e-mailem**
+  (předvyplněný mailto s místem a dnem).
 - **Omluvný kupón:** za potíž náleží kupón na **jednu rezervaci zdarma včetně špičkové ceny**.
   Uplatní se zaškrtnutím při rezervaci, platí 30 dní, drží se max. 1 nevyčerpaný na uživatele
   a **včasné zrušení/uvolnění ho vrací**. Fronta je záměrně bez kupónů (odchod od vzácného

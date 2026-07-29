@@ -3,10 +3,11 @@ using D3Parking.Domain.Common;
 namespace D3Parking.Domain.Parking;
 
 /// <summary>
-/// A driver arrived at their reserved spot and could not physically park there. Deliberately a
-/// record of the spot's state, not an accusation — there is no offender in the data, and admins
-/// work with per-spot trends. The blocked reservation itself is voided penalty-free for the
-/// reporter (see ReservationService.ReportBlockedSpotAsync).
+/// A driver arrived at their reserved spot and could not physically park there. The record stores
+/// the state of the spot — the driver-facing flow never names or accuses anyone. For follow-up,
+/// the admin view joins in the reservations that met the window on the same spot at query time
+/// (typically the no-show whose car may still be there). The blocked reservation itself is voided
+/// penalty-free for the reporter (see ReservationService.ReportBlockedSpotAsync).
 /// </summary>
 public class OccupancyMismatch : Entity
 {

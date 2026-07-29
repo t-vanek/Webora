@@ -365,12 +365,14 @@
   <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>Stav místa lze zaznamenat jen v době okna rezervace.</value></data>
   <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>Denní limit záznamů o stavu místa je vyčerpán.</value></data>
   <data name="Parking_Mismatch_Title" xml:space="preserve"><value>Neshody obsazenosti</value></data>
-  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Řidiči zaznamenali, že se na rezervovaném místě nedalo zaparkovat. Data slouží k plánování kapacity a odhalování opakovaných problémů konkrétních míst — neevidují viníka.</value></data>
+  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Řidiči zaznamenali, že se na rezervovaném místě nedalo zaparkovat. U každého záznamu vidíte rezervace, které se v daném okně na místě potkaly — typicky toho, kdo si místo rezervoval a nedorazil — a můžete ho rovnou kontaktovat e-mailem.</value></data>
   <data name="Parking_Mismatch_Empty" xml:space="preserve"><value>Žádné neshody — všechna místa fungují, jak mají.</value></data>
   <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Okno</value></data>
   <data name="Parking_Mismatch_ReportedAt" xml:space="preserve"><value>Zaznamenáno</value></data>
   <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Náhradní místo</value></data>
   <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Zaznamenal(a)</value></data>
+  <data name="Parking_Mismatch_Related" xml:space="preserve"><value>Rezervace na místě</value></data>
+  <data name="Parking_Mismatch_MailSubject" xml:space="preserve"><value>Parkovací místo {0} — {1}</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>
