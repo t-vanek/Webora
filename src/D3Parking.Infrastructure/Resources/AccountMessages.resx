@@ -79,6 +79,7 @@
   <data name="Error_CannotDeleteSelf" xml:space="preserve"><value>Nemůžete smazat vlastní účet.</value></data>
   <data name="Error_LastAdministrator" xml:space="preserve"><value>Nelze odebrat posledního administrátora.</value></data>
   <data name="Error_UnknownRole" xml:space="preserve"><value>Role „{0}" neexistuje.</value></data>
+  <data name="Error_DefaultRoleReserved" xml:space="preserve"><value>Roli Administrator nelze nastavit jako výchozí pro registrace.</value></data>
   <data name="Error_RoleNotFound" xml:space="preserve"><value>Role nenalezena.</value></data>
   <data name="Error_RoleNameRequired" xml:space="preserve"><value>Název role je povinný.</value></data>
   <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Výchozí role nelze přejmenovat ani smazat.</value></data>

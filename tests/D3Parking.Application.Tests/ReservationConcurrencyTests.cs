@@ -63,10 +63,10 @@ public class ReservationConcurrencyTests
         _factory = new TestDbContextFactory(_options);
         _policy = IncentivePolicy.Default;
         var parkingSettings = new FixedParkingSettings(_policy);
-        var siteSettings = new FixedSiteSettings();
+        var siteSettings = new FakeSiteSettings();
         var time = new FixedTimeProvider(Now);
         var notifications = new NullNotificationService();
-        var messages = new PassthroughLocalizer();
+        var messages = new PassthroughLocalizer<ParkingMessages>();
 
         _reservations = new ReservationService(_factory, parkingSettings, siteSettings, time, notifications, messages);
         _residentSpots = new ResidentSpotService(_factory, parkingSettings, siteSettings, time, notifications, messages);
@@ -287,15 +287,7 @@ public class ReservationConcurrencyTests
         return await Task.WhenAll(tasks);
     }
 
-    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
 
-    private sealed class TestDbContextFactory(DbContextOptions<D3ParkingDbContext> options) : IDbContextFactory<D3ParkingDbContext>
-    {
-        public D3ParkingDbContext CreateDbContext() => new(options);
-    }
 
     private sealed class FixedParkingSettings(IncentivePolicy policy) : IParkingSettingsService
     {
@@ -312,76 +304,6 @@ public class ReservationConcurrencyTests
         public Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
-    private sealed class FixedSiteSettings : ISiteSettingsService
-    {
-        public Task<TimeZoneInfo> GetTimeZoneAsync(CancellationToken cancellationToken = default) => Task.FromResult(TimeZoneInfo.Utc);
 
-        public Task<string?> GetCanonicalBaseUrlAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
 
-        public Task<SiteSettingsDto> GetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<AccountResult> UpdateDomainAsync(DomainSettingsDto domain, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<AccountResult> UpdateRegionalAsync(RegionalSettingsDto regional, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<AccountResult> UpdateEncodingAsync(EncodingSettingsDto encoding, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<AccountResult> UpdateAccountsAsync(AccountsSettingsDto accounts, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<AccountResult> UpdateGeneralAsync(GeneralSettingsDto general, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<DomainPolicy> GetDomainPolicyAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<string?> GetDefaultLanguageAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<string> GetPageCharsetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<string> GetEmailCharsetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<string?> GetDefaultRoleAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task<SiteIdentityDto> GetIdentityAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    }
-
-    private sealed class NullNotificationService : INotificationService
-    {
-        public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, NotificationEmailOptions? emailOptions, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<NotificationDto>>([]);
-
-        public Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default) => Task.FromResult(0);
-
-        public Task MarkReadAsync(Guid userId, Guid notificationId, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task MarkAllReadAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task<NotificationPreferencesDto> GetPreferencesAsync(Guid userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public Task MuteAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task MuteUntilAsync(Guid userId, DateTimeOffset untilUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task UnmuteAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task SetScopeAsync(Guid userId, NotificationScope scope, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task SetAvailabilityOptInAsync(Guid userId, bool allow, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task SubscribeToPushAsync(Guid userId, PushSubscriptionDto subscription, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task UnsubscribeFromPushAsync(Guid userId, string endpoint, CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
-    private sealed class PassthroughLocalizer : IStringLocalizer<ParkingMessages>
-    {
-        public LocalizedString this[string name] => new(name, name);
-
-        public LocalizedString this[string name, params object[] arguments] => new(name, name);
-
-        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
-    }
 }

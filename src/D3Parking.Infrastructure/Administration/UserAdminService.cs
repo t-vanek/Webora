@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
@@ -14,6 +15,10 @@ namespace D3Parking.Infrastructure.Administration;
 
 public sealed class UserAdminService(
     UserManager<ApplicationUser> userManager,
+    // The scoped context is the one UserManager's store writes through; transactions that must
+    // cover its saves (role swaps, the last-administrator guard) have to open on this instance.
+    // The factory below serves independent reads/writes.
+    D3ParkingDbContext identityDbContext,
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     IStringLocalizer<AccountMessages> messages,
     TimeProvider timeProvider,
@@ -157,8 +162,15 @@ public sealed class UserAdminService(
             return AccountResult.Success;
         }
 
+        // One serializable transaction on the scoped context covers the guard and both role
+        // writes. Without it, (a) two admins stripping the two last administrators could both
+        // pass the count and leave zero, and (b) a failure between remove and add would strand
+        // the user with roles removed but none added.
+        await using var transaction = await identityDbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         // Guard against locking everyone out of administration.
-        if (toRemove.Contains(Roles.Administrator, StringComparer.Ordinal) && await IsLastAdministratorAsync(dbContext, cancellationToken))
+        if (toRemove.Contains(Roles.Administrator, StringComparer.Ordinal) && await IsLastAdministratorAsync(identityDbContext, cancellationToken))
         {
             return AccountResult.Failure(messages["Error_LastAdministrator"]);
         }
@@ -183,6 +195,7 @@ public sealed class UserAdminService(
 
         // Force the user's signed-in claims to be re-issued so role changes take effect promptly.
         await userManager.UpdateSecurityStampAsync(user);
+        await transaction.CommitAsync(cancellationToken);
 
         await AuditAsync(dbContext, user.Id, AccountAuditEventType.RolesChanged, adminId, Join(roles), cancellationToken);
         logger.LogInformation("Admin {AdminId} set roles of {UserId} to [{Roles}]", adminId, user.Id, Join(roles));
@@ -202,13 +215,15 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_AccountNotFound"]);
         }
 
-        if (await userManager.IsInRoleAsync(user, Roles.Administrator))
+        // Guard and delete in one serializable transaction (see SetRolesAsync for the rationale):
+        // concurrent deletes of the two last administrators must not both slip past the count.
+        await using var transaction = await identityDbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        if (await userManager.IsInRoleAsync(user, Roles.Administrator)
+            && await IsLastAdministratorAsync(identityDbContext, cancellationToken))
         {
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-            if (await IsLastAdministratorAsync(dbContext, cancellationToken))
-            {
-                return AccountResult.Failure(messages["Error_LastAdministrator"]);
-            }
+            return AccountResult.Failure(messages["Error_LastAdministrator"]);
         }
 
         var deleted = await userManager.DeleteAsync(user);
@@ -216,6 +231,8 @@ public sealed class UserAdminService(
         {
             return ToFailure(deleted);
         }
+
+        await transaction.CommitAsync(cancellationToken);
 
         await CleanUpParkingFootprintAsync(userId, cancellationToken);
 

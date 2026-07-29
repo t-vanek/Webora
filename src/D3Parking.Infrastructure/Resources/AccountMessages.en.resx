@@ -79,6 +79,7 @@
   <data name="Error_CannotDeleteSelf" xml:space="preserve"><value>You cannot delete your own account.</value></data>
   <data name="Error_LastAdministrator" xml:space="preserve"><value>The last administrator cannot be removed.</value></data>
   <data name="Error_UnknownRole" xml:space="preserve"><value>Role “{0}” does not exist.</value></data>
+  <data name="Error_DefaultRoleReserved" xml:space="preserve"><value>The Administrator role cannot be the default for registrations.</value></data>
   <data name="Error_RoleNotFound" xml:space="preserve"><value>Role not found.</value></data>
   <data name="Error_RoleNameRequired" xml:space="preserve"><value>Role name is required.</value></data>
   <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Built-in roles cannot be renamed or deleted.</value></data>
