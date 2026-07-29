@@ -1,0 +1,19 @@
+@inject IStringLocalizer<SharedResource> L
+
+@*  Segmentový přepínač mezi sesterskými stránkami /login a /register. Nahrazuje odkazy, které
+    dřív nesla hlavička — v celoplošném auth layoutu žádná není. Jsou to obyčejné kotvy (static
+    SSR), aktivní stránku značí aria-current a zvýrazněný segment.  *@
+<nav class="auth-tabs" aria-label="@L["Auth_Tabs_Label"]">
+    <a href="login"
+       class="auth-tabs__tab @(Active == AuthTab.Login ? "auth-tabs__tab--active" : null)"
+       aria-current="@(Active == AuthTab.Login ? "page" : null)">@L["Login_Title"]</a>
+    <a href="register"
+       class="auth-tabs__tab @(Active == AuthTab.Register ? "auth-tabs__tab--active" : null)"
+       aria-current="@(Active == AuthTab.Register ? "page" : null)">@L["Register_Title"]</a>
+</nav>
+
+@code {
+    public enum AuthTab { Login, Register }
+
+    [Parameter] public AuthTab Active { get; set; }
+}

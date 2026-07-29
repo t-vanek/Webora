@@ -10,9 +10,10 @@ public class AuthTests : AnonymousTest
     public async Task Login_page_shows_the_split_brand_panel_and_form()
     {
         await Page.GotoAsync("/login");
-        await Expect(Page.Locator(".auth-shell__brand")).ToBeVisibleAsync();
-        await Expect(Page.Locator("fluent-text-field[name='Input.Email']")).ToBeVisibleAsync();
-        await Expect(Page.Locator("fluent-text-field[name='Input.Password']")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".auth-split__aside")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".auth-tabs__tab--active")).ToHaveAttributeAsync("href", "login");
+        await Expect(Pages.Field(Page, "Input.Email")).ToBeVisibleAsync();
+        await Expect(Pages.Field(Page, "Input.Password")).ToBeVisibleAsync();
     }
 
     [Test]
@@ -37,10 +38,10 @@ public class AuthTests : AnonymousTest
     {
         await Page.GotoAsync("/register");
         var email = $"e2e+{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@example.com";
-        await Pages.FluentField(Page, "Input.DisplayName").FillAsync("E2E Test");
-        await Pages.FluentField(Page, "Input.Email").FillAsync(email);
-        await Pages.FluentField(Page, "Input.Password").FillAsync("Heslo12345!");
-        await Pages.FluentField(Page, "Input.ConfirmPassword").FillAsync("Heslo12345!");
+        await Pages.Field(Page, "Input.DisplayName").FillAsync("E2E Test");
+        await Pages.Field(Page, "Input.Email").FillAsync(email);
+        await Pages.Field(Page, "Input.Password").FillAsync("Heslo12345!");
+        await Pages.Field(Page, "Input.ConfirmPassword").FillAsync("Heslo12345!");
         await Pages.SubmitAsync(Page);
         await Expect(Page.GetByText(new Regex("aktivační odkaz|activation link", RegexOptions.IgnoreCase)))
             .ToBeVisibleAsync();
@@ -51,9 +52,9 @@ public class AuthTests : AnonymousTest
     {
         await Page.GotoAsync("/register");
         var email = $"e2e+{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@example.com";
-        await Pages.FluentField(Page, "Input.Email").FillAsync(email);
-        await Pages.FluentField(Page, "Input.Password").FillAsync("Heslo12345!");
-        await Pages.FluentField(Page, "Input.ConfirmPassword").FillAsync("Different1!");
+        await Pages.Field(Page, "Input.Email").FillAsync(email);
+        await Pages.Field(Page, "Input.Password").FillAsync("Heslo12345!");
+        await Pages.Field(Page, "Input.ConfirmPassword").FillAsync("Different1!");
         await Pages.SubmitAsync(Page);
         await Expect(Page.GetByText(new Regex("neshoduj|match", RegexOptions.IgnoreCase))).ToBeVisibleAsync();
     }
@@ -62,7 +63,7 @@ public class AuthTests : AnonymousTest
     public async Task Anonymous_visitor_is_sent_to_login_for_an_admin_page()
     {
         await Page.GotoAsync("/admin/users");
-        await Expect(Pages.FluentField(Page, "Input.Email")).ToBeVisibleAsync();
+        await Expect(Pages.Field(Page, "Input.Email")).ToBeVisibleAsync();
     }
 
     [Test]

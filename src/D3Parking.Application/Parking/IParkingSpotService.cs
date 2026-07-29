@@ -11,6 +11,15 @@ public interface IParkingSpotService
 
     Task<ParkingResult> CreateAsync(string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);
 
+    /// <summary>Dry-run for a batch of codes: classifies each as new, duplicate of an existing spot, or invalid.</summary>
+    Task<SpotBatchPlan> PreviewBatchAsync(IReadOnlyList<string> codes, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates every new code of the batch with the given type in one transaction; codes that
+    /// already exist are skipped and reported so re-running a series stays idempotent.
+    /// </summary>
+    Task<SpotBatchResult> CreateBatchAsync(IReadOnlyList<string> codes, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);
+
     Task<ParkingResult> UpdateAsync(Guid id, string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default);

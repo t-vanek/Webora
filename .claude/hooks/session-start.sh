@@ -1,12 +1,9 @@
 #!/bin/bash
 # SessionStart hook for Claude Code on the web.
 # Prepares the D3Parking dev environment: .NET 10 SDK, the dotnet-ef tool, restored
-# NuGet packages, and the Playwright browser.
-#
-# The app runs against Microsoft SQL Server, which this environment does not
-# host: point ConnectionStrings__SqlServer at a reachable instance before
-# running the app or the E2E suite. Building and unit-level work need no
-# database.
+# NuGet packages, the Playwright browser, and a Microsoft SQL Server 2022
+# container (Docker), with ConnectionStrings__SqlServer exported for the whole
+# session so `dotnet run` and the E2E suite work out of the box.
 set -euo pipefail
 
 # This setup only applies to the remote (web) environment; locally the
@@ -58,6 +55,65 @@ dotnet restore D3Parking.slnx
 if command -v playwright >/dev/null 2>&1; then
   log "Ensuring the Playwright chromium browser is installed..."
   playwright install chromium || log "WARNING: 'playwright install' failed (non-fatal)."
+fi
+
+# --- SQL Server (Docker) ---------------------------------------------------
+# The app and the E2E suite need Microsoft SQL Server; the remote container
+# ships the Docker CLI but no running daemon. Start one, run SQL Server 2022,
+# and export the connection string. Every step is non-fatal: without a
+# database the session can still build, edit and unit-test.
+#
+# Dev-only throwaway credentials for the ephemeral container — nothing outside
+# this sandboxed session can reach it.
+MSSQL_PASSWORD='D3Parking!Passw0rd'
+MSSQL_CONN="Server=localhost,1433;Database=D3Parking;User Id=sa;Password=$MSSQL_PASSWORD;TrustServerCertificate=True"
+
+if command -v docker >/dev/null 2>&1; then
+  if ! docker info >/dev/null 2>&1; then
+    log "Starting the Docker daemon..."
+    (dockerd > /var/log/dockerd.log 2>&1 &)
+    for _ in $(seq 1 30); do
+      docker info >/dev/null 2>&1 && break
+      sleep 1
+    done
+  fi
+
+  if docker info >/dev/null 2>&1; then
+    if [ -z "$(docker ps -aq -f name='^mssql$')" ]; then
+      log "Starting SQL Server 2022 in Docker (the first image pull can take a minute)..."
+      docker run -d --name mssql \
+        -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$MSSQL_PASSWORD" \
+        -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest >/dev/null \
+        || log "WARNING: could not start the SQL Server container (non-fatal)."
+    else
+      docker start mssql >/dev/null 2>&1 || true
+      log "Reusing the existing SQL Server container."
+    fi
+
+    log "Waiting for SQL Server to accept connections..."
+    MSSQL_READY=false
+    for _ in $(seq 1 90); do
+      if docker exec mssql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa \
+           -P "$MSSQL_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; then
+        MSSQL_READY=true
+        break
+      fi
+      sleep 2
+    done
+
+    if [ "$MSSQL_READY" = true ]; then
+      log "SQL Server is ready on localhost,1433."
+      if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+        echo "export ConnectionStrings__SqlServer=\"$MSSQL_CONN\"" >> "$CLAUDE_ENV_FILE"
+      fi
+    else
+      log "WARNING: SQL Server did not become ready; running the app or the E2E suite needs a reachable instance (non-fatal)."
+    fi
+  else
+    log "WARNING: the Docker daemon did not start; skipping SQL Server (non-fatal)."
+  fi
+else
+  log "WARNING: Docker is unavailable; skipping SQL Server (non-fatal)."
 fi
 
 log "Environment ready."

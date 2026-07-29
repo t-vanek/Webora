@@ -36,6 +36,7 @@
   <data name="Field_NewPhone" xml:space="preserve"><value>Nové telefonní číslo</value></data>
   <data name="Field_Code" xml:space="preserve"><value>Ověřovací kód</value></data>
   <data name="Login_Title" xml:space="preserve"><value>Přihlášení</value></data>
+  <data name="Login_Heading" xml:space="preserve"><value>Vítejte zpět</value></data>
   <data name="Login_Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Login_Password" xml:space="preserve"><value>Heslo</value></data>
   <data name="Login_Remember" xml:space="preserve"><value>Zapamatovat přihlášení</value></data>
@@ -53,10 +54,18 @@
   <data name="Register_Password" xml:space="preserve"><value>Heslo</value></data>
   <data name="Register_ConfirmPassword" xml:space="preserve"><value>Heslo znovu</value></data>
   <data name="Register_Submit" xml:space="preserve"><value>Vytvořit účet</value></data>
-  <data name="Register_Subtitle" xml:space="preserve"><value>Vytvořte si nový účet</value></data>
+  <data name="Register_Heading" xml:space="preserve"><value>Vytvořte si účet</value></data>
+  <data name="Register_Subtitle" xml:space="preserve"><value>Zabere to jen chvilku — stačí e-mail a heslo</value></data>
+  <data name="Register_PasswordHint" xml:space="preserve"><value>Alespoň 8 znaků. Delší a pestřejší heslo znamená lepší ochranu.</value></data>
   <data name="Register_HaveAccount" xml:space="preserve"><value>Už máte účet?</value></data>
   <data name="Register_SignIn" xml:space="preserve"><value>Přihlásit se</value></data>
   <data name="Register_Success" xml:space="preserve"><value>Účet byl vytvořen. Na zadanou adresu jsme poslali aktivační odkaz — po jeho potvrzení se budete moci přihlásit.</value></data>
+  <data name="Register_Success_Title" xml:space="preserve"><value>Zkontrolujte svou schránku</value></data>
+  <data name="Register_Success_Cta" xml:space="preserve"><value>Přejít na přihlášení</value></data>
+  <data name="Auth_Tabs_Label" xml:space="preserve"><value>Přihlášení nebo registrace</value></data>
+  <data name="Auth_ShowPassword" xml:space="preserve"><value>Zobrazit heslo</value></data>
+  <data name="Auth_HidePassword" xml:space="preserve"><value>Skrýt heslo</value></data>
+  <data name="Auth_Optional" xml:space="preserve"><value>Nepovinné</value></data>
   <data name="Auth_Hero_Headline" xml:space="preserve"><value>Chytré parkování bez papírování</value></data>
   <data name="Auth_Hero_Lead" xml:space="preserve"><value>Rezervujte si místo, sdílejte ho, když ho nevyužijete, a sbírejte kredity i body za férové chování.</value></data>
   <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Rezervace místa na pár kliknutí</value></data>
@@ -365,6 +374,28 @@
   <data name="Parking_Admin_Type" xml:space="preserve"><value>Typ</value></data>
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Parking_Admin_Tab_Single" xml:space="preserve"><value>Jedno místo</value></data>
+  <data name="Parking_Admin_Tab_Series" xml:space="preserve"><value>Generátor řady</value></data>
+  <data name="Parking_Admin_Tab_List" xml:space="preserve"><value>Vložit seznam</value></data>
+  <data name="Parking_Admin_SeriesIntro" xml:space="preserve"><value>Vygeneruje místo pro každou sekci v celém rozsahu čísel. Existující kódy se přeskočí.</value></data>
+  <data name="Parking_Admin_Sections" xml:space="preserve"><value>Sekce (oddělené čárkou)</value></data>
+  <data name="Parking_Admin_Separator" xml:space="preserve"><value>Oddělovač</value></data>
+  <data name="Parking_Admin_RangeFrom" xml:space="preserve"><value>Od</value></data>
+  <data name="Parking_Admin_RangeTo" xml:space="preserve"><value>Do</value></data>
+  <data name="Parking_Admin_PadWidth" xml:space="preserve"><value>Počet číslic</value></data>
+  <data name="Parking_Admin_PadWidthHint" xml:space="preserve"><value>Doplnění nulami: 2 → A-01, 0 → A-1.</value></data>
+  <data name="Parking_Admin_CodeList" xml:space="preserve"><value>Kódy míst (jeden na řádek)</value></data>
+  <data name="Parking_Admin_PreviewNew" xml:space="preserve"><value>míst k vytvoření</value></data>
+  <data name="Parking_Admin_PreviewDup" xml:space="preserve"><value>Už existuje ({0}): {1}</value></data>
+  <data name="Parking_Admin_PreviewInvalid" xml:space="preserve"><value>Příliš dlouhé kódy ({0}): {1}</value></data>
+  <data name="Parking_Admin_CreateBatch" xml:space="preserve"><value>Vytvořit místa</value></data>
+  <data name="Parking_Admin_BatchCreated" xml:space="preserve"><value>Vytvořeno míst: {0}.</value></data>
+  <data name="Parking_Admin_BatchCreatedSkipped" xml:space="preserve"><value>Vytvořeno míst: {0}, přeskočeno existujících: {1} ({2}).</value></data>
+  <data name="Parking_Error_SeriesRange" xml:space="preserve"><value>Rozsah čísel není platný.</value></data>
+  <data name="Parking_Error_SeriesTooLarge" xml:space="preserve"><value>Dávka je příliš velká (nejvýše 500 míst najednou).</value></data>
+  <data name="Parking_Error_SeriesAllExist" xml:space="preserve"><value>Všechna zadaná místa už existují.</value></data>
+  <data name="Parking_Error_SeriesCodeTooLong" xml:space="preserve"><value>Některé kódy překračují 32 znaků.</value></data>
+  <data name="Parking_Error_SeriesConflict" xml:space="preserve"><value>Část míst mezitím vytvořil někdo jiný. Zkuste to znovu.</value></data>
   <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Vyhodnotit nedostavení</value></data>
   <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body. Probíhá i automaticky na pozadí.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>

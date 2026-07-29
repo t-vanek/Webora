@@ -13,9 +13,10 @@ public static class Admin
 /// <summary>Shared browser interactions.</summary>
 public static class Pages
 {
-    /// <summary>Fluent text fields wrap a real input in their shadow DOM.</summary>
-    public static ILocator FluentField(IPage page, string name) =>
-        page.Locator($"fluent-text-field[name='{name}']").Locator("input");
+    /// <summary>Form inputs addressed by their posted name — the redesigned auth pages render
+    /// native inputs (Blazor InputText), so no shadow DOM hop is needed.</summary>
+    public static ILocator Field(IPage page, string name) =>
+        page.Locator($"input[name='{name}']");
 
     public static Task SubmitAsync(IPage page) =>
         page.Locator("fluent-button[type=submit], button[type=submit]").First.ClickAsync();
@@ -23,8 +24,8 @@ public static class Pages
     public static async Task LoginAsync(IPage page, string email = Admin.Email, string password = Admin.Password)
     {
         await page.GotoAsync("/login");
-        await FluentField(page, "Input.Email").FillAsync(email);
-        await FluentField(page, "Input.Password").FillAsync(password);
+        await Field(page, "Input.Email").FillAsync(email);
+        await Field(page, "Input.Password").FillAsync(password);
         await SubmitAsync(page);
     }
 }
