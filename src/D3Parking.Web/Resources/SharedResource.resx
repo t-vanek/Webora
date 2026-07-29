@@ -374,6 +374,11 @@
   <data name="Parking_Admin_Type" xml:space="preserve"><value>Typ</value></data>
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Parking_SpotType_Standard" xml:space="preserve"><value>Standardní</value></data>
+  <data name="Parking_SpotType_Disabled" xml:space="preserve"><value>Pro držitele ZTP</value></data>
+  <data name="Parking_SpotType_ElectricCharging" xml:space="preserve"><value>S nabíječkou</value></data>
+  <data name="Parking_SpotType_Visitor" xml:space="preserve"><value>Pro návštěvy</value></data>
+  <data name="Parking_SpotType_Motorcycle" xml:space="preserve"><value>Pro motocykly</value></data>
   <data name="Parking_Admin_Tab_Single" xml:space="preserve"><value>Jedno místo</value></data>
   <data name="Parking_Admin_Tab_Series" xml:space="preserve"><value>Generátor řady</value></data>
   <data name="Parking_Admin_Tab_List" xml:space="preserve"><value>Vložit seznam</value></data>

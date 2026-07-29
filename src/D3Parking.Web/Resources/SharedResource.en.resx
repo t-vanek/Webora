@@ -374,6 +374,11 @@
   <data name="Parking_Admin_Type" xml:space="preserve"><value>Type</value></data>
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Notes</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Parking_SpotType_Standard" xml:space="preserve"><value>Standard</value></data>
+  <data name="Parking_SpotType_Disabled" xml:space="preserve"><value>Accessible</value></data>
+  <data name="Parking_SpotType_ElectricCharging" xml:space="preserve"><value>EV charging</value></data>
+  <data name="Parking_SpotType_Visitor" xml:space="preserve"><value>Visitor</value></data>
+  <data name="Parking_SpotType_Motorcycle" xml:space="preserve"><value>Motorcycle</value></data>
   <data name="Parking_Admin_Tab_Single" xml:space="preserve"><value>Single spot</value></data>
   <data name="Parking_Admin_Tab_Series" xml:space="preserve"><value>Series generator</value></data>
   <data name="Parking_Admin_Tab_List" xml:space="preserve"><value>Paste a list</value></data>
