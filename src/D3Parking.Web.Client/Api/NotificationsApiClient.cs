@@ -54,28 +54,43 @@ public sealed class NotificationsApiClient(HttpClient http, AntiforgeryTokenProv
 
     public async Task SubscribePushAsync(PushSubscriptionDto subscription, CancellationToken cancellationToken = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{Base}/push/subscription")
+        using var response = await SendUnsafeAsync(() => new HttpRequestMessage(HttpMethod.Put, $"{Base}/push/subscription")
         {
             Content = JsonContent.Create(subscription, options: JsonOptions),
-        };
-        await antiforgery.AttachAsync(request, cancellationToken);
-        using var response = await http.SendAsync(request, cancellationToken);
+        }, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task UnsubscribePushAsync(string endpoint, CancellationToken cancellationToken = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"{Base}/push/subscription?endpoint={Uri.EscapeDataString(endpoint)}");
-        await antiforgery.AttachAsync(request, cancellationToken);
-        using var response = await http.SendAsync(request, cancellationToken);
+        using var response = await SendUnsafeAsync(
+            () => new HttpRequestMessage(HttpMethod.Delete, $"{Base}/push/subscription?endpoint={Uri.EscapeDataString(endpoint)}"),
+            cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
     private async Task SendPostAsync(string url, CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
-        await antiforgery.AttachAsync(request, cancellationToken);
-        using var response = await http.SendAsync(request, cancellationToken);
+        using var response = await SendUnsafeAsync(() => new HttpRequestMessage(HttpMethod.Post, url), cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    // Unsafe verbs carry the antiforgery token. A 400 typically means the token/cookie pair has
+    // rotated under us (fresh sign-in, key-ring change) — fetch a fresh token and retry once. The
+    // request is rebuilt because an HttpRequestMessage cannot be sent twice.
+    private async Task<HttpResponseMessage> SendUnsafeAsync(Func<HttpRequestMessage> createRequest, CancellationToken cancellationToken)
+    {
+        var request = createRequest();
+        await antiforgery.AttachAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.BadRequest)
+        {
+            return response;
+        }
+
+        response.Dispose();
+        request = createRequest();
+        await antiforgery.AttachAsync(request, cancellationToken, forceRefresh: true);
+        return await http.SendAsync(request, cancellationToken);
     }
 }
