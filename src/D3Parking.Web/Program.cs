@@ -49,6 +49,7 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
 builder.Services.AddSingleton<SignalRNotificationPublisher>();
 builder.Services.AddScoped<INotificationRealtimePublisher>(sp => new CompositeNotificationPublisher(
+    sp.GetRequiredService<ILogger<CompositeNotificationPublisher>>(),
     sp.GetRequiredService<SignalRNotificationPublisher>(),
     sp.GetService<D3Parking.Infrastructure.Notifications.WebPushNotificationPublisher>()));
 builder.Services.ConfigureHttpJsonOptions(options =>

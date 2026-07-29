@@ -50,6 +50,10 @@ public static class DependencyInjection
         if (webPushOptions.IsConfigured)
         {
             services.AddHttpClient<PushServiceClient>()
+                // Push deliveries are awaited by the user action that raised the notification; a
+                // blackholed push service must be bounded by the same 15 s the other outbound
+                // clients (OSRM, Nominatim) use, not HttpClient's default 100 s.
+                .ConfigureHttpClient(http => http.Timeout = TimeSpan.FromSeconds(15))
                 .AddTypedClient(http => new PushServiceClient(http)
                 {
                     DefaultAuthentication = new VapidAuthentication(webPushOptions.PublicKey, webPushOptions.PrivateKey)

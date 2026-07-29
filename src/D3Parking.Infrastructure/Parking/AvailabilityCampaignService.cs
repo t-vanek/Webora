@@ -101,22 +101,36 @@ public sealed class AvailabilityCampaignService(
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
-        var title = messages["Parking_Notify_Availability_Title"].Value;
-        var body = messages["Parking_Notify_Availability_Body",
-            start.ToString("d.M."), end.ToString("d.M."), occupancyPercent].Value;
-        foreach (var userId in recipients)
-        {
-            await notifications.NotifyAsync(userId, NotificationCategory.Availability, NotificationLevel.Info,
-                title, body, cancellationToken);
-        }
-
+        // The campaign row IS the dedup guard, so it must land before the fan-out: written last,
+        // a failure mid-loop would leave no record and the next sweep tick (every few minutes for
+        // the rest of the send hour) would re-notify the whole company. A few recipients missing
+        // one tip is the far cheaper failure than everyone receiving it repeatedly.
         dbContext.AvailabilityCampaigns.Add(new AvailabilityCampaign(start, end, occupancyPercent, recipients.Count, now));
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        var title = messages["Parking_Notify_Availability_Title"].Value;
+        var body = messages["Parking_Notify_Availability_Body",
+            start.ToString("d.M."), end.ToString("d.M."), occupancyPercent].Value;
+        var delivered = 0;
+        foreach (var userId in recipients)
+        {
+            try
+            {
+                await notifications.NotifyAsync(userId, NotificationCategory.Availability, NotificationLevel.Info,
+                    title, body, cancellationToken);
+                delivered++;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // One undeliverable recipient must not cost the rest of the company the tip.
+                logger.LogWarning(ex, "Availability tip delivery failed for {UserId}.", userId);
+            }
+        }
+
         logger.LogInformation(
-            "Availability campaign sent: {Start}–{End} at ~{Occupancy}% occupancy, {Recipients} recipients.",
-            start, end, occupancyPercent, recipients.Count);
-        return recipients.Count;
+            "Availability campaign sent: {Start}–{End} at ~{Occupancy}% occupancy, {Delivered}/{Recipients} recipients.",
+            start, end, occupancyPercent, delivered, recipients.Count);
+        return delivered;
     }
 
     /// <summary>
@@ -132,15 +146,18 @@ public sealed class AvailabilityCampaignService(
         var firstDay = today.AddDays(1);
         var lastDay = today.AddDays(policy.AvailabilityLookaheadDays);
 
-        var unownedActive = await dbContext.ParkingSpots.CountAsync(
-            s => s.IsActive && s.OwnerId == null && s.Type != ParkingSpotType.Visitor, cancellationToken);
+        var unownedActiveIds = (await dbContext.ParkingSpots
+                .Where(s => s.IsActive && s.OwnerId == null && s.Type != ParkingSpotType.Visitor)
+                .Select(s => s.Id)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
         var releasedPerDay = (await dbContext.SpotReleases
                 .Where(r => r.Date >= firstDay && r.Date <= lastDay)
                 .Join(dbContext.ParkingSpots.Where(s => s.IsActive && s.OwnerId != null),
-                    r => r.SpotId, s => s.Id, (r, _) => r.Date)
+                    r => r.SpotId, s => s.Id, (r, _) => new { r.Date, r.SpotId })
                 .ToListAsync(cancellationToken))
-            .GroupBy(d => d)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .GroupBy(x => x.Date)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.SpotId).ToHashSet());
 
         var (rangeStart, _) = SiteTime.Day(firstDay, timeZone);
         var (_, rangeEnd) = SiteTime.Day(lastDay, timeZone);
@@ -154,10 +171,15 @@ public sealed class AvailabilityCampaignService(
         var occupancies = new List<int>();
         for (var date = firstDay; date <= lastDay; date = date.AddDays(1))
         {
-            var bookable = unownedActive + releasedPerDay.GetValueOrDefault(date);
+            var releasedIds = releasedPerDay.GetValueOrDefault(date);
+            var bookable = unownedActiveIds.Count + (releasedIds?.Count ?? 0);
             var (dayStart, dayEnd) = SiteTime.Day(date, timeZone);
+            // Only reservations sitting on the day's bookable set count: a booking on a spot that
+            // was deactivated or reassigned since would otherwise inflate the ratio (past 100 %
+            // with enough of them) and silently suppress campaigns.
             var occupied = activeReservations
-                .Where(r => r.StartUtc < dayEnd && r.EndUtc > dayStart)
+                .Where(r => r.StartUtc < dayEnd && r.EndUtc > dayStart
+                    && (unownedActiveIds.Contains(r.SpotId) || (releasedIds?.Contains(r.SpotId) ?? false)))
                 .Select(r => r.SpotId)
                 .Distinct()
                 .Count();
