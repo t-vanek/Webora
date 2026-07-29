@@ -40,8 +40,26 @@ public class AccountTests : AdminTest
         // island, so wait for the circuit before clicking.
         await Pages.GotoInteractiveAsync(Page, "/");
         await Expect(Page.Locator(".wallet-chip")).ToBeVisibleAsync();
-        await Page.Locator("#account-menu-trigger").ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("Odhlásit") }).ClickAsync();
+
+        // The sign-out entry is a native link, but FluentMenu repositions its just-opened surface
+        // and a click landing mid-move dies on the moving target. Re-open and re-click until the
+        // navigation really happened — the same retry shape the spot-generator spec uses.
+        for (var attempt = 0; attempt < 5 && !Page.Url.Contains("/logout"); attempt++)
+        {
+            try
+            {
+                await Page.Locator("#account-menu-trigger").ClickAsync(new() { Timeout = 3000 });
+                await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("Odhlásit") })
+                    .ClickAsync(new() { Timeout = 3000 });
+                await Page.WaitForURLAsync("**/logout", new() { Timeout = 3000 });
+            }
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+            {
+                // The trigger toggled the menu shut, or the item click was swallowed — go around.
+                // (WaitForURLAsync surfaces System.TimeoutException, not a PlaywrightException.)
+            }
+        }
+
         // The menu item opens a confirmation page; the actual sign-out is a form post.
         await Pages.SubmitAsync(Page);
         // The anonymous landing has its own "Přihlásit se" hero button, so target the header link

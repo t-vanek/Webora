@@ -174,6 +174,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseRequestLocalization();
 
+// Pin the culture the line above negotiated into the culture cookie (when absent), so the
+// _blazor WebSocket handshake and the WASM islands render in the same language as the page.
+app.UseCultureCookie();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

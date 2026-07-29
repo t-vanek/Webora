@@ -57,10 +57,12 @@ public class AdminTests : AdminTest
                 await Expect(countChip).ToHaveTextAsync("5", new() { Timeout = 3000 });
                 break;
             }
-            catch (PlaywrightException)
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
             {
                 // The panel flipped away or a fill was lost mid-attempt — go around again.
-                // (Playwright's TimeoutException and the assertion failure both derive from this.)
+                // (Click/fill timeouts surface as System.TimeoutException, which does NOT derive
+                // from PlaywrightException — catching only the latter made this retry loop inert
+                // and the spec flaky.)
             }
         }
 
