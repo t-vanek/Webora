@@ -18,6 +18,9 @@ public interface IReservationService
 
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
+    /// <summary>A single reservation of the caller (ownership enforced), e.g. for the calendar export.</summary>
+    Task<ReservationDto?> GetMyReservationAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Books a spot. With <paramref name="useVoucher"/> the caller's apology voucher covers the
     /// whole dynamic price (peak included) instead of the wallet.

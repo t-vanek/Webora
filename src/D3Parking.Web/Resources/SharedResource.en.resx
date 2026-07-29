@@ -376,6 +376,9 @@
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>
   <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>As an apology you've received a voucher for one free reservation (peak included) — valid for 30 days.</value></data>
   <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>The apology voucher is no longer available.</value></data>
+  <data name="Parking_AddToCalendar" xml:space="preserve"><value>Add to calendar</value></data>
+  <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because of an action on your D3Parking account.</value></data>
+  <data name="Email_Chrome_IfNotYou" xml:space="preserve"><value>If you did not request anything, you can ignore it.</value></data>
   <data name="Email_Confirm_Subject" xml:space="preserve"><value>Confirm your email</value></data>
   <data name="Email_Confirm_Heading" xml:space="preserve"><value>Welcome to D3Parking</value></data>
   <data name="Email_Confirm_Intro" xml:space="preserve"><value>Please confirm your email address by clicking the link below:</value></data>

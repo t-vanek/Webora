@@ -13,6 +13,12 @@ public interface INotificationService
     /// </summary>
     Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// As above, with control over the email mirror's shape: an optional call-to-action button
+    /// and deadline line (e.g. a waitlist offer that expires).
+    /// </summary>
+    Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, NotificationEmailOptions? emailOptions, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default);
 
     Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);

@@ -187,6 +187,7 @@ app.MapRazorComponents<App>()
 
 app.MapHub<NotificationsHub>(NotificationsHub.Path);
 app.MapNotificationApi();
+app.MapCalendarApi();
 
 // Antiforgery token endpoint for the WASM client. The client fetches the token and attaches it as
 // the RequestVerificationToken header on every POST/PUT/DELETE; the notification API group

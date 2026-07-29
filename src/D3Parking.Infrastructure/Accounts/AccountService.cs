@@ -147,7 +147,9 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordChanged, "self", null, cancellationToken);
-        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordChanged_Title", "Notif_PasswordChanged_Body", cancellationToken);
+        // Security events always mirror to email — the mailbox is the channel an account thief
+        // cannot silently clear, and the standard place people expect this heads-up.
+        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordChanged_Title", "Notif_PasswordChanged_Body", cancellationToken, email: true);
         return AccountResult.Success;
     }
 
@@ -181,7 +183,7 @@ public sealed class AccountService(
         }
 
         await AuditAsync(user.Id, AccountAuditEventType.PasswordReset, "self", null, cancellationToken);
-        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordReset_Title", "Notif_PasswordReset_Body", cancellationToken);
+        await NotifyKeysAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security, "Notif_PasswordReset_Title", "Notif_PasswordReset_Body", cancellationToken, email: true);
         return AccountResult.Success;
     }
 
@@ -458,8 +460,8 @@ public sealed class AccountService(
         }
     }
 
-    private Task NotifyKeysAsync(Guid userId, NotificationCategory category, NotificationLevel level, string titleKey, string bodyKey, CancellationToken cancellationToken) =>
-        notifications.NotifyAsync(userId, category, level, messages[titleKey], messages[bodyKey], cancellationToken);
+    private Task NotifyKeysAsync(Guid userId, NotificationCategory category, NotificationLevel level, string titleKey, string bodyKey, CancellationToken cancellationToken, bool email = false) =>
+        notifications.NotifyAsync(userId, category, level, messages[titleKey], messages[bodyKey], email, cancellationToken);
 
     private async Task AuditAsync(Guid userId, AccountAuditEventType type, string actor, string? detail, CancellationToken cancellationToken)
     {
@@ -473,8 +475,20 @@ public sealed class AccountService(
     private Task SendAsync(ApplicationUser user, string subject, string html) =>
         SendToAsync(user.Email!, user.DisplayName, subject, html);
 
+    // Wraps the (already localized, link-carrying) body in the shared branded layout, so account
+    // emails look like every other mail the app sends.
     private Task SendToAsync(string email, string? name, string subject, string html) =>
-        emailSender.SendAsync(new EmailMessage { To = email, ToName = name, Subject = subject, HtmlBody = html });
+        emailSender.SendAsync(new EmailMessage
+        {
+            To = email,
+            ToName = name,
+            Subject = subject,
+            HtmlBody = D3Parking.Infrastructure.Email.BrandedEmail.RenderHtml(new(
+                Heading: subject,
+                BodyHtml: html,
+                FooterReason: messages["Email_Chrome_Reason"].Value,
+                FooterSettings: messages["Email_Chrome_Settings"].Value)),
+        });
 
     private async Task<string> BuildLinkAsync(string path, params (string Key, string Value)[] query)
     {

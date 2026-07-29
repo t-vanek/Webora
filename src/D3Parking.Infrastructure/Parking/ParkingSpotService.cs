@@ -291,18 +291,20 @@ public sealed class ParkingSpotService(
         // Tell the affected residents: a removed/replaced owner loses the spot, a new owner gains one.
         if (previousOwner != ownerId)
         {
+            // Both directions mirror to email: gaining or losing a resident spot is a formal
+            // change of what the person is entitled to, worth a durable record.
             if (previousOwner is { } prev)
             {
                 await notifications.NotifyAsync(prev, NotificationCategory.Administrative, NotificationLevel.Info,
                     messages["Parking_Notify_ResidentUnassigned_Title"],
-                    messages["Parking_Notify_ResidentUnassigned_Body", spot.Code], cancellationToken);
+                    messages["Parking_Notify_ResidentUnassigned_Body", spot.Code], email: true, cancellationToken);
             }
 
             if (ownerId is { } newOwner)
             {
                 await notifications.NotifyAsync(newOwner, NotificationCategory.Administrative, NotificationLevel.Info,
                     messages["Parking_Notify_ResidentAssigned_Title"],
-                    messages["Parking_Notify_ResidentAssigned_Body", spot.Code], cancellationToken);
+                    messages["Parking_Notify_ResidentAssigned_Body", spot.Code], email: true, cancellationToken);
             }
         }
 

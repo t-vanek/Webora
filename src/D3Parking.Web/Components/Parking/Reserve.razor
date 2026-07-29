@@ -262,10 +262,18 @@
                     {
                         <FluentButton OnClick="() => OpenBlockedPanel(context)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
                     }
+                    @* The download attribute keeps Blazor's router from intercepting the click,
+                       so the .ics streams straight from the endpoint. *@
+                    <FluentAnchor Href="@($"api/parking/reservations/{context.Id}/calendar")"
+                                  Download="@($"parkovani-{context.SpotCode}.ics")"
+                                  Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
                 }
                 else if (context.Status == ReservationStatus.CheckedIn)
                 {
                     <FluentButton OnClick="() => CompleteAsync(context.Id)" Appearance="Appearance.Accent">@L["Parking_Complete"]</FluentButton>
+                    <FluentAnchor Href="@($"api/parking/reservations/{context.Id}/calendar")"
+                                  Download="@($"parkovani-{context.SpotCode}.ics")"
+                                  Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
                 }
             </TemplateColumn>
         </FluentDataGrid>

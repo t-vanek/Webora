@@ -70,6 +70,11 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
+- **Promyšlené notifikace** — zvoneček + push pro všechno; e-mail jen pro akční výzvy s termínem
+  (nabídka z fronty s CTA tlačítkem a deadlinem), formální záznamy (penalizace, přiřazení místa)
+  a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
+- **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
+  Calendar) včetně připomínky 30 minut před začátkem.
 
 ## Náhledy
 
