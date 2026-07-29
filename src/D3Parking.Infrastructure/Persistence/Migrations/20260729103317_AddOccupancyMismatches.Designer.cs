@@ -4,6 +4,7 @@ using D3Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace D3Parking.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D3ParkingDbContext))]
-    partial class D3ParkingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729103317_AddOccupancyMismatches")]
+    partial class AddOccupancyMismatches
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,42 +158,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PushSubscriptions", (string)null);
-                });
-
-            modelBuilder.Entity("D3Parking.Domain.Parking.ApologyVoucher", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("ExpiresAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("GrantedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("RedeemedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("RedeemedReservationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SourceMismatchId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("WaivedCredits")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RedeemedReservationId");
-
-                    b.HasIndex("UserId", "RedeemedAtUtc", "ExpiresAtUtc");
-
-                    b.ToTable("ApologyVouchers", (string)null);
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.CollusionFlag", b =>
@@ -818,9 +785,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("AwardedPoints")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ClawedBackPoints")
                         .HasColumnType("int");
 
                     b.Property<DateOnly>("Date")

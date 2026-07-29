@@ -39,6 +39,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
 
+    public DbSet<OccupancyMismatch> OccupancyMismatches => Set<OccupancyMismatch>();
+
+    public DbSet<ApologyVoucher> ApologyVouchers => Set<ApologyVoucher>();
+
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -99,6 +103,25 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             subscription.Property(s => s.Auth).HasMaxLength(64).IsRequired();
             subscription.HasIndex(s => s.Endpoint).IsUnique();
             subscription.HasIndex(s => s.UserId);
+        });
+
+        builder.Entity<OccupancyMismatch>(mismatch =>
+        {
+            mismatch.ToTable("OccupancyMismatches");
+            mismatch.HasKey(m => m.Id);
+            // The admin view reads per-spot trends newest-first; the reporter index backs the
+            // per-user daily report cap.
+            mismatch.HasIndex(m => new { m.SpotId, m.ReportedAtUtc });
+            mismatch.HasIndex(m => new { m.ReporterId, m.ReportedAtUtc });
+        });
+
+        builder.Entity<ApologyVoucher>(voucher =>
+        {
+            voucher.ToTable("ApologyVouchers");
+            voucher.HasKey(v => v.Id);
+            // Lookup shape: "the user's usable voucher" and "the voucher paid for reservation X".
+            voucher.HasIndex(v => new { v.UserId, v.RedeemedAtUtc, v.ExpiresAtUtc });
+            voucher.HasIndex(v => v.RedeemedReservationId);
         });
 
         builder.Entity<SiteSettings>(settings =>

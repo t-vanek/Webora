@@ -353,6 +353,29 @@
   <data name="Parking_Error_CheckInTooEarly" xml:space="preserve"><value>Check-in je možný až krátce před začátkem rezervace.</value></data>
   <data name="Parking_Error_CheckInWindowOver" xml:space="preserve"><value>Okno rezervace už skončilo, check-in není možný.</value></data>
   <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>Rezervaci lze dokončit až po začátku jejího okna.</value></data>
+  <data name="Parking_CantPark" xml:space="preserve"><value>Nemůžu zaparkovat</value></data>
+  <data name="Parking_Blocked_Title" xml:space="preserve"><value>Na místě {0} se nedá zaparkovat?</value></data>
+  <data name="Parking_Blocked_Text" xml:space="preserve"><value>Zaznamenáme stav místa a rezervaci zrušíme s plnou vratkou — nepočítá se jako nedostavení. Můžeme vám rovnou najít jiné volné místo.</value></data>
+  <data name="Parking_Blocked_Relocate" xml:space="preserve"><value>Najít mi jiné místo</value></data>
+  <data name="Parking_Blocked_RecordOnly" xml:space="preserve"><value>Jen zaznamenat stav</value></data>
+  <data name="Parking_Blocked_Back" xml:space="preserve"><value>Zpět</value></data>
+  <data name="Parking_Relocated" xml:space="preserve"><value>Máte místo {0}. Stav původního místa jsme zaznamenali — nepočítá se vám jako nedostavení.</value></data>
+  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>Stav jsme zaznamenali a rezervaci zrušili s plnou vratkou — nepočítá se jako nedostavení.</value></data>
+  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>Žádné jiné místo teď bohužel není volné. Stav jsme zaznamenali a rezervaci zrušili s plnou vratkou — zkuste se postavit do fronty.</value></data>
+  <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>Stav místa lze zaznamenat jen v době okna rezervace.</value></data>
+  <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>Denní limit záznamů o stavu místa je vyčerpán.</value></data>
+  <data name="Parking_Mismatch_Title" xml:space="preserve"><value>Neshody obsazenosti</value></data>
+  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Řidiči zaznamenali, že se na rezervovaném místě nedalo zaparkovat. Data slouží k plánování kapacity a odhalování opakovaných problémů konkrétních míst — neevidují viníka.</value></data>
+  <data name="Parking_Mismatch_Empty" xml:space="preserve"><value>Žádné neshody — všechna místa fungují, jak mají.</value></data>
+  <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Okno</value></data>
+  <data name="Parking_Mismatch_ReportedAt" xml:space="preserve"><value>Zaznamenáno</value></data>
+  <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Náhradní místo</value></data>
+  <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Zaznamenal(a)</value></data>
+  <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
+  <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
+  <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Jako omluvu jsme vám přidali kupón na jednu rezervaci zdarma (i ve špičce) — platí 30 dní.</value></data>
+  <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>Omluvný kupón už není k dispozici.</value></data>
   <data name="Email_Confirm_Subject" xml:space="preserve"><value>Potvrďte svůj e-mail</value></data>
   <data name="Email_Confirm_Heading" xml:space="preserve"><value>Vítejte ve D3Parking</value></data>
   <data name="Email_Confirm_Intro" xml:space="preserve"><value>Potvrďte prosím svou e-mailovou adresu kliknutím na následující odkaz:</value></data>

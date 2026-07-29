@@ -27,6 +27,25 @@
             @L[_info]
         </FluentMessageBar>
     }
+    @* Outcome of the "I can't park" flow — pre-localized (carries the replacement spot code). *@
+    @if (_blockedMessage is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">
+            @_blockedMessage
+        </FluentMessageBar>
+    }
+
+    @* Apology voucher for a blocked spot: one reservation free, peak included. Redeemed by
+       ticking the box before booking; a timely cancel gives it back. *@
+    @if (_voucher is { } voucher)
+    {
+        <div class="form-panel">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
+                <FluentLabel Typo="Typography.Body">@L["Parking_Voucher_Available", Local(voucher.ExpiresAtUtc, "d")]</FluentLabel>
+                <FluentCheckbox @bind-Value="_useVoucher">@L["Parking_Voucher_Use"]</FluentCheckbox>
+            </FluentStack>
+        </div>
+    }
 
     @if (_ownedSpot is not null)
     {
@@ -188,6 +207,28 @@
         </FluentStack>
     }
 
+    @* "I can't park" panel: helper framing on purpose — the driver asks for a way out, the state
+       of the spot is recorded as a side effect. No accusation anywhere in the flow. A plain
+       panel, deliberately not FluentCard: fluent-card resolves its default 100% height against
+       this stack to 0px and the whole panel collapses invisible (same quirk as the bell panel). *@
+    @if (_blockedTarget is { } blocked)
+    {
+        <div class="form-panel">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_Blocked_Title", blocked.SpotCode]</FluentLabel>
+                <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_Text"]</FluentLabel>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton Appearance="Appearance.Accent" Disabled="@_blockedBusy"
+                                  OnClick="() => ReportBlockedAsync(relocate: true)">@L["Parking_Blocked_Relocate"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_blockedBusy"
+                                  OnClick="() => ReportBlockedAsync(relocate: false)">@L["Parking_Blocked_RecordOnly"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" Disabled="@_blockedBusy"
+                                  OnClick="() => _blockedTarget = null">@L["Parking_Blocked_Back"]</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </div>
+    }
+
     <FluentLabel Typo="Typography.Subject">@L["Parking_MyReservations"]</FluentLabel>
     @if (_myReservations is null)
     {
@@ -217,6 +258,10 @@
                     <FluentButton OnClick="() => CheckInAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_CheckIn"]</FluentButton>
                     <FluentButton OnClick="() => ReleaseAsync(context.Id)" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
                     <FluentButton OnClick="() => CancelAsync(context.Id)" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
+                    @if (CanReportBlocked(context))
+                    {
+                        <FluentButton OnClick="() => OpenBlockedPanel(context)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
+                    }
                 }
                 else if (context.Status == ReservationStatus.CheckedIn)
                 {
@@ -437,7 +482,7 @@
     private async Task ReserveAsync(Guid spotId)
     {
         _error = _info = null;
-        var result = await Reservations.ReserveAsync(_userId, spotId, Start, End);
+        var result = await Reservations.ReserveAsync(_userId, spotId, Start, End, _useVoucher && _voucher is not null);
         if (result.Succeeded)
         {
             _info = "Parking_Reserved";
@@ -447,6 +492,68 @@
         else
         {
             _error = result.Errors.FirstOrDefault();
+        }
+    }
+
+    private ReservationDto? _blockedTarget;
+    private bool _blockedBusy;
+    private string? _blockedMessage;
+
+    private ApologyVoucherDto? _voucher;
+    private bool _useVoucher;
+
+    // Mirror of the server rule: the spot's state can only be recorded while the driver can
+    // actually be standing in front of it (the check-in window).
+    private bool CanReportBlocked(ReservationDto reservation)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return reservation.Status == ReservationStatus.Reserved
+            && now >= reservation.StartUtc - TimeSpan.FromMinutes(15)
+            && now < reservation.EndUtc;
+    }
+
+    private void OpenBlockedPanel(ReservationDto reservation)
+    {
+        _error = _info = _blockedMessage = null;
+        _blockedTarget = reservation;
+    }
+
+    private async Task ReportBlockedAsync(bool relocate)
+    {
+        if (_blockedTarget is not { } blocked)
+        {
+            return;
+        }
+
+        _blockedBusy = true;
+        try
+        {
+            var outcome = await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate);
+            if (!outcome.Succeeded)
+            {
+                _error = outcome.Error;
+                return;
+            }
+
+            _blockedTarget = null;
+            _blockedMessage = outcome.RelocatedToSpotCode is { } code
+                ? L["Parking_Relocated", code]
+                : relocate
+                    ? L["Parking_Blocked_NoSpot"]
+                    : L["Parking_Blocked_Recorded"];
+            if (outcome.VoucherGranted)
+            {
+                _blockedMessage += " " + L["Parking_Blocked_VoucherGranted"];
+            }
+            await ReloadReservationsAsync();
+            if (_available is not null)
+            {
+                await FindAvailableAsync();
+            }
+        }
+        finally
+        {
+            _blockedBusy = false;
         }
     }
 
@@ -474,6 +581,16 @@
         }
     }
 
-    private async Task ReloadReservationsAsync() =>
+    private async Task ReloadReservationsAsync()
+    {
         _myReservations = await Reservations.GetMyReservationsAsync(_userId);
+
+        // The apology voucher can appear (blocked-spot flow), disappear (redeemed by a booking)
+        // or come back (timely cancel/release) with any reservation action — keep it in sync.
+        _voucher = await Reservations.GetMyApologyVoucherAsync(_userId);
+        if (_voucher is null)
+        {
+            _useVoucher = false;
+        }
+    }
 }

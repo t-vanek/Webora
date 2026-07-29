@@ -18,7 +18,14 @@ public interface IReservationService
 
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
-    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Books a spot. With <paramref name="useVoucher"/> the caller's apology voucher covers the
+    /// whole dynamic price (peak included) instead of the wallet.
+    /// </summary>
+    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default);
+
+    /// <summary>The caller's usable apology voucher (one free reservation), or null.</summary>
+    Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
@@ -29,6 +36,14 @@ public interface IReservationService
     Task<ParkingResult> ReleaseAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CancelAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The holder arrived and cannot physically park (the spot is blocked by another car).
+    /// Records an occupancy mismatch, voids the reservation penalty-free with a full refund, and —
+    /// when <paramref name="relocate"/> is set — books the first free spot for the same window
+    /// with the original charge carried over.
+    /// </summary>
+    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the
