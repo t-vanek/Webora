@@ -7,6 +7,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Serilog;
 using D3Parking.Application;
 using D3Parking.Application.Notifications;
+using D3Parking.Application.Settings;
 using D3Parking.Infrastructure;
 using D3Parking.Web;
 using D3Parking.Web.Components;
@@ -178,6 +179,35 @@ app.MapGet("/api/antiforgery/token", (HttpContext context, Microsoft.AspNetCore.
     var tokens = antiforgery.GetAndStoreTokens(context);
     return Results.Ok(new { token = tokens.RequestToken });
 }).RequireAuthorization();
+
+// Web app manifest (PWA). Generated dynamically so the installed app inherits the configured
+// site identity and the negotiated request culture, same as the document head in App.razor.
+app.MapGet("/manifest.webmanifest", async (ISiteSettingsService siteSettings, CancellationToken cancellationToken) =>
+{
+    var identity = await siteSettings.GetIdentityAsync(cancellationToken);
+    var name = string.IsNullOrWhiteSpace(identity.Name) ? "D3Parking" : identity.Name.Trim();
+
+    return Results.Json(new
+    {
+        name,
+        short_name = name,
+        description = identity.Description ?? string.Empty,
+        lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+        id = "/",
+        start_url = "/",
+        scope = "/",
+        display = "standalone",
+        background_color = "#023444",
+        theme_color = "#023444",
+        icons = new object[]
+        {
+            new { src = "icons/icon-192.png", sizes = "192x192", type = "image/png" },
+            new { src = "icons/icon-512.png", sizes = "512x512", type = "image/png" },
+            new { src = "icons/icon-maskable-192.png", sizes = "192x192", type = "image/png", purpose = "maskable" },
+            new { src = "icons/icon-maskable-512.png", sizes = "512x512", type = "image/png", purpose = "maskable" },
+        },
+    }, contentType: "application/manifest+json");
+});
 
 // Language switcher: persists the chosen culture in a cookie and returns to the page.
 app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext context) =>

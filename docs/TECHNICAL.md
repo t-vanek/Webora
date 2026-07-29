@@ -128,6 +128,14 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
 
 - **Blazor Web App** s oběma interaktivními režimy; parkovací stránky se vykreslují na serveru
   (`InteractiveServer`), zvoneček notifikací běží na WebAssembly.
+- **PWA:** aplikaci lze nainstalovat na plochu telefonu i počítače. Manifest generuje endpoint
+  `/manifest.webmanifest` — název a popis přebírá z Nastavení webu, jazyk z kultury requestu.
+  `wwwroot/service-worker.js` má záměrně konzervativní strategii: HTML se nikdy necachuje
+  (personalizovaný obsah, serverová interaktivita stejně potřebuje síť), statické assety jdou přes
+  stale-while-revalidate a při výpadku sítě dostane navigace předcachovanou `wwwroot/offline.html`.
+  Realtime a datové endpointy (`/_blazor`, `/hubs/`, `/api/`, `/connect/`, `/culture/`) jdou mimo
+  service worker. Ikony (běžné, maskable, apple-touch) jsou ve `wwwroot/icons/`; při změně strategie
+  nebo precache seznamu je potřeba zvýšit verzi cache v `service-worker.js`.
 - **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
   v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.

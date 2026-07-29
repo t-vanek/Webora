@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Offline</title>
+    <style>
+        /* Samostatná stránka bez závislostí na app.css — musí se vykreslit čistě z cache.
+           Barvy a písmo odpovídají brand vrstvě v app.css (Seyfor brand book). */
+        @font-face {
+            font-family: 'Sora';
+            font-style: normal;
+            font-weight: 100 800;
+            font-display: swap;
+            src: url('lib/sora/sora-latin-ext.woff2') format('woff2');
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+        }
+
+        @font-face {
+            font-family: 'Sora';
+            font-style: normal;
+            font-weight: 100 800;
+            font-display: swap;
+            src: url('lib/sora/sora-latin.woff2') format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100dvh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            background: #023444;
+            color: #FBFDFC;
+            font-family: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            text-align: center;
+        }
+
+        main {
+            max-width: 26rem;
+        }
+
+        img {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: .75rem;
+        }
+
+        p {
+            line-height: 1.6;
+            opacity: .85;
+        }
+
+        p[lang="en"] {
+            margin-top: 1rem;
+            font-size: .85rem;
+            opacity: .55;
+        }
+
+        button {
+            margin-top: 1.75rem;
+            padding: .8rem 2rem;
+            border: none;
+            border-radius: 4px;
+            background: #89E103;
+            color: #023444;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #74C000;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <img src="icons/icon-192.png" alt="" width="192" height="192" />
+        <h1>Jste offline</h1>
+        <p>Aplikace se nemůže připojit k serveru. Zkontrolujte připojení k internetu a zkuste to znovu.</p>
+        <p lang="en">You appear to be offline. Check your connection and try again.</p>
+        <button type="button" onclick="location.reload()">Zkusit znovu</button>
+    </main>
+    <script>
+        // Jakmile se připojení vrátí, stránka se obnoví sama.
+        window.addEventListener('online', () => location.reload());
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "d3parking-pwa",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/D3Parking.Web",
+        "-c",
+        "Release",
+        "--no-launch-profile",
+        "--",
+        "--environment",
+        "Development",
+        "--urls",
+        "http://localhost:5299"
+      ],
+      "port": 5299
+    }
+  ]
+}

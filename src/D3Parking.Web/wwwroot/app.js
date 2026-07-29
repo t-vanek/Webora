@@ -48,3 +48,13 @@ document.addEventListener('input', (e) => {
 
     meter.dataset.score = value ? String(Math.max(1, Math.min(4, score))) : '0';
 });
+
+// Registrace service workeru (PWA): instalace na plochu a offline fallback stránka.
+// Jen v zabezpečeném kontextu (https / localhost); opakovaná registrace je idempotentní.
+if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+            console.warn('Registrace service workeru selhala:', err);
+        });
+    });
+}
