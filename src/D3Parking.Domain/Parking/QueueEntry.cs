@@ -60,6 +60,18 @@ public class QueueEntry : Entity
         OfferExpiresAtUtc = null;
     }
 
+    /// <summary>
+    /// Drops an unclaimed offer and sends the entry to the back of the queue (its join time is
+    /// reset). Without the demotion the highest-priority sleeper would win every matching round
+    /// again — the same spot bouncing back to them forever, an offer e-mail per round, and nobody
+    /// behind them ever served.
+    /// </summary>
+    public void RequeueAfterMissedOffer(DateTimeOffset at)
+    {
+        WithdrawOffer();
+        CreatedAtUtc = at;
+    }
+
     public void Claim() => Status = QueueEntryStatus.Claimed;
 
     public void Cancel() => Status = QueueEntryStatus.Cancelled;

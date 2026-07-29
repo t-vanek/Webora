@@ -1,3 +1,4 @@
+@using System.Text.Json
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -126,9 +127,10 @@
             var prefs = await Api.GetPreferencesAsync();
             _muted = prefs?.IsCurrentlyMuted ?? false;
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or NotSupportedException or JsonException)
         {
-            // Not reachable / unauthorized — leave the bell empty.
+            // Not reachable, session expired (401) or an unexpected payload — leave the bell
+            // empty rather than letting a background fetch take the whole island down.
         }
     }
 
@@ -144,6 +146,14 @@
             _items.Insert(0, notification);
             _unreadCount++;
             return InvokeAsync(StateHasChanged);
+        });
+
+        // Notifications published while the connection was down were only stored server-side;
+        // refetch on reconnect so the bell doesn't silently miss them until the next page load.
+        _hub.Reconnected += _ => InvokeAsync(async () =>
+        {
+            await RefreshAsync();
+            StateHasChanged();
         });
 
         try
@@ -262,7 +272,17 @@
             return;
         }
 
-        await Api.MarkReadAsync(id);
+        try
+        {
+            await Api.MarkReadAsync(id);
+        }
+        catch (HttpRequestException)
+        {
+            // Server unreachable or session expired — keep the item unread instead of lying
+            // locally (and instead of crashing the island on an unhandled event exception).
+            return;
+        }
+
         _items[index] = _items[index] with { IsRead = true };
         if (_unreadCount > 0)
         {
@@ -272,7 +292,15 @@
 
     private async Task MarkAllRead()
     {
-        await Api.MarkAllReadAsync();
+        try
+        {
+            await Api.MarkAllReadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            return;
+        }
+
         _unreadCount = 0;
         _items = [.. _items.Select(n => n with { IsRead = true })];
     }

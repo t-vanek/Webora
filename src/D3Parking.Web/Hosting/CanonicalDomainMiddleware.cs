@@ -72,12 +72,28 @@ public sealed class CanonicalDomainMiddleware(RequestDelegate next)
         var schemeChanged = !string.Equals(targetScheme, scheme, StringComparison.OrdinalIgnoreCase);
         var hostChanged = !string.Equals(targetHost, host, StringComparison.OrdinalIgnoreCase);
         var pathChanged = !string.Equals(targetPath, path, StringComparison.Ordinal);
+        // The configured canonical port must hold even when scheme and host already match.
+        var currentPort = context.Request.Host.Port ?? DefaultPort(scheme);
+        var portChanged = targetPort is { } configuredPort && configuredPort != currentPort;
 
-        if (schemeChanged || hostChanged || pathChanged)
+        if (schemeChanged || hostChanged || pathChanged || portChanged)
         {
             var portSuffix = targetPort is { } port && port != DefaultPort(targetScheme) ? $":{port}" : string.Empty;
             var location = $"{targetScheme}://{targetHost}{portSuffix}{context.Request.PathBase}{targetPath}{context.Request.QueryString}";
-            context.Response.Redirect(location, permanent: true);
+
+            // canNormalizePath == GET/HEAD. Those keep the classic 301; anything else gets 308 so
+            // the client replays the request with its method and body — a 301 would quietly turn a
+            // POSTed form into a body-less GET.
+            if (canNormalizePath)
+            {
+                context.Response.Redirect(location, permanent: true);
+            }
+            else
+            {
+                context.Response.StatusCode = StatusCodes.Status308PermanentRedirect;
+                context.Response.Headers.Location = location;
+            }
+
             return;
         }
 

@@ -269,6 +269,14 @@
         _userId = user?.Id ?? Guid.Empty;
         _policy = await ParkingSettings.GetPolicyAsync();
         _tz = await SiteSettings.GetTimeZoneAsync();
+
+        // Re-seed the date defaults now that the site time zone is known: the field initializers
+        // used the server's clock, and around midnight a UTC-hosted server would preselect the
+        // wrong local day for the lot.
+        _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        _releaseFrom = _day.ToDateTime(TimeOnly.MinValue);
+        _releaseTo = _releaseFrom;
+
         var home = await UserLocation.GetHomeAsync(_userId);
         _distanceKm = home.Verified ? home.DistanceKm : null;
         await ReloadOwnedSpotAsync();

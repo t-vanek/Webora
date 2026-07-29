@@ -1,4 +1,7 @@
 @page "/account/confirm-suspend"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using static OpenIddict.Abstractions.OpenIddictConstants
 @inject IAccountService AccountService
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IStringLocalizer<SharedResource> L
@@ -34,6 +37,8 @@
     [SupplyParameterFromQuery] private Guid UserId { get; set; }
     [SupplyParameterFromQuery] private string? Token { get; set; }
 
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
     private bool? _succeeded;
     private string? _error;
 
@@ -50,9 +55,16 @@
         _succeeded = result.Succeeded;
         _error = result.Succeeded ? null : string.Join(" ", result.Errors);
 
-        if (result.Succeeded)
+        if (result.Succeeded && AuthState is not null)
         {
-            await SignInManager.SignOutAsync();
+            // Sign out only when this browser's session belongs to the suspended account — the
+            // link can be opened while somebody else is signed in (shared machine), and ending
+            // their unrelated session would be pure collateral damage.
+            var state = await AuthState;
+            if (state.User.FindFirstValue(Claims.Subject) == UserId.ToString())
+            {
+                await SignInManager.SignOutAsync();
+            }
         }
     }
 }

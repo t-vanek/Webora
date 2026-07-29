@@ -165,10 +165,10 @@ reputaci i peněženku**:
 | --- | --- | --- |
 | Bonus mimo špičku | při dokončení | rezervace začala mimo špičkové okno |
 | Uvolnění | při včasném uvolnění | **škálováno obsazeností + délkou fronty**, zastropováno; denně omezeno na uživatele |
-| Série dokončení | při dokončení | rostoucí bonus za nepřerušenou řadu; no-show ji vynuluje |
+| Série dokončení | při dokončení | rostoucí bonus za nepřerušenou řadu; no-show ji vynuluje; odměny za dokončení se vyplácí max. 1× za lokální den |
 | Obsazení sdíleného místa | při dokončení | obsazení sdíleného rezidentního místa; škálováno dojezdem |
 | Sdílení rezidenta | při proaktivním uvolnění | dle předstihu + měsíčního přídělu rezidenta |
-| Penalizace za no-show | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě |
+| Penalizace za no-show | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě; u rezervace vytvořené až po začátku okna běží lhůta od vytvoření |
 | Vratka sdílení | smyčkou / rekonciliací | promarněný nebo nerezervovaný sdílený den |
 
 Účetní kniha (ledger) eviduje vedle reputačních důvodů i pohyby peněženky: **měsíční příděl kreditu**,
@@ -184,7 +184,9 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
   zastropováno. Uvolnit místo ve špičce, když čekají lidé, vynáší výrazně víc než uvolnit nežádané
   místo — zrcadlí to přirážku za obsazenost u ceny.
 - **Série dokončení (streak)** — za každou nepřerušenou řadu reálně využitých rezervací roste bonus
-  (do stropu) připisovaný do reputace i peněženky. Jakýkoli no-show sérii vynuluje.
+  (do stropu) připisovaný do reputace i peněženky. Jakýkoli no-show sérii vynuluje. Check-in je možný
+  až krátce před začátkem okna a dokončení až po jeho začátku; balíček odměn za dokončení se vyplácí
+  nejvýše jednou za lokální den — smyčka rezervuj→check-in→dokonči se tedy nedá farmit.
 - **Loajalitní úrovně** — z reputačních bodů se odvozuje tier **Bronz → Stříbro → Zlato → Platina**
   (hranice jsou laditelné). Tier je vidět v žebříčku.
 - **Výhody vyššího tieru** — reputace se konečně vyplácí:

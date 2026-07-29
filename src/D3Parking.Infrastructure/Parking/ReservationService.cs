@@ -20,6 +20,17 @@ public sealed class ReservationService(
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages) : IReservationService
 {
+    // How early a driver may confirm presence for an upcoming window. Enough for early arrivals;
+    // far-ahead check-ins would make the no-show sweep unreachable and its penalties dead letter.
+    private static readonly TimeSpan EarlyCheckInWindow = TimeSpan.FromMinutes(15);
+
+    // Serializes the no-show sweep and the queue matcher. Both are triggered from several places
+    // at once (the maintenance timer, the admin button, release/cancel hooks) and neither runs in
+    // a transaction — overlapping runs would double-apply no-show penalties and offer one spot to
+    // two waiters. In-process locking suffices because the app is single-instance by design (the
+    // same assumption Wolverine's in-process queues already make).
+    private static readonly SemaphoreSlim MaintenanceGate = new(1, 1);
+
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -120,14 +131,31 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_SpotInactive");
         }
 
-        // A reserved (owned) spot can only be booked by a non-owner once it is shared for that day.
+        // Windows may legitimately start in the past (booking the rest of today, claiming a queue
+        // offer mid-window). Everything sensitive to the time of start — the shared-release day and
+        // the peak/off-peak classification that drives price and bonus — is evaluated at the
+        // effective start, the moment parking can actually begin, so a stale early start can't buy
+        // the off-peak rate for what is really a peak-time stay.
+        var effectiveStartUtc = startUtc > now ? startUtc : now;
+
+        // A reserved (owned) spot can only be booked by a non-owner once it is shared — and every
+        // local day the window touches must be shared, not just the first. A Wed–Fri booking with
+        // only Wednesday released would otherwise occupy the owner's spot on Thu and Fri.
         if (spot.OwnerId is { } owner && owner != userId)
         {
-            var requestDate = SiteTime.Today(startUtc, timeZone);
-            var released = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spotId && r.Date == requestDate, cancellationToken);
-            if (!released && !policy.IsResidentAutoShareActive(requestDate, now, timeZone))
+            var firstDay = SiteTime.Today(effectiveStartUtc, timeZone);
+            var lastDay = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
+            var releasedDates = (await dbContext.SpotReleases
+                .Where(r => r.SpotId == spotId && r.Date >= firstDay && r.Date <= lastDay)
+                .Select(r => r.Date)
+                .ToListAsync(cancellationToken)).ToHashSet();
+
+            for (var date = firstDay; date <= lastDay; date = date.AddDays(1))
             {
-                return ParkingResult.Failure("Parking_Error_SpotReserved");
+                if (!releasedDates.Contains(date) && !policy.IsResidentAutoShareActive(date, now, timeZone))
+                {
+                    return ParkingResult.Failure("Parking_Error_SpotReserved");
+                }
             }
         }
 
@@ -158,7 +186,7 @@ public sealed class ReservationService(
 
         // Off-peak and distance rewards are granted on completion (actual use), not at booking, so a
         // reserve/release loop earns nothing. IsOffPeak is captured now for use at completion.
-        var isOffPeak = policy.IsOffPeak(startUtc, timeZone);
+        var isOffPeak = policy.IsOffPeak(effectiveStartUtc, timeZone);
 
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
         var tierRank = IncentivePolicy.TierRank(policy.TierFor(score.Points));
@@ -185,6 +213,19 @@ public sealed class ReservationService(
         dbContext.Reservations.Add(reservation);
         dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
             userId, IncentiveReason.ReservationCharge, -cost, reservation.Id, now, spot.Code));
+
+        // A successful booking supersedes the user's own overlapping waitlist entries: they could
+        // never claim a second spot for the same window (own-conflict), so a lingering entry would
+        // only pin future offers on spots nobody can take.
+        var superseded = await dbContext.QueueEntries
+            .Where(q => q.UserId == userId && q.Id != queueEntryId
+                && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+                && q.StartUtc < endUtc && q.EndUtc > startUtc)
+            .ToListAsync(cancellationToken);
+        foreach (var stale in superseded)
+        {
+            stale.Cancel();
+        }
 
         // Claiming a waitlist offer marks the entry in the same transaction as the booking it creates,
         // so an offer can never stay open (holding the spot) against a reservation that succeeded.
@@ -236,7 +277,11 @@ public sealed class ReservationService(
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var isPeak = policy.IsPeak(startUtc, timeZone);
+        // Mirror ReserveCoreAsync: an in-progress window is classified (and priced) by its
+        // effective start, so the quote always matches what reserving would actually charge.
+        var now = timeProvider.GetUtcNow();
+        var effectiveStartUtc = startUtc > now ? startUtc : now;
+        var isPeak = policy.IsPeak(effectiveStartUtc, timeZone);
         var occupancy = endUtc > startUtc
             ? await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken)
             : 0.0;
@@ -249,7 +294,7 @@ public sealed class ReservationService(
         // Reflect the (tier-boosted) monthly allowance the user would receive at booking, so affordability matches reserve.
         // PreviewAllowance applies any pending queue no-show penalty exactly as the grant will.
         var balance = score?.Credits ?? 0;
-        if (score is null || score.LastCreditGrantPeriod < ParkerScore.PeriodOf(timeProvider.GetUtcNow()))
+        if (score is null || score.LastCreditGrantPeriod < ParkerScore.PeriodOf(now))
         {
             var allowance = policy.AllowanceForTier(tierRank);
             balance += score?.PreviewAllowance(allowance) ?? allowance;
@@ -290,7 +335,21 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_InvalidState");
         }
 
-        reservation.CheckIn(timeProvider.GetUtcNow());
+        // Presence can only be confirmed around the reserved window itself. Unconstrained check-in
+        // would let a holder "arrive" days ahead — dodging the no-show sweep entirely — or
+        // resurrect a window that has already ended.
+        var now = timeProvider.GetUtcNow();
+        if (now < reservation.StartUtc - EarlyCheckInWindow)
+        {
+            return ParkingResult.Failure("Parking_Error_CheckInTooEarly");
+        }
+
+        if (now >= reservation.EndUtc)
+        {
+            return ParkingResult.Failure("Parking_Error_CheckInWindowOver");
+        }
+
+        reservation.CheckIn(now);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }
@@ -310,8 +369,32 @@ public sealed class ReservationService(
         }
 
         var now = timeProvider.GetUtcNow();
+
+        // Completing before the window starts would both bank the completion rewards from the couch
+        // and put the reservation forever out of the no-show sweep's reach.
+        if (now < reservation.StartUtc)
+        {
+            return ParkingResult.Failure("Parking_Error_CompleteTooEarly");
+        }
+
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         reservation.Complete(now);
+
+        // Completion incentives pay out once per local day. Completing frees the window for an
+        // immediate re-booking, so per-completion rewards would let a reserve→check-in→complete
+        // loop mint streak points and credits all day; one package per day pays for what the streak
+        // actually measures — turning up and parking. The 0-point ReservationCompleted ledger row
+        // doubles as the "already rewarded today" marker.
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var (dayStart, dayEnd) = SiteTime.Day(SiteTime.Today(now, timeZone), timeZone);
+        var rewardedToday = await dbContext.PointsLedgerEntries.AnyAsync(e =>
+            e.UserId == userId && e.Reason == IncentiveReason.ReservationCompleted
+            && e.OccurredAtUtc >= dayStart && e.OccurredAtUtc < dayEnd, cancellationToken);
+        if (rewardedToday)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return ParkingResult.Success;
+        }
 
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
         score.RecordCompletion(now);
@@ -391,6 +474,13 @@ public sealed class ReservationService(
 
         var now = timeProvider.GetUtcNow();
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+
+        // Same rationale as in ReserveCoreAsync: the daily-cap read and the reward insert below
+        // must be one atomic step — at plain read-committed two concurrent releases both pass the
+        // cap check and both collect the reward, sailing past MaxRewardedReleasesPerDay.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         reservation.Release(now);
 
         // An early enough release frees the spot for others, so the charge is refunded in full.
@@ -434,6 +524,8 @@ public sealed class ReservationService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
         await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
 
         // The freed spot may now satisfy someone on the waitlist.
@@ -477,13 +569,37 @@ public sealed class ReservationService(
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)
     {
+        int swept;
+        await MaintenanceGate.WaitAsync(cancellationToken);
+        try
+        {
+            swept = await SweepNoShowsCoreAsync(cancellationToken);
+        }
+        finally
+        {
+            MaintenanceGate.Release();
+        }
+
+        // No-shows freed their spots; offer them to the waitlist (takes the gate itself).
+        await ProcessQueueAsync(cancellationToken);
+        return swept;
+    }
+
+    private async Task<int> SweepNoShowsCoreAsync(CancellationToken cancellationToken)
+    {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var threshold = now - policy.NoShowGracePeriod;
 
+        // Grace runs from whichever is later: the window's start, or the moment the booking was
+        // made. Booking a window already in progress (the rest of today, a just-claimed queue
+        // offer) must leave the holder the full grace period to check in, not sweep them seconds
+        // after a successful booking.
         var due = await dbContext.Reservations
-            .Where(r => r.Status == ReservationStatus.Reserved && r.StartUtc <= threshold)
+            .Where(r => r.Status == ReservationStatus.Reserved
+                && r.StartUtc <= threshold
+                && r.CreatedAtUtc <= threshold)
             .ToListAsync(cancellationToken);
 
         if (due.Count == 0)
@@ -581,8 +697,6 @@ public sealed class ReservationService(
                 messages["Parking_Notify_ShareWasted_Title"], body, cancellationToken);
         }
 
-        // No-shows freed their spots; offer them to the waitlist.
-        await ProcessQueueAsync(cancellationToken);
         return due.Count;
     }
 
@@ -877,6 +991,19 @@ public sealed class ReservationService(
 
     public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)
     {
+        await MaintenanceGate.WaitAsync(cancellationToken);
+        try
+        {
+            return await ProcessQueueCoreAsync(cancellationToken);
+        }
+        finally
+        {
+            MaintenanceGate.Release();
+        }
+    }
+
+    private async Task<int> ProcessQueueCoreAsync(CancellationToken cancellationToken)
+    {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -901,7 +1028,9 @@ public sealed class ReservationService(
             }
             else if (entry.Status == QueueEntryStatus.Offered && entry.OfferExpiresAtUtc is { } expires && expires <= now)
             {
-                entry.WithdrawOffer();
+                // Missed offers demote: the entry rejoins at the back so the next freed spot goes
+                // to the next in line, not back to the same unresponsive head of the queue.
+                entry.RequeueAfterMissedOffer(now);
             }
         }
 
@@ -929,6 +1058,16 @@ public sealed class ReservationService(
             .OrderByDescending(Priority)
             .ThenBy(q => q.CreatedAtUtc))
         {
+            // A user who already holds a reservation for the window could never claim the offer
+            // (own-conflict) — skip them rather than pinning a spot on an unclaimable hold.
+            var hasOverlappingReservation = await dbContext.Reservations.AnyAsync(r => r.UserId == entry.UserId
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc < entry.EndUtc && r.EndUtc > entry.StartUtc, cancellationToken);
+            if (hasOverlappingReservation)
+            {
+                continue;
+            }
+
             var candidates = await AvailableSpotIdsAsync(dbContext, policy, timeZone, entry.StartUtc, entry.EndUtc, now, cancellationToken);
             var spotId = candidates.FirstOrDefault(id => !heldSpotIds.Contains(id));
             if (spotId == Guid.Empty)

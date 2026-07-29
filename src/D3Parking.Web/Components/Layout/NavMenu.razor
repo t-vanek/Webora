@@ -194,11 +194,28 @@
 
         // ProtectedLocalStorage needs JS, so the stored rail preference can only be read after
         // the first render; the expanded default flashes for one frame at most.
-        var stored = await Storage.GetAsync<bool>(RailStorageKey);
-        if (stored.Success && stored.Value != _rail)
+        try
         {
-            _rail = stored.Value;
-            StateHasChanged();
+            var stored = await Storage.GetAsync<bool>(RailStorageKey);
+            if (stored.Success && stored.Value != _rail)
+            {
+                _rail = stored.Value;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // A cosmetic preference must never take the circuit down. GetAsync throws when the
+            // payload can't be unprotected (Data Protection key ring rotated after a redeploy) or
+            // when the value is corrupt — drop the stored value so the next visit reads cleanly.
+            try
+            {
+                await Storage.DeleteAsync(RailStorageKey);
+            }
+            catch
+            {
+                // Even the cleanup is best-effort (e.g. the circuit is already disconnecting).
+            }
         }
     }
 

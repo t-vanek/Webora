@@ -2,8 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
+using D3Parking.Application.Settings;
+using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Parking;
@@ -11,6 +14,7 @@ namespace D3Parking.Infrastructure.Parking;
 public sealed class ParkingSpotService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     INotificationService notifications,
+    ISiteSettingsService siteSettings,
     TimeProvider timeProvider,
     IStringLocalizer<ParkingMessages> messages) : IParkingSpotService
 {
@@ -247,6 +251,41 @@ public sealed class ParkingSpotService(
 
         var previousOwner = spot.OwnerId;
         spot.AssignOwner(ownerId);
+
+        if (previousOwner != ownerId)
+        {
+            // Ownership changed: the previous owner's shares no longer speak for this spot. Left
+            // in place they would keep the new resident's spot publicly bookable and route
+            // wasted-share clawbacks to the old owner. Future days are removed and their prepaid
+            // rewards revoked; past days keep their history — those were genuinely shared.
+            var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+            var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
+            var futureReleases = await dbContext.SpotReleases
+                .Where(r => r.SpotId == spot.Id && r.Date >= today)
+                .ToListAsync(cancellationToken);
+
+            if (futureReleases.Count > 0)
+            {
+                var now = timeProvider.GetUtcNow();
+                foreach (var ownerRevocations in futureReleases
+                    .Where(r => r.AwardedPoints > 0)
+                    .GroupBy(r => r.OwnerId))
+                {
+                    var revoked = ownerRevocations.Sum(r => r.AwardedPoints);
+                    var ownerScore = await dbContext.ParkerScores
+                        .FirstOrDefaultAsync(s => s.UserId == ownerRevocations.Key, cancellationToken);
+                    if (ownerScore is not null && revoked > 0)
+                    {
+                        ownerScore.RevokeSharePoints(revoked, now);
+                        dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                            ownerRevocations.Key, IncentiveReason.ResidentShareUnused, -revoked, null, now, spot.Code));
+                    }
+                }
+
+                dbContext.SpotReleases.RemoveRange(futureReleases);
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Tell the affected residents: a removed/replaced owner loses the spot, a new owner gains one.

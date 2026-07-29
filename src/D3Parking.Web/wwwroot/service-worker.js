@@ -95,7 +95,8 @@ self.addEventListener('push', (event) => {
     })());
 });
 
-// Klik na notifikaci: fokusuj existující okno aplikace, jinak otevři nové.
+// Klik na notifikaci: naviguj existující okno aplikace na cíl notifikace a fokusuj ho,
+// jinak otevři nové. Samotný focus bez navigace by nechal uživatele na nesouvisející stránce.
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const url = event.notification.data?.url ?? '/';
@@ -104,6 +105,10 @@ self.addEventListener('notificationclick', (event) => {
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         const existing = windows.find((client) => 'focus' in client);
         if (existing) {
+            if ('navigate' in existing) {
+                // navigate() umí selhat (např. okno mimo scope) — focus má proběhnout i tak.
+                await existing.navigate(url).catch(() => undefined);
+            }
             await existing.focus();
         } else {
             await self.clients.openWindow(url);

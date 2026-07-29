@@ -86,10 +86,11 @@ fluent-design-theme {
 }
 
 /* Nadpisy: brandbook je sází verzálkami s výrazným prostrkáním (viz nadpisy
-   sekcí "BAREVNOST", "TYPOGRAFIE"). */
+   sekcí "BAREVNOST", "TYPOGRAFIE"). Pozor: ::deep patří jen do izolovaných
+   .razor.css souborů — v běžném stylesheetu je to neznámý pseudoelement a
+   zneplatnil by celý seznam selektorů. */
 h1, h2, h3,
-.fluent-typography-page-title,
-::deep .fluent-typography-page-title {
+.fluent-typography-page-title {
     font-family: var(--brand-font);
     letter-spacing: 0.01em;
 }

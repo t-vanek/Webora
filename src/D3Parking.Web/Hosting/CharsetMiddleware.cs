@@ -58,7 +58,10 @@ public sealed class CharsetMiddleware(RequestDelegate next)
         }
 
         buffer.Position = 0;
-        if (IsHtml(context.Response.ContentType))
+        // Only plain HTML can be re-encoded. Anything compressed (precompressed static assets,
+        // response compression) must pass through byte-for-byte — reading gzip/brotli bytes as
+        // text would corrupt the body while Content-Encoding still promises compressed content.
+        if (IsHtml(context.Response.ContentType) && context.Response.Headers.ContentEncoding.Count == 0)
         {
             var html = await new StreamReader(buffer, Encoding.UTF8).ReadToEndAsync();
             var bytes = encoding.GetBytes(html);

@@ -6,6 +6,7 @@ using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
+using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
 
@@ -216,8 +217,55 @@ public sealed class UserAdminService(
             return ToFailure(deleted);
         }
 
+        await CleanUpParkingFootprintAsync(userId, cancellationToken);
+
         logger.LogInformation("Admin {AdminId} deleted account {UserId}", adminId, userId);
         return AccountResult.Success;
+    }
+
+    /// <summary>
+    /// Severs a deleted account's footprint in the parking domain (nothing references Users by
+    /// FK): owned spots return to the shared pool, active bookings and waitlist entries stop
+    /// blocking spots for a ghost, and notification/push rows addressed to the nonexistent user
+    /// are dropped. Historical rows (completed reservations, the points ledger) are kept.
+    /// </summary>
+    private async Task CleanUpParkingFootprintAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Owned spots go back to the pool. Their upcoming releases are void with the owner gone —
+        // for an ownerless spot they no longer gate booking, but the reconcile sweep would keep
+        // processing them and write clawbacks/notifications for the deleted account. UTC "today"
+        // is close enough here; at worst one boundary day is treated as history.
+        var ownedSpotIds = await dbContext.ParkingSpots
+            .Where(s => s.OwnerId == userId)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+        if (ownedSpotIds.Count > 0)
+        {
+            var todayUtc = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.Date);
+            await dbContext.ParkingSpots
+                .Where(s => ownedSpotIds.Contains(s.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.OwnerId, (Guid?)null), cancellationToken);
+            await dbContext.SpotReleases
+                .Where(r => ownedSpotIds.Contains(r.SpotId) && r.Date >= todayUtc)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        // Active bookings would otherwise hold spots until the no-show sweep penalized a ghost.
+        await dbContext.Reservations
+            .Where(r => r.UserId == userId
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, ReservationStatus.Cancelled), cancellationToken);
+
+        await dbContext.QueueEntries
+            .Where(q => q.UserId == userId
+                && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered))
+            .ExecuteUpdateAsync(s => s.SetProperty(q => q.Status, QueueEntryStatus.Cancelled), cancellationToken);
+
+        await dbContext.PushSubscriptions.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await dbContext.Notifications.Where(n => n.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await dbContext.NotificationPreferences.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
     }
 
     private async Task<AccountResult?> ValidateRolesAsync(D3ParkingDbContext dbContext, IReadOnlyList<string> roles, CancellationToken cancellationToken)

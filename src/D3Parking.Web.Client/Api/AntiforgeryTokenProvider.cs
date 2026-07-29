@@ -4,8 +4,9 @@ namespace D3Parking.Web.Client.Api;
 
 /// <summary>
 /// Fetches and caches the ASP.NET Core antiforgery request token for the current session, and
-/// attaches it as the RequestVerificationToken header to outgoing POST/PUT/DELETE calls. The token
-/// is refreshed lazily on 400-class responses so it survives anti-forgery cookie rotation.
+/// attaches it as the RequestVerificationToken header to outgoing POST/PUT/DELETE calls. When the
+/// server rejects a request with 400 (the token/cookie pair rotated), the API client asks for a
+/// forced refresh and retries once — see NotificationsApiClient.SendUnsafeAsync.
 /// </summary>
 public sealed class AntiforgeryTokenProvider(HttpClient http)
 {
@@ -15,9 +16,9 @@ public sealed class AntiforgeryTokenProvider(HttpClient http)
     private string? _token;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
-    public async Task AttachAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    public async Task AttachAsync(HttpRequestMessage request, CancellationToken cancellationToken, bool forceRefresh = false)
     {
-        var token = _token ?? await RefreshAsync(cancellationToken);
+        var token = forceRefresh || _token is null ? await RefreshAsync(cancellationToken) : _token;
         request.Headers.Remove(HeaderName);
         request.Headers.Add(HeaderName, token);
     }

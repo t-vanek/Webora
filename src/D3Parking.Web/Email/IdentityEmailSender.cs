@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Localization;
 using D3Parking.Application.Abstractions.Email;
 using D3Parking.Infrastructure.Identity;
 
@@ -8,20 +9,21 @@ namespace D3Parking.Web.Email;
 /// Bridges ASP.NET Core Identity's email notifications (confirmation, password reset) onto the
 /// application's <see cref="IEmailSender"/> abstraction, so self-service flows send email out of
 /// the box. Lives in the web host because <see cref="IEmailSender{TUser}"/> ships in the ASP.NET
-/// Core shared framework.
+/// Core shared framework. Texts are localized with the request culture — the mails are triggered
+/// from the user's own register/reset request, so CurrentUICulture is their negotiated language.
 /// </summary>
-public sealed class IdentityEmailSender(IEmailSender emailSender) : IEmailSender<ApplicationUser>
+public sealed class IdentityEmailSender(IEmailSender emailSender, IStringLocalizer<SharedResource> localizer) : IEmailSender<ApplicationUser>
 {
     public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink) =>
         emailSender.SendAsync(new EmailMessage
         {
             To = email,
             ToName = user.DisplayName,
-            Subject = "Potvrďte svůj e-mail",
+            Subject = localizer["Email_Confirm_Subject"],
             HtmlBody = Layout(
-                "Vítejte ve D3Parking",
-                "<p>Potvrďte prosím svou e-mailovou adresu kliknutím na následující odkaz:</p>" +
-                $"<p><a href=\"{confirmationLink}\">Potvrdit e-mail</a></p>"),
+                localizer["Email_Confirm_Heading"],
+                $"<p>{localizer["Email_Confirm_Intro"]}</p>" +
+                $"<p><a href=\"{confirmationLink}\">{localizer["Email_Confirm_Action"]}</a></p>"),
         });
 
     public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink) =>
@@ -29,12 +31,12 @@ public sealed class IdentityEmailSender(IEmailSender emailSender) : IEmailSender
         {
             To = email,
             ToName = user.DisplayName,
-            Subject = "Obnovení hesla",
+            Subject = localizer["Email_Reset_Title"],
             HtmlBody = Layout(
-                "Obnovení hesla",
-                "<p>Pro nastavení nového hesla klikněte na následující odkaz:</p>" +
-                $"<p><a href=\"{resetLink}\">Obnovit heslo</a></p>" +
-                "<p>Pokud jste o obnovení hesla nežádali, tento e-mail ignorujte.</p>"),
+                localizer["Email_Reset_Title"],
+                $"<p>{localizer["Email_Reset_Intro"]}</p>" +
+                $"<p><a href=\"{resetLink}\">{localizer["Email_Reset_Action"]}</a></p>" +
+                $"<p>{localizer["Email_Reset_Ignore"]}</p>"),
         });
 
     public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode) =>
@@ -42,10 +44,10 @@ public sealed class IdentityEmailSender(IEmailSender emailSender) : IEmailSender
         {
             To = email,
             ToName = user.DisplayName,
-            Subject = "Kód pro obnovení hesla",
+            Subject = localizer["Email_ResetCode_Subject"],
             HtmlBody = Layout(
-                "Obnovení hesla",
-                $"<p>Váš kód pro obnovení hesla je:</p><p style=\"font-size:1.25rem;\"><strong>{resetCode}</strong></p>"),
+                localizer["Email_Reset_Title"],
+                $"<p>{localizer["Email_ResetCode_Intro"]}</p><p style=\"font-size:1.25rem;\"><strong>{resetCode}</strong></p>"),
         });
 
     private static string Layout(string heading, string content) =>
