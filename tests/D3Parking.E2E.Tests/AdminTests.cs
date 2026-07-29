@@ -38,15 +38,33 @@ public class AdminTests : AdminTest
     {
         await Page.GotoAsync("/admin/parking/spots");
         await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
-        await Page.Locator("fluent-tab", new() { HasText = "Generátor řady" }).ClickAsync();
 
         // Unique section prefix per run — the database persists between test runs.
         var prefix = $"G{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
-        await Page.Locator("fluent-text-field#ser-sections input").FillAsync(prefix);
-        await Page.Locator("fluent-number-field#ser-to input").FillAsync("5");
+
+        // Hydration slows down as the grid grows, and interactions racing the handshake are
+        // lost: a tab clicked mid-handshake switches only visually and flips back once the
+        // circuit binds, taking the panel (and its inputs) away again. Retry the whole
+        // tab + fill sequence with short timeouts until the live preview responds.
+        var countChip = Page.Locator(".batch-preview .count-chip");
+        for (var attempt = 0; attempt < 5 && !await countChip.IsVisibleAsync(); attempt++)
+        {
+            try
+            {
+                await Page.Locator("fluent-tab", new() { HasText = "Generátor řady" }).ClickAsync(new() { Timeout = 5000 });
+                await Page.Locator("fluent-text-field#ser-sections input").FillAsync(prefix, new() { Timeout = 5000 });
+                await Page.Locator("fluent-number-field#ser-to input").FillAsync("5", new() { Timeout = 5000 });
+            }
+            catch (TimeoutException)
+            {
+                // The panel flipped away mid-attempt — go around again.
+            }
+
+            await Page.WaitForTimeoutAsync(1200);
+        }
 
         // The live preview proves the plan landed (and the create button is enabled).
-        await Expect(Page.Locator(".batch-preview .count-chip")).ToHaveTextAsync("5");
+        await Expect(countChip).ToHaveTextAsync("5");
         await Page.Locator("#ser-create").ClickAsync();
 
         await Expect(Page.GetByText(new Regex("Vytvořeno míst: 5|Created 5"))).ToBeVisibleAsync();
@@ -63,12 +81,18 @@ public class AdminTests : AdminTest
         await Page.GotoAsync("/admin/parking/spots");
         await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
 
-        // Create a throwaway spot to retype.
+        // Create a throwaway spot to retype. Circuit hydration slows down as the grid grows,
+        // and a click fired during the handshake is silently dropped — retry until the row
+        // appears. FluentDataGrid renders a native table, so rows are plain <tr> elements.
         var code = $"T{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
-        await Page.Locator("fluent-text-field#single-code input").FillAsync(code);
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Přidat|Add)$") }).ClickAsync();
-        // FluentDataGrid renders a native table, so rows are plain <tr> elements.
         var row = Page.Locator(".admin-panel tr", new() { HasText = code });
+        for (var attempt = 0; attempt < 4 && !await row.IsVisibleAsync(); attempt++)
+        {
+            await Page.Locator("fluent-text-field#single-code input").FillAsync(code);
+            await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Přidat|Add)$") }).ClickAsync();
+            await Page.WaitForTimeoutAsync(1200);
+        }
+
         await Expect(row).ToBeVisibleAsync();
 
         // Flip the type via the inline select in the type column (first select of the row).
