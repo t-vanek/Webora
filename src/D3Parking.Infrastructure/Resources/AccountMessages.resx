@@ -43,6 +43,8 @@
   <data name="Error_TransitionNotAllowed" xml:space="preserve"><value>Přechod ze stavu „{0}" do „{1}" není povolen.</value></data>
   <data name="Email_Activation_Subject" xml:space="preserve"><value>Aktivace účtu</value></data>
   <data name="Email_Activation_Body" xml:space="preserve"><value>&lt;p&gt;Aktivujte svůj účet kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Aktivovat účet&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_AccountExists_Subject" xml:space="preserve"><value>Pokus o registraci s vaší adresou</value></data>
+  <data name="Email_AccountExists_Body" xml:space="preserve"><value>&lt;p&gt;Někdo (nejspíš vy) se právě pokusil zaregistrovat s touto e-mailovou adresou, účet s ní ale už existuje.&lt;/p&gt;&lt;p&gt;Pokud jste to byli vy, &lt;a href="{0}"&gt;přihlaste se&lt;/a&gt; nebo si &lt;a href="{1}"&gt;obnovte heslo&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Pokud ne, tento e-mail ignorujte — účet zůstává beze změny.&lt;/p&gt;</value></data>
   <data name="Email_Reset_Subject" xml:space="preserve"><value>Obnovení hesla</value></data>
   <data name="Email_Reset_Body" xml:space="preserve"><value>&lt;p&gt;Pro nastavení nového hesla klikněte na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Obnovit heslo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Pokud jste o obnovení nežádali, e-mail ignorujte.&lt;/p&gt;</value></data>
   <data name="Email_EmailChange_Subject" xml:space="preserve"><value>Potvrzení změny e-mailu</value></data>

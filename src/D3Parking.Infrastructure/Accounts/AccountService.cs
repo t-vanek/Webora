@@ -39,9 +39,14 @@ public sealed class AccountService(
 
     public async Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default)
     {
-        if (await userManager.FindByEmailAsync(email) is not null)
+        // Never reveal whether the address is taken — the same stance the password-reset and
+        // reactivation flows already take ("always report success"). The probe reports the
+        // generic success and the address's real owner gets an email instead: harmless if the
+        // owner simply forgot they have an account, actionable if someone else is trying theirs.
+        if (await userManager.FindByEmailAsync(email) is { } existing)
         {
-            return AccountResult.Failure(messages["Error_EmailExists"]);
+            await NotifyRegistrationRepeatedAsync(existing, cancellationToken);
+            return AccountResult.Success;
         }
 
         var user = new ApplicationUser
@@ -55,6 +60,15 @@ public sealed class AccountService(
         var created = await userManager.CreateAsync(user, password);
         if (!created.Succeeded)
         {
+            // The concurrent-race variant of the pre-check above: another registration for the
+            // same address landed between the check and the create. Identity's duplicate error
+            // in the response would leak existence just the same, so it maps to the same path.
+            if (IsDuplicate(created) && await userManager.FindByEmailAsync(email) is { } raced)
+            {
+                await NotifyRegistrationRepeatedAsync(raced, cancellationToken);
+                return AccountResult.Success;
+            }
+
             return ToFailure(created);
         }
 
@@ -62,6 +76,19 @@ public sealed class AccountService(
         await AssignDefaultRoleAsync(user, cancellationToken);
         await SendActivationEmailCoreAsync(user, cancellationToken);
         return AccountResult.Success;
+    }
+
+    private static bool IsDuplicate(IdentityResult result) =>
+        result.Errors.Any(e => e.Code is nameof(IdentityErrorDescriber.DuplicateEmail)
+            or nameof(IdentityErrorDescriber.DuplicateUserName));
+
+    private async Task NotifyRegistrationRepeatedAsync(ApplicationUser existing, CancellationToken cancellationToken)
+    {
+        var loginLink = await BuildLinkAsync("login");
+        var resetLink = await BuildLinkAsync("account/forgot-password");
+        await SendAsync(existing, messages["Email_AccountExists_Subject"],
+            messages["Email_AccountExists_Body", loginLink, resetLink]);
+        await AuditAsync(existing.Id, AccountAuditEventType.RegistrationRepeated, "self", null, cancellationToken);
     }
 
     private async Task AssignDefaultRoleAsync(ApplicationUser user, CancellationToken cancellationToken)
@@ -545,6 +572,11 @@ public sealed class AccountService(
     private async Task<string> BuildLinkAsync(string path, params (string Key, string Value)[] query)
     {
         var baseUrl = (await siteSettings.GetCanonicalBaseUrlAsync() ?? options.Value.BaseUrl).TrimEnd('/');
+        if (query.Length == 0)
+        {
+            return $"{baseUrl}/{path}";
+        }
+
         var queryString = string.Join('&', query.Select(q => $"{q.Key}={Uri.EscapeDataString(q.Value)}"));
         return $"{baseUrl}/{path}?{queryString}";
     }

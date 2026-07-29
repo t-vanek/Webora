@@ -29,6 +29,16 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
+    // Known-benign teardown fault, filtered by its exact signature: when a full-load navigation
+    // or tab close razes a page while a FluentMenu's JS module is still loading, the library's
+    // OnAfterRenderAsync throws ArgumentNullException("jsObjectReference") (fluentui-blazor bug,
+    // still present in 4.14.3) and the dying circuit logs it as an error on every sign-out.
+    // Nothing is lost — the page is gone either way — and every other circuit failure still
+    // logs; an ErrorBoundary cannot catch it (OnAfterRender faults bypass boundaries by design).
+    .Filter.ByExcluding(logEvent =>
+        logEvent.Exception is { } exception
+        && (exception.GetBaseException() as ArgumentNullException)?.ParamName == "jsObjectReference"
+        && exception.ToString().Contains("FluentMenu.OnAfterRenderAsync", StringComparison.Ordinal))
     .WriteTo.Console());
 
 // Application + infrastructure layers (EF Core/SQL Server, OpenIddict stores, identity seeder).

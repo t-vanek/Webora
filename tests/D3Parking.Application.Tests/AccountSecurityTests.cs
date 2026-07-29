@@ -60,13 +60,17 @@ public class AccountSecurityTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<D3ParkingDbContext>(o => o.UseSqlServer(builder.ConnectionString));
+        // Data protection backs the default token providers (RegisterAsync issues an email
+        // confirmation token); ephemeral keys are fine for a test process.
+        services.AddDataProtection();
         services.AddIdentityCore<ApplicationUser>(o =>
             {
                 o.User.RequireUniqueEmail = true;
                 o.Password.RequiredLength = 8;
             })
             .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<D3ParkingDbContext>();
+            .AddEntityFrameworkStores<D3ParkingDbContext>()
+            .AddDefaultTokenProviders();
         _provider = services.BuildServiceProvider();
 
         // The admin role must exist before the role-membership tests.
@@ -88,6 +92,24 @@ public class AccountSecurityTests
             await using var dbContext = new D3ParkingDbContext(_options);
             await dbContext.Database.EnsureDeletedAsync();
         }
+    }
+
+    [Test]
+    public async Task Registering_a_taken_email_reports_success_without_creating_a_duplicate()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var accounts = CreateAccountService(scope);
+
+        var email = $"probe-{Guid.NewGuid():N}@test.local";
+        var first = await accounts.RegisterAsync(email, "Str0ng!Password", null, CancellationToken.None);
+        var second = await accounts.RegisterAsync(email, "Different!Passw0rd", null, CancellationToken.None);
+
+        Assert.That(first.Succeeded, Is.True);
+        Assert.That(second.Succeeded, Is.True,
+            "A probe with a taken address must be indistinguishable from a fresh registration.");
+        Assert.That(userManager.Users.Count(u => u.Email == email), Is.EqualTo(1),
+            "The repeated registration must not create a second account.");
     }
 
     [Test]

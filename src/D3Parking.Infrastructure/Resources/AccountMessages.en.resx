@@ -43,6 +43,8 @@
   <data name="Error_TransitionNotAllowed" xml:space="preserve"><value>Transition from “{0}” to “{1}” is not allowed.</value></data>
   <data name="Email_Activation_Subject" xml:space="preserve"><value>Account activation</value></data>
   <data name="Email_Activation_Body" xml:space="preserve"><value>&lt;p&gt;Activate your account by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Activate account&lt;/a&gt;&lt;/p&gt;</value></data>
+  <data name="Email_AccountExists_Subject" xml:space="preserve"><value>Registration attempt with your address</value></data>
+  <data name="Email_AccountExists_Body" xml:space="preserve"><value>&lt;p&gt;Someone (most likely you) just tried to register with this email address, but an account with it already exists.&lt;/p&gt;&lt;p&gt;If it was you, &lt;a href="{0}"&gt;sign in&lt;/a&gt; or &lt;a href="{1}"&gt;reset your password&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If not, ignore this email — the account is unchanged.&lt;/p&gt;</value></data>
   <data name="Email_Reset_Subject" xml:space="preserve"><value>Password reset</value></data>
   <data name="Email_Reset_Body" xml:space="preserve"><value>&lt;p&gt;To set a new password, click the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Reset password&lt;/a&gt;&lt;/p&gt;&lt;p&gt;If you didn't request this, ignore the email.&lt;/p&gt;</value></data>
   <data name="Email_EmailChange_Subject" xml:space="preserve"><value>Confirm email change</value></data>
