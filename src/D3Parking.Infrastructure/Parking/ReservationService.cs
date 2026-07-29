@@ -652,9 +652,16 @@ public sealed class ReservationService(
             if (spots.TryGetValue(reservation.SpotId, out var spot) && spot.OwnerId is { } ownerId && ownerId != reservation.UserId)
             {
                 var date = DateOnly.FromDateTime(reservation.StartUtc.Date);
-                var release = await dbContext.SpotReleases.AsNoTracking()
+                // Tracked on purpose: the release accumulates ClawedBackPoints, which caps the
+                // day's total clawback at its awarded reward — several no-shows on one shared day
+                // must not stack percentages past what the owner ever earned. Within this batch
+                // EF's identity map hands back the same instance, so the cap holds across the
+                // loop as well as across sweeps.
+                var release = await dbContext.SpotReleases
                     .FirstOrDefaultAsync(r => r.SpotId == reservation.SpotId && r.Date == date, cancellationToken);
-                var clawback = policy.ComputeShareClawback(release?.AwardedPoints ?? 0);
+                var clawback = release is null
+                    ? 0
+                    : release.RegisterClawback(policy.ComputeShareClawback(release.AwardedPoints));
                 if (clawback > 0)
                 {
                     var ownerScore = await GetOrCreateScoreAsync(dbContext, ownerId, cancellationToken);
