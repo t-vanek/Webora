@@ -34,6 +34,7 @@ vyhrazeného místa) a penalizují nedostavení se.
   - [Rezervace a jejich životní cyklus](#rezervace-a-jejich-životní-cyklus)
   - [Kredity a dynamická cena](#kredity-a-dynamická-cena)
   - [Fronta při plném obsazení](#fronta-při-plném-obsazení)
+  - [„Nemůžu zaparkovat" a omluvný kupón](#nemůžu-zaparkovat-a-omluvný-kupón)
   - [Body a reputace](#body-a-reputace)
   - [Série, úrovně a výhody](#série-úrovně-a-výhody)
   - [Rezidentní místa](#rezidentní-místa)
@@ -76,18 +77,34 @@ Vizuální styl vychází ze značkového manuálu: plochy v Sherpa Blue, fialov
 prvků, zelená jako výplň zvýraznění a písmo Sora. Rozhraní je v češtině i angličtině a má světlý
 i tmavý režim.
 
-**Registrace** — vytvoření účtu na split-screen obrazovce a potvrzení o aktivačním e-mailu:
+**Domů** — hero s rychlou akcí, peněženka s body a úrovní, dnešní karty a dlaždice podle oprávnění:
+
+![Domů](docs/screenshots/home.png)
+
+**Rezervace místa** — vyhledání okna s živým cenovým náhledem (špička, obsazenost, zůstatek), karty
+volných míst — a nahoře banner **omluvného kupónu** na rezervaci zdarma:
+
+![Rezervace místa](docs/screenshots/reserve.png)
+
+**Žebříček** — úroveň s prstencem postupu, skóre, série dokončení, důvěra a pořadí kolegů:
+
+![Žebříček](docs/screenshots/leaderboard.png)
+
+**Neshody obsazenosti** — trend „nedalo se zaparkovat" per místo pro správce; záměrně bez viníka:
+
+![Neshody obsazenosti](docs/screenshots/mismatches.png)
+
+**Registrace** — vytvoření účtu na split-screen obrazovce s ukazatelem síly hesla:
 
 ![Registrace](docs/screenshots/registration.gif)
 
 **Přihlášení a používání** — přihlášení, peněženka v hlavičce, rezervace místa s živým náhledem ceny
-a bodů, a žebříček s úrovní, skóre důvěry a odznaky:
+a žebříček s úrovní a skóre důvěry:
 
 ![Přihlášení a používání](docs/screenshots/login.gif)
 
-**Administrace** — správa účtů a rolí, parkovací místa, *Pravidla a ceny* rozdělená do záložek
-(ekonomika, body a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita), nastavení webu
-a revize podezřelých interakcí:
+**Administrace** — správa účtů, parkovací místa, *Pravidla a ceny* v záložkách (ekonomika, body
+a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita) a neshody obsazenosti:
 
 ![Administrace](docs/screenshots/administration.gif)
 
@@ -157,6 +174,25 @@ Fronta je vázaná na **konkrétní časové okno** a obsluhuje se podle priorit
 - Vstup do fronty je zdarma a je možný jen při skutečně plném obsazení.
 
 Nabídky se vyhodnocují i průběžně v údržbové smyčce (expirace prošlých nabídek a doplnění nových).
+Propadlá nabídka pošle čekatele na konec fronty, takže další uvolněné místo dostane další v pořadí.
+
+### „Nemůžu zaparkovat" a omluvný kupón
+
+Když řidič dorazí a jeho rezervované místo je fyzicky zablokované cizím autem, nemusí to řešit
+nedostavením se: tlačítko **„Nemůžu zaparkovat"** (dostupné v okně check-inu) nabídne dvě cesty —
+**„Najít mi jiné místo"** zarezervuje první volné místo pro stejné okno s převodem původní platby
+(peněženka net nula), **„Jen zaznamenat stav"** rezervaci zruší s plnou vratkou bez ohledu na cutoff.
+Obojí **bez rizika no-show penalizace**.
+
+- Celý tok je záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega. Eviduje se
+  jen **stav místa** (neshoda obsazenosti) a správce vidí na `/admin/parking/mismatches` trend per
+  místo — opakované problémy konkrétního místa, ne seznam viníků.
+- **Omluvný kupón:** za potíž náleží kupón na **jednu rezervaci zdarma včetně špičkové ceny**.
+  Uplatní se zaškrtnutím při rezervaci, platí 30 dní, drží se max. 1 nevyčerpaný na uživatele
+  a **včasné zrušení/uvolnění ho vrací**. Fronta je záměrně bez kupónů (odchod od vzácného
+  claimnutého místa nesmí být bezbolestný).
+- **Pojistky:** záznam jde pořídit jen v době okna rezervace a nejvýše 2× na uživatele a den —
+  z toku se tak nedá udělat úniková cesta z nechtěných rezervací po refund cutoffu.
 
 ### Body a reputace
 
@@ -260,6 +296,10 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 8. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
    (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi** a admin dostane
    notifikaci. Tvrdé akce řeší admin ručně na stránce *Podezřelé interakce* (false-positive bezpečné).
+9. **Odměny za dokončení max. 1× za den**, check-in jen kolem okna rezervace a dokončení až po jeho
+   začátku — smyčka rezervuj→check-in→dokonči nefarmí ani body, ani kredity.
+10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; omluvný kupón se drží nejvýše
+    jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají co těžit.
 
 ### Údržba na pozadí
 
