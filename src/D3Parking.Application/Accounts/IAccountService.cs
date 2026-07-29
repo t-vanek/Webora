@@ -7,7 +7,7 @@ namespace D3Parking.Application.Accounts;
 public interface IAccountService
 {
     // Registration.
-    Task<AccountResult> RegisterAsync(string email, string password, string? displayName, CancellationToken cancellationToken = default);
+    Task<AccountResult> RegisterAsync(string email, string password, string? displayName, string? licensePlate = null, CancellationToken cancellationToken = default);
 
     // Activation (email confirmation).
     Task<AccountResult> SendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);

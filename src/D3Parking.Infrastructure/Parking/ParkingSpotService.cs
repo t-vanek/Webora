@@ -428,6 +428,30 @@ public sealed class ParkingSpotService(
                 plateOwners[NormalizePlate(owner.LicensePlate!)] = (owner.DisplayName ?? owner.Email ?? string.Empty, owner.Email);
             }
 
+            // Fleet plates answer as a fallback (TryAdd): a driver's own profile plate names the
+            // person directly, which beats the car — but an unpaired or manually paired company
+            // car would otherwise read as "unknown plate".
+            var fleetVehicles = await (from v in dbContext.CompanyVehicles.AsNoTracking()
+                                       join u in dbContext.Users.AsNoTracking() on v.PairedUserId equals u.Id into drivers
+                                       from driver in drivers.DefaultIfEmpty()
+                                       select new
+                                       {
+                                           v.NormalizedPlate,
+                                           v.Plate,
+                                           v.Name,
+                                           DriverName = driver != null ? (driver.DisplayName ?? driver.Email) : null,
+                                           DriverEmail = driver != null ? driver.Email : null,
+                                       })
+                .ToListAsync(cancellationToken);
+            foreach (var vehicle in fleetVehicles)
+            {
+                var vehicleLabel = messages["Fleet_Mismatch_Vehicle",
+                    vehicle.Name is null ? vehicle.Plate : $"{vehicle.Name} ({vehicle.Plate})"].Value;
+                plateOwners.TryAdd(vehicle.NormalizedPlate, (
+                    vehicle.DriverName is null ? vehicleLabel : $"{vehicleLabel} — {vehicle.DriverName}",
+                    vehicle.DriverEmail));
+            }
+
             var mismatchMinStart = mismatches.Min(m => m.StartUtc);
             var mismatchMaxEnd = mismatches.Max(m => m.EndUtc);
             visitorPlates = (await dbContext.VisitorBookings.AsNoTracking()
@@ -522,6 +546,5 @@ public sealed class ParkingSpotService(
     }
 
     /// <summary>Spacing-, dash- and case-insensitive plate form used for matching.</summary>
-    private static string NormalizePlate(string plate) =>
-        new(plate.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+    private static string NormalizePlate(string plate) => PlateNormalizer.Normalize(plate);
 }

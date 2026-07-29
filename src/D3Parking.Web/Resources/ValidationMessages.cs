@@ -20,6 +20,7 @@ public static class ValidationMessages
     public static string Phone_Required => Get();
     public static string Phone_Invalid => Get();
     public static string Code_Required => Get();
+    public static string Plate_Length => Get();
 
     private static string Get([System.Runtime.CompilerServices.CallerMemberName] string key = "") =>
         ResourceManager.GetString(key, CultureInfo.CurrentUICulture) ?? key;

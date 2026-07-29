@@ -818,4 +818,59 @@
   <data name="Landing_Step3_Title" xml:space="preserve"><value>Parkujte a sbírejte odměny</value></data>
   <data name="Landing_Step3_Desc" xml:space="preserve"><value>Check-in potvrdí příjezd, nevyužité místo uvolníte jedním klikem.</value></data>
   <data name="Landing_FinalTitle" xml:space="preserve"><value>Začněte parkovat chytře ještě dnes</value></data>
+  <data name="Nav_AdminFleet" xml:space="preserve"><value>Vozový park</value></data>
+  <data name="Nav_Short_Fleet" xml:space="preserve"><value>Vozy</value></data>
+  <data name="Fleet_Admin_Title" xml:space="preserve"><value>Vozový park</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>Evidence firemních vozidel podle SPZ. Když si uživatel uloží do profilu SPZ vozidla, jehož e-mail řidiče se shoduje s jeho účtem, může se s vozidlem spárovat potvrzovacím kódem z e-mailu — a stane se rezidentem přiděleného místa.</value></data>
+  <data name="Fleet_Admin_AddTitle" xml:space="preserve"><value>Přidat vozidlo</value></data>
+  <data name="Fleet_Admin_EditTitle" xml:space="preserve"><value>Upravit vozidlo {0}</value></data>
+  <data name="Fleet_Admin_Plate" xml:space="preserve"><value>SPZ</value></data>
+  <data name="Fleet_Admin_Name" xml:space="preserve"><value>Označení</value></data>
+  <data name="Fleet_Admin_DriverEmail" xml:space="preserve"><value>E-mail řidiče</value></data>
+  <data name="Fleet_Admin_Spot" xml:space="preserve"><value>Parkovací místo</value></data>
+  <data name="Fleet_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
+  <data name="Fleet_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Fleet_Admin_Save" xml:space="preserve"><value>Uložit změny</value></data>
+  <data name="Fleet_Admin_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Fleet_Admin_EmailHint" xml:space="preserve"><value>Samoobslužné spárování vyžaduje trojici: shodnou SPZ v profilu, shodný e-mail řidiče s e-mailem účtu a potvrzovací kód z e-mailu. Vozidlo bez e-mailu řidiče (pool car) lze spárovat jen ručně zde.</value></data>
+  <data name="Fleet_Admin_NoVehicles" xml:space="preserve"><value>Zatím žádná vozidla.</value></data>
+  <data name="Fleet_Admin_PairedUser" xml:space="preserve"><value>Spárovaný účet</value></data>
+  <data name="Fleet_Admin_State" xml:space="preserve"><value>Stav</value></data>
+  <data name="Fleet_Admin_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Fleet_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
+  <data name="Fleet_Admin_Edit" xml:space="preserve"><value>Upravit</value></data>
+  <data name="Fleet_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
+  <data name="Fleet_Admin_Deactivate" xml:space="preserve"><value>Deaktivovat</value></data>
+  <data name="Fleet_Admin_Delete" xml:space="preserve"><value>Smazat</value></data>
+  <data name="Fleet_Admin_NoSpot" xml:space="preserve"><value>— žádné —</value></data>
+  <data name="Fleet_Admin_NotPaired" xml:space="preserve"><value>— nespárováno —</value></data>
+  <data name="Fleet_Error_PlateRequired" xml:space="preserve"><value>Zadejte SPZ.</value></data>
+  <data name="Fleet_Error_DuplicatePlate" xml:space="preserve"><value>Vozidlo s touto SPZ už je evidováno, nebo je zvolené místo právě obsazené jiným vozidlem.</value></data>
+  <data name="Fleet_Error_VehicleNotFound" xml:space="preserve"><value>Vozidlo nebylo nalezeno.</value></data>
+  <data name="Fleet_Error_VehicleInactive" xml:space="preserve"><value>Vozidlo je neaktivní.</value></data>
+  <data name="Fleet_Error_AlreadyPaired" xml:space="preserve"><value>Vozidlo už je spárované s jiným účtem.</value></data>
+  <data name="Fleet_Error_UserAlreadyPaired" xml:space="preserve"><value>Účet už je spárovaný s jiným vozidlem.</value></data>
+  <data name="Fleet_Error_NotPairable" xml:space="preserve"><value>Samoobslužné spárování není dostupné. Obraťte se prosím na správce.</value></data>
+  <data name="Fleet_Error_PlateMissing" xml:space="preserve"><value>Nejdřív si do profilu uložte SPZ.</value></data>
+  <data name="Fleet_Error_CodeThrottled" xml:space="preserve"><value>Kód jsme odeslali před chvílí — zkuste to znovu za minutu.</value></data>
+  <data name="Fleet_Error_CodeInvalid" xml:space="preserve"><value>Neplatný nebo prošlý kód.</value></data>
+  <data name="Fleet_Error_TooManyAttempts" xml:space="preserve"><value>Příliš mnoho pokusů. Zkuste to znovu za 15 minut.</value></data>
+  <data name="Fleet_Error_SpotOccupied" xml:space="preserve"><value>Místo vozidla už má jiného rezidenta. Obraťte se prosím na správce.</value></data>
+  <data name="Fleet_Error_SpotTaken" xml:space="preserve"><value>Toto místo už je přiřazené jinému vozidlu.</value></data>
+  <data name="Fleet_Error_VisitorSpot" xml:space="preserve"><value>Návštěvnické místo nelze přiřadit firemnímu vozidlu.</value></data>
+  <data name="Profile_Vehicle_PairedBadge" xml:space="preserve"><value>Firemní vozidlo</value></data>
+  <data name="Profile_Vehicle_Paired" xml:space="preserve"><value>Spárováno s firemním vozidlem {0}.</value></data>
+  <data name="Profile_Vehicle_PairedSpot" xml:space="preserve"><value>Vaše rezidentní místo: {0}</value></data>
+  <data name="Profile_Vehicle_PairedHint" xml:space="preserve"><value>Odstraněním SPZ z profilu se spárování zruší a rezidentní místo se uvolní.</value></data>
+  <data name="Profile_Vehicle_FleetMatch" xml:space="preserve"><value>SPZ odpovídá firemnímu vozidlu {0}.</value></data>
+  <data name="Profile_Vehicle_SpotInfo" xml:space="preserve"><value>Vozidlo má přidělené parkovací místo {0} — spárováním se stanete jeho rezidentem.</value></data>
+  <data name="Profile_Vehicle_CodeIntro" xml:space="preserve"><value>Vlastnictví potvrdíte kódem, který vám zašleme na e-mail účtu.</value></data>
+  <data name="Profile_Vehicle_SendCode" xml:space="preserve"><value>Poslat ověřovací kód</value></data>
+  <data name="Profile_Vehicle_ResendCode" xml:space="preserve"><value>Poslat kód znovu</value></data>
+  <data name="Profile_Vehicle_CodeSent" xml:space="preserve"><value>Ověřovací kód byl odeslán na váš e-mail.</value></data>
+  <data name="Profile_Vehicle_Code" xml:space="preserve"><value>Ověřovací kód</value></data>
+  <data name="Profile_Vehicle_ConfirmCode" xml:space="preserve"><value>Potvrdit spárování</value></data>
+  <data name="Profile_Vehicle_NotPairable" xml:space="preserve"><value>Tato SPZ je vedena ve firemním vozovém parku, ale samoobslužné spárování není dostupné. Obraťte se prosím na správce.</value></data>
+  <data name="Register_LicensePlate" xml:space="preserve"><value>SPZ vozidla</value></data>
+  <data name="Register_LicensePlateHint" xml:space="preserve"><value>Pokud jezdíte firemním vozem, SPZ vás po aktivaci účtu propojí s vozovým parkem.</value></data>
 </root>

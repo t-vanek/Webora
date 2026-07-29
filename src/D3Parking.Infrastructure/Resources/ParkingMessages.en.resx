@@ -69,4 +69,14 @@
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
   <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Suspicious sharing interactions</value></data>
   <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Suspicious interactions).</value></data>
+  <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
+  <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code on your profile page:&lt;/p&gt;</value></data>
+  <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>
+  <data name="Fleet_Notify_Paired_Title" xml:space="preserve"><value>Vehicle paired</value></data>
+  <data name="Fleet_Notify_Paired_Body" xml:space="preserve"><value>Your account is now paired with company vehicle {0}.</value></data>
+  <data name="Fleet_Notify_Unpaired_Title" xml:space="preserve"><value>Vehicle pairing removed</value></data>
+  <data name="Fleet_Notify_Unpaired_Body" xml:space="preserve"><value>The pairing with company vehicle {0} was removed. If you didn't expect this, contact an administrator.</value></data>
+  <data name="Fleet_Mismatch_Vehicle" xml:space="preserve"><value>Company vehicle {0}</value></data>
+  <data name="Fleet_Notify_Pairable_Title" xml:space="preserve"><value>A company vehicle awaits pairing</value></data>
+  <data name="Fleet_Notify_Pairable_Body" xml:space="preserve"><value>Your plate {0} matches a company vehicle. Finish the pairing on your profile page with a confirmation code.</value></data>
 </root>

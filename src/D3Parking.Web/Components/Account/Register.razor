@@ -113,6 +113,22 @@ else
             <ValidationMessage For="() => Input.ConfirmPassword" />
         </div>
 
+        <div class="auth-field">
+            <div class="auth-field__labelrow">
+                <label class="auth-field__label" for="reg-plate">@L["Register_LicensePlate"]</label>
+                <span class="auth-field__optional">@L["Auth_Optional"]</span>
+            </div>
+            <div class="auth-field__box">
+                <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" Class="auth-field__icon" />
+                <InputText id="reg-plate"
+                           @bind-Value="Input.LicensePlate"
+                           maxlength="16"
+                           autocomplete="off" />
+            </div>
+            <p class="auth-field__hint">@L["Register_LicensePlateHint"]</p>
+            <ValidationMessage For="() => Input.LicensePlate" />
+        </div>
+
         <button type="submit" class="auth-submit">@L["Register_Submit"]</button>
     </EditForm>
 
@@ -132,7 +148,7 @@ else
 
     private async Task RegisterUser()
     {
-        var result = await AccountService.RegisterAsync(Input.Email, Input.Password, Input.DisplayName);
+        var result = await AccountService.RegisterAsync(Input.Email, Input.Password, Input.DisplayName, Input.LicensePlate);
         if (result.Succeeded)
         {
             Logger.LogInformation("Registered account {Email}", Input.Email);
@@ -159,5 +175,8 @@ else
         [DataType(DataType.Password)]
         [Compare(nameof(Password), ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ConfirmPassword_Mismatch))]
         public string ConfirmPassword { get; set; } = string.Empty;
+
+        [StringLength(16, ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Plate_Length))]
+        public string? LicensePlate { get; set; }
     }
 }

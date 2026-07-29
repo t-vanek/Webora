@@ -49,6 +49,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
+    public DbSet<CompanyVehicle> CompanyVehicles => Set<CompanyVehicle>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -217,6 +219,26 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // Shadow rowversion: a queue entry is mutated both by the user (leave, claim) and by
             // the maintenance loop (offer, expire) — a stale write must fail, not win.
             entry.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<CompanyVehicle>(vehicle =>
+        {
+            vehicle.ToTable("CompanyVehicles");
+            vehicle.HasKey(v => v.Id);
+            vehicle.Property(v => v.Plate).HasMaxLength(16).IsRequired();
+            vehicle.Property(v => v.NormalizedPlate).HasMaxLength(16).IsRequired();
+            vehicle.Property(v => v.Name).HasMaxLength(128);
+            vehicle.Property(v => v.DriverEmail).HasMaxLength(256);
+            vehicle.Property(v => v.Notes).HasMaxLength(512);
+            // One vehicle per plate — the plate is the registry's natural key.
+            vehicle.HasIndex(v => v.NormalizedPlate).IsUnique();
+            // A spot hosts at most one vehicle and a user pairs with at most one vehicle;
+            // both mirror the one-spot-per-resident invariant the pairing materializes into.
+            vehicle.HasIndex(v => v.AssignedSpotId).IsUnique().HasFilter("[AssignedSpotId] IS NOT NULL");
+            vehicle.HasIndex(v => v.PairedUserId).IsUnique().HasFilter("[PairedUserId] IS NOT NULL");
+            // Shadow rowversion: two users confirming a claim on the same vehicle (or an admin
+            // editing while a user pairs) must not overwrite each other silently.
+            vehicle.Property<byte[]>("Version").IsRowVersion();
         });
 
         builder.Entity<CollusionFlag>(flag =>

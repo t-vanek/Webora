@@ -115,6 +115,12 @@
                     <span class="side-nav__label">@L["Nav_AdminParking"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Spots"]</span>
                 </NavLink>
+                <NavLink href="admin/parking/fleet" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminFleet"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminFleet"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Fleet"]</span>
+                </NavLink>
             }
             @if (_canManageReservations)
             {

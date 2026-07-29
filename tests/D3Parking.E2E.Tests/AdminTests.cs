@@ -112,6 +112,35 @@ public class AdminTests : AdminTest
     }
 
     [Test]
+    public async Task Fleet_page_creates_a_vehicle_and_lists_it()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/fleet");
+        await Expect(Page.Locator(".form-panel")).ToBeVisibleAsync();
+        await Expect(Page.Locator("a[href='admin/parking/fleet']")).ToBeVisibleAsync();
+
+        // Unique plate per run — the database persists between test runs. Same retry idiom as
+        // the spots grid: a click landing mid-render can be swallowed, the row is the wait.
+        var plate = $"E2E{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
+        var row = Page.Locator(".admin-panel tr", new() { HasText = plate });
+        for (var attempt = 0; attempt < 4 && !await row.IsVisibleAsync(); attempt++)
+        {
+            await Page.Locator("fluent-text-field#fleet-plate input").FillAsync(plate);
+            await Page.Locator("#fleet-add").ClickAsync();
+            try
+            {
+                await row.WaitForAsync(new() { Timeout = 3000 });
+            }
+            catch (TimeoutException)
+            {
+                // The click was lost — go around again.
+            }
+        }
+
+        await Expect(row).ToBeVisibleAsync();
+        await Expect(row.Locator(".state-pill--on")).ToBeVisibleAsync();
+    }
+
+    [Test]
     public async Task Rules_and_pricing_tabs_switch_content()
     {
         // A click that lands during the circuit handshake is silently dropped and the tab never

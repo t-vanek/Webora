@@ -7,6 +7,7 @@
 @inject INotificationService NotificationService
 @inject ISiteSettingsService SiteSettings
 @inject IUserLocationService UserLocation
+@inject IFleetService Fleet
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
@@ -86,6 +87,63 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveVehicle"]</FluentButton>
                         </FluentStack>
                     </EditForm>
+
+                    @if (!string.IsNullOrEmpty(_pairingError))
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_pairingError]</FluentMessageBar>
+                    }
+                    @if (!string.IsNullOrEmpty(_pairingInfo))
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">@L[_pairingInfo]</FluentMessageBar>
+                    }
+
+                    @* Fleet pairing. NoPlate/NoMatch render nothing — a private car has no
+                       business seeing fleet mechanics. NotPairable stays deliberately vague
+                       (see VehiclePairingState) and points at the administrator. *@
+                    @switch (_pairing.State)
+                    {
+                        case VehiclePairingState.Paired:
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                                    <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_Vehicle_PairedBadge"]</FluentBadge>
+                                    <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_Paired", PairedVehicleLabel]</FluentLabel>
+                                </FluentStack>
+                                @if (_pairing.SpotCode is { } pairedSpot)
+                                {
+                                    <FluentLabel Typo="Typography.Body"><strong>@L["Profile_Vehicle_PairedSpot", pairedSpot]</strong></FluentLabel>
+                                }
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_Vehicle_PairedHint"]</small></FluentLabel>
+                            </FluentStack>
+                            break;
+
+                        case VehiclePairingState.CodeRequired:
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                                <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_FleetMatch", PairedVehicleLabel]</FluentLabel>
+                                @if (_pairing.SpotCode is { } pairableSpot)
+                                {
+                                    <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_SpotInfo", pairableSpot]</FluentLabel>
+                                }
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_Vehicle_CodeIntro"]</FluentLabel>
+                                <MuteButton FormName="pairing-code" Appearance="Appearance.Accent"
+                                            Label="@(_pairing.CodeSentAtUtc is null ? L["Profile_Vehicle_SendCode"] : L["Profile_Vehicle_ResendCode"])"
+                                            OnSubmit="SendPairingCodeAsync" />
+                                @if (_pairing.CodeSentAtUtc is not null)
+                                {
+                                    <EditForm Model="CodeInput" method="post" OnValidSubmit="ConfirmPairingAsync" FormName="pairing-confirm">
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                                            <FluentTextField Name="CodeInput.Code" @bind-Value="CodeInput.Code" Maxlength="8"
+                                                             Label="@L["Profile_Vehicle_Code"]" Style="width:160px" />
+                                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_Vehicle_ConfirmCode"]</FluentButton>
+                                        </FluentStack>
+                                    </EditForm>
+                                }
+                            </FluentStack>
+                            break;
+
+                        case VehiclePairingState.NotPairable:
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_Vehicle_NotPairable"]</FluentLabel>
+                            break;
+                    }
                 </FluentStack>
             </FluentCard>
 
@@ -218,10 +276,18 @@
     [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
     [SupplyParameterFromForm(FormName = "department")] private TeamFormModel TeamInput { get; set; } = new();
     [SupplyParameterFromForm(FormName = "vehicle")] private VehicleFormModel VehicleInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "pairing-confirm")] private PairingCodeModel CodeInput { get; set; } = new();
 #pragma warning restore BL0008
     private UserHomeDto _home = new(null, null, false);
     private string? _homeError;
     private string? _saveError;
+    private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null);
+    private string? _pairingError;
+    private string? _pairingInfo;
+
+    private string PairedVehicleLabel => _pairing.VehicleName is { Length: > 0 } name
+        ? $"{_pairing.VehiclePlate} ({name})"
+        : _pairing.VehiclePlate ?? string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,6 +301,7 @@
             HomeInput.Address ??= _home.Address;
             TeamInput.Department ??= user.Department;
             VehicleInput.Plate ??= user.LicensePlate;
+            _pairing = await Fleet.GetMyPairingStatusAsync(user.Id);
         }
     }
 
@@ -274,13 +341,63 @@
             user.LicensePlate = string.IsNullOrWhiteSpace(VehicleInput.Plate)
                 ? null
                 : VehicleInput.Plate.Trim().ToUpperInvariant();
-            ReportSave(await UserManager.UpdateAsync(user));
+            var saved = await UserManager.UpdateAsync(user);
+            ReportSave(saved);
+            if (saved.Succeeded)
+            {
+                // A changed plate may sever an existing fleet pairing (and the residency it
+                // carried); the refreshed status below then shows where the user stands.
+                await Fleet.SyncUserPlateAsync(user.Id);
+            }
+
+            _pairing = await Fleet.GetMyPairingStatusAsync(user.Id);
+        }
+    }
+
+    private async Task SendPairingCodeAsync()
+    {
+        _pairingError = null;
+        _pairingInfo = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            var result = await Fleet.RequestPairingCodeAsync(userId);
+            if (result.Succeeded)
+            {
+                _pairingInfo = "Profile_Vehicle_CodeSent";
+            }
+            else
+            {
+                _pairingError = result.Errors.FirstOrDefault();
+            }
+
+            _pairing = await Fleet.GetMyPairingStatusAsync(userId);
+        }
+    }
+
+    private async Task ConfirmPairingAsync()
+    {
+        _pairingError = null;
+        _pairingInfo = null;
+        if (await CurrentUserIdAsync() is { } userId)
+        {
+            var result = await Fleet.ConfirmPairingAsync(userId, CodeInput.Code ?? string.Empty);
+            if (!result.Succeeded)
+            {
+                _pairingError = result.Errors.FirstOrDefault();
+            }
+
+            _pairing = await Fleet.GetMyPairingStatusAsync(userId);
         }
     }
 
     private sealed class VehicleFormModel
     {
         public string? Plate { get; set; }
+    }
+
+    private sealed class PairingCodeModel
+    {
+        public string? Code { get; set; }
     }
 
     private async Task SaveHomeAsync()

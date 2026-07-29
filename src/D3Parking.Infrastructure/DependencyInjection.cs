@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<ICollusionService, CollusionService>();
         services.AddScoped<IAvailabilityCampaignService, AvailabilityCampaignService>();
         services.AddScoped<IVisitorBookingService, VisitorBookingService>();
+        services.AddScoped<IFleetService, FleetService>();
 
         // Distance scaling for the shared-spot reward. Haversine works offline; switch to the OSRM
         // driving-distance provider via config ("Distance:Provider": "Osrm") — it falls back to
