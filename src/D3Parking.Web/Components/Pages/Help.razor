@@ -1,0 +1,133 @@
+@page "/help"
+@using D3Parking.Web.Authorization
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Help_Title"]</PageTitle>
+
+@* Uživatelská nápověda. Statické SSR — je to čtený text, žádná interaktivita není potřeba
+   (rozbalování řeší nativní <details>), takže stránka nezabírá circuit a funguje i bez JS.
+   Sekce pro správce se ukazují podle oprávnění, aby běžný uživatel nečetl návody k věcem,
+   které v menu nemá. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:900px">
+    <div class="admin-head__titles">
+        <FluentLabel Typo="Typography.PageTitle">@L["Help_Title"]</FluentLabel>
+        <p class="admin-head__intro">@L["Help_Intro"]</p>
+    </div>
+
+    <details class="help-item" open>
+        <summary class="help-item__q">@L["Help_Reserve_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Reserve_A1"]</p>
+            <p>@L["Help_Reserve_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Credits_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Credits_A1"]</p>
+            <ul>
+                <li>@L["Help_Credits_Li1"]</li>
+                <li>@L["Help_Credits_Li2"]</li>
+                <li>@L["Help_Credits_Li3"]</li>
+            </ul>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Points_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Points_A1"]</p>
+            <ul>
+                <li>@L["Help_Points_Li1"]</li>
+                <li>@L["Help_Points_Li2"]</li>
+                <li>@L["Help_Points_Li3"]</li>
+                <li>@L["Help_Points_Li4"]</li>
+            </ul>
+            <p>@L["Help_Points_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_NoShow_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_NoShow_A1"]</p>
+            <p>@L["Help_NoShow_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Queue_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Queue_A1"]</p>
+            <p>@L["Help_Queue_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Blocked_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Blocked_A1"]</p>
+            <p>@L["Help_Blocked_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Resident_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Resident_A1"]</p>
+            <p>@L["Help_Resident_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Notifications_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Notifications_A1"]</p>
+            <p>@L["Help_Notifications_A2"]</p>
+        </div>
+    </details>
+
+    <details class="help-item">
+        <summary class="help-item__q">@L["Help_Profile_Q"]</summary>
+        <div class="help-item__a">
+            <p>@L["Help_Profile_A1"]</p>
+            <ul>
+                <li>@L["Help_Profile_Li1"]</li>
+                <li>@L["Help_Profile_Li2"]</li>
+                <li>@L["Help_Profile_Li3"]</li>
+            </ul>
+        </div>
+    </details>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)">
+        <FluentLabel Typo="Typography.Subject" Style="margin-top:12px">@L["Help_AdminSection"]</FluentLabel>
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Visitors_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Visitors_A1"]</p>
+                <p>@L["Help_Visitors_A2"]</p>
+            </div>
+        </details>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)">
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Mismatch_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Mismatch_A1"]</p>
+                <p>@L["Help_Mismatch_A2"]</p>
+            </div>
+        </details>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)">
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_Rules_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_Rules_A1"]</p>
+                <p>@L["Help_Rules_A2"]</p>
+            </div>
+        </details>
+    </AuthorizeView>
+</FluentStack>

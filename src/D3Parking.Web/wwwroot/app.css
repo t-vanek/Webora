@@ -1783,6 +1783,63 @@ h1:focus {
     margin: 0;
 }
 
+/* Nápověda: rozbalovací otázky nad nativním <details>, aby stránka fungovala
+   i bez interaktivního circuitu (je to jen text ke čtení). */
+.help-item {
+    border: 1px solid var(--neutral-stroke-divider-rest, #e3e6ea);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    padding: 0;
+    width: 100%;
+}
+
+.help-item__q {
+    cursor: pointer;
+    list-style: none;
+    padding: 14px 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.help-item__q::-webkit-details-marker {
+    display: none;
+}
+
+.help-item__q::before {
+    content: "+";
+    display: inline-flex;
+    justify-content: center;
+    width: 18px;
+    color: var(--accent-foreground-rest, #884DFF);
+    font-weight: 700;
+}
+
+.help-item[open] .help-item__q::before {
+    content: "–";
+}
+
+.help-item__a {
+    padding: 0 18px 16px 46px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--neutral-foreground-rest, #333);
+}
+
+.help-item__a p {
+    margin: 0 0 10px;
+}
+
+.help-item__a ul {
+    margin: 0 0 10px;
+    padding-left: 18px;
+}
+
+.help-item__a li {
+    margin-bottom: 4px;
+}
+
 .count-chip {
     display: inline-flex;
     align-items: center;
