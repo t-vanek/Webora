@@ -350,6 +350,19 @@
   <data name="Parking_Error_OwnConflict" xml:space="preserve"><value>V tomto čase už máte jinou rezervaci.</value></data>
   <data name="Parking_Error_ReservationNotFound" xml:space="preserve"><value>Rezervace nebyla nalezena.</value></data>
   <data name="Parking_Error_InvalidState" xml:space="preserve"><value>Tuto akci v aktuálním stavu rezervace nelze provést.</value></data>
+  <data name="Parking_Error_CheckInTooEarly" xml:space="preserve"><value>Check-in je možný až krátce před začátkem rezervace.</value></data>
+  <data name="Parking_Error_CheckInWindowOver" xml:space="preserve"><value>Okno rezervace už skončilo, check-in není možný.</value></data>
+  <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>Rezervaci lze dokončit až po začátku jejího okna.</value></data>
+  <data name="Email_Confirm_Subject" xml:space="preserve"><value>Potvrďte svůj e-mail</value></data>
+  <data name="Email_Confirm_Heading" xml:space="preserve"><value>Vítejte ve D3Parking</value></data>
+  <data name="Email_Confirm_Intro" xml:space="preserve"><value>Potvrďte prosím svou e-mailovou adresu kliknutím na následující odkaz:</value></data>
+  <data name="Email_Confirm_Action" xml:space="preserve"><value>Potvrdit e-mail</value></data>
+  <data name="Email_Reset_Title" xml:space="preserve"><value>Obnovení hesla</value></data>
+  <data name="Email_Reset_Intro" xml:space="preserve"><value>Pro nastavení nového hesla klikněte na následující odkaz:</value></data>
+  <data name="Email_Reset_Action" xml:space="preserve"><value>Obnovit heslo</value></data>
+  <data name="Email_Reset_Ignore" xml:space="preserve"><value>Pokud jste o obnovení hesla nežádali, tento e-mail ignorujte.</value></data>
+  <data name="Email_ResetCode_Subject" xml:space="preserve"><value>Kód pro obnovení hesla</value></data>
+  <data name="Email_ResetCode_Intro" xml:space="preserve"><value>Váš kód pro obnovení hesla je:</value></data>
   <data name="Parking_Leaderboard_Title" xml:space="preserve"><value>Žebříček</value></data>
   <data name="Parking_Leaderboard_Intro" xml:space="preserve"><value>Body získáváte za chování, které zlepšuje využití parkoviště.</value></data>
   <data name="Parking_MyScore" xml:space="preserve"><value>Mé skóre</value></data>

@@ -201,13 +201,28 @@
     private string? _error;
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
+    private Guid _loadedId;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
         _adminId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
         _allRoles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
         _tz = await SiteSettings.GetTimeZoneAsync();
-        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The router reuses this component instance when only the route parameter changes.
+        // Without reloading, a link from user A's detail to user B would keep A's data on
+        // screen while the save/block/delete actions already target B.
+        if (_loadedId != Id)
+        {
+            _loadedId = Id;
+            _message = _error = null;
+            _confirmDelete = false;
+            await LoadAsync();
+        }
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");

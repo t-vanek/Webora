@@ -22,6 +22,12 @@ public static class DependencyInjection
                 options.User.RequireUniqueEmail = true;
                 options.Password.RequiredLength = 8;
                 options.SignIn.RequireConfirmedAccount = false;
+
+                // Brute-force protection: repeated failed sign-ins temporarily lock the account
+                // (PasswordSignInAsync is called with lockoutOnFailure: true in Login.razor).
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             })
             .AddEntityFrameworkStores<D3ParkingDbContext>()
             .AddSignInManager<D3Parking.Web.Identity.D3ParkingSignInManager>()
@@ -44,10 +50,45 @@ public static class DependencyInjection
             options.LoginPath = "/login";
             options.LogoutPath = "/logout";
             options.AccessDeniedPath = "/access-denied";
+
+            // API and SignalR clients need real status codes. The default login redirect surfaces
+            // to fetch() as a followed 302 → 200 login HTML, which JSON callers can neither detect
+            // nor handle — an expired session would make POSTs look like successes. Pages keep the
+            // redirect behaviour.
+            options.Events.OnRedirectToLogin = context =>
+            {
+                if (IsApiRequest(context.Request))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                }
+                else
+                {
+                    context.Response.Redirect(context.RedirectUri);
+                }
+
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                if (IsApiRequest(context.Request))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                }
+                else
+                {
+                    context.Response.Redirect(context.RedirectUri);
+                }
+
+                return Task.CompletedTask;
+            };
         });
 
         return services;
     }
+
+    /// <summary>Requests that expect status codes rather than login-page redirects.</summary>
+    private static bool IsApiRequest(HttpRequest request) =>
+        request.Path.StartsWithSegments("/api") || request.Path.StartsWithSegments("/hubs");
 
     /// <summary>
     /// Adds the OpenIddict authorization server and token validation. The OpenIddict EF stores

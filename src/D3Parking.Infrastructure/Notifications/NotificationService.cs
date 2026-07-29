@@ -79,6 +79,10 @@ public sealed class NotificationService(
 
     public async Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default)
     {
+        // take comes straight from the query string; unclamped it would be a free-form page size
+        // (and a negative value is a SQL error in TOP()).
+        var limit = Math.Clamp(take, 1, 200);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var query = dbContext.Notifications.AsNoTracking().Where(n => n.UserId == userId);
         if (unreadOnly)
@@ -86,7 +90,7 @@ public sealed class NotificationService(
             query = query.Where(n => n.ReadAtUtc == null);
         }
 
-        var ordered = query.OrderByDescending(n => n.CreatedAtUtc).Take(take);
+        var ordered = query.OrderByDescending(n => n.CreatedAtUtc).Take(limit);
         return await mapper.ProjectToDtos(ordered).ToListAsync(cancellationToken);
     }
 
@@ -209,6 +213,19 @@ public sealed class NotificationService(
         {
             preferences = new NotificationPreferences(userId);
             dbContext.NotificationPreferences.Add(preferences);
+            try
+            {
+                // Persist right away: the first two notifications for a user can run concurrently,
+                // and deferring this insert to the caller's SaveChanges would fail the whole
+                // operation on the primary-key race instead of just this row.
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Lost the race — drop the local add and use the winner's committed row.
+                dbContext.Entry(preferences).State = EntityState.Detached;
+                preferences = (await dbContext.NotificationPreferences.FindAsync([userId], cancellationToken))!;
+            }
         }
 
         return preferences;

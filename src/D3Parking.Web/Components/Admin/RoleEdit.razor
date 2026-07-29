@@ -111,7 +111,20 @@
     private string? _message;
     private string? _error;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    private Guid _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reload when the route parameter changes on a reused instance — otherwise the screen
+        // would keep showing the previous role while the actions target the new Id.
+        if (_loadedId != Id)
+        {
+            _loadedId = Id;
+            _message = _error = null;
+            _confirmDelete = false;
+            await LoadAsync();
+        }
+    }
 
     private async Task LoadAsync()
     {

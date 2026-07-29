@@ -18,6 +18,10 @@ namespace D3Parking.Infrastructure.Accounts;
 public sealed class AccountService(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
+    // The scoped context is the SAME instance UserManager's store writes through (both resolve it
+    // from the scope), which is what lets ConfirmEmailChangeAsync wrap Identity's separate saves
+    // in one transaction. The factory below is for independent reads/writes.
+    D3ParkingDbContext identityDbContext,
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     IEmailSender emailSender,
     AccountAuditMapper auditMapper,
@@ -205,18 +209,25 @@ public sealed class AccountService(
             return NotFound();
         }
 
+        // Email doubles as the username in D3Parking. The two updates are separate saves inside
+        // Identity, so run them in one transaction — a failed rename must not leave the login
+        // (username) on the old address while the profile already shows the new one. Returning
+        // before Commit disposes the transaction and rolls the email change back.
+        await using var transaction = await identityDbContext.Database.BeginTransactionAsync(cancellationToken);
+
         var result = await userManager.ChangeEmailAsync(user, newEmail, token);
         if (!result.Succeeded)
         {
             return ToFailure(result);
         }
 
-        // Email doubles as the username in D3Parking, so keep them in sync.
         var renamed = await userManager.SetUserNameAsync(user, newEmail);
         if (!renamed.Succeeded)
         {
             return ToFailure(renamed);
         }
+
+        await transaction.CommitAsync(cancellationToken);
 
         await AuditAsync(user.Id, AccountAuditEventType.EmailChanged, "self", newEmail, cancellationToken);
         await notifications.NotifyAsync(user.Id, NotificationCategory.SelfService, NotificationLevel.Security,
@@ -304,7 +315,16 @@ public sealed class AccountService(
             return AccountResult.Failure(messages["Error_InvalidReactivationToken"]);
         }
 
-        return await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Reactivated, cancellationToken);
+        var result = await TransitionAsync(user, AccountStatus.Active, "self", null, AccountAuditEventType.Reactivated, cancellationToken);
+        if (result.Succeeded)
+        {
+            // The confirmation token is stateless; rotating the security stamp invalidates it (and
+            // any other outstanding token), so a used link can't be replayed to flip the account
+            // state again later.
+            await userManager.UpdateSecurityStampAsync(user);
+        }
+
+        return result;
     }
 
     public async Task<AccountResult> RequestSuspendAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -342,7 +362,15 @@ public sealed class AccountService(
             return AccountResult.Failure(messages["Error_InvalidSuspendToken"]);
         }
 
-        return await TransitionAsync(user, AccountStatus.Suspended, "self", null, AccountAuditEventType.Suspended, cancellationToken);
+        var result = await TransitionAsync(user, AccountStatus.Suspended, "self", null, AccountAuditEventType.Suspended, cancellationToken);
+        if (result.Succeeded)
+        {
+            // Rotating the security stamp makes the used link single-shot (the token embeds the
+            // stamp) and, as a bonus, invalidates the suspended account's other live sessions.
+            await userManager.UpdateSecurityStampAsync(user);
+        }
+
+        return result;
     }
 
     public async Task<AccountResult> BlockAsync(Guid userId, Guid adminId, string? reason, CancellationToken cancellationToken = default)

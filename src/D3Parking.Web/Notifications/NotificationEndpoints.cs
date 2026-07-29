@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Options;
 using D3Parking.Application.Notifications;
 using D3Parking.Contracts.Notifications;
@@ -11,6 +12,33 @@ public static class NotificationEndpoints
     public static IEndpointRouteBuilder MapNotificationApi(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/notifications").RequireAuthorization();
+
+        // Cookie-authenticated JSON endpoints get no automatic antiforgery validation — the
+        // UseAntiforgery middleware only checks endpoints carrying antiforgery metadata, which
+        // minimal APIs infer for form binding alone. Validate the RequestVerificationToken header
+        // (attached by the WASM client) explicitly on every unsafe verb, so CSRF protection does
+        // not rest on the SameSite cookie attribute alone.
+        group.AddEndpointFilter(async (invocation, next) =>
+        {
+            var httpContext = invocation.HttpContext;
+            var method = httpContext.Request.Method;
+            if (HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsDelete(method))
+            {
+                try
+                {
+                    await httpContext.RequestServices.GetRequiredService<IAntiforgery>()
+                        .ValidateRequestAsync(httpContext);
+                }
+                catch (AntiforgeryValidationException)
+                {
+                    // With a body on purpose: bodyless 4xx responses are re-executed by the
+                    // status-code pages middleware (see the subscription endpoint below).
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid antiforgery token.");
+                }
+            }
+
+            return await next(invocation);
+        });
 
         group.MapGet("", async (ClaimsPrincipal user, INotificationService service, bool? unreadOnly, int? take, CancellationToken ct) =>
         {
