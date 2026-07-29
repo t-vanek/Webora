@@ -249,7 +249,15 @@ app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext con
             new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/" });
     }
 
-    return Results.LocalRedirect(string.IsNullOrEmpty(redirectUri) ? "/" : redirectUri);
+    // Only ever bounce within the site. Results.LocalRedirect would seem to do that, but it
+    // throws (a 500) at execution time for a non-local URL — and this endpoint's parameter is
+    // attacker-writable (crafted links, URL-mangling mail scanners), so a bad value must fall
+    // back to the home page, not an error page.
+    var localTarget = !string.IsNullOrEmpty(redirectUri)
+        && redirectUri.StartsWith('/') && !redirectUri.StartsWith("//") && !redirectUri.StartsWith("/\\")
+            ? redirectUri
+            : "/";
+    return Results.Redirect(localTarget);
 });
 
 // Apply migrations (development) and seed roles, permissions and the admin account.

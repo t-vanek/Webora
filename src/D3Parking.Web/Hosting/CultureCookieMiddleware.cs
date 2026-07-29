@@ -28,7 +28,7 @@ public static class CultureCookieMiddleware
             var request = context.Request;
             if (HttpMethods.IsGet(request.Method)
                 && !request.Cookies.ContainsKey(CookieRequestCultureProvider.DefaultCookieName)
-                && AcceptsHtml(request)
+                && HtmlRequests.AcceptsHtml(request)
                 && context.Features.Get<IRequestCultureFeature>() is { } negotiated)
             {
                 context.Response.Cookies.Append(
@@ -39,9 +39,4 @@ public static class CultureCookieMiddleware
 
             return next(context);
         });
-
-    // Document and enhanced-navigation requests advertise text/html; static assets, the WS
-    // handshake, APIs and hubs do not — no point stamping cookies on those responses.
-    private static bool AcceptsHtml(HttpRequest request) =>
-        request.Headers.Accept.Any(static v => v?.Contains("text/html", StringComparison.OrdinalIgnoreCase) == true);
 }

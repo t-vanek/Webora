@@ -41,7 +41,7 @@ public sealed class SiteSettingsService(
             ?? SiteSettings.CreateDefault();
 
         return new DomainPolicy(
-            s.CanonicalHost, s.Port, s.ForceHttps, s.HstsEnabled,
+            s.CanonicalHost, s.Scheme, s.Port, s.ForceHttps, s.HstsEnabled,
             s.HstsMaxAgeDays, s.HstsIncludeSubDomains, s.HstsPreload, s.WwwPreference, s.Aliases,
             s.LowercaseUrls, s.TrailingSlash);
     }
