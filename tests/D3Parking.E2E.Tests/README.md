@@ -12,6 +12,9 @@ pages and the responsive layout.
 - A reachable Microsoft SQL Server — by default SQL Server LocalDB
   (`(localdb)\MSSQLLocalDB`), see `ConnectionStrings:SqlServer` in
   `src/D3Parking.Web/appsettings.json`. Development applies the migrations on start.
+  In Claude Code on the web the SessionStart hook (`.claude/hooks/session-start.sh`)
+  starts SQL Server 2022 in Docker and exports `ConnectionStrings__SqlServer`
+  automatically.
 - The Playwright browser. After the first build, install it once:
 
   ```bash
