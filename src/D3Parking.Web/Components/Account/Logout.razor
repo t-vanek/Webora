@@ -14,7 +14,9 @@
 
     <AuthorizeView Context="auth">
         <Authorized>
-            <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout">
+            @* data-push-unsubscribe: app.js před odesláním zruší push subscription tohoto
+               prohlížeče, aby sdílený počítač nezobrazoval notifikace odhlášeného uživatele. *@
+            <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout" data-push-unsubscribe>
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                     <FluentLabel Typo="Typography.Body">@L["Logout_Confirm"]</FluentLabel>
                     <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Logout_Submit"]</FluentButton>

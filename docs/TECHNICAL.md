@@ -82,8 +82,14 @@ Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 ```jsonc
 "Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "D3Parking/1.0 (parking)" },
 "Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" },
-"WebPush":   { "Subject": "mailto:admin@example.com", "PublicKey": "<VAPID>", "PrivateKey": "<VAPID>" }
+"WebPush":   { "Subject": "mailto:admin@example.com", "PublicKey": "<VAPID>", "PrivateKey": "<VAPID>" },
+"IdentityServer": { "SigningCertificatePath": "<pfx>", "SigningCertificatePassword": "…", "EncryptionCertificatePath": "<pfx>", "EncryptionCertificatePassword": "…" }
 ```
+
+**OpenIddict certifikáty:** bez nakonfigurované sekce `IdentityServer` se používají vývojové
+certifikáty (lokálně v pořádku). V produkci se ale regenerují se strojem/kontejnerem — každý
+redeploy by zneplatnil vydané tokeny, proto aplikace mimo Development loguje varování, dokud
+nejsou podepisovací a šifrovací PFX certifikáty nastavené.
 
 **Web Push (VAPID):** bez klíčů je push vypnutý (přepínač ve zvonečku se neukáže). Vývojový pár je
 v `appsettings.Development.json`; pro produkci vygenerujte vlastní (P-256, base64url) a soukromý

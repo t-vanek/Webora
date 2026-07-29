@@ -15,7 +15,16 @@ export async function getState() {
         return { supported: false, permission: 'denied', subscribed: false };
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    // navigator.serviceWorker.ready se nikdy nevyřeší, když registrace selhala (app.js chybu jen
+    // zaloguje) — bez pojistky by tohle čekání viselo navždy a s ním i volající komponenta.
+    const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
+    if (!registration) {
+        return { supported: false, permission: Notification.permission, subscribed: false };
+    }
+
     const subscription = await registration.pushManager.getSubscription();
     return { supported: true, permission: Notification.permission, subscribed: !!subscription };
 }

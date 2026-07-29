@@ -58,3 +58,33 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
         });
     });
 }
+
+// Odhlášení ruší push subscription tohoto prohlížeče (formulář s data-push-unsubscribe):
+// sdílený počítač nesmí dál zobrazovat notifikace odhlášeného uživatele. Odeslání formuláře
+// se krátce pozdrží, aby prohlížeč odhlášku stihl dokončit; řádek na serveru se uklidí sám
+// při příštím pokusu o doručení (push služba vrátí 404/410 a záznam se smaže).
+document.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement)
+        || !form.hasAttribute('data-push-unsubscribe')
+        || form.dataset.pushUnsubscribed === '1'
+        || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return;
+    }
+
+    e.preventDefault();
+    const resubmit = () => {
+        form.dataset.pushUnsubscribed = '1';
+        form.requestSubmit();
+    };
+
+    const unsubscribe = (async () => {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const subscription = await registration?.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+    })().catch(() => undefined);
+
+    // Odhláška je best-effort — přihlašovací UX má přednost, takže se čeká nejvýše chvilku.
+    const timeout = new Promise((resolve) => setTimeout(resolve, 400));
+    Promise.race([unsubscribe, timeout]).then(resubmit, resubmit);
+});
