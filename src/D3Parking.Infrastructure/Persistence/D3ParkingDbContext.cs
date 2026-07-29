@@ -211,6 +211,9 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             entry.Property(q => q.Status).HasConversion<string>().HasMaxLength(32);
             entry.HasIndex(q => new { q.Status, q.CreatedAtUtc });
             entry.HasIndex(q => new { q.UserId, q.Status });
+            // Shadow rowversion: a queue entry is mutated both by the user (leave, claim) and by
+            // the maintenance loop (offer, expire) — a stale write must fail, not win.
+            entry.Property<byte[]>("Version").IsRowVersion();
         });
 
         builder.Entity<CollusionFlag>(flag =>
@@ -230,6 +233,11 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
             reservation.HasIndex(r => new { r.UserId, r.StartUtc });
             reservation.HasIndex(r => r.Status);
+            // Shadow rowversion: status transitions race between the user (check-in, cancel,
+            // release) and the no-show sweep. The in-memory transition guard only validates each
+            // context's stale copy, so the last blind UPDATE used to win — with the token a stale
+            // write throws DbUpdateConcurrencyException and the caller re-reads instead.
+            reservation.Property<byte[]>("Version").IsRowVersion();
         });
 
         builder.Entity<ParkerScore>(score =>
@@ -238,6 +246,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             score.HasKey(s => s.UserId);
             score.Property(s => s.UserId).ValueGeneratedNever();
             score.HasIndex(s => s.Points);
+            // Shadow rowversion: the wallet is read-modify-write from reservations, refunds,
+            // sweeps and monthly grants; concurrent writers must not overwrite each other's
+            // balance (the ledger would diverge from the wallet).
+            score.Property<byte[]>("Version").IsRowVersion();
         });
 
         builder.Entity<PointsLedgerEntry>(entry =>

@@ -14,6 +14,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\D3Parking.Application\D3Parking.Application.csproj" />
+    <!-- The concurrency tests exercise the real services against SQL Server (see
+         ReservationConcurrencyTests); unit tests keep depending on Application/Domain only. -->
+    <ProjectReference Include="..\..\src\D3Parking.Infrastructure\D3Parking.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
