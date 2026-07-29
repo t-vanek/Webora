@@ -151,17 +151,28 @@ public sealed class ResidentSpotService(
             .Where(r => r.SpotId == spot.Id && r.UserId == userId
                 && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
                 && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
-            .Select(r => r.StartUtc)
+            .Select(r => new { r.StartUtc, r.EndUtc })
             .ToListAsync(cancellationToken))
-            .Select(start => DateOnly.FromDateTime(start.Date))
+            // A reservation can span local days; every covered day is claimed, not just the first —
+            // otherwise the tail days could be released (and rewarded) while still self-occupied.
+            .SelectMany(r =>
+            {
+                var first = SiteTime.Today(r.StartUtc, timeZone);
+                var last = SiteTime.Today(r.EndUtc.AddTicks(-1), timeZone);
+                return Enumerable.Range(0, last.DayNumber - first.DayNumber + 1).Select(first.AddDays);
+            })
             .ToHashSet();
 
         // The monthly share allowance is a hard cap on how many days a month a resident is rewarded
         // for sharing (not just a multiplier), so releasing a long future range can't farm points.
         var allowance = spot.MonthlyShareAllowance;
+        // Count rewarded days across the WHOLE months the range touches, not just up to toDate —
+        // otherwise releasing an earlier range after a later one (Sep 1–5 after Sep 10–14) would
+        // not see the later rewards and the monthly cap could be exceeded at will.
         var monthFloor = new DateOnly(fromDate.Year, fromDate.Month, 1);
+        var monthCeil = new DateOnly(toDate.Year, toDate.Month, 1).AddMonths(1);
         var rewardedPerMonth = (await dbContext.SpotReleases
-                .Where(r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date <= toDate)
+                .Where(r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date < monthCeil)
                 .Select(r => r.Date)
                 .ToListAsync(cancellationToken))
             .GroupBy(d => (d.Year, d.Month))
