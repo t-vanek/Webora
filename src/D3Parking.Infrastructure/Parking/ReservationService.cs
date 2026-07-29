@@ -63,9 +63,11 @@ public sealed class ReservationService(
 
         // Owned spots are hidden from the pool unless released for that day, or it is today and the
         // hold cutoff has passed (auto-share). Once a guest books one, the block above excludes it.
+        // Visitor-type spots belong to the reception's visitor agenda, never to the employee pool.
         // Natural code order (D3-2 before D3-10) needs the comparer, so sort in memory.
         var available = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && !blocked.Contains(s.Id) && !held.Contains(s.Id)
+            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor
+                && !blocked.Contains(s.Id) && !held.Contains(s.Id)
                 && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null, s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
@@ -160,6 +162,13 @@ public sealed class ReservationService(
         if (!spot.IsActive)
         {
             return ParkingResult.Failure("Parking_Error_SpotInactive");
+        }
+
+        // Visitor spots are the reception's territory (see VisitorBookingService) — an employee
+        // booking would collide with a guest whom the reservation tables know nothing about.
+        if (spot.Type == ParkingSpotType.Visitor)
+        {
+            return ParkingResult.Failure("Parking_Visitor_Error_NotVisitorSpot");
         }
 
         // Windows may legitimately start in the past (booking the rest of today, claiming a queue
@@ -361,7 +370,10 @@ public sealed class ReservationService(
 
     private static async Task<double> ComputeOccupancyAsync(D3ParkingDbContext dbContext, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
     {
-        var activeSpots = await dbContext.ParkingSpots.CountAsync(s => s.IsActive, cancellationToken);
+        // Visitor spots are outside the employee pool, so they must not dilute the occupancy
+        // (and with it the dynamic price and the release rewards).
+        var activeSpots = await dbContext.ParkingSpots.CountAsync(
+            s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
         if (activeSpots == 0)
         {
             return 0.0;
@@ -1382,7 +1394,8 @@ public sealed class ReservationService(
         var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
 
         return await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && !blocked.Contains(s.Id)
+            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor
+                && !blocked.Contains(s.Id)
                 && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
             .Select(s => s.Id)
             .ToListAsync(cancellationToken);

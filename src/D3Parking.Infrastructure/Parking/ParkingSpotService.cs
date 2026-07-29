@@ -349,7 +349,9 @@ public sealed class ParkingSpotService(
 
         // Recorded plates are matched against registered ones with spacing/dash/case ignored —
         // a plate is copied off a car in a hurry, "3AB 1234" and "3ab-1234" must still meet.
+        // Employee plates first; visitor bookings answer the plates employees cannot.
         var plateOwners = new Dictionary<string, (string Name, string? Email)>();
+        var visitorPlates = new List<(string Normalized, DateTimeOffset StartUtc, DateTimeOffset EndUtc, string Label)>();
         if (mismatches.Any(m => m.BlockerPlate is not null))
         {
             var registered = await dbContext.Users.AsNoTracking()
@@ -360,6 +362,17 @@ public sealed class ParkingSpotService(
             {
                 plateOwners[NormalizePlate(owner.LicensePlate!)] = (owner.DisplayName ?? owner.Email ?? string.Empty, owner.Email);
             }
+
+            var mismatchMinStart = mismatches.Min(m => m.StartUtc);
+            var mismatchMaxEnd = mismatches.Max(m => m.EndUtc);
+            visitorPlates = (await dbContext.VisitorBookings.AsNoTracking()
+                    .Where(b => b.LicensePlate != null && b.Status == VisitorBookingStatus.Booked
+                        && b.StartUtc < mismatchMaxEnd && b.EndUtc > mismatchMinStart)
+                    .Select(b => new { b.LicensePlate, b.StartUtc, b.EndUtc, b.VisitorName, b.Company })
+                    .ToListAsync(cancellationToken))
+                .Select(b => (NormalizePlate(b.LicensePlate!), b.StartUtc, b.EndUtc,
+                    b.Company is null ? b.VisitorName : $"{b.VisitorName} ({b.Company})"))
+                .ToList();
         }
 
         // The admin's shortlist for "who blocked the spot": every reservation that met the
@@ -393,10 +406,26 @@ public sealed class ParkingSpotService(
         return mismatches
             .Select(m =>
             {
-                (string Name, string? Email)? match = m.BlockerPlate is not null
-                    && plateOwners.TryGetValue(NormalizePlate(m.BlockerPlate), out var owner)
-                        ? owner
-                        : null;
+                (string Name, string? Email)? match = null;
+                var matchIsVisitor = false;
+                if (m.BlockerPlate is not null)
+                {
+                    var normalized = NormalizePlate(m.BlockerPlate);
+                    if (plateOwners.TryGetValue(normalized, out var owner))
+                    {
+                        match = owner;
+                    }
+                    else
+                    {
+                        var visitor = visitorPlates.FirstOrDefault(v => v.Normalized == normalized
+                            && v.StartUtc < m.EndUtc && v.EndUtc > m.StartUtc);
+                        if (visitor.Label is not null)
+                        {
+                            match = (visitor.Label, null);
+                            matchIsVisitor = true;
+                        }
+                    }
+                }
 
                 return new OccupancyMismatchDto(
                 m.Id,
@@ -410,6 +439,7 @@ public sealed class ParkingSpotService(
                 m.BlockerPlate,
                 match?.Name,
                 match?.Email,
+                matchIsVisitor,
                 candidates
                     .Where(c => c.SpotId == m.SpotId && c.Id != m.ReservationId
                         && c.StartUtc < m.EndUtc && c.EndUtc > m.StartUtc)

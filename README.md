@@ -76,6 +76,9 @@ vyhrazeného místa) a penalizují nedostavení se.
   a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
 - **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
   Calendar) včetně připomínky 30 minut před začátkem.
+- **Návštěvy** — recepce rezervuje návštěvnická místa hostům **bez účtu** (jméno, firma, SPZ,
+  hostitel — ten dostane notifikaci, kde jeho návštěva parkuje). Místa typu *Návštěvnické* jsou
+  vyčleněná z fondu zaměstnanců a SPZ návštěvy se automaticky páruje v neshodách obsazenosti.
 - **Oznámení volné kapacity** — když je ve výhledu souvislý úsek dní z velké části volný, aplikace
   to (max. 1× denně, jen pracovní dny) připomene zvonečkem a push notifikací všem bez rezervace
   v období. Záměrně jen **stabilní agregát daleko dopředu** — nikdy okamžitá volnost jednoho místa,

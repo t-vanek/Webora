@@ -45,6 +45,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<AvailabilityCampaign> AvailabilityCampaigns => Set<AvailabilityCampaign>();
 
+    public DbSet<VisitorBooking> VisitorBookings => Set<VisitorBooking>();
+
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -130,6 +132,19 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // Dedup lookups: newest campaign, and period-overlap checks.
             campaign.HasIndex(c => c.CreatedAtUtc);
             campaign.HasIndex(c => new { c.PeriodStart, c.PeriodEnd });
+        });
+
+        builder.Entity<VisitorBooking>(booking =>
+        {
+            booking.ToTable("VisitorBookings");
+            booking.HasKey(b => b.Id);
+            booking.Property(b => b.VisitorName).HasMaxLength(128).IsRequired();
+            booking.Property(b => b.Company).HasMaxLength(128);
+            booking.Property(b => b.LicensePlate).HasMaxLength(16);
+            booking.Property(b => b.Status).HasConversion<string>().HasMaxLength(16);
+            // Conflict checks per spot and window; the agenda lists by start.
+            booking.HasIndex(b => new { b.SpotId, b.StartUtc });
+            booking.HasIndex(b => b.StartUtc);
         });
 
         builder.Entity<ApologyVoucher>(voucher =>

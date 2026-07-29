@@ -76,7 +76,7 @@
             }
         }
 
-        @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives)
+        @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives || _canManageReservations)
         {
             <div class="side-nav__section">
                 <span class="side-nav__section-title">@L["Nav_Administration"]</span>
@@ -106,6 +106,15 @@
                     <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_AdminParking"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Spots"]</span>
+                </NavLink>
+            }
+            @if (_canManageReservations)
+            {
+                <NavLink href="admin/parking/visitors" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminVisitors"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminVisitors"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Visitors"]</span>
                 </NavLink>
             }
             @if (_canManageIncentives)
@@ -153,6 +162,7 @@
     private bool _canReserve;
     private bool _canLeaderboard;
     private bool _canManageSpots;
+    private bool _canManageReservations;
     private bool _canManageIncentives;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
@@ -181,6 +191,7 @@
             _canReserve = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve);
             _canLeaderboard = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewLeaderboard);
             _canManageSpots = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots);
+            _canManageReservations = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageReservations);
             _canManageIncentives = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageIncentives);
         }
     }
