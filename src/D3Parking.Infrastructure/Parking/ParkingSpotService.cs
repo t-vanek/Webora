@@ -308,4 +308,30 @@ public sealed class ParkingSpotService(
 
         return ParkingResult.Success;
     }
+
+    public async Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default)
+    {
+        var limit = Math.Clamp(take, 1, 500);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Reporter and replacement spot are left-joined: a deleted account or spot must not hide
+        // the trend row — the point of the view is the spot's history, not the people involved.
+        return await (from m in dbContext.OccupancyMismatches.AsNoTracking()
+                      join s in dbContext.ParkingSpots.AsNoTracking() on m.SpotId equals s.Id
+                      join u in dbContext.Users.AsNoTracking() on m.ReporterId equals u.Id into reporters
+                      from reporter in reporters.DefaultIfEmpty()
+                      join rs in dbContext.ParkingSpots.AsNoTracking() on m.RelocatedToSpotId equals rs.Id into replacements
+                      from replacement in replacements.DefaultIfEmpty()
+                      orderby m.ReportedAtUtc descending
+                      select new OccupancyMismatchDto(
+                          m.Id,
+                          s.Code,
+                          m.StartUtc,
+                          m.EndUtc,
+                          m.ReportedAtUtc,
+                          reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
+                          replacement != null ? replacement.Code : null))
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
 }

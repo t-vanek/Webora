@@ -39,6 +39,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
 
+    public DbSet<OccupancyMismatch> OccupancyMismatches => Set<OccupancyMismatch>();
+
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -99,6 +101,16 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             subscription.Property(s => s.Auth).HasMaxLength(64).IsRequired();
             subscription.HasIndex(s => s.Endpoint).IsUnique();
             subscription.HasIndex(s => s.UserId);
+        });
+
+        builder.Entity<OccupancyMismatch>(mismatch =>
+        {
+            mismatch.ToTable("OccupancyMismatches");
+            mismatch.HasKey(m => m.Id);
+            // The admin view reads per-spot trends newest-first; the reporter index backs the
+            // per-user daily report cap.
+            mismatch.HasIndex(m => new { m.SpotId, m.ReportedAtUtc });
+            mismatch.HasIndex(m => new { m.ReporterId, m.ReportedAtUtc });
         });
 
         builder.Entity<SiteSettings>(settings =>

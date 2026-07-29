@@ -31,6 +31,14 @@ public interface IReservationService
     Task<ParkingResult> CancelAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The holder arrived and cannot physically park (the spot is blocked by another car).
+    /// Records an occupancy mismatch, voids the reservation penalty-free with a full refund, and —
+    /// when <paramref name="relocate"/> is set — books the first free spot for the same window
+    /// with the original charge carried over.
+    /// </summary>
+    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the
     /// penalty. Intended to be run on a schedule; also exposed for an administrator to trigger.
     /// Returns the number of reservations resolved.

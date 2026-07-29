@@ -26,4 +26,10 @@ public interface IParkingSpotService
 
     /// <summary>Assigns a resident to the spot, or clears ownership when ownerId is null.</summary>
     Task<ParkingResult> AssignOwnerAsync(Guid id, Guid? ownerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recorded "could not park at the reserved spot" events, newest first — the admin trend view
+    /// behind the driver-facing "I can't park" flow.
+    /// </summary>
+    Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default);
 }

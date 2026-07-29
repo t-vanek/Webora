@@ -1,0 +1,65 @@
+@page "/admin/parking/mismatches"
+@attribute [HasPermission(Permissions.Parking.ManageSpots)]
+@rendermode InteractiveServer
+@inject IParkingSpotService Spots
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Mismatch_Title"]</PageTitle>
+
+@* Deliberately a trend view of spots, not of people: rows say where parking failed and how it
+   was resolved. The reporter column exists so an admin can spot misuse of the flow itself. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Mismatch_Title"]</FluentLabel>
+            @if (_mismatches is { Count: > 0 })
+            {
+                <span class="count-chip">@_mismatches.Count</span>
+            }
+        </div>
+        <p class="admin-head__intro">@L["Parking_Mismatch_Intro"]</p>
+    </div>
+
+    @if (_mismatches is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_mismatches.Count == 0)
+    {
+        <div class="empty-state">@L["Parking_Mismatch_Empty"]</div>
+    }
+    else
+    {
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_mismatches.AsQueryable()" TGridItem="OccupancyMismatchDto"
+                            GridTemplateColumns="1fr 2fr 1.5fr 1fr 1.5fr">
+                <PropertyColumn Property="@(m => m.SpotCode)" Title="@L["Parking_Spot"]" />
+                <TemplateColumn Title="@L["Parking_Mismatch_Window"]">
+                    @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Mismatch_ReportedAt"]">
+                    @Local(context.ReportedAtUtc, "g")
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Parking_Mismatch_RelocatedTo"]">
+                    @(context.RelocatedToSpotCode ?? "—")
+                </TemplateColumn>
+                <PropertyColumn Property="@(m => m.ReporterName)" Title="@L["Parking_Mismatch_Reporter"]" />
+            </FluentDataGrid>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    private IReadOnlyList<OccupancyMismatchDto>? _mismatches;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        _mismatches = await Spots.GetOccupancyMismatchesAsync();
+    }
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+}

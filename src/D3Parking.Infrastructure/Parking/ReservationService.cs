@@ -31,6 +31,9 @@ public sealed class ReservationService(
     // same assumption Wolverine's in-process queues already make).
     private static readonly SemaphoreSlim MaintenanceGate = new(1, 1);
 
+    // Daily cap on "I can't park" reports per user — see ReportBlockedSpotAsync.
+    private const int MaxBlockedReportsPerDay = 2;
+
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
@@ -565,6 +568,107 @@ public sealed class ReservationService(
         // The freed spot may now satisfy someone on the waitlist.
         await ProcessQueueAsync(cancellationToken);
         return ParkingResult.Success;
+    }
+
+    public async Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, CancellationToken cancellationToken = default)
+    {
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var reservation = await FindOwnedAsync(dbContext, userId, reservationId, cancellationToken);
+        if (reservation is null)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_ReservationNotFound");
+        }
+
+        if (reservation.Status != ReservationStatus.Reserved)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_InvalidState");
+        }
+
+        // Recording the spot's state only makes sense while the driver can actually be standing
+        // in front of it — the same window in which check-in is allowed.
+        var now = timeProvider.GetUtcNow();
+        if (now < reservation.StartUtc - EarlyCheckInWindow || now >= reservation.EndUtc)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_BlockedReportWindow");
+        }
+
+        // The flow voids a reservation penalty-free with a full refund, so unlimited use would be
+        // a free escape hatch from unwanted bookings after the refund cutoff. Two honest strikes
+        // a day cover any realistic string of bad luck; admins see the rest in the trend view.
+        var (dayStart, dayEnd) = SiteTime.Day(SiteTime.Today(now, timeZone), timeZone);
+        var reportsToday = await dbContext.OccupancyMismatches.CountAsync(m =>
+            m.ReporterId == userId && m.ReportedAtUtc >= dayStart && m.ReportedAtUtc < dayEnd, cancellationToken);
+        if (reportsToday >= MaxBlockedReportsPerDay)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_BlockedReportLimit");
+        }
+
+        // The mismatch record, the void of the blocked reservation and the replacement booking
+        // are one atomic decision — same serializable step (and rationale) as ReserveCoreAsync.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        var mismatch = new OccupancyMismatch(
+            reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now);
+        dbContext.OccupancyMismatches.Add(mismatch);
+
+        // Void without penalty: the driver stands in front of an occupied spot through no fault
+        // of their own, so the charge comes back in full no matter how close to the start. The
+        // spot stays bookable in the system (the squatter may leave any minute); repeated
+        // mismatches on one spot surface in the admin trend view instead.
+        reservation.Cancel();
+        var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+        if (reservation.CreditsCharged > 0)
+        {
+            score.RefundCredits(reservation.CreditsCharged, now);
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.ReservationRefund, reservation.CreditsCharged, reservation.Id, now));
+        }
+
+        string? relocatedCode = null;
+        if (relocate)
+        {
+            var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+            var effectiveStartUtc = reservation.StartUtc > now ? reservation.StartUtc : now;
+            var candidates = await AvailableSpotIdsAsync(
+                dbContext, policy, timeZone, effectiveStartUtc, reservation.EndUtc, now, cancellationToken);
+
+            // Skip the blocked spot itself and spots held for waitlist offers.
+            var held = await dbContext.QueueEntries
+                .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId != null
+                    && q.OfferExpiresAtUtc > now
+                    && q.StartUtc < reservation.EndUtc && q.EndUtc > effectiveStartUtc)
+                .Select(q => q.OfferedSpotId!.Value)
+                .ToListAsync(cancellationToken);
+            var replacementSpotId = candidates.FirstOrDefault(id => id != reservation.SpotId && !held.Contains(id));
+
+            if (replacementSpotId != Guid.Empty)
+            {
+                // Carry the original charge over: the refund above plus an identical charge here
+                // nets to zero for the wallet while the ledger keeps a clean trail of the move.
+                var replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
+                    reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue);
+                dbContext.Reservations.Add(replacement);
+                if (reservation.CreditsCharged > 0)
+                {
+                    score.ChargeCredits(reservation.CreditsCharged, now);
+                    dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                        userId, IncentiveReason.ReservationCharge, -reservation.CreditsCharged, replacement.Id, now));
+                }
+
+                mismatch.MarkRelocated(replacementSpotId);
+                relocatedCode = await dbContext.ParkingSpots.AsNoTracking()
+                    .Where(s => s.Id == replacementSpotId)
+                    .Select(s => s.Code)
+                    .FirstAsync(cancellationToken);
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return relocatedCode is null ? BlockedSpotOutcome.Recorded : BlockedSpotOutcome.Relocated(relocatedCode);
     }
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)

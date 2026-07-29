@@ -353,6 +353,25 @@
   <data name="Parking_Error_CheckInTooEarly" xml:space="preserve"><value>Check-in opens shortly before the reservation window starts.</value></data>
   <data name="Parking_Error_CheckInWindowOver" xml:space="preserve"><value>The reservation window has already ended, so check-in is no longer possible.</value></data>
   <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>A reservation can be completed only after its window has started.</value></data>
+  <data name="Parking_CantPark" xml:space="preserve"><value>I can't park</value></data>
+  <data name="Parking_Blocked_Title" xml:space="preserve"><value>Can't park at spot {0}?</value></data>
+  <data name="Parking_Blocked_Text" xml:space="preserve"><value>We'll record the spot's state and cancel the reservation with a full refund — it doesn't count as a no-show. We can also find you another free spot right away.</value></data>
+  <data name="Parking_Blocked_Relocate" xml:space="preserve"><value>Find me another spot</value></data>
+  <data name="Parking_Blocked_RecordOnly" xml:space="preserve"><value>Just record it</value></data>
+  <data name="Parking_Blocked_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Parking_Relocated" xml:space="preserve"><value>You've got spot {0}. The original spot's state was recorded — this doesn't count as a no-show.</value></data>
+  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>The state was recorded and the reservation cancelled with a full refund — it doesn't count as a no-show.</value></data>
+  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>No other spot is free right now. The state was recorded and the reservation cancelled with a full refund — consider joining the queue.</value></data>
+  <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>A spot's state can be recorded only during the reservation window.</value></data>
+  <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>You've reached today's limit for recorded spot states.</value></data>
+  <data name="Parking_Mismatch_Title" xml:space="preserve"><value>Occupancy mismatches</value></data>
+  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Drivers recorded that they couldn't park at their reserved spot. The data helps plan capacity and catch recurring problems with specific spots — it does not track offenders.</value></data>
+  <data name="Parking_Mismatch_Empty" xml:space="preserve"><value>No mismatches — every spot works as it should.</value></data>
+  <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Window</value></data>
+  <data name="Parking_Mismatch_ReportedAt" xml:space="preserve"><value>Recorded</value></data>
+  <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Replacement spot</value></data>
+  <data name="Parking_Mismatch_Reporter" xml:space="preserve"><value>Recorded by</value></data>
+  <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Email_Confirm_Subject" xml:space="preserve"><value>Confirm your email</value></data>
   <data name="Email_Confirm_Heading" xml:space="preserve"><value>Welcome to D3Parking</value></data>
   <data name="Email_Confirm_Intro" xml:space="preserve"><value>Please confirm your email address by clicking the link below:</value></data>

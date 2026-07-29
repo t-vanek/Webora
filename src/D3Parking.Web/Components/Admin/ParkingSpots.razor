@@ -17,7 +17,10 @@
                 <span class="count-chip">@_spots.Count</span>
             }
         </div>
-        <p class="admin-head__intro">@L["Parking_Admin_Intro"]</p>
+        <p class="admin-head__intro">
+            @L["Parking_Admin_Intro"]
+            <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+        </p>
     </div>
 
     @if (_error is not null)
