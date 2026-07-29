@@ -65,6 +65,101 @@ public sealed class ParkingSpotService(
         return ParkingResult.Success;
     }
 
+    // Mirrors the ParkingSpots.Code column config in D3ParkingDbContext.
+    private const int MaxCodeLength = 32;
+
+    public async Task<SpotBatchPlan> PreviewBatchAsync(IReadOnlyList<string> codes, CancellationToken cancellationToken = default)
+    {
+        var (valid, invalid) = NormalizeBatch(codes);
+        if (valid.Count == 0)
+        {
+            return new SpotBatchPlan([], [], invalid);
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await ExistingCodesAsync(dbContext, valid, cancellationToken);
+        return new SpotBatchPlan(
+            valid.Where(c => !existing.Contains(c)).ToList(),
+            valid.Where(existing.Contains).ToList(),
+            invalid);
+    }
+
+    public async Task<SpotBatchResult> CreateBatchAsync(IReadOnlyList<string> codes, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default)
+    {
+        var (valid, invalid) = NormalizeBatch(codes);
+        if (invalid.Count > 0)
+        {
+            // Refuse rather than silently drop: the admin sees the offending codes in the preview.
+            return SpotBatchResult.Failure("Parking_Error_SeriesCodeTooLong");
+        }
+
+        if (valid.Count == 0)
+        {
+            return SpotBatchResult.Failure("Parking_Error_CodeRequired");
+        }
+
+        if (valid.Count > SpotCodeSeries.MaxBatchSize)
+        {
+            return SpotBatchResult.Failure("Parking_Error_SeriesTooLarge");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await ExistingCodesAsync(dbContext, valid, cancellationToken);
+        var toCreate = valid.Where(c => !existing.Contains(c)).ToList();
+        var skipped = valid.Where(existing.Contains).ToList();
+
+        if (toCreate.Count == 0)
+        {
+            return SpotBatchResult.Failure("Parking_Error_SeriesAllExist");
+        }
+
+        dbContext.ParkingSpots.AddRange(toCreate.Select(c => new ParkingSpot(c, type, notes)));
+        try
+        {
+            // One SaveChanges = one transaction: the batch lands whole or not at all.
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Somebody created a colliding code between the duplicate check and the save;
+            // the unique index on Code is the last line of defence. Safe to just retry.
+            return SpotBatchResult.Failure("Parking_Error_SeriesConflict");
+        }
+
+        return SpotBatchResult.Success(toCreate.Count, skipped);
+    }
+
+    /// <summary>Trims, drops empties, de-duplicates case-insensitively and splits off over-long codes.</summary>
+    private static (List<string> Valid, List<string> Invalid) NormalizeBatch(IReadOnlyList<string> codes)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var valid = new List<string>();
+        var invalid = new List<string>();
+        foreach (var raw in codes)
+        {
+            var code = raw?.Trim();
+            if (string.IsNullOrEmpty(code) || !seen.Add(code))
+            {
+                continue;
+            }
+
+            (code.Length > MaxCodeLength ? invalid : valid).Add(code);
+        }
+
+        return (valid, invalid);
+    }
+
+    private static async Task<HashSet<string>> ExistingCodesAsync(D3ParkingDbContext dbContext, List<string> codes, CancellationToken cancellationToken)
+    {
+        // Same case-insensitive comparison as the single-spot duplicate check above.
+        var lowered = codes.Select(c => c.ToLower()).ToList();
+        var existing = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => lowered.Contains(s.Code.ToLower()))
+            .Select(s => s.Code)
+            .ToListAsync(cancellationToken);
+        return new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<ParkingResult> UpdateAsync(Guid id, string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(code))

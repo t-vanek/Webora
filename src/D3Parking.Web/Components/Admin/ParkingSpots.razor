@@ -33,20 +33,82 @@
        the select's dropped-down listbox to the card edge — the "Typ" menu opened as a sliver
        peeking from under the panel. *@
     <div class="form-panel">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            <FluentLabel Typo="Typography.Subject">@L["Parking_Admin_AddSpot"]</FluentLabel>
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                <FluentTextField @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" />
-                <FluentSelect TOption="ParkingSpotType"
-                              Items="@_spotTypes"
-                              OptionValue="@(t => t.ToString())"
-                              OptionText="@(t => t.ToString())"
-                              @bind-SelectedOption="_newType"
-                              Label="@L["Parking_Admin_Type"]" />
-                <FluentTextField @bind-Value="_newNotes" Label="@L["Parking_Admin_Notes"]" />
-                <FluentButton Appearance="Appearance.Accent" OnClick="CreateAsync">@L["Parking_Admin_Add"]</FluentButton>
-            </FluentStack>
-        </FluentStack>
+        <FluentTabs @bind-ActiveTabId="_activeAddTab">
+            <FluentTab Id="tab-single" Label="@L["Parking_Admin_Tab_Single"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                        @* Immediate: bind on (composed) input events — the change event of the underlying
+                           web component does not cross the shadow boundary reliably. *@
+                        <FluentTextField Id="single-code" Immediate="true" @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" />
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@_spotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => t.ToString())"
+                                      @bind-SelectedOption="_newType"
+                                      Label="@L["Parking_Admin_Type"]" />
+                        <FluentTextField @bind-Value="_newNotes" Label="@L["Parking_Admin_Notes"]" />
+                        <FluentButton Appearance="Appearance.Accent" OnClick="CreateAsync">@L["Parking_Admin_Add"]</FluentButton>
+                    </FluentStack>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="tab-series" Label="@L["Parking_Admin_Tab_Series"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Admin_SeriesIntro"]</FluentLabel>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                        <FluentTextField Id="ser-sections" @bind-Value="_serSections" @bind-Value:after="RefreshSeriesPlanAsync"
+                                         Immediate="true" ImmediateDelay="300"
+                                         Label="@L["Parking_Admin_Sections"]" Placeholder="A, B, P2" />
+                        <FluentTextField Id="ser-separator" @bind-Value="_serSeparator" @bind-Value:after="RefreshSeriesPlanAsync"
+                                         Immediate="true" ImmediateDelay="300"
+                                         Label="@L["Parking_Admin_Separator"]" Style="width:90px" />
+                        <FluentNumberField Id="ser-from" TValue="int" @bind-Value="_serFrom" @bind-Value:after="RefreshSeriesPlanAsync"
+                                           Immediate="true" ImmediateDelay="300"
+                                           Min="0" Max="@SpotCodeSeries.MaxNumber.ToString()" Label="@L["Parking_Admin_RangeFrom"]" Style="width:110px" />
+                        <FluentNumberField Id="ser-to" TValue="int" @bind-Value="_serTo" @bind-Value:after="RefreshSeriesPlanAsync"
+                                           Immediate="true" ImmediateDelay="300"
+                                           Min="0" Max="@SpotCodeSeries.MaxNumber.ToString()" Label="@L["Parking_Admin_RangeTo"]" Style="width:110px" />
+                        <FluentNumberField Id="ser-pad" TValue="int" @bind-Value="_serPad" @bind-Value:after="RefreshSeriesPlanAsync"
+                                           Immediate="true" ImmediateDelay="300"
+                                           Min="0" Max="@SpotCodeSeries.MaxPadWidth.ToString()" Label="@L["Parking_Admin_PadWidth"]" Style="width:110px" />
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@_spotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => t.ToString())"
+                                      @bind-SelectedOption="_serType"
+                                      Label="@L["Parking_Admin_Type"]" />
+                        <FluentTextField @bind-Value="_serNotes" Label="@L["Parking_Admin_Notes"]" />
+                    </FluentStack>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Parking_Admin_PadWidthHint"]</FluentLabel>
+                    @BatchPreview(_serError, _serPlan)
+                    <FluentButton Id="ser-create" Appearance="Appearance.Accent"
+                                  Disabled="@(_serPlan is null || _serPlan.NewCodes.Count == 0)"
+                                  OnClick="GenerateSeriesAsync">@L["Parking_Admin_CreateBatch"]</FluentButton>
+                </FluentStack>
+            </FluentTab>
+
+            <FluentTab Id="tab-list" Label="@L["Parking_Admin_Tab_List"]">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
+                    <FluentTextArea Id="list-codes" @bind-Value="_listCodes" @bind-Value:after="RefreshListPlanAsync"
+                                    Immediate="true" ImmediateDelay="400"
+                                    Label="@L["Parking_Admin_CodeList"]" Rows="6" Style="width:100%; max-width:420px"
+                                    Placeholder="P2-08b&#10;U výtahu 1" />
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@_spotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => t.ToString())"
+                                      @bind-SelectedOption="_listType"
+                                      Label="@L["Parking_Admin_Type"]" />
+                        <FluentTextField @bind-Value="_listNotes" Label="@L["Parking_Admin_Notes"]" />
+                    </FluentStack>
+                    @BatchPreview(null, _listPlan)
+                    <FluentButton Id="list-create" Appearance="Appearance.Accent"
+                                  Disabled="@(_listPlan is null || _listPlan.NewCodes.Count == 0 || _listPlan.NewCodes.Count > SpotCodeSeries.MaxBatchSize)"
+                                  OnClick="CreateListAsync">@L["Parking_Admin_CreateBatch"]</FluentButton>
+                </FluentStack>
+            </FluentTab>
+        </FluentTabs>
     </div>
 
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
@@ -70,8 +132,18 @@
             <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
                             GridTemplateColumns="1fr 1.2fr 1.5fr 1fr 1.5fr auto">
                 <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+                @* The colour-dot pill wraps an inline select, so the type is recognisable at a
+                   glance and editable in place — same idiom as the resident column. *@
                 <TemplateColumn Title="@L["Parking_Admin_Type"]">
-                    <span class="type-pill type-pill--@context.Type">@context.Type</span>
+                    <span class="type-pill type-pill--@context.Type" style="width:100%">
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@_spotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => t.ToString())"
+                                      Value="@context.Type.ToString()"
+                                      ValueChanged="@(v => ChangeTypeAsync(context, v))"
+                                      Style="width:100%; min-width:140px" />
+                    </span>
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Parking_Admin_Notes"]">
                     @(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)
@@ -114,12 +186,64 @@
     private IReadOnlyList<ParkingSpotDto>? _spots;
     private readonly ParkingSpotType[] _spotTypes = Enum.GetValues<ParkingSpotType>();
 
+    private string? _activeAddTab = "tab-single";
+
     private string? _newCode;
     private ParkingSpotType _newType = ParkingSpotType.Standard;
     private string? _newNotes;
 
+    // Series generator inputs + live plan.
+    private string? _serSections;
+    private string _serSeparator = "-";
+    private int _serFrom = 1;
+    private int _serTo = 10;
+    private int _serPad;
+    private ParkingSpotType _serType = ParkingSpotType.Standard;
+    private string? _serNotes;
+    private string? _serError;
+    private SpotBatchPlan? _serPlan;
+
+    // Pasted-list inputs + live plan.
+    private string? _listCodes;
+    private ParkingSpotType _listType = ParkingSpotType.Standard;
+    private string? _listNotes;
+    private SpotBatchPlan? _listPlan;
+
     private string? _error;
     private string? _info;
+
+    /// <summary>Shared dry-run readout for both batch tabs: counts, sample codes, collisions.</summary>
+    private RenderFragment BatchPreview(string? patternError, SpotBatchPlan? plan) => __builder =>
+    {
+        @if (patternError is not null)
+        {
+            <FluentLabel Typo="Typography.Body" Color="Color.Error">@L[patternError]</FluentLabel>
+        }
+        else if (plan is not null)
+        {
+            <div class="batch-preview">
+                <span><span class="count-chip">@plan.NewCodes.Count</span> @L["Parking_Admin_PreviewNew"]</span>
+                @if (plan.NewCodes.Count > 0)
+                {
+                    <span class="batch-preview__codes">@Sample(plan.NewCodes)</span>
+                }
+                @if (plan.DuplicateCodes.Count > 0)
+                {
+                    <span class="batch-preview__dup">@string.Format(L["Parking_Admin_PreviewDup"], plan.DuplicateCodes.Count, Sample(plan.DuplicateCodes))</span>
+                }
+                @if (plan.InvalidCodes.Count > 0)
+                {
+                    <span class="batch-preview__bad">@string.Format(L["Parking_Admin_PreviewInvalid"], plan.InvalidCodes.Count, Sample(plan.InvalidCodes))</span>
+                }
+            </div>
+        }
+    };
+
+    // First 8 + the last one is enough to sanity-check a series without flooding the panel.
+    private static string Sample(IReadOnlyList<string> codes) =>
+        codes.Count <= 9
+            ? string.Join(", ", codes)
+            : string.Join(", ", codes.Take(8)) + " … " + codes[^1];
 
     private IReadOnlyList<UserSummary> _users = [];
     private IEnumerable<string> _userOptions => new[] { string.Empty }.Concat(_users.Select(u => u.Id.ToString()));
@@ -168,6 +292,76 @@
         {
             _error = result.Errors.FirstOrDefault();
         }
+    }
+
+    private async Task RefreshSeriesPlanAsync()
+    {
+        var expansion = SpotCodeSeries.Expand(_serSections, _serSeparator, _serFrom, _serTo, _serPad);
+        _serError = expansion.ErrorKey;
+        _serPlan = expansion.Succeeded && expansion.Codes.Count > 0
+            ? await Spots.PreviewBatchAsync(expansion.Codes)
+            : null;
+    }
+
+    private async Task RefreshListPlanAsync()
+    {
+        var codes = ParseListCodes();
+        _listPlan = codes.Count > 0 ? await Spots.PreviewBatchAsync(codes) : null;
+    }
+
+    private IReadOnlyList<string> ParseListCodes() =>
+        (_listCodes ?? string.Empty).Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+    private async Task GenerateSeriesAsync()
+    {
+        _error = _info = null;
+        var expansion = SpotCodeSeries.Expand(_serSections, _serSeparator, _serFrom, _serTo, _serPad);
+        if (!expansion.Succeeded)
+        {
+            _serError = expansion.ErrorKey;
+            return;
+        }
+
+        await ApplyBatchAsync(await Spots.CreateBatchAsync(expansion.Codes, _serType, _serNotes));
+        await RefreshSeriesPlanAsync();
+    }
+
+    private async Task CreateListAsync()
+    {
+        _error = _info = null;
+        await ApplyBatchAsync(await Spots.CreateBatchAsync(ParseListCodes(), _listType, _listNotes));
+        await RefreshListPlanAsync();
+    }
+
+    private async Task ApplyBatchAsync(SpotBatchResult result)
+    {
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _info = result.SkippedCodes.Count == 0
+            ? string.Format(L["Parking_Admin_BatchCreated"], result.CreatedCount)
+            : string.Format(L["Parking_Admin_BatchCreatedSkipped"], result.CreatedCount, result.SkippedCodes.Count, Sample(result.SkippedCodes));
+        await ReloadAsync();
+    }
+
+    private async Task ChangeTypeAsync(ParkingSpotDto spot, string? typeValue)
+    {
+        if (!Enum.TryParse<ParkingSpotType>(typeValue, out var type) || type == spot.Type)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Spots.UpdateAsync(spot.Id, spot.Code, type, spot.Notes);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
     }
 
     private async Task SetActiveAsync(Guid id, bool active)

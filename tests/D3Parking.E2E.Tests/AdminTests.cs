@@ -34,6 +34,50 @@ public class AdminTests : AdminTest
     }
 
     [Test]
+    public async Task Spot_generator_creates_a_series_and_marks_it_duplicate_afterwards()
+    {
+        await Page.GotoAsync("/admin/parking/spots");
+        await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
+        await Page.Locator("fluent-tab", new() { HasText = "Generátor řady" }).ClickAsync();
+
+        // Unique section prefix per run — the database persists between test runs.
+        var prefix = $"G{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
+        await Page.Locator("fluent-text-field#ser-sections input").FillAsync(prefix);
+        await Page.Locator("fluent-number-field#ser-to input").FillAsync("5");
+
+        // The live preview proves the plan landed (and the create button is enabled).
+        await Expect(Page.Locator(".batch-preview .count-chip")).ToHaveTextAsync("5");
+        await Page.Locator("#ser-create").ClickAsync();
+
+        await Expect(Page.GetByText(new Regex("Vytvořeno míst: 5|Created 5"))).ToBeVisibleAsync();
+        await Expect(Page.Locator(".admin-panel")).ToContainTextAsync($"{prefix}-1");
+
+        // Idempotence: the refreshed plan reports the whole series as already existing.
+        await Expect(Page.GetByText(new Regex(@"Už existuje \(5\)|Already exists \(5\)"))).ToBeVisibleAsync();
+        await Expect(Page.Locator(".batch-preview .count-chip")).ToHaveTextAsync("0");
+    }
+
+    [Test]
+    public async Task Spot_type_changes_inline_from_the_grid()
+    {
+        await Page.GotoAsync("/admin/parking/spots");
+        await Page.WaitForTimeoutAsync(1500); // hydrate the InteractiveServer circuit
+
+        // Create a throwaway spot to retype.
+        var code = $"T{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
+        await Page.Locator("fluent-text-field#single-code input").FillAsync(code);
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Přidat|Add)$") }).ClickAsync();
+        // FluentDataGrid renders a native table, so rows are plain <tr> elements.
+        var row = Page.Locator(".admin-panel tr", new() { HasText = code });
+        await Expect(row).ToBeVisibleAsync();
+
+        // Flip the type via the inline select in the type column (first select of the row).
+        await row.Locator("fluent-select").First.ClickAsync();
+        await row.Locator("fluent-option", new() { HasText = "Disabled" }).ClickAsync();
+        await Expect(row.Locator(".type-pill--Disabled")).ToBeVisibleAsync();
+    }
+
+    [Test]
     public async Task Rules_and_pricing_tabs_switch_content()
     {
         await Page.GotoAsync("/admin/parking/settings");

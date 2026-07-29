@@ -374,6 +374,28 @@
   <data name="Parking_Admin_Type" xml:space="preserve"><value>Type</value></data>
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Notes</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Parking_Admin_Tab_Single" xml:space="preserve"><value>Single spot</value></data>
+  <data name="Parking_Admin_Tab_Series" xml:space="preserve"><value>Series generator</value></data>
+  <data name="Parking_Admin_Tab_List" xml:space="preserve"><value>Paste a list</value></data>
+  <data name="Parking_Admin_SeriesIntro" xml:space="preserve"><value>Generates a spot for every section across the whole number range. Existing codes are skipped.</value></data>
+  <data name="Parking_Admin_Sections" xml:space="preserve"><value>Sections (comma-separated)</value></data>
+  <data name="Parking_Admin_Separator" xml:space="preserve"><value>Separator</value></data>
+  <data name="Parking_Admin_RangeFrom" xml:space="preserve"><value>From</value></data>
+  <data name="Parking_Admin_RangeTo" xml:space="preserve"><value>To</value></data>
+  <data name="Parking_Admin_PadWidth" xml:space="preserve"><value>Digits</value></data>
+  <data name="Parking_Admin_PadWidthHint" xml:space="preserve"><value>Zero padding: 2 → A-01, 0 → A-1.</value></data>
+  <data name="Parking_Admin_CodeList" xml:space="preserve"><value>Spot codes (one per line)</value></data>
+  <data name="Parking_Admin_PreviewNew" xml:space="preserve"><value>spots to create</value></data>
+  <data name="Parking_Admin_PreviewDup" xml:space="preserve"><value>Already exists ({0}): {1}</value></data>
+  <data name="Parking_Admin_PreviewInvalid" xml:space="preserve"><value>Codes too long ({0}): {1}</value></data>
+  <data name="Parking_Admin_CreateBatch" xml:space="preserve"><value>Create spots</value></data>
+  <data name="Parking_Admin_BatchCreated" xml:space="preserve"><value>Created {0} spots.</value></data>
+  <data name="Parking_Admin_BatchCreatedSkipped" xml:space="preserve"><value>Created {0} spots, skipped {1} existing ({2}).</value></data>
+  <data name="Parking_Error_SeriesRange" xml:space="preserve"><value>The number range is not valid.</value></data>
+  <data name="Parking_Error_SeriesTooLarge" xml:space="preserve"><value>The batch is too large (500 spots at most).</value></data>
+  <data name="Parking_Error_SeriesAllExist" xml:space="preserve"><value>All of the requested spots already exist.</value></data>
+  <data name="Parking_Error_SeriesCodeTooLong" xml:space="preserve"><value>Some codes exceed 32 characters.</value></data>
+  <data name="Parking_Error_SeriesConflict" xml:space="preserve"><value>Some of the spots were just created by someone else. Try again.</value></data>
   <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Resolve no-shows</value></data>
   <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Marks expired unused reservations as no-shows and deducts points. Also runs automatically in the background.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>No-shows resolved: {0}</value></data>

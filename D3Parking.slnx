@@ -8,6 +8,7 @@
     <Project Path="src/D3Parking.Web/D3Parking.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/D3Parking.Application.Tests/D3Parking.Application.Tests.csproj" />
     <Project Path="tests/D3Parking.E2E.Tests/D3Parking.E2E.Tests.csproj" />
   </Folder>
 </Solution>

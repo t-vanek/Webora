@@ -1848,6 +1848,29 @@ h1:focus {
 .state-pill--warn { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
 .state-pill--info { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
 
+/* Živý náhled dávky v generátoru míst: počet, ukázka kódů, kolize. */
+.batch-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.batch-preview__codes {
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    word-break: break-word;
+}
+
+.batch-preview__dup {
+    color: var(--warning-rest, #b86e00);
+    word-break: break-word;
+}
+
+.batch-preview__bad {
+    color: var(--error-rest, #d13438);
+    word-break: break-word;
+}
+
 /* --- Account hub (manage) --- */
 .profile-card {
     display: flex;

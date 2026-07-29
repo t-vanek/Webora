@@ -374,6 +374,28 @@
   <data name="Parking_Admin_Type" xml:space="preserve"><value>Typ</value></data>
   <data name="Parking_Admin_Notes" xml:space="preserve"><value>Poznámka</value></data>
   <data name="Parking_Admin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Parking_Admin_Tab_Single" xml:space="preserve"><value>Jedno místo</value></data>
+  <data name="Parking_Admin_Tab_Series" xml:space="preserve"><value>Generátor řady</value></data>
+  <data name="Parking_Admin_Tab_List" xml:space="preserve"><value>Vložit seznam</value></data>
+  <data name="Parking_Admin_SeriesIntro" xml:space="preserve"><value>Vygeneruje místo pro každou sekci v celém rozsahu čísel. Existující kódy se přeskočí.</value></data>
+  <data name="Parking_Admin_Sections" xml:space="preserve"><value>Sekce (oddělené čárkou)</value></data>
+  <data name="Parking_Admin_Separator" xml:space="preserve"><value>Oddělovač</value></data>
+  <data name="Parking_Admin_RangeFrom" xml:space="preserve"><value>Od</value></data>
+  <data name="Parking_Admin_RangeTo" xml:space="preserve"><value>Do</value></data>
+  <data name="Parking_Admin_PadWidth" xml:space="preserve"><value>Počet číslic</value></data>
+  <data name="Parking_Admin_PadWidthHint" xml:space="preserve"><value>Doplnění nulami: 2 → A-01, 0 → A-1.</value></data>
+  <data name="Parking_Admin_CodeList" xml:space="preserve"><value>Kódy míst (jeden na řádek)</value></data>
+  <data name="Parking_Admin_PreviewNew" xml:space="preserve"><value>míst k vytvoření</value></data>
+  <data name="Parking_Admin_PreviewDup" xml:space="preserve"><value>Už existuje ({0}): {1}</value></data>
+  <data name="Parking_Admin_PreviewInvalid" xml:space="preserve"><value>Příliš dlouhé kódy ({0}): {1}</value></data>
+  <data name="Parking_Admin_CreateBatch" xml:space="preserve"><value>Vytvořit místa</value></data>
+  <data name="Parking_Admin_BatchCreated" xml:space="preserve"><value>Vytvořeno míst: {0}.</value></data>
+  <data name="Parking_Admin_BatchCreatedSkipped" xml:space="preserve"><value>Vytvořeno míst: {0}, přeskočeno existujících: {1} ({2}).</value></data>
+  <data name="Parking_Error_SeriesRange" xml:space="preserve"><value>Rozsah čísel není platný.</value></data>
+  <data name="Parking_Error_SeriesTooLarge" xml:space="preserve"><value>Dávka je příliš velká (nejvýše 500 míst najednou).</value></data>
+  <data name="Parking_Error_SeriesAllExist" xml:space="preserve"><value>Všechna zadaná místa už existují.</value></data>
+  <data name="Parking_Error_SeriesCodeTooLong" xml:space="preserve"><value>Některé kódy překračují 32 znaků.</value></data>
+  <data name="Parking_Error_SeriesConflict" xml:space="preserve"><value>Část míst mezitím vytvořil někdo jiný. Zkuste to znovu.</value></data>
   <data name="Parking_Admin_SweepNoShows" xml:space="preserve"><value>Vyhodnotit nedostavení</value></data>
   <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body. Probíhá i automaticky na pozadí.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>
