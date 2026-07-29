@@ -67,7 +67,7 @@
   <data name="Auth_HidePassword" xml:space="preserve"><value>Hide password</value></data>
   <data name="Auth_Optional" xml:space="preserve"><value>Optional</value></data>
   <data name="Auth_Hero_Headline" xml:space="preserve"><value>Smart parking, zero paperwork</value></data>
-  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Reserve a spot, share it when you don't need it, and earn credits and points for playing fair.</value></data>
+  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Reserve a spot, share it when you don't need it, and earn credits and points for it.</value></data>
   <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Book a spot in a couple of clicks</value></data>
   <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Credits and demand-based dynamic pricing</value></data>
   <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Leaderboard, streaks and reliability badges</value></data>
@@ -634,8 +634,8 @@
   <data name="Nav_Short_Settings" xml:space="preserve"><value>Site</value></data>
   <data name="Nav_Collapse" xml:space="preserve"><value>Collapse</value></data>
   <data name="Nav_Expand" xml:space="preserve"><value>Expand</value></data>
-  <data name="Landing_Headline" xml:space="preserve"><value>Company parking without spreadsheets and haggling</value></data>
-  <data name="Landing_Lead" xml:space="preserve"><value>D3Parking shares spots fairly. Reservations in a few clicks, credits with occupancy-driven pricing, and points for fair behaviour.</value></data>
+  <data name="Landing_Headline" xml:space="preserve"><value>Company parking that runs itself</value></data>
+  <data name="Landing_Lead" xml:space="preserve"><value>Book your spot ahead, and when the lot is full the waitlist offers you the first freed spot automatically. Give up a spot you will not use and earn credits and points for it.</value></data>
   <data name="Landing_CtaLogin" xml:space="preserve"><value>Sign in</value></data>
   <data name="Landing_CtaRegister" xml:space="preserve"><value>Create account</value></data>
   <data name="Landing_FeaturesTitle" xml:space="preserve"><value>What D3Parking does</value></data>
@@ -644,7 +644,7 @@
   <data name="Landing_Feature2_Title" xml:space="preserve"><value>Credits and dynamic pricing</value></data>
   <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Spot prices follow occupancy. Park off-peak and save.</value></data>
   <data name="Landing_Feature3_Title" xml:space="preserve"><value>Points, streaks and a leaderboard</value></data>
-  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Fairness counts: earn points for reliability and climb the leaderboard.</value></data>
+  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Reliability pays off: completed reservations and shared spots earn points, build streaks and move you up the leaderboard.</value></data>
   <data name="Landing_HowTitle" xml:space="preserve"><value>How it works</value></data>
   <data name="Landing_Step1_Title" xml:space="preserve"><value>Create an account</value></data>
   <data name="Landing_Step1_Desc" xml:space="preserve"><value>Registration takes a minute — just an e-mail and a password.</value></data>
