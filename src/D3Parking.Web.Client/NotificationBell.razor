@@ -40,7 +40,9 @@
                         @if (_unreadCount > 0)
                         {
                             <FluentSpacer />
-                            <FluentButton Appearance="Appearance.Hypertext" OnClick="MarkAllRead">
+                            @* Lightweight, not Hypertext: FluentButton throws on Hypertext since
+                               Fluent UI 4.x, which killed the whole bell render when unread > 0. *@
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="MarkAllRead">
                                 @L["Bell_MarkRead"]
                             </FluentButton>
                         }
