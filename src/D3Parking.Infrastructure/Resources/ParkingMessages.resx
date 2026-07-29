@@ -26,6 +26,18 @@
   <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Měsíční kredit připsán</value></data>
   <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>Omluvný kupón</value></data>
   <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Za komplikaci s parkovacím místem máte kupón na jednu rezervaci zdarma (platí i ve špičce). Platnost 30 dní; uplatníte ho zaškrtnutím při rezervaci.</value></data>
+  <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali, protože máte účet v aplikaci D3Parking a upozornění se týká vašeho parkování.</value></data>
+  <data name="Email_Chrome_Settings" xml:space="preserve"><value>Notifikace si můžete nastavit ve svém profilu v aplikaci.</value></data>
+  <data name="Email_QueueOffer_Action" xml:space="preserve"><value>Převzít místo</value></data>
+  <data name="Email_QueueOffer_Deadline" xml:space="preserve"><value>Nabídka platí do {0}.</value></data>
+  <data name="Parking_Notify_OfferLapsed_Title" xml:space="preserve"><value>Nabídka vypršela</value></data>
+  <data name="Parking_Notify_OfferLapsed_Body" xml:space="preserve"><value>Místo {0} šlo dalšímu v pořadí. Ve frontě zůstáváte, jen na jejím konci.</value></data>
+  <data name="Parking_Notify_TierUp_Title" xml:space="preserve"><value>Postoupili jste na úroveň {0}!</value></data>
+  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>Nové výhody: přednost ve frontě, vyšší měsíční příděl kreditů a sleva na cenu rezervace.</value></data>
+  <data name="Parking_TierName_Bronze" xml:space="preserve"><value>Bronz</value></data>
+  <data name="Parking_TierName_Silver" xml:space="preserve"><value>Stříbro</value></data>
+  <data name="Parking_TierName_Gold" xml:space="preserve"><value>Zlato</value></data>
+  <data name="Parking_TierName_Platinum" xml:space="preserve"><value>Platina</value></data>
   <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>Na tento měsíc ti bylo připsáno {0} kreditů na rezervace parkování.</value></data>
   <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Nízký zůstatek kreditu</value></data>
   <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>Zbývá ti jen {0} kreditů – na další rezervaci nemusí stačit. Doplníš je ohleduplným chováním nebo příštím měsíčním přídělem.</value></data>

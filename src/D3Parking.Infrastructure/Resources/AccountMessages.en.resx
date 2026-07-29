@@ -50,6 +50,8 @@
   <data name="Email_Phone_Subject" xml:space="preserve"><value>Phone change code</value></data>
   <data name="Email_Phone_Body" xml:space="preserve"><value>&lt;p&gt;Your verification code for the phone number change is:&lt;/p&gt;&lt;p style="font-size:1.25rem;"&gt;&lt;strong&gt;{0}&lt;/strong&gt;&lt;/p&gt;</value></data>
   <data name="Email_Suspend_Subject" xml:space="preserve"><value>Confirm account suspension</value></data>
+  <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because of an action on your D3Parking account.</value></data>
+  <data name="Email_Chrome_Settings" xml:space="preserve"><value>If you did not request anything, please contact your administrator.</value></data>
   <data name="Email_Suspend_Body" xml:space="preserve"><value>&lt;p&gt;Confirm the account suspension by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Suspend account&lt;/a&gt;&lt;/p&gt;</value></data>
   <data name="Email_Reactivation_Subject" xml:space="preserve"><value>Account restore</value></data>
   <data name="Email_Reactivation_Body" xml:space="preserve"><value>&lt;p&gt;Restore your account by clicking the link:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Restore account&lt;/a&gt;&lt;/p&gt;</value></data>

@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Mapping;
 using D3Parking.Application.Notifications;
 using D3Parking.Contracts.Notifications;
 using D3Parking.Domain.Notifications;
+using D3Parking.Infrastructure.Email;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Notifications;
@@ -14,13 +16,17 @@ public sealed class NotificationService(
     NotificationMapper mapper,
     INotificationRealtimePublisher publisher,
     IEmailSender emailSender,
+    IStringLocalizer<ParkingMessages> messages,
     ILogger<NotificationService> logger,
     TimeProvider timeProvider) : INotificationService
 {
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) =>
-        NotifyAsync(userId, category, level, title, message, email: false, cancellationToken);
+        NotifyAsync(userId, category, level, title, message, email: false, emailOptions: null, cancellationToken);
 
-    public async Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default)
+    public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default) =>
+        NotifyAsync(userId, category, level, title, message, email, emailOptions: null, cancellationToken);
+
+    public async Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, NotificationEmailOptions? emailOptions, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var preferences = await GetOrCreatePreferencesAsync(dbContext, userId, cancellationToken);
@@ -42,12 +48,12 @@ public sealed class NotificationService(
 
             if (email)
             {
-                await TrySendEmailAsync(dbContext, userId, title, message, cancellationToken);
+                await TrySendEmailAsync(dbContext, userId, title, message, emailOptions, cancellationToken);
             }
         }
     }
 
-    private async Task TrySendEmailAsync(D3ParkingDbContext dbContext, Guid userId, string title, string message, CancellationToken cancellationToken)
+    private async Task TrySendEmailAsync(D3ParkingDbContext dbContext, Guid userId, string title, string message, NotificationEmailOptions? options, CancellationToken cancellationToken)
     {
         try
         {
@@ -61,13 +67,23 @@ public sealed class NotificationService(
                 return;
             }
 
+            var reason = messages["Email_Chrome_Reason"].Value;
+            var html = BrandedEmail.RenderHtml(new BrandedEmail.Content(
+                Heading: title,
+                BodyHtml: System.Net.WebUtility.HtmlEncode(message),
+                FooterReason: reason,
+                FooterSettings: messages["Email_Chrome_Settings"].Value,
+                ActionText: options?.ActionText,
+                ActionUrl: options?.ActionUrl,
+                DeadlineText: options?.DeadlineText));
+
             await emailSender.SendAsync(new EmailMessage
             {
                 To = recipient.Email,
                 ToName = recipient.DisplayName,
                 Subject = title,
-                HtmlBody = $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
-                TextBody = message,
+                HtmlBody = html,
+                TextBody = BrandedEmail.RenderText(title, message, options?.ActionUrl, options?.DeadlineText, reason),
             }, cancellationToken);
         }
         catch (Exception ex)

@@ -98,6 +98,19 @@ public sealed class ReservationService(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<ReservationDto?> GetMyReservationAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await (from r in dbContext.Reservations.AsNoTracking()
+                      join s in dbContext.ParkingSpots on r.SpotId equals s.Id
+                      where r.Id == reservationId && r.UserId == userId
+                      select new ReservationDto(
+                          r.Id, r.SpotId, s.Code, s.Type, r.UserId,
+                          r.StartUtc, r.EndUtc, r.Status, r.IsOffPeak, r.CreatedAtUtc,
+                          r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default) =>
         ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, queueEntryId: null, useVoucher, cancellationToken);
 
@@ -301,12 +314,14 @@ public sealed class ReservationService(
             messages["Parking_Notify_Reserved_Title"],
             messages["Parking_Notify_Reserved_Body", spot.Code, cost], cancellationToken);
 
-        // Warn when the wallet can no longer cover even a base-price booking.
+        // Warn when the wallet can no longer cover even a base-price booking. Bell/push only: the
+        // warning is neither actionable on a deadline nor a formal record, so an email would just
+        // train people to ignore the sender.
         if (score.Credits < policy.BaseReservationCost)
         {
             await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Warning,
                 messages["Parking_Notify_LowBalance_Title"],
-                messages["Parking_Notify_LowBalance_Body", score.Credits], email: true, cancellationToken);
+                messages["Parking_Notify_LowBalance_Body", score.Credits], cancellationToken);
         }
 
         return ParkingResult.Success;
@@ -438,6 +453,7 @@ public sealed class ReservationService(
         }
 
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+        var tierBefore = policy.TierFor(score.Points);
         score.RecordCompletion(now);
         dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
             userId, IncentiveReason.ReservationCompleted, 0, reservation.Id, now));
@@ -488,6 +504,7 @@ public sealed class ReservationService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
+        await NotifyTierUpAsync(userId, tierBefore, policy.TierFor(score.Points), cancellationToken);
 
         if (sharedSpotOwner is { } sharedOwnerId)
         {
@@ -544,9 +561,12 @@ public sealed class ReservationService(
         }
 
         var newBadges = new List<ParkingBadge>();
+        LoyaltyTier? tierBefore = null;
+        LoyaltyTier? tierAfter = null;
         if ((timely && reservation.CreditsCharged > 0) || rewardEligible)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+            tierBefore = policy.TierFor(score.Points);
 
             if (timely && reservation.CreditsCharged > 0)
             {
@@ -568,12 +588,18 @@ public sealed class ReservationService(
                     userId, IncentiveReason.ReleasedReservation, releaseReward, reservation.Id, now));
                 newBadges = await ReevaluateBadgesAsync(dbContext, score, now, cancellationToken);
             }
+
+            tierAfter = policy.TierFor(score.Points);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         await NotifyNewBadgesAsync(userId, newBadges, cancellationToken);
+        if (tierBefore is { } before && tierAfter is { } after)
+        {
+            await NotifyTierUpAsync(userId, before, after, cancellationToken);
+        }
 
         // The freed spot may now satisfy someone on the waitlist.
         await ProcessQueueAsync(cancellationToken);
@@ -1205,6 +1231,7 @@ public sealed class ReservationService(
         }
 
         // Expire passed windows; lapse stale offers back to waiting so the spot can move on.
+        var lapsedOffers = new List<(Guid UserId, Guid SpotId)>();
         foreach (var entry in active)
         {
             if (entry.EndUtc <= now)
@@ -1215,6 +1242,7 @@ public sealed class ReservationService(
             {
                 // Missed offers demote: the entry rejoins at the back so the next freed spot goes
                 // to the next in line, not back to the same unresponsive head of the queue.
+                lapsedOffers.Add((entry.UserId, entry.OfferedSpotId!.Value));
                 entry.RequeueAfterMissedOffer(now);
             }
         }
@@ -1267,22 +1295,58 @@ public sealed class ReservationService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        if (offers.Count > 0)
+        if (offers.Count > 0 || lapsedOffers.Count > 0)
         {
+            var spotIdsToName = offers.Select(o => o.SpotId).Concat(lapsedOffers.Select(l => l.SpotId)).Distinct().ToList();
             var codes = await dbContext.ParkingSpots.AsNoTracking()
-                .Where(s => offers.Select(o => o.SpotId).Contains(s.Id))
+                .Where(s => spotIdsToName.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+            // The claim window is short, so the email carries a CTA deep link and an explicit
+            // local-time deadline. Without a configured canonical URL (dev) the button is omitted.
+            var baseUrl = await siteSettings.GetCanonicalBaseUrlAsync();
+            var claimUrl = baseUrl is null ? null : $"{baseUrl.TrimEnd('/')}/parking";
+            var deadlineLocal = SiteTime.TimeOfDay(now + offerHold, timeZone).ToString("HH\\:mm");
 
             foreach (var (offerUserId, spotId) in offers)
             {
                 await notifications.NotifyAsync(offerUserId, NotificationCategory.SelfService, NotificationLevel.Warning,
                     messages["Parking_Notify_QueueOffer_Title"],
                     messages["Parking_Notify_QueueOffer_Body", codes.GetValueOrDefault(spotId, string.Empty), policy.QueueOfferMinutes],
-                    email: true, cancellationToken);
+                    email: true,
+                    new NotificationEmailOptions(
+                        ActionText: claimUrl is null ? null : messages["Email_QueueOffer_Action"].Value,
+                        ActionUrl: claimUrl,
+                        DeadlineText: messages["Email_QueueOffer_Deadline", deadlineLocal].Value),
+                    cancellationToken);
+            }
+
+            // The demoted waiter learns why the spot is gone — bell/push only, no email needed.
+            foreach (var (lapsedUserId, spotId) in lapsedOffers)
+            {
+                await notifications.NotifyAsync(lapsedUserId, NotificationCategory.SelfService, NotificationLevel.Info,
+                    messages["Parking_Notify_OfferLapsed_Title"],
+                    messages["Parking_Notify_OfferLapsed_Body", codes.GetValueOrDefault(spotId, string.Empty)],
+                    cancellationToken);
             }
         }
 
         return offers.Count;
+    }
+
+    // Reaching a higher loyalty tier is worth celebrating — it unlocks queue priority, a bigger
+    // allowance and a price discount. Detected at the two user-facing reward moments (completion,
+    // release); the decay sweep only ever lowers points, so promotions cannot happen there.
+    private async Task NotifyTierUpAsync(Guid userId, LoyaltyTier before, LoyaltyTier after, CancellationToken cancellationToken)
+    {
+        if (after <= before)
+        {
+            return;
+        }
+
+        await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+            messages["Parking_Notify_TierUp_Title", messages[$"Parking_TierName_{after}"].Value],
+            messages["Parking_Notify_TierUp_Body"], cancellationToken);
     }
 
     // Returns a redeemed voucher to its holder when the booking it paid for was given up early

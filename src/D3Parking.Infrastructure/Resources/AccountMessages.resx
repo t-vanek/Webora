@@ -50,6 +50,8 @@
   <data name="Email_Phone_Subject" xml:space="preserve"><value>Kód pro změnu telefonu</value></data>
   <data name="Email_Phone_Body" xml:space="preserve"><value>&lt;p&gt;Váš ověřovací kód pro změnu telefonního čísla je:&lt;/p&gt;&lt;p style="font-size:1.25rem;"&gt;&lt;strong&gt;{0}&lt;/strong&gt;&lt;/p&gt;</value></data>
   <data name="Email_Suspend_Subject" xml:space="preserve"><value>Potvrzení uspání účtu</value></data>
+  <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali na základě akce ve vašem účtu D3Parking.</value></data>
+  <data name="Email_Chrome_Settings" xml:space="preserve"><value>Pokud jste o nic nežádali, kontaktujte prosím správce.</value></data>
   <data name="Email_Suspend_Body" xml:space="preserve"><value>&lt;p&gt;Uspání účtu potvrďte kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Uspat účet&lt;/a&gt;&lt;/p&gt;</value></data>
   <data name="Email_Reactivation_Subject" xml:space="preserve"><value>Obnovení účtu</value></data>
   <data name="Email_Reactivation_Body" xml:space="preserve"><value>&lt;p&gt;Obnovte svůj účet kliknutím na odkaz:&lt;/p&gt;&lt;p&gt;&lt;a href="{0}"&gt;Obnovit účet&lt;/a&gt;&lt;/p&gt;</value></data>
