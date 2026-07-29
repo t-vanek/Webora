@@ -33,7 +33,7 @@
         <FluentCard>
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_Owned_Title"]</FluentLabel>
-                <FluentLabel Typo="Typography.H5">@_ownedSpot.Code (@_ownedSpot.Type)</FluentLabel>
+                <FluentLabel Typo="Typography.H5">@_ownedSpot.Code (@L[$"Parking_SpotType_{_ownedSpot.Type}"])</FluentLabel>
                 <FluentLabel Typo="Typography.Body">
                     @L["Parking_Status"]: @L[$"Parking_OwnedState_{_ownedSpot.TodayState}"]
                 </FluentLabel>
@@ -136,7 +136,7 @@
                             <span class="spot-glyph"><FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Accent" /></span>
                             <div>
                                 <div class="spot-card__code">@spot.Code</div>
-                                <span class="pill pill--type">@spot.Type</span>
+                                <span class="pill pill--type">@L[$"Parking_SpotType_{spot.Type}"]</span>
                             </div>
                         </div>
                         @if (_quote is not null)

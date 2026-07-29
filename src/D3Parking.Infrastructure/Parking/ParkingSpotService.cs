@@ -23,14 +23,16 @@ public sealed class ParkingSpotService(
             query = query.Where(s => s.IsActive);
         }
 
-        return await query
-            .OrderBy(s => s.Code)
+        // Natural code order (D3-2 before D3-10) needs the comparer, so sort in memory —
+        // the whole lot fits in one page anyway.
+        var spots = await query
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
                 s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
+        return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
 
     public async Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)

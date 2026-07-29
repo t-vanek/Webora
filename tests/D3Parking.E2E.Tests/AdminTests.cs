@@ -46,8 +46,10 @@ public class AdminTests : AdminTest
         // lost: a tab clicked mid-handshake switches only visually and flips back once the
         // circuit binds, taking the panel (and its inputs) away again. Retry the whole
         // tab + fill sequence with short timeouts until the live preview responds.
+        // Retry until the preview shows exactly the expected count — visibility alone is not
+        // enough, because one of the two fills can be lost while the other lands.
         var countChip = Page.Locator(".batch-preview .count-chip");
-        for (var attempt = 0; attempt < 5 && !await countChip.IsVisibleAsync(); attempt++)
+        for (var attempt = 0; attempt < 5; attempt++)
         {
             try
             {
@@ -61,6 +63,10 @@ public class AdminTests : AdminTest
             }
 
             await Page.WaitForTimeoutAsync(1200);
+            if (await countChip.IsVisibleAsync() && (await countChip.TextContentAsync())?.Trim() == "5")
+            {
+                break;
+            }
         }
 
         // The live preview proves the plan landed (and the create button is enabled).
@@ -96,8 +102,9 @@ public class AdminTests : AdminTest
         await Expect(row).ToBeVisibleAsync();
 
         // Flip the type via the inline select in the type column (first select of the row).
+        // Options carry localized labels; the CSS modifier class stays enum-based.
         await row.Locator("fluent-select").First.ClickAsync();
-        await row.Locator("fluent-option", new() { HasText = "Disabled" }).ClickAsync();
+        await row.Locator("fluent-option", new() { HasText = "Pro držitele ZTP" }).ClickAsync();
         await Expect(row.Locator(".type-pill--Disabled")).ToBeVisibleAsync();
     }
 

@@ -45,12 +45,13 @@ public sealed class ReservationService(
 
         // Owned spots are hidden from the pool unless released for that day, or it is today and the
         // hold cutoff has passed (auto-share). Once a guest books one, the block above excludes it.
-        return await dbContext.ParkingSpots.AsNoTracking()
+        // Natural code order (D3-2 before D3-10) needs the comparer, so sort in memory.
+        var available = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.IsActive && !blocked.Contains(s.Id) && !held.Contains(s.Id)
                 && (s.OwnerId == null || autoShareActive || released.Contains(s.Id)))
-            .OrderBy(s => s.Code)
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null, s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
+        return available.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
 
     public async Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default)

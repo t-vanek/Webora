@@ -43,7 +43,7 @@
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
-                                      OptionText="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_newType"
                                       Label="@L["Parking_Admin_Type"]" />
                         <FluentTextField @bind-Value="_newNotes" Label="@L["Parking_Admin_Notes"]" />
@@ -74,7 +74,7 @@
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
-                                      OptionText="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_serType"
                                       Label="@L["Parking_Admin_Type"]" />
                         <FluentTextField @bind-Value="_serNotes" Label="@L["Parking_Admin_Notes"]" />
@@ -97,7 +97,7 @@
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
-                                      OptionText="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_listType"
                                       Label="@L["Parking_Admin_Type"]" />
                         <FluentTextField @bind-Value="_listNotes" Label="@L["Parking_Admin_Notes"]" />
@@ -139,7 +139,7 @@
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
-                                      OptionText="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       Value="@context.Type.ToString()"
                                       ValueChanged="@(v => ChangeTypeAsync(context, v))"
                                       Style="width:100%; min-width:140px" />
