@@ -19,6 +19,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<NotificationPreferences> NotificationPreferences => Set<NotificationPreferences>();
 
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 
     public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
@@ -84,6 +86,19 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             prefs.HasKey(p => p.UserId);
             prefs.Property(p => p.UserId).ValueGeneratedNever();
             prefs.Property(p => p.Scope).HasConversion<string>().HasMaxLength(32);
+        });
+
+        builder.Entity<PushSubscription>(subscription =>
+        {
+            subscription.ToTable("PushSubscriptions");
+            subscription.HasKey(s => s.Id);
+            // 800 chars keeps the unique index under SQL Server's 1700-byte nonclustered key cap;
+            // real push endpoints (FCM, Mozilla, WNS) stay well below that.
+            subscription.Property(s => s.Endpoint).HasMaxLength(800).IsRequired();
+            subscription.Property(s => s.P256dh).HasMaxLength(128).IsRequired();
+            subscription.Property(s => s.Auth).HasMaxLength(64).IsRequired();
+            subscription.HasIndex(s => s.Endpoint).IsUnique();
+            subscription.HasIndex(s => s.UserId);
         });
 
         builder.Entity<SiteSettings>(settings =>

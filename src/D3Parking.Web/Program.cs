@@ -47,7 +47,10 @@ builder.Services.AddFluentUIComponents();
 // Real-time messaging + per-user notification delivery over SignalR.
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
-builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationPublisher>();
+builder.Services.AddSingleton<SignalRNotificationPublisher>();
+builder.Services.AddScoped<INotificationRealtimePublisher>(sp => new CompositeNotificationPublisher(
+    sp.GetRequiredService<SignalRNotificationPublisher>(),
+    sp.GetService<D3Parking.Infrastructure.Notifications.WebPushNotificationPublisher>()));
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -205,6 +208,11 @@ app.MapGet("/manifest.webmanifest", async (ISiteSettingsService siteSettings, Ca
             new { src = "icons/icon-512.png", sizes = "512x512", type = "image/png" },
             new { src = "icons/icon-maskable-192.png", sizes = "192x192", type = "image/png", purpose = "maskable" },
             new { src = "icons/icon-maskable-512.png", sizes = "512x512", type = "image/png", purpose = "maskable" },
+        },
+        screenshots = new object[]
+        {
+            new { src = "screenshots/home-narrow.png", sizes = "750x1624", type = "image/png", form_factor = "narrow" },
+            new { src = "screenshots/home-wide.png", sizes = "1280x800", type = "image/png", form_factor = "wide" },
         },
     }, contentType: "application/manifest+json");
 });

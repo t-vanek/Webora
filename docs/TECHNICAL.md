@@ -81,7 +81,18 @@ Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ```jsonc
 "Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "D3Parking/1.0 (parking)" },
-"Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" }
+"Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" },
+"WebPush":   { "Subject": "mailto:admin@example.com", "PublicKey": "<VAPID>", "PrivateKey": "<VAPID>" }
+```
+
+**Web Push (VAPID):** bez klíčů je push vypnutý (přepínač ve zvonečku se neukáže). Vývojový pár je
+v `appsettings.Development.json`; pro produkci vygenerujte vlastní (P-256, base64url) a soukromý
+klíč držte mimo repozitář (user secrets / proměnné prostředí):
+
+```powershell
+$ec = [System.Security.Cryptography.ECDsa]::Create([System.Security.Cryptography.ECCurve]::CreateFromFriendlyName('nistP256'))
+$p = $ec.ExportParameters($true); function B64Url([byte[]]$b) { [Convert]::ToBase64String($b).TrimEnd('=').Replace('+','-').Replace('/','_') }
+"PublicKey:  $(B64Url ([byte[]](,0x04 + $p.Q.X + $p.Q.Y)))"; "PrivateKey: $(B64Url $p.D)"
 ```
 
 > **Poznámka k produkci:** odchozí přístup ke geokódovací (a případně routovací) službě musí být povolen
@@ -136,6 +147,13 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   Realtime a datové endpointy (`/_blazor`, `/hubs/`, `/api/`, `/connect/`, `/culture/`) jdou mimo
   service worker. Ikony (běžné, maskable, apple-touch) jsou ve `wwwroot/icons/`; při změně strategie
   nebo precache seznamu je potřeba zvýšit verzi cache v `service-worker.js`.
+- **Web Push:** notifikace se vedle SignalR zvonečku doručují i do zavřené nainstalované aplikace.
+  `NotificationService` publikuje přes `CompositeNotificationPublisher` (SignalR + volitelný
+  `WebPushNotificationPublisher` nad `Lib.Net.Http.WebPush`), takže ztlumení a rozsah kategorií
+  platí pro všechny kanály stejně. Subscriptions jsou v tabulce `PushSubscriptions` (endpoint je
+  unikátní; mrtvé subscriptions se mažou při 404/410 od push služby). Přihlášení zařízení řeší
+  přepínač ve zvonečku (`push.js` + `PUT/DELETE /api/notifications/push/subscription`); service
+  worker OS notifikaci potlačí, když je aplikace zrovna viditelná. Konfigurace: [VAPID klíče](#konfigurace).
 - **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
   v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.

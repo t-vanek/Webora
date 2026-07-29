@@ -163,6 +163,43 @@ public sealed class NotificationService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SubscribeToPushAsync(Guid userId, PushSubscriptionDto subscription, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await dbContext.PushSubscriptions
+            .FirstOrDefaultAsync(s => s.Endpoint == subscription.Endpoint, cancellationToken);
+
+        if (existing is null)
+        {
+            dbContext.PushSubscriptions.Add(new PushSubscription(
+                userId, subscription.Endpoint, subscription.P256dh, subscription.Auth, timeProvider.GetUtcNow()));
+        }
+        else
+        {
+            // The browser reuses the endpoint when a different account subscribes on the same
+            // installation — re-point the record instead of duplicating it.
+            existing.Reassign(userId, subscription.P256dh, subscription.Auth, timeProvider.GetUtcNow());
+        }
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Concurrent subscribe with the same endpoint lost the unique-index race; the winning
+            // row already carries fresh keys, so there is nothing left to do.
+        }
+    }
+
+    public async Task UnsubscribeFromPushAsync(Guid userId, string endpoint, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await dbContext.PushSubscriptions
+            .Where(s => s.UserId == userId && s.Endpoint == endpoint)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     private static async Task<NotificationPreferences> GetOrCreatePreferencesAsync(D3ParkingDbContext dbContext, Guid userId, CancellationToken cancellationToken)
     {
         // FindAsync consults the change tracker first, so a row created earlier in the same
