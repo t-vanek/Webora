@@ -1092,4 +1092,6 @@
   <data name="Lot_Stat_OffPeak" xml:space="preserve"><value>Podíl mimo špičku</value></data>
   <data name="Lot_Stat_FromQueue" xml:space="preserve"><value>Podíl z fronty</value></data>
   <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hodina s nejvyšší poptávkou</value></data>
+  <data name="Lot_Hint_Aria" xml:space="preserve"><value>Metodická poznámka k části {0}</value></data>
+  <data name="Lot_Queue_Refused" xml:space="preserve"><value>Rozložení odmítnuté poptávky</value></data>
 </root>

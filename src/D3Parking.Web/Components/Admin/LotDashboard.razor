@@ -3,12 +3,14 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @* ApexCharts is imported here and not in _Imports.razor on purpose: its namespace also declares
-   Color, Orientation and Align, so importing it globally makes those ambiguous with Fluent UI's
-   across every component in the project. The aliases below keep Fluent winning inside this file. *@
+   Color, Orientation, Align and TooltipPosition, so importing it globally makes those ambiguous with
+   Fluent UI's across every component in the project. The aliases below keep Fluent winning inside
+   this file. *@
 @using ApexCharts
 @using Color = Microsoft.FluentUI.AspNetCore.Components.Color
 @using Orientation = Microsoft.FluentUI.AspNetCore.Components.Orientation
 @using Align = Microsoft.FluentUI.AspNetCore.Components.Align
+@using TooltipPosition = Microsoft.FluentUI.AspNetCore.Components.TooltipPosition
 @inject ILotDashboardService Dashboard
 @inject IParkingSpotService Spots
 @inject ISiteSettingsService SiteSettings
@@ -466,10 +468,8 @@
                    average below is UsedDays/CapacityDays, which is arithmetically the mean of the
                    curve two blocks down — it used to be the mean of the per-spot utilizations over a
                    different population of spots, and the two visibly disagreed. *@
-                <FluentLabel Typo="Typography.Subject">@L["Lot_Cap_Head"]</FluentLabel>
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                    @L["Lot_Cap_Hint", _analytics.Capacity.ActiveSpots, _analytics.WindowDays]
-                </FluentLabel>
+                @SectionHead(L["Lot_Cap_Head"],
+                    L["Lot_Cap_Hint", _analytics.Capacity.ActiveSpots, _analytics.WindowDays], "hint-capacity")
                 <div class="lot-stats">
                     @Stat(L["Lot_Stat_Use"], $"{_analytics.Capacity.UsePercent} %",
                         MeterClass(_analytics.Capacity.UsePercent))
@@ -494,22 +494,24 @@
                         @CapacityRow(L["Lot_Cap_Used"], _analytics.Capacity.UsedDays, _analytics.Capacity.CapacityDays, null)
                         @CapacityRow(L["Lot_Cap_OfferedUnused"], _analytics.Capacity.OfferedUnusedDays,
                             _analytics.Capacity.CapacityDays, _analytics.Capacity.OfferedUnusedDays > 0 ? "warn" : null)
-                        @CapacityRow(L["Lot_Cap_Held"], _analytics.Capacity.ResidentHeldDays, _analytics.Capacity.CapacityDays, null)
+                        @* The auto-share caveat belongs to this one category, not to the table. As a
+                           paragraph under the table it read as a footnote on all four rows, when the
+                           other three are exact. *@
+                        @CapacityRow(L["Lot_Cap_Held"], _analytics.Capacity.ResidentHeldDays,
+                            _analytics.Capacity.CapacityDays, null, L["Lot_Cap_HeldNote"], "hint-held")
                         @CapacityRow(L["Lot_Cap_Idle"], _analytics.Capacity.IdleDays, _analytics.Capacity.CapacityDays, "off")
                     </tbody>
                     <tfoot>
                         @TotalRow(L["Lot_Cap_Total"], _analytics.Capacity.CapacityDays.ToString(), "100 %")
                     </tfoot>
                 </table>
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Cap_HeldNote"]</FluentLabel>
 
                 @* Load over time — the "busiest spot in time" question the table alone could not
                    answer. Keyed on the window so switching it rebuilds the chart instead of
                    animating between two different x-axes. *@
                 @if (_analytics.Daily.Count > 0)
                 {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Trend"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Trend_Hint", _analytics.Daily[0].Capacity]</FluentLabel>
+                    @SectionHead(L["Lot_Trend"], L["Lot_Trend_Hint", _analytics.Daily[0].Capacity], "hint-trend")
                     <ApexChart @key="@($"daily-{_analyticsDays}")" TItem="DailyOccupancyDto"
                                Options="@_dailyOptions" Height="240">
                         <ApexPointSeries TItem="DailyOccupancyDto"
@@ -524,8 +526,7 @@
                 @* Demand the lot turned away. A waitlist entry only ever exists for a window that had
                    nothing free in it, so every one of these is a recorded refusal — the only hard
                    evidence the lot has that capacity, rather than interest, ran out. *@
-                <FluentLabel Typo="Typography.Subject">@L["Lot_Queue_Head"]</FluentLabel>
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Queue_Hint"]</FluentLabel>
+                @SectionHead(L["Lot_Queue_Head"], L["Lot_Queue_Hint"], "hint-queue")
                 <div class="lot-stats">
                     @Stat(L["Lot_Stat_QueueEntries"], _analytics.Queue.Entries.ToString(),
                         _analytics.Queue.Entries > 0 ? "warn" : null, L["Lot_Unit_People"])
@@ -539,7 +540,7 @@
 
                 @if (_analytics.Queue.Refused.Count > 0)
                 {
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Queue_Refused_Hint"]</FluentLabel>
+                    @SectionHead(L["Lot_Queue_Refused"], L["Lot_Queue_Refused_Hint"], "hint-refused")
                     <ApexChart @key="@($"refused-{_analyticsDays}")" TItem="DemandCellDto"
                                Options="@_refusedOptions" Height="260">
                         @foreach (var day in WeekOrder.Reverse())
@@ -558,8 +559,7 @@
                    denominator, so they read as shares of a whole; the no-show rate used to divide by
                    every non-cancelled booking touching the window, future ones included, which only
                    ever made it look better. *@
-                <FluentLabel Typo="Typography.Subject">@L["Lot_Rel_Head"]</FluentLabel>
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Rel_Hint"]</FluentLabel>
+                @SectionHead(L["Lot_Rel_Head"], L["Lot_Rel_Hint"], "hint-reliability")
                 <div class="lot-stats">
                     @Stat(L["Lot_Rel_Completed"], Share(_analytics.Reliability.Completed, _analytics.Reliability.Resolved), null)
                     @Stat(L["Lot_Rel_Released"], Share(_analytics.Reliability.Released, _analytics.Reliability.Resolved), null)
@@ -574,8 +574,7 @@
 
                 @if (_analytics.Spots.Count > 0)
                 {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Busiest"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Busiest_Hint", TopSpotCount]</FluentLabel>
+                    @SectionHead(L["Lot_Busiest"], L["Lot_Busiest_Hint", TopSpotCount], "hint-busiest")
                     <ApexChart @key="@($"busiest-{_analyticsDays}")" TItem="SpotUtilizationDto"
                                Options="@_busiestOptions" Height="@(60 + TopSpots.Count * 26)">
                         <ApexPointSeries TItem="SpotUtilizationDto"
@@ -589,8 +588,7 @@
 
                 @if (_analytics.Demand.Count > 0)
                 {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Demand"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Demand_Hint"]</FluentLabel>
+                    @SectionHead(L["Lot_Demand"], L["Lot_Demand_Hint"], "hint-demand")
 
                     @* The one place this chart turns into an action: the busiest stretch the data
                        actually shows, next to the peak window the pricing charges for. When they
@@ -635,8 +633,7 @@
 
                 @* What the window cost. Over the same resolved bookings as the funnel above, so the
                    two shares below share its denominator instead of inventing one. *@
-                <FluentLabel Typo="Typography.Subject">@L["Lot_Econ_Head"]</FluentLabel>
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Econ_Hint"]</FluentLabel>
+                @SectionHead(L["Lot_Econ_Head"], L["Lot_Econ_Hint"], "hint-economy")
                 <div class="lot-stats">
                     @Stat(L["Lot_Stat_Charged"], _analytics.Economy.CreditsCharged.ToString(), null, L["Parking_Credits"])
                     @Stat(L["Lot_Stat_Refunded"], _analytics.Economy.CreditsRefunded.ToString(),
@@ -1051,11 +1048,25 @@
         </tr>
     };
 
-    /// <summary>One bucket of the capacity split: the spot-days, and what share of the window they are.</summary>
-    private RenderFragment CapacityRow(string label, int days, int capacityDays, string? tone) => __builder =>
+    /// <summary>
+    /// One bucket of the capacity split: the spot-days, and what share of the window they are. A row
+    /// may carry its own note — one of the four is an estimate and the other three are exact, which
+    /// is a fact about that row and not about the table.
+    /// </summary>
+    private RenderFragment CapacityRow(string label, int days, int capacityDays, string? tone,
+        string? hint = null, string? anchorId = null) => __builder =>
     {
         <tr class="@(tone is null ? null : $"lot-summary--{tone}")">
-            <th scope="row">@label</th>
+            <th scope="row">
+                @label
+                @if (hint is not null && anchorId is not null)
+                {
+                    <button type="button" id="@anchorId" class="lot-head__info" aria-label="@L["Lot_Hint_Aria", label]">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                    </button>
+                    <FluentTooltip Anchor="@anchorId" Position="TooltipPosition.Bottom" MaxWidth="440px">@hint</FluentTooltip>
+                }
+            </th>
             <td class="lot-summary__num">@days</td>
             <td class="lot-summary__num lot-summary__share">
                 @(capacityDays == 0 ? "—" : $"{Math.Round(days * 100.0 / capacityDays)} %")
@@ -1066,6 +1077,29 @@
     /// <summary>A count as its share of a whole, for the reliability tiles — "62 % (18)".</summary>
     private static string Share(int part, int total) =>
         total == 0 ? "—" : $"{Math.Round(part * 100.0 / total)} %";
+
+    /// <summary>
+    /// A section heading and, behind a question mark beside it, the note on how the section is
+    /// measured. There are nine of these notes and they are reference material — read once, then
+    /// never again — but as paragraphs they sat between every heading and the numbers under it, so
+    /// each section opened with prose instead of with its figures. (Measured: 200 px of text plus
+    /// nine 14 px gaps, about 330 px of the 2 980 px tab. The space is worth having; the reading
+    /// order is the real point.)
+    ///
+    /// The trigger is a button rather than the heading itself: a tooltip on a heading is invisible
+    /// until somebody happens to hover the right words, and a button is reachable by keyboard, which
+    /// hovering never is. Verified in the browser — the note opens on focus alone, with no pointer.
+    /// </summary>
+    private RenderFragment SectionHead(string title, string hint, string anchorId) => __builder =>
+    {
+        <div class="lot-head">
+            <FluentLabel Typo="Typography.Subject">@title</FluentLabel>
+            <button type="button" id="@anchorId" class="lot-head__info" aria-label="@L["Lot_Hint_Aria", title]">
+                <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            </button>
+            <FluentTooltip Anchor="@anchorId" Position="TooltipPosition.Bottom" MaxWidth="440px">@hint</FluentTooltip>
+        </div>
+    };
 
     /// <summary>
     /// One row of the trend table: the metric, its current number, and its sparkline. `tone` maps onto

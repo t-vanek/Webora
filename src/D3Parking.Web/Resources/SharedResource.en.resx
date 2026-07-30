@@ -1092,4 +1092,6 @@
   <data name="Lot_Stat_OffPeak" xml:space="preserve"><value>Off-peak share</value></data>
   <data name="Lot_Stat_FromQueue" xml:space="preserve"><value>Share from the queue</value></data>
   <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hour with the highest demand</value></data>
+  <data name="Lot_Hint_Aria" xml:space="preserve"><value>Method note on {0}</value></data>
+  <data name="Lot_Queue_Refused" xml:space="preserve"><value>Distribution of rejected demand</value></data>
 </root>

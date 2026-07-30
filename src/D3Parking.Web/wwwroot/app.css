@@ -3051,6 +3051,50 @@ fluent-menu-item:has(> .account-menu-link) {
     max-width: 560px;
 }
 
+/* Nadpis sekce s otazníkem, pod kterým je metodická poznámka. Devět poznámek jako odstavců stálo
+   ~330 px a hlavně stavělo mezi každý nadpis a jeho čísla odstavec textu. */
+.lot-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Spouštěč je tlačítko, ne jen ikona: hover se z klávesnice ani z dotyku nedá vyvolat, fokus ano.
+   Vizuálně splývá s textem, dokud na něj nedojde řada. */
+.lot-head__info {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: help;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    line-height: 0;
+}
+
+    .lot-head__info:hover {
+        color: var(--accent-fill-rest, #0f6cbd);
+    }
+
+    .lot-head__info:focus-visible {
+        outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+        outline-offset: 1px;
+        color: var(--accent-fill-rest, #0f6cbd);
+    }
+
+    /* Fluent kreslí ikonu 20 px; vedle textu nadpisu a v řádku tabulky je to o třetinu moc. */
+    .lot-head__info svg {
+        width: 15px;
+        height: 15px;
+    }
+
+/* V řádku tabulky sedí otazník hned za popiskem, ne na konci buňky. */
+.lot-summary th .lot-head__info {
+    vertical-align: middle;
+    margin-left: 2px;
+}
+
 /* Odvozená špička proti nastavené. Účel bloku je porovnání, takže obě hodnoty stojí vedle sebe
    a odkaz vede rovnou tam, kde se to dá změnit. */
 .lot-peak {
