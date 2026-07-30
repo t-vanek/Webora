@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Charting for the lot dashboard. The Fluent UI Blazor team does not ship chart components and
+         points at this wrapper as the compatible option; it bundles its JS as a static web asset, so
+         there is nothing to add to the page head. MIT, targets net10.0 directly. -->
+    <PackageReference Include="Blazor-ApexCharts" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
     <PackageReference Include="OpenIddict.AspNetCore" />

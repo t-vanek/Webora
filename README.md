@@ -390,11 +390,22 @@ celé parkoviště — na rozdíl od [správy míst](#role-a-oprávnění), kter
   Zrušit lze jen rezervaci, na kterou nikdo nedorazil (stavový automat jiný přechod nepovoluje);
   u potvrzené je čestný zásah přesun. Každý zásah držitele notifikuje a zapíše se do jeho auditu
   (`ReservationOverridden`, aktér `admin:<id>`).
-- **Analytika** v okně 7 / 30 / 90 dní: **vytíženost per místo** od nejvytíženějšího (konec tabulky je
-  mrtvá kapacita), nedostavení, neshody, sdílené a promarněné dny, a **heatmapa poptávky** den v týdnu
-  × hodina. Vytíženost počítá asfalt, ne papír — zrušená rezervace neobsadila nic a nedostavení
-  obsadilo místo jen na papíře, takže se do ní nezapočítávají. Poptávka se měří v **obsazených
-  hodinách míst**, ne v počtu rezervací, aby osmihodinová rezervace nesplynula s jedním tikem.
+- **Analytika** v okně 7 / 30 / 90 dní, vedená **grafy** ([Blazor-ApexCharts](https://apexcharts.com/docs/blazor-charts/),
+  MIT; Fluent UI Blazor charty nemá a odkazuje právě na něj):
+  - **zatížení v čase** — plošný graf, kolik míst každý den někdo skutečně obsadil;
+  - **nejvytíženější místa** — vodorovné pruhy, top 12, na škále 0–100 % celého okna (ne vůči
+    nejlepšímu místu, jinak by prázdné parkoviště vypadalo plné);
+  - **kdy poptávka dopadá** — heatmapa den v týdnu × hodina;
+  - **zatížení konkrétního místa** — pruhový pás 30 dnů v detailu místa.
+
+  Pod grafy zůstává **rozklikávací tabulka** všech míst s čísly, která graf nenese: nedostavení,
+  neshody, sdílené a promarněné dny.
+
+  Vytíženost počítá asfalt, ne papír — zrušená rezervace neobsadila nic a nedostavení obsadilo místo
+  jen na papíře, takže se do ní nezapočítávají. Poptávka se měří v **obsazených hodinách míst**, ne
+  v počtu rezervací, aby osmihodinová rezervace nesplynula s jedním tikem. Denní křivka škáluje
+  k **dnešní** kapacitě — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní
+  jmenovatel by byl vymyšlený.
 
 </details>
 

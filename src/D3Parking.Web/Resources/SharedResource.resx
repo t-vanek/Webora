@@ -1018,6 +1018,14 @@
   <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>Nedostavení</value></data>
   <data name="Lot_Stat_Peak" xml:space="preserve"><value>Špička</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Neshody</value></data>
+  <data name="Lot_Trend" xml:space="preserve"><value>Zatížení v čase</value></data>
+  <data name="Lot_Trend_Hint" xml:space="preserve"><value>Kolik míst každý den skutečně někdo obsadil. Škála jde k dnešní kapacitě ({0} míst) — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní jmenovatel by byl vymyšlený.</value></data>
+  <data name="Lot_Trend_Series" xml:space="preserve"><value>Obsazených míst</value></data>
+  <data name="Lot_Busiest" xml:space="preserve"><value>Nejvytíženější místa</value></data>
+  <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Top {0} míst podle podílu dnů, kdy je někdo skutečně obsadil. Škála je 0–100 % celého okna, ne vůči nejlepšímu místu.</value></data>
+  <data name="Lot_Analytics_Table" xml:space="preserve"><value>Podrobná tabulka všech míst (nedostavení, neshody, sdílené dny)</value></data>
+  <data name="Lot_Detail_Trend" xml:space="preserve"><value>Zatížení tohoto místa</value></data>
+  <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Obsazeno</value></data>
   <data name="Lot_Demand" xml:space="preserve"><value>Kdy poptávka dopadá</value></data>
   <data name="Lot_Demand_Hint" xml:space="preserve"><value>Obsazené hodiny míst podle dne v týdnu a hodiny; odstín je vůči nejvytíženější buňce okna.</value></data>
   <data name="Lot_Info_Cancelled" xml:space="preserve"><value>Rezervace zrušena, kredit vrácen a držitel informován.</value></data>

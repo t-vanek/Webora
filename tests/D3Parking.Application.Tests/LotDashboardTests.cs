@@ -347,6 +347,42 @@ public class LotDashboardTests
     }
 
     [Test]
+    public async Task The_daily_curve_has_one_point_per_day_counting_only_honoured_bookings()
+    {
+        var a = await CreateSpotAsync("K-1");
+        var b = await CreateSpotAsync("K-2");
+        var user = Guid.NewGuid();
+        // Two spots taken the same day, one taken the next, and a no-show that occupied nothing.
+        await BookAsync(a, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await BookAsync(b, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await BookAsync(a, user, day: Today.AddDays(-1), status: ReservationStatus.Completed);
+        await BookAsync(b, user, day: Today.AddDays(-1), status: ReservationStatus.NoShow);
+
+        var analytics = await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-2), Today);
+
+        Assert.That(analytics.Daily.Select(d => d.Date),
+            Is.EqualTo(new[] { Today.AddDays(-2), Today.AddDays(-1), Today }),
+            "One point per day of the window, oldest first — a chart cannot draw gaps it never got.");
+        Assert.That(analytics.Daily.Select(d => d.Occupied), Is.EqualTo(new[] { 2, 1, 0 }));
+        Assert.That(analytics.Daily[0].Capacity, Is.EqualTo(2), "Capacity is today's bookable count.");
+        Assert.That(analytics.Daily[0].OccupancyPercent, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task A_spots_trend_covers_every_day_of_the_window_busy_or_not()
+    {
+        var spot = await CreateSpotAsync("L-1");
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-1), status: ReservationStatus.Completed);
+
+        var detail = await CreateDashboard().GetSpotDetailAsync(spot, Today, 7);
+
+        Assert.That(detail!.Trend, Has.Count.EqualTo(30), "A 30-day strip needs 30 columns.");
+        Assert.That(detail.Trend[^1].Date, Is.EqualTo(Today), "Oldest first, so the last point is today.");
+        Assert.That(detail.Trend.Where(d => d.Busy).Select(d => d.Date),
+            Is.EqualTo(new[] { Today.AddDays(-1) }));
+    }
+
+    [Test]
     public async Task A_missing_spot_has_no_detail()
     {
         Assert.That(await CreateDashboard().GetSpotDetailAsync(Guid.NewGuid(), Today, 7), Is.Null);

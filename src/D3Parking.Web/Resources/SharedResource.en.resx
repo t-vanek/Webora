@@ -1018,6 +1018,14 @@
   <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>No-show rate</value></data>
   <data name="Lot_Stat_Peak" xml:space="preserve"><value>Peak</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Mismatches</value></data>
+  <data name="Lot_Trend" xml:space="preserve"><value>Load over time</value></data>
+  <data name="Lot_Trend_Hint" xml:space="preserve"><value>How many spots somebody actually took each day. The scale runs to today's capacity ({0} spots) — there is no history of how many spots were in service when, so a per-day denominator would be invented.</value></data>
+  <data name="Lot_Trend_Series" xml:space="preserve"><value>Spots taken</value></data>
+  <data name="Lot_Busiest" xml:space="preserve"><value>Busiest spots</value></data>
+  <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Top {0} spots by the share of days somebody actually took them. The scale is 0–100 % of the whole window, not relative to the best spot.</value></data>
+  <data name="Lot_Analytics_Table" xml:space="preserve"><value>Detailed table of every spot (no-shows, mismatches, shared days)</value></data>
+  <data name="Lot_Detail_Trend" xml:space="preserve"><value>This spot's load</value></data>
+  <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Taken</value></data>
   <data name="Lot_Demand" xml:space="preserve"><value>When demand lands</value></data>
   <data name="Lot_Demand_Hint" xml:space="preserve"><value>Occupied spot-hours by weekday and hour; the shade is relative to the busiest cell in the window.</value></data>
   <data name="Lot_Info_Cancelled" xml:space="preserve"><value>Reservation cancelled, credits refunded and the holder notified.</value></data>

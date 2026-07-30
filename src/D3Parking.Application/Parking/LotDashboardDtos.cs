@@ -140,10 +140,23 @@ public sealed record SpotDetailDto(
     SpotBoardState State,
     IReadOnlyList<SpotCalendarEntryDto> Calendar,
     IReadOnlyList<SpotMismatchSummaryDto> Mismatches,
-    SpotUtilizationDto Stats);
+    SpotUtilizationDto Stats,
+    /// <summary>This spot's recent days, oldest first — its own load over time, not the lot's.</summary>
+    IReadOnlyList<SpotDayDto> Trend);
 
 /// <summary>One cell of the weekday × hour demand heatmap: how many bookings covered that hour.</summary>
 public sealed record DemandCellDto(DayOfWeek DayOfWeek, int Hour, int Count);
+
+/// <summary>
+/// How many spots one day of the window actually carried. <paramref name="Capacity"/> is the lot's
+/// bookable capacity <em>today</em>, not on that day: spots get created, retired and reassigned, and
+/// there is no history of that, so a per-day denominator would be invented. The count is the honest
+/// figure; the percentage is against today's capacity and is only meant for the recent past.
+/// </summary>
+public sealed record DailyOccupancyDto(DateOnly Date, int Occupied, int Capacity, int OccupancyPercent);
+
+/// <summary>One day of a single spot's history: did it carry a booking somebody stood by.</summary>
+public sealed record SpotDayDto(DateOnly Date, bool Busy);
 
 /// <summary>The lot's analytics over a window: which spots work hardest, and when demand lands.</summary>
 public sealed record LotAnalyticsDto(
@@ -152,6 +165,8 @@ public sealed record LotAnalyticsDto(
     int WindowDays,
     /// <summary>Every spot, busiest first — the head is the bottleneck, the tail is dead capacity.</summary>
     IReadOnlyList<SpotUtilizationDto> Spots,
+    /// <summary>One entry per day of the window, oldest first — the lot's load over time.</summary>
+    IReadOnlyList<DailyOccupancyDto> Daily,
     IReadOnlyList<DemandCellDto> Demand,
     /// <summary>The busiest hour and weekday overall, or null when the window holds no bookings.</summary>
     int? PeakHour,

@@ -2826,44 +2826,13 @@ fluent-menu-item:has(> .account-menu-link) {
     background: var(--neutral-fill-secondary-rest, #f7f7f7);
 }
 
-.lot-util {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 12px;
-}
-
-/* Heatmapa poptávky: 24 sloupců hodin × 7 řádků dnů. Intenzita jede přes --heat
-   (0–1 vůči nejvytíženější buňce), takže i tichý týden ukáže svůj vlastní profil. */
-.lot-heatmap {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    width: 100%;
-    overflow-x: auto;
-}
-
-.lot-heatmap__row {
-    display: grid;
-    grid-template-columns: 32px repeat(24, minmax(14px, 1fr));
-    gap: 2px;
-    align-items: center;
-}
-
-.lot-heatmap__label,
-.lot-heatmap__hour {
-    font-size: 10.5px;
-    color: var(--neutral-foreground-hint, #6b6b6b);
-    text-align: center;
-}
-
-.lot-heatmap__label { text-align: left; }
-
-.lot-heatmap__cell {
-    height: 16px;
-    border-radius: 3px;
-    /* Nulová buňka zůstane viditelně prázdná, ne bílá — mřížka si tak drží tvar. */
-    background: color-mix(in srgb, var(--brand-violet) calc(var(--heat) * 100%), var(--neutral-fill-secondary-rest, #eee));
+/* Podrobná tabulka pod grafy — grafy vedou, tabulka drží čísla, která nenesou (nedostavení,
+   neshody, sdílené dny). */
+.lot-table-toggle > summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 0;
 }
 
 @media (max-width: 640px) {

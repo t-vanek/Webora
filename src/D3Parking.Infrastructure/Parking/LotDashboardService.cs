@@ -312,9 +312,12 @@ public sealed class LotDashboardService(
             spot.OwnerId is not null,
             releases.Contains(today) || policy.IsResidentAutoShareActive(today, now, timeZone));
 
+        var trend = await ComputeSpotTrendAsync(dbContext, timeZone,
+            today.AddDays(-(SignalWindowDays - 1)), today, spotId, cancellationToken);
+
         return new SpotDetailDto(spot.Id, spot.Code, spot.Type, spot.IsActive, spot.Notes, spot.OwnerId, ownerName,
             spot.MonthlyShareAllowance, spot.PlannedUseDays, spot.AutoReleaseUnplannedDays, state,
-            calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats);
+            calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats, trend);
     }
 
     public async Task<LotAnalyticsDto> GetAnalyticsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
@@ -367,6 +370,7 @@ public sealed class LotDashboardService(
             To: to,
             WindowDays: windowDays,
             Spots: spots,
+            Daily: await ComputeDailyOccupancyAsync(dbContext, timeZone, from, to, spotIds, cancellationToken),
             Demand: demand.Select(cell => new DemandCellDto(cell.Key.Day, cell.Key.Hour, cell.Value))
                 .OrderBy(cell => cell.DayOfWeek).ThenBy(cell => cell.Hour).ToList(),
             PeakHour: peak?.Key.Hour,
@@ -374,6 +378,82 @@ public sealed class LotDashboardService(
             TotalReservations: completedOrLive,
             NoShowPercent: completedOrLive == 0 ? 0 : (int)Math.Round(noShows * 100.0 / completedOrLive),
             AverageOccupancyPercent: spots.Count == 0 ? 0 : (int)Math.Round(spots.Average(s => s.UtilizationPercent)));
+    }
+
+    /// <summary>
+    /// The days a single spot carried a booking somebody stood by, oldest first — the spot's own load
+    /// over time. Same "honoured, not merely booked" rule as the utilization figures.
+    /// </summary>
+    private static async Task<List<SpotDayDto>> ComputeSpotTrendAsync(
+        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly to, Guid spotId,
+        CancellationToken cancellationToken)
+    {
+        var busy = await HonouredDaysAsync(dbContext, timeZone, from, to, [spotId], cancellationToken);
+        var days = new List<SpotDayDto>();
+        for (var date = from; date <= to; date = date.AddDays(1))
+        {
+            days.Add(new SpotDayDto(date, busy.Contains((spotId, date))));
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// Every (spot, local day) pair that carried a booking somebody stood by in the window — live,
+    /// arrived or completed reservations plus reception visitor bookings. A cancelled booking occupied
+    /// nothing and a no-show occupied the spot only on paper, so neither is here. The single source of
+    /// "this spot worked that day" behind the utilization figures, the daily curve and a spot's trend.
+    /// </summary>
+    private static async Task<HashSet<(Guid SpotId, DateOnly Date)>> HonouredDaysAsync(
+        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly to,
+        IReadOnlyList<Guid> spotIds, CancellationToken cancellationToken)
+    {
+        var (rangeStart, _) = SiteTime.Day(from, timeZone);
+        var (_, rangeEnd) = SiteTime.Day(to, timeZone);
+
+        var reservations = await dbContext.Reservations.AsNoTracking()
+            .Where(r => spotIds.Contains(r.SpotId) && r.StartUtc < rangeEnd && r.EndUtc > rangeStart
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn
+                    || r.Status == ReservationStatus.Completed))
+            .Select(r => new { r.SpotId, r.StartUtc, r.EndUtc })
+            .ToListAsync(cancellationToken);
+
+        var visitorBookings = await dbContext.VisitorBookings.AsNoTracking()
+            .Where(v => spotIds.Contains(v.SpotId) && v.Status == VisitorBookingStatus.Booked
+                && v.StartUtc < rangeEnd && v.EndUtc > rangeStart)
+            .Select(v => new { v.SpotId, v.StartUtc, v.EndUtc })
+            .ToListAsync(cancellationToken);
+
+        return reservations.Select(r => (r.SpotId, r.StartUtc, r.EndUtc))
+            .Concat(visitorBookings.Select(v => (v.SpotId, v.StartUtc, v.EndUtc)))
+            .SelectMany(x => LocalDaysOf(x.StartUtc, x.EndUtc, timeZone)
+                .Where(day => day >= from && day <= to)
+                .Select(day => (x.SpotId, Date: day)))
+            .ToHashSet();
+    }
+
+    /// <summary>
+    /// How many spots each day of the window carried, oldest first. The denominator is today's
+    /// bookable capacity — see <see cref="DailyOccupancyDto"/> for why there cannot be a per-day one.
+    /// </summary>
+    private static async Task<List<DailyOccupancyDto>> ComputeDailyOccupancyAsync(
+        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly to,
+        IReadOnlyList<Guid> spotIds, CancellationToken cancellationToken)
+    {
+        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, spotIds, cancellationToken);
+        var capacity = await dbContext.ParkingSpots.AsNoTracking()
+            .CountAsync(s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
+        var perDay = honoured.GroupBy(x => x.Date).ToDictionary(g => g.Key, g => g.Count());
+
+        var daily = new List<DailyOccupancyDto>();
+        for (var date = from; date <= to; date = date.AddDays(1))
+        {
+            var occupied = perDay.GetValueOrDefault(date);
+            daily.Add(new DailyOccupancyDto(date, occupied, capacity,
+                capacity == 0 ? 0 : (int)Math.Round(occupied * 100.0 / capacity)));
+        }
+
+        return daily;
     }
 
     /// <summary>
@@ -403,16 +483,16 @@ public sealed class LotDashboardService(
             })
             .ToListAsync(cancellationToken);
 
-        var reservations = await dbContext.Reservations.AsNoTracking()
-            .Where(r => spotIds.Contains(r.SpotId) && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
-            .Select(r => new { r.SpotId, r.Status, r.StartUtc, r.EndUtc })
-            .ToListAsync(cancellationToken);
+        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, spotIds, cancellationToken);
 
-        var visitorBookings = await dbContext.VisitorBookings.AsNoTracking()
-            .Where(v => spotIds.Contains(v.SpotId) && v.Status == VisitorBookingStatus.Booked
-                && v.StartUtc < rangeEnd && v.EndUtc > rangeStart)
-            .Select(v => new { v.SpotId, v.StartUtc, v.EndUtc })
-            .ToListAsync(cancellationToken);
+        // Only the no-show tally needs the statuses the honoured set deliberately leaves out.
+        var noShows = (await dbContext.Reservations.AsNoTracking()
+                .Where(r => spotIds.Contains(r.SpotId) && r.Status == ReservationStatus.NoShow
+                    && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
+                .Select(r => r.SpotId)
+                .ToListAsync(cancellationToken))
+            .GroupBy(id => id)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         var mismatches = (await dbContext.OccupancyMismatches.AsNoTracking()
                 .Where(m => spotIds.Contains(m.SpotId) && m.StartUtc < rangeEnd && m.EndUtc > rangeStart)
@@ -429,21 +509,7 @@ public sealed class LotDashboardService(
         var result = new List<SpotUtilizationDto>(spots.Count);
         foreach (var spot in spots)
         {
-            // A cancelled booking never occupied anything, and a no-show occupied it only on paper —
-            // counting either as utilization would report a lot busier than the asphalt ever was.
-            var honoured = reservations
-                .Where(r => r.SpotId == spot.Id
-                    && r.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn or ReservationStatus.Completed)
-                .SelectMany(r => LocalDaysOf(r.StartUtc, r.EndUtc, timeZone))
-                .ToHashSet();
-            foreach (var day in visitorBookings.Where(v => v.SpotId == spot.Id)
-                         .SelectMany(v => LocalDaysOf(v.StartUtc, v.EndUtc, timeZone)))
-            {
-                honoured.Add(day);
-            }
-
-            // Only days inside the window count — a booking may straddle its edge.
-            var bookedDays = honoured.Count(d => d >= from && d <= to);
+            var busyDays = honoured.Where(x => x.SpotId == spot.Id).Select(x => x.Date).ToHashSet();
             var spotReleases = releases.Where(r => r.SpotId == spot.Id).ToList();
 
             result.Add(new SpotUtilizationDto(
@@ -451,15 +517,15 @@ public sealed class LotDashboardService(
                 Code: spot.Code,
                 Type: spot.Type,
                 OwnerName: spot.OwnerName,
-                BookedDays: bookedDays,
+                BookedDays: busyDays.Count,
                 WindowDays: windowDays,
-                UtilizationPercent: windowDays == 0 ? 0 : (int)Math.Round(bookedDays * 100.0 / windowDays),
-                NoShows: reservations.Count(r => r.SpotId == spot.Id && r.Status == ReservationStatus.NoShow),
+                UtilizationPercent: windowDays == 0 ? 0 : (int)Math.Round(busyDays.Count * 100.0 / windowDays),
+                NoShows: noShows.GetValueOrDefault(spot.Id),
                 Mismatches: mismatches.GetValueOrDefault(spot.Id),
                 SharedDays: spotReleases.Count,
                 // Same rule as CountUnusedSharedDaysAsync: shared and nobody took it. Only days that
                 // have already passed count — a shared day still ahead of us is an offer, not waste.
-                UnusedSharedDays: spotReleases.Count(r => r.Date < today && !honoured.Contains(r.Date))));
+                UnusedSharedDays: spotReleases.Count(r => r.Date < today && !busyDays.Contains(r.Date))));
         }
 
         return result
