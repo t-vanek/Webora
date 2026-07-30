@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
 @inject IAccountService AccountService
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Suspend_Title"]</PageTitle>
@@ -10,19 +11,24 @@
     <FluentLabel Typo="Typography.PageTitle">@L["Suspend_Title"]</FluentLabel>
     <FluentLabel Typo="Typography.Body">@L["Suspend_Intro"]</FluentLabel>
 
-    @if (_submitted)
+    @*  Static SSR feedback: FluentMessageBar renders nothing without an interactive
+        circuit, so every POST outcome arrives as a redirect query value
+        (post-redirect-get) rendered through the global auth-alert styles.  *@
+    @if (!string.IsNullOrEmpty(_info))
     {
-        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-            @L["Suspend_Success"]
-        </FluentMessageBar>
+        <div class="auth-alert auth-alert--success" role="status">
+            <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            <span>@L[_info]</span>
+        </div>
     }
     else
     {
         @if (!string.IsNullOrEmpty(_error))
         {
-            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                @_error
-            </FluentMessageBar>
+            <div class="auth-alert auth-alert--error" role="alert">
+                <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                <span>@L[_error]</span>
+            </div>
         }
         <EditForm Model="this" method="post" OnValidSubmit="Submit" FormName="suspend">
             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Outline"
@@ -36,8 +42,29 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
-    private bool _submitted;
+    // Post-redirect-get feedback (see the markup note above the alerts). The properties must
+    // be public — static SSR does not bind [SupplyParameterFromQuery] to private ones.
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "info")] public string? Info { get; set; }
+
     private string? _error;
+    private string? _info;
+
+    // The values arrive on an open URL parameter, so they only pass through when they look
+    // like what the redirects here actually emit: this page's one success key, and error
+    // text capped to a plausible length.
+    protected override void OnInitialized()
+    {
+        if (Info == "Suspend_Success")
+        {
+            _info = Info;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Error))
+        {
+            _error = Error.Length <= 300 ? Error : Error[..300];
+        }
+    }
 
     private async Task Submit()
     {
@@ -45,17 +72,27 @@
         var user = await UserManager.GetUserAsync(state.User);
         if (user is null)
         {
-            _error = L["Common_AccountNotFound"];
+            Redirect(error: "Common_AccountNotFound");
             return;
         }
 
         var result = await AccountService.RequestSuspendAsync(user.Id);
         if (result.Succeeded)
         {
-            _submitted = true;
+            Redirect(info: "Suspend_Success");
             return;
         }
 
-        _error = string.Join(" ", result.Errors);
+        Redirect(error: string.Join(" ", result.Errors));
+    }
+
+    // NavigateTo does not interrupt a static SSR handler (no exception since .NET 10), so the
+    // caller keeps running to the end of its method — the redirect must stay its last real work.
+    private void Redirect(string? error = null, string? info = null)
+    {
+        var query = !string.IsNullOrEmpty(error) ? "?error=" + Uri.EscapeDataString(error)
+            : !string.IsNullOrEmpty(info) ? "?info=" + Uri.EscapeDataString(info)
+            : string.Empty;
+        Nav.NavigateTo("account/suspend" + query);
     }
 }

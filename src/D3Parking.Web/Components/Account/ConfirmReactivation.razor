@@ -7,6 +7,9 @@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
     <FluentLabel Typo="Typography.PageTitle">@L["ConfirmReactivation_Title"]</FluentLabel>
 
+    @*  Static SSR: FluentMessageBar renders nothing without an interactive circuit, and this
+        outcome is the whole page — the emailed link would land on blank space. The global
+        auth-alert divs render everywhere.  *@
     @if (_succeeded is null)
     {
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
@@ -16,16 +19,17 @@
     }
     else if (_succeeded == true)
     {
-        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-            @L["ConfirmReactivation_Success"]
-            <FluentAnchor Href="login" Appearance="Appearance.Hypertext">@L["Common_SignIn"]</FluentAnchor>.
-        </FluentMessageBar>
+        <div class="auth-alert auth-alert--success" role="status">
+            <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            <span>@L["ConfirmReactivation_Success"] <FluentAnchor Href="login" Appearance="Appearance.Hypertext">@L["Common_SignIn"]</FluentAnchor>.</span>
+        </div>
     }
     else
     {
-        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-            @_error
-        </FluentMessageBar>
+        <div class="auth-alert auth-alert--error" role="alert">
+            <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            <span>@_error</span>
+        </div>
     }
 </FluentStack>
 

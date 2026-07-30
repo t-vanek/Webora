@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @inject UserManager<ApplicationUser> UserManager
 @inject IAccountService AccountService
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["ChangePhone_Title"]</PageTitle>
@@ -11,19 +12,25 @@
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
         <FluentLabel Typo="Typography.H3">@L["ChangePhone_Title"]</FluentLabel>
 
-        @if (_done)
+        @*  Static SSR feedback: FluentMessageBar renders nothing without an interactive
+            circuit. The two-step flow round-trips the pending phone number through the
+            form post (never the URL), so in-flow feedback renders in the same request as
+            plain auth-alert divs; only the terminal outcome redirects (post-redirect-get). *@
+        @if (!string.IsNullOrEmpty(_info))
         {
-            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">
-                @L["ChangePhone_Success"]
-            </FluentMessageBar>
+            <div class="auth-alert auth-alert--success" role="status">
+                <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                <span>@L[_info]</span>
+            </div>
         }
         else
         {
             @if (!string.IsNullOrEmpty(_error))
             {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                    @_error
-                </FluentMessageBar>
+                <div class="auth-alert auth-alert--error" role="alert">
+                    <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@_error</span>
+                </div>
             }
 
             <EditForm Model="RequestInput" method="post" OnValidSubmit="RequestCode" FormName="phone-request">
@@ -43,9 +50,10 @@
             @if (_codeSent || !string.IsNullOrEmpty(ConfirmInput.NewPhoneNumber))
             {
                 <FluentDivider />
-                <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
-                    @L["ChangePhone_CodeSent"]
-                </FluentMessageBar>
+                <div class="auth-alert auth-alert--success" role="status">
+                    <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@L["ChangePhone_CodeSent"]</span>
+                </div>
                 <EditForm Model="ConfirmInput" method="post" OnValidSubmit="ConfirmCode" FormName="phone-confirm">
                     <DataAnnotationsValidator />
                     @*  Hidden plumbing: the second EditForm needs to know which phone the
@@ -79,8 +87,24 @@
 #pragma warning restore BL0008
 
     private bool _codeSent;
-    private bool _done;
     private string? _error;
+
+    // Post-redirect-get feedback for the terminal outcome only (see the markup note above
+    // the alerts). The property must be public — static SSR does not bind
+    // [SupplyParameterFromQuery] to private ones.
+    [SupplyParameterFromQuery(Name = "info")] public string? Info { get; set; }
+
+    private string? _info;
+
+    // The value arrives on an open URL parameter, so it only passes through as the one
+    // success key the confirm redirect actually emits.
+    protected override void OnInitialized()
+    {
+        if (Info == "ChangePhone_Success")
+        {
+            _info = Info;
+        }
+    }
 
     private async Task<ApplicationUser?> CurrentUserAsync()
     {
@@ -120,7 +144,9 @@
         var result = await AccountService.ConfirmPhoneChangeAsync(user.Id, ConfirmInput.NewPhoneNumber, ConfirmInput.Code);
         if (result.Succeeded)
         {
-            _done = true;
+            // NavigateTo does not interrupt a static SSR handler (no exception since
+            // .NET 10) — the redirect must stay the handler's last real work.
+            Nav.NavigateTo("account/change-phone?info=" + Uri.EscapeDataString("ChangePhone_Success"));
             return;
         }
 
