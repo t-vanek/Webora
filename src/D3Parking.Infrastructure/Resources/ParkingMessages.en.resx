@@ -69,6 +69,8 @@
   <data name="Parking_Notify_ResidentAssigned_Body" xml:space="preserve"><value>You've been assigned reserved spot {0}. Confirm arrival each day, or release it to others to earn points.</value></data>
   <data name="Parking_Notify_ResidentUnassigned_Title" xml:space="preserve"><value>Reserved spot removed</value></data>
   <data name="Parking_Notify_ResidentUnassigned_Body" xml:space="preserve"><value>An administrator removed your reserved spot {0}. Please book from the shared pool from now on.</value></data>
+  <data name="Parking_Notify_QueueHoldReclaimed_Title" xml:space="preserve"><value>A held spot went back to its resident</value></data>
+  <data name="Parking_Notify_QueueHoldReclaimed_Body" xml:space="preserve"><value>Spot {0}, which we were holding for you, was taken back by its resident — they always have first claim on it. Your place in the queue is unchanged; we'll offer you the next spot that frees up.</value></data>
   <data name="Parking_Notify_QueueOffer_Title" xml:space="preserve"><value>A queued spot is free</value></data>
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Spot {0} opened up for your queued window – we've held it for you for {1} minutes. Confirm the reservation in the app, otherwise we'll offer it to the next person.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>

@@ -20,6 +20,14 @@ public interface IResidentSpotService
     /// </summary>
     Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Takes released days in [fromDate, toDate] back out of the shared pool — the resident's
+    /// right of first refusal. Days a guest already booked stay shared (a firm booking is never
+    /// evicted); a day merely held for a waitlist offer is reclaimed and the offer withdrawn.
+    /// The reward each taken-back day earned is returned.
+    /// </summary>
+    Task<ParkingResult> ReclaimAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
+
     /// <summary>Set how many times a month the resident is willing to share their spot.</summary>
     Task<ParkingResult> SetShareAllowanceAsync(Guid userId, int allowance, CancellationToken cancellationToken = default);
 

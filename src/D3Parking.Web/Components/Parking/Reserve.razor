@@ -66,7 +66,10 @@
                 </FluentLabel>
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                    @if (_ownedSpot.TodayState == OwnedSpotDayState.Held)
+                    @* The resident's right of first refusal: the auto-shared spot can still be
+                       confirmed back as long as nobody booked it (the service withdraws any
+                       waitlist hold), so the button stays past the cutoff too. *@
+                    @if (_ownedSpot.TodayState == OwnedSpotDayState.Held || CanConfirmAutoShared)
                     {
                         <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
                     }
@@ -80,9 +83,40 @@
                     </div>
                     <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
                 </FluentStack>
+                @if (CanConfirmAutoShared)
+                {
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Owned_AutoShareReclaimHint"]</FluentLabel>
+                }
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
                     @L["Parking_Owned_ReleaseHint"] +@ReleaseRangePoints() @L["Parking_Points"]
                 </FluentLabel>
+
+                @if (_ownedSpot.UpcomingReleases.Count > 0)
+                {
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                            <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleasedDays"]:</FluentLabel>
+                            @foreach (var day in _ownedSpot.UpcomingReleases)
+                            {
+                                <span class="pill @(day.TakenByGuest ? "pill--peak" : "pill--offpeak")">
+                                    @day.Date.ToString("d. M.")@(day.TakenByGuest ? $" {L["Parking_Owned_DayTaken"]}" : null)
+                                </span>
+                            }
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                            <div>
+                                <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReclaimFrom"]</FluentLabel>
+                                <input type="date" @bind="_reclaimFrom" class="parking-input" />
+                            </div>
+                            <div>
+                                <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReclaimTo"]</FluentLabel>
+                                <input type="date" @bind="_reclaimTo" class="parking-input" />
+                            </div>
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReclaimOwnedAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
+                        </FluentStack>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Owned_ReclaimHint"]</FluentLabel>
+                    </FluentStack>
+                }
 
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                     <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
@@ -332,7 +366,14 @@
     private OwnedSpotDto? _ownedSpot;
     private DateTime _releaseFrom = DateTime.Today;
     private DateTime _releaseTo = DateTime.Today;
+    private DateTime _reclaimFrom = DateTime.Today;
+    private DateTime _reclaimTo = DateTime.Today;
     private int _allowance;
+
+    // Past the cutoff the spot auto-shares, but until a guest books it the resident can still
+    // confirm it back — their right of first refusal (a released day goes through Reclaim instead).
+    private bool CanConfirmAutoShared =>
+        _ownedSpot is { TodayState: OwnedSpotDayState.SharedFree, ReleasedToday: false };
 
     private IncentivePolicy? _policy;
     private double? _distanceKm;
@@ -363,6 +404,8 @@
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
         _releaseFrom = _day.ToDateTime(TimeOnly.MinValue);
         _releaseTo = _releaseFrom;
+        _reclaimFrom = _releaseFrom;
+        _reclaimTo = _releaseFrom;
 
         var home = await UserLocation.GetHomeAsync(_userId);
         _distanceKm = home.Verified ? home.DistanceKm : null;
@@ -523,6 +566,13 @@
         await RunResidentAsync(
             () => ResidentSpots.ReleaseAsync(_userId, DateOnly.FromDateTime(_releaseFrom), DateOnly.FromDateTime(_releaseTo)),
             "Parking_Owned_Released");
+    }
+
+    private async Task ReclaimOwnedAsync()
+    {
+        await RunResidentAsync(
+            () => ResidentSpots.ReclaimAsync(_userId, DateOnly.FromDateTime(_reclaimFrom), DateOnly.FromDateTime(_reclaimTo)),
+            "Parking_Owned_Reclaimed");
     }
 
     private async Task SaveAllowanceAsync()

@@ -24,6 +24,9 @@ public enum IncentiveReason
     /// <summary>A share reward fully reversed because nobody booked the released day (no demand).</summary>
     ResidentShareUnused,
 
+    /// <summary>A share reward returned because the resident took the released day back themselves.</summary>
+    ResidentShareReclaimed,
+
     /// <summary>Awarded for taking a shared reserved spot, scaled by the taker's commute distance.</summary>
     SharedSpotTaken,
 
