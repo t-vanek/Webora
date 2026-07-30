@@ -37,8 +37,9 @@ public static class ScimEndpoints
         // timing oracle.
         group.AddEndpointFilter(async (invocation, next) =>
         {
-            var options = invocation.HttpContext.RequestServices
-                .GetRequiredService<IOptions<EntraIdOptions>>().Value.Scim;
+            var options = (await invocation.HttpContext.RequestServices
+                .GetRequiredService<IEntraSettingsService>()
+                .GetEffectiveAsync(invocation.HttpContext.RequestAborted)).Scim;
 
             if (!options.IsConfigured)
             {

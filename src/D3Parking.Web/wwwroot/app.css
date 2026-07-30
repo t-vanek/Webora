@@ -2907,6 +2907,15 @@ fluent-menu-item:has(> .account-menu-link) {
     box-sizing: border-box;
 }
 
+/* Poznámka pod polem, které přebila konfigurace nasazení. Zašedlé pole samo o sobě neřekne proč. */
+.settings-lock {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--neutral-foreground-hint, #616161);
+}
+
 /* --- Panel notifikací (zvoneček) --- */
 /* Vlastní popover místo FluentCard — fluent-card má výchozí výšku 100 %, což se v absolutní
    pozici počítá vůči ~40px obalu tlačítka a panel se otevíral jako proužek s posuvníky. */

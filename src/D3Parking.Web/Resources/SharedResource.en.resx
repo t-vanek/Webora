@@ -304,6 +304,43 @@
   <data name="Settings_SaveAccounts" xml:space="preserve"><value>Save accounts</value></data>
   <data name="Settings_DefaultRole" xml:space="preserve"><value>Default role for new accounts</value></data>
   <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automatically granted to newly registered accounts.</value></data>
+  <data name="Settings_EntraSection" xml:space="preserve"><value>Entra ID</value></data>
+  <data name="Settings_EntraIntro" xml:space="preserve"><value>The Microsoft Entra ID integration. Sign-in and provisioning are separate decisions and switch on separately. With neither on, the application behaves exactly as before, with local passwords only.</value></data>
+  <data name="Settings_EntraLocked" xml:space="preserve"><value>These fields are governed by the deployment's configuration and cannot be changed here: {0}.</value></data>
+  <data name="Settings_EntraFieldLocked" xml:space="preserve"><value>Governed by the deployment's configuration.</value></data>
+  <data name="Settings_EntraSignInSection" xml:space="preserve"><value>Sign in with Entra ID</value></data>
+  <data name="Settings_EntraEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="Settings_EntraSignInHelp" xml:space="preserve"><value>Adds a "sign in with your work account" button to the sign-in page. The values come from the app registration in Entra ID.</value></data>
+  <data name="Settings_EntraTenantId" xml:space="preserve"><value>Directory (tenant) id</value></data>
+  <data name="Settings_EntraClientId" xml:space="preserve"><value>Application (client) id</value></data>
+  <data name="Settings_EntraClientSecret" xml:space="preserve"><value>Client secret</value></data>
+  <data name="Settings_EntraSecretKeep" xml:space="preserve"><value>Leave unchanged</value></data>
+  <data name="Settings_EntraSecretPresent" xml:space="preserve"><value>Stored. Type here to replace it; leave the box empty to keep it.</value></data>
+  <data name="Settings_EntraSecretAbsent" xml:space="preserve"><value>Not stored yet.</value></data>
+  <data name="Settings_EntraSecretClear" xml:space="preserve"><value>Remove the stored secret</value></data>
+  <data name="Settings_EntraDisplayName" xml:space="preserve"><value>Button label</value></data>
+  <data name="Settings_EntraDisplayNameHelp" xml:space="preserve"><value>Whatever your people call the directory, e.g. "Work account".</value></data>
+  <data name="Settings_EntraAuthority" xml:space="preserve"><value>Authority (optional)</value></data>
+  <data name="Settings_EntraAuthorityHelp" xml:space="preserve"><value>Only needed for a cloud other than the public one. Empty derives it from the directory id.</value></data>
+  <data name="Settings_EntraCallbackPath" xml:space="preserve"><value>Sign-in callback path</value></data>
+  <data name="Settings_EntraSignedOutPath" xml:space="preserve"><value>Sign-out callback path</value></data>
+  <data name="Settings_EntraRedirectHelp" xml:space="preserve"><value>The app registration must list exactly this redirect URI:</value></data>
+  <data name="Settings_EntraAccountsSection" xml:space="preserve"><value>Account creation</value></data>
+  <data name="Settings_EntraLinkByEmail" xml:space="preserve"><value>Link to an existing account by email</value></data>
+  <data name="Settings_EntraLinkByEmailHelp" xml:space="preserve"><value>A first sign-in adopts the local account with the same email — only if that email is confirmed and the account is not already linked elsewhere.</value></data>
+  <data name="Settings_EntraJit" xml:space="preserve"><value>Create accounts on first sign-in</value></data>
+  <data name="Settings_EntraJitHelp" xml:space="preserve"><value>Turn off when provisioning is the only way in and an unknown sign-in should be refused.</value></data>
+  <data name="Settings_EntraDefaultRoles" xml:space="preserve"><value>Default roles for accounts created this way</value></data>
+  <data name="Settings_EntraDefaultRolesHelp" xml:space="preserve"><value>Used only when the directory sends no app role at all. None selected means the account exists but can do nothing until someone grants it something.</value></data>
+  <data name="Settings_EntraScimSection" xml:space="preserve"><value>Provisioning (SCIM)</value></data>
+  <data name="Settings_EntraScimHelp" xml:space="preserve"><value>Entra pushes joiners, movers and leavers here as they happen. Configured in the Enterprise Application under Provisioning.</value></data>
+  <data name="Settings_EntraScimUrl" xml:space="preserve"><value>Tenant URL:</value></data>
+  <data name="Settings_EntraScimToken" xml:space="preserve"><value>SCIM bearer token</value></data>
+  <data name="Settings_EntraScimTokenHelp" xml:space="preserve"><value>The only protection those endpoints have — generate a long random string and rotate it when someone with access to the tenant leaves.</value></data>
+  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Block a deprovisioned account</value></data>
+  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>An account the directory deactivates or deletes gets blocked (reversible, keeps history). Off leaves it alone. Deletion is never performed from a provisioning request.</value></data>
+  <data name="Settings_EntraRoleMappingLink" xml:space="preserve"><value>Directory role mappings →</value></data>
+  <data name="Settings_SaveEntra" xml:space="preserve"><value>Save Entra ID</value></data>
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>None</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>General</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Save general</value></data>
@@ -1326,6 +1363,7 @@
   <data name="Home_Card_Directory" xml:space="preserve"><value>Entra ID connection and role mapping</value></data>
   <data name="Admin_Directory_Title" xml:space="preserve"><value>Company directory</value></data>
   <data name="Admin_Directory_Intro" xml:space="preserve"><value>The Microsoft Entra ID connection: which directory roles correspond to which roles here.</value></data>
+  <data name="Admin_Directory_ConfigureLink" xml:space="preserve"><value>Configure Entra ID →</value></data>
   <data name="Admin_Directory_NotConfigured" xml:space="preserve"><value>Entra ID is not configured yet. You can prepare the mapping now and switch it on once the tenant is ready.</value></data>
   <data name="Admin_Directory_SignInOn" xml:space="preserve"><value>Entra sign-in on</value></data>
   <data name="Admin_Directory_SignInOff" xml:space="preserve"><value>Entra sign-in off</value></data>

@@ -11,5 +11,12 @@ public static class SettingsCacheKeys
     public const string PageCharset = "d3parking:page-charset";
     public const string Identity = "d3parking:site-identity";
 
+    /// <summary>
+    /// The merged Entra ID settings. Deliberately outside <see cref="All"/>: it is written by a
+    /// different service and evicted on its own save, so a domain-name edit has no business
+    /// throwing away a snapshot the sign-in path is reading.
+    /// </summary>
+    public const string EntraSettings = "d3parking:entra-settings";
+
     public static readonly IReadOnlyList<string> All = [DomainPolicy, DefaultLanguage, PageCharset, Identity];
 }

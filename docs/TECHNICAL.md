@@ -77,6 +77,33 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Faktor vzdálenosti** | souřadnice parkoviště, základní body, referenční km, max. násobič |
 | **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
 
+### Microsoft Entra ID
+
+Napojení na Entra ID se spravuje na `/admin/settings` v záložce **Entra ID** (`Settings.View` /
+`Settings.Edit`), uloženo v databázi a auditované. Přihlašování a provisioning jsou dva nezávislé
+přepínače; dokud není zapnutý ani jeden, aplikace běží jen s místními hesly jako dřív.
+
+| Skupina | Volby |
+| --- | --- |
+| **Přihlašování** | zapnout, ID adresáře (tenant), ID aplikace (client), client secret, popisek tlačítka, authority, cesta po přihlášení / odhlášení |
+| **Zakládání účtů** | párování podle potvrzeného e-mailu, zakládání účtů při prvním přihlášení, výchozí role těchto účtů |
+| **Provisioning (SCIM)** | zapnout, bearer token, blokovat odebraný účet |
+
+Změna se projeví **bez restartu**: schéma OpenID Connect se po uložení publikuje nebo odebere za
+běhu. Dokud přihlašování není nakonfigurované, žádné schéma v pipeline není.
+
+**Tajemství** (client secret, SCIM token) se ukládají zašifrovaná přes ASP.NET Data Protection a
+stránka je nikdy nezobrazí zpět — jen řekne, že existují. Prázdné pole znamená „ponechat", odebrat
+se musí explicitně. Klíčenka Data Protection proto musí přežít redeploy; jinak se tajemství po
+restartu nedají dešifrovat, aplikace to zaloguje jako chybu a chová se, jako by nastavená nebyla.
+
+**Přednost konfigurace:** klíč přítomný v sekci `EntraId` (v `appsettings.json`, proměnné prostředí
+`EntraId__TenantId`, vaultu…) **přebíjí** uloženou hodnotu a příslušné pole na stránce zašedne s
+poznámkou proč. Prázdný řetězec se nepočítá jako nastavený. Proto v `appsettings.json` žádná sekce
+`EntraId` není — vyplněná sekce s výchozími hodnotami by feature zamkla dřív, než by ho šlo nastavit.
+
+Mapování rolí z adresáře na role aplikace zůstává na `/admin/directory`.
+
 Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ```jsonc

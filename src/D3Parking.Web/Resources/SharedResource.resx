@@ -304,6 +304,43 @@
   <data name="Settings_SaveAccounts" xml:space="preserve"><value>Uložit účty</value></data>
   <data name="Settings_DefaultRole" xml:space="preserve"><value>Výchozí role nových účtů</value></data>
   <data name="Settings_DefaultRoleHelp" xml:space="preserve"><value>Role automaticky přidělená nově zaregistrovaným účtům.</value></data>
+  <data name="Settings_EntraSection" xml:space="preserve"><value>Entra ID</value></data>
+  <data name="Settings_EntraIntro" xml:space="preserve"><value>Napojení na Microsoft Entra ID. Přihlašování a provisioning jsou dvě nezávislá rozhodnutí — každé se zapíná zvlášť. Dokud nezapnete ani jedno, aplikace se chová přesně jako dřív, jen s místními hesly.</value></data>
+  <data name="Settings_EntraLocked" xml:space="preserve"><value>Tato pole řídí konfigurace nasazení a tady je změnit nelze: {0}.</value></data>
+  <data name="Settings_EntraFieldLocked" xml:space="preserve"><value>Řízeno konfigurací nasazení.</value></data>
+  <data name="Settings_EntraSignInSection" xml:space="preserve"><value>Přihlašování přes Entra ID</value></data>
+  <data name="Settings_EntraEnabled" xml:space="preserve"><value>Zapnuto</value></data>
+  <data name="Settings_EntraSignInHelp" xml:space="preserve"><value>Přidá na přihlašovací stránku tlačítko pro přihlášení přes firemní účet. Hodnoty najdete v registraci aplikace v Entra ID.</value></data>
+  <data name="Settings_EntraTenantId" xml:space="preserve"><value>ID adresáře (tenant)</value></data>
+  <data name="Settings_EntraClientId" xml:space="preserve"><value>ID aplikace (client)</value></data>
+  <data name="Settings_EntraClientSecret" xml:space="preserve"><value>Client secret</value></data>
+  <data name="Settings_EntraSecretKeep" xml:space="preserve"><value>Ponechat beze změny</value></data>
+  <data name="Settings_EntraSecretPresent" xml:space="preserve"><value>Uloženo. Vyplněním pole ho nahradíte; prázdné pole ho ponechá.</value></data>
+  <data name="Settings_EntraSecretAbsent" xml:space="preserve"><value>Zatím není uloženo.</value></data>
+  <data name="Settings_EntraSecretClear" xml:space="preserve"><value>Uložené tajemství odebrat</value></data>
+  <data name="Settings_EntraDisplayName" xml:space="preserve"><value>Popisek tlačítka</value></data>
+  <data name="Settings_EntraDisplayNameHelp" xml:space="preserve"><value>Jak adresář nazývají vaši lidé, např. „Firemní účet".</value></data>
+  <data name="Settings_EntraAuthority" xml:space="preserve"><value>Authority (nepovinné)</value></data>
+  <data name="Settings_EntraAuthorityHelp" xml:space="preserve"><value>Vyplňte jen pro cloud jiný než veřejný. Prázdné = odvodí se z ID adresáře.</value></data>
+  <data name="Settings_EntraCallbackPath" xml:space="preserve"><value>Cesta po přihlášení</value></data>
+  <data name="Settings_EntraSignedOutPath" xml:space="preserve"><value>Cesta po odhlášení</value></data>
+  <data name="Settings_EntraRedirectHelp" xml:space="preserve"><value>V registraci aplikace musí být jako redirect URI zaregistrováno přesně:</value></data>
+  <data name="Settings_EntraAccountsSection" xml:space="preserve"><value>Zakládání účtů</value></data>
+  <data name="Settings_EntraLinkByEmail" xml:space="preserve"><value>Spárovat s existujícím účtem podle e-mailu</value></data>
+  <data name="Settings_EntraLinkByEmailHelp" xml:space="preserve"><value>Při prvním přihlášení se identita napojí na místní účet se stejným e-mailem — jen pokud je e-mail potvrzený a účet ještě není napojený jinam.</value></data>
+  <data name="Settings_EntraJit" xml:space="preserve"><value>Zakládat účty při prvním přihlášení</value></data>
+  <data name="Settings_EntraJitHelp" xml:space="preserve"><value>Vypněte, pokud má být jedinou cestou dovnitř provisioning a neznámé přihlášení se má odmítnout.</value></data>
+  <data name="Settings_EntraDefaultRoles" xml:space="preserve"><value>Výchozí role nově založených účtů</value></data>
+  <data name="Settings_EntraDefaultRolesHelp" xml:space="preserve"><value>Použijí se, jen když adresář nepošle žádnou aplikační roli. Nic nevybráno = účet vznikne, ale nic nesmí, dokud mu roli někdo nepřidělí.</value></data>
+  <data name="Settings_EntraScimSection" xml:space="preserve"><value>Provisioning (SCIM)</value></data>
+  <data name="Settings_EntraScimHelp" xml:space="preserve"><value>Entra sem bude průběžně posílat nástupy, změny a odchody. Nastavuje se v Enterprise Application v sekci Provisioning.</value></data>
+  <data name="Settings_EntraScimUrl" xml:space="preserve"><value>Tenant URL:</value></data>
+  <data name="Settings_EntraScimToken" xml:space="preserve"><value>Bearer token pro SCIM</value></data>
+  <data name="Settings_EntraScimTokenHelp" xml:space="preserve"><value>Jediná ochrana těch endpointů — vygenerujte dlouhý náhodný řetězec a rotujte ho, když odejde někdo s přístupem k tenantovi.</value></data>
+  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Odebraný účet zablokovat</value></data>
+  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>Účet, který adresář deaktivuje nebo smaže, se zablokuje (vratné, historie zůstane). Vypnuto = nechá se být. Smazání se z provisioningu neprovádí nikdy.</value></data>
+  <data name="Settings_EntraRoleMappingLink" xml:space="preserve"><value>Mapování rolí z adresáře →</value></data>
+  <data name="Settings_SaveEntra" xml:space="preserve"><value>Uložit Entra ID</value></data>
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
   <data name="Settings_SaveGeneral" xml:space="preserve"><value>Uložit obecné</value></data>
@@ -1327,6 +1364,7 @@
   <data name="Admin_Directory_Title" xml:space="preserve"><value>Firemní adresář</value></data>
   <data name="Admin_Directory_Intro" xml:space="preserve"><value>Napojení na Microsoft Entra ID: které role z adresáře odpovídají kterým rolím tady.</value></data>
   <data name="Admin_Directory_NotConfigured" xml:space="preserve"><value>Entra ID zatím není nakonfigurované. Mapování si můžete připravit teď a zapnout ho, až bude tenant hotový.</value></data>
+  <data name="Admin_Directory_ConfigureLink" xml:space="preserve"><value>Nastavit Entra ID →</value></data>
   <data name="Admin_Directory_SignInOn" xml:space="preserve"><value>Přihlašování přes Entra zapnuté</value></data>
   <data name="Admin_Directory_SignInOff" xml:space="preserve"><value>Přihlašování přes Entra vypnuté</value></data>
   <data name="Admin_Directory_ScimOn" xml:space="preserve"><value>Provisioning (SCIM) zapnutý</value></data>

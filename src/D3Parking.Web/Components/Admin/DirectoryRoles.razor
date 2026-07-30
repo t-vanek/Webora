@@ -1,12 +1,11 @@
 @page "/admin/directory"
 @attribute [HasPermission(Permissions.Roles.View)]
 @rendermode InteractiveServer
-@using Microsoft.Extensions.Options
 @using D3Parking.Application.Identity
 @inject IExternalRoleMappingService Mappings
 @inject IRoleAdminService RoleAdmin
 @inject UserManager<ApplicationUser> UserManager
-@inject IOptions<EntraIdOptions> Entra
+@inject IEntraSettingsService EntraSettings
 @inject IStringLocalizer<SharedResource> L
 
 @* The directory decides who holds "ParkingLotManager"; this page decides what that means here.
@@ -28,20 +27,23 @@
         </div>
     </div>
 
-    @if (!Entra.Value.Enabled && !Entra.Value.Scim.Enabled)
+    @if (!_entra.Enabled && !_entra.Scim.Enabled)
     {
         @* Mapping without a configured tenant is not wrong — it is how an installation prepares
            before the tenant is wired up — but pretending it is live would be. *@
         <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
             @L["Admin_Directory_NotConfigured"]
         </FluentMessageBar>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="configure">
+            <FluentAnchor Href="/admin/settings?tab=entra" Appearance="Appearance.Hypertext">@L["Admin_Directory_ConfigureLink"]</FluentAnchor>
+        </AuthorizeView>
     }
     else
     {
         <div class="directory-status">
-            <span class="tag">@L[Entra.Value.IsSignInConfigured ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</span>
-            <span class="tag">@L[Entra.Value.Scim.IsConfigured ? "Admin_Directory_ScimOn" : "Admin_Directory_ScimOff"]</span>
-            @if (Entra.Value.Scim.IsConfigured)
+            <span class="tag">@L[_entra.IsSignInConfigured ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</span>
+            <span class="tag">@L[_entra.Scim.IsConfigured ? "Admin_Directory_ScimOn" : "Admin_Directory_ScimOff"]</span>
+            @if (_entra.Scim.IsConfigured)
             {
                 <code class="perm-row__id">@_scimUrl</code>
             }
@@ -120,6 +122,7 @@
     private RoleSummary? _newRole;
     private string? _newExternalRole;
     private Guid _actorId;
+    private EntraIdOptions _entra = new();
     private string _scimUrl = string.Empty;
     private string? _message;
     private string? _error;
@@ -141,6 +144,7 @@
 
     private async Task LoadAsync()
     {
+        _entra = await EntraSettings.GetEffectiveAsync();
         _roles = await RoleAdmin.ListAsync();
         _mappings = await Mappings.ListAsync(Provider);
     }

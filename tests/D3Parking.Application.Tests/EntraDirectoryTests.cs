@@ -369,8 +369,26 @@ public class EntraDirectoryTests
     private EntraDirectoryService CreateService(AsyncServiceScope scope) => new(
         scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
         scope.ServiceProvider.GetRequiredService<D3ParkingDbContext>(),
-        Options.Create(_entra),
+        // Read through a lambda rather than captured, so a test that flips a switch mid-case (see
+        // the just-in-time cases) still changes what the service under test sees.
+        new FixedEntraSettings(() => _entra),
         new PassthroughLocalizer<AccountMessages>(),
         TimeProvider.System,
         NullLogger<EntraDirectoryService>.Instance);
+
+    /// <summary>Serves the fixture's options as the effective settings; nothing here writes.</summary>
+    private sealed class FixedEntraSettings(Func<EntraIdOptions> current) : IEntraSettingsService
+    {
+        public Task<EntraIdOptions> GetEffectiveAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(current());
+
+        public EntraIdOptions GetEffective() => current();
+
+        public Task<EntraSettingsView> GetForAdminAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<Accounts.AccountResult> UpdateAsync(
+            EntraSettingsUpdate update, Guid actingUserId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
 }

@@ -94,6 +94,12 @@
   <data name="Error_InvalidPort" xml:space="preserve"><value>Port musí být v rozsahu 1–65535.</value></data>
   <data name="Error_InvalidTimeZone" xml:space="preserve"><value>Časové pásmo „{0}" není platné.</value></data>
   <data name="Error_InvalidCharset" xml:space="preserve"><value>Kódování „{0}" není platné.</value></data>
+  <data name="Error_EntraIncomplete" xml:space="preserve"><value>Přihlašování přes Entra ID vyžaduje ID tenanta i ID aplikace (client ID).</value></data>
+  <data name="Error_EntraSecretRequired" xml:space="preserve"><value>Přihlašování přes Entra ID vyžaduje client secret registrace aplikace.</value></data>
+  <data name="Error_EntraAuthority" xml:space="preserve"><value>Authority musí být úplná adresa začínající https://.</value></data>
+  <data name="Error_EntraCallbackClash" xml:space="preserve"><value>Cesta pro přihlášení a pro odhlášení musí být různé.</value></data>
+  <data name="Error_EntraScimTokenRequired" xml:space="preserve"><value>Provisioning (SCIM) vyžaduje bearer token — je to jediná ochrana těch endpointů.</value></data>
+  <data name="Error_EntraScimTokenWeak" xml:space="preserve"><value>Bearer token pro SCIM musí mít alespoň {0} znaků.</value></data>
   <data name="Error_PermissionGroupNotFound" xml:space="preserve"><value>Skupina oprávnění nebyla nalezena.</value></data>
   <data name="Error_PermissionGroupNameRequired" xml:space="preserve"><value>Název skupiny oprávnění je povinný.</value></data>
   <data name="Error_PermissionGroupNameTaken" xml:space="preserve"><value>Skupina oprávnění „{0}" už existuje.</value></data>
