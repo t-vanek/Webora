@@ -920,7 +920,7 @@ fluent-menu-item:has(> .account-menu-link) {
     margin: 0;
 }
 
-/* Chybová a stavová hlášení formulářů. */
+/* Chybová hlášení formuláře. */
 .auth-alert {
     display: flex;
     align-items: flex-start;
@@ -940,12 +940,6 @@ fluent-menu-item:has(> .account-menu-link) {
     background: rgba(209, 52, 56, .08);
     border: 1px solid rgba(209, 52, 56, .35);
     color: var(--error-rest, #d13438);
-}
-
-.auth-alert--success {
-    background: rgba(16, 124, 16, .08);
-    border: 1px solid rgba(16, 124, 16, .35);
-    color: var(--success-rest, #107c10);
 }
 
 .auth-form {
@@ -2006,11 +2000,50 @@ fluent-menu-item:has(> .account-menu-link) {
     font-size: 13px;
 }
 
-.account-actions {
+/* Settings rows on the account hub: what-and-why on the left, the action on the right. */
+.settings-rows {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-width: 420px;
+    width: 100%;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--neutral-stroke-divider-rest, #ececec);
+}
+
+    .settings-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .settings-row:first-child {
+        padding-top: 0;
+    }
+
+.settings-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.settings-row__title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.settings-row__desc {
+    font-size: 12.5px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.settings-row fluent-anchor {
+    flex-shrink: 0;
 }
 
 /* --- Profile page --- */

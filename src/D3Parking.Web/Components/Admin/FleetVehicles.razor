@@ -4,6 +4,7 @@
 @inject IFleetService Fleet
 @inject IParkingSpotService Spots
 @inject IUserAdminService UserAdmin
+@inject ISiteSettingsService SiteSettings
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Fleet_Admin_Title"]</PageTitle>
@@ -77,7 +78,7 @@
     {
         <div class="admin-panel">
             <FluentDataGrid Items="@_vehicles.AsQueryable()" TGridItem="CompanyVehicleDto"
-                            GridTemplateColumns="1fr 1.4fr 1.6fr 0.8fr 1.6fr 0.8fr auto">
+                            GridTemplateColumns="1fr 1.3fr 1.5fr 0.7fr 1.5fr 1.2fr auto">
                 <PropertyColumn Property="@(v => v.Plate)" Title="@L["Fleet_Admin_Plate"]" />
                 <TemplateColumn Title="@L["Fleet_Admin_Name"]">
                     @(string.IsNullOrWhiteSpace(context.Name) ? "—" : context.Name)
@@ -99,15 +100,12 @@
                                   ValueChanged="@(v => PairAsync(context, v))"
                                   Style="width:100%" />
                 </TemplateColumn>
+                @* The funnel column: names the exact missing ingredient (account, plate, code…)
+                   instead of a bare active/inactive — the "why has nobody paired" support
+                   question should be answerable from this grid alone. Details ride in title. *@
                 <TemplateColumn Title="@L["Fleet_Admin_State"]">
-                    @if (context.IsActive)
-                    {
-                        <span class="state-pill state-pill--on">@L["Fleet_Admin_Active"]</span>
-                    }
-                    else
-                    {
-                        <span class="state-pill state-pill--off">@L["Fleet_Admin_Inactive"]</span>
-                    }
+                    @{ var pill = StatePill(context); }
+                    <span class="state-pill @pill.Css" title="@pill.Hint">@pill.Label</span>
                 </TemplateColumn>
                 <TemplateColumn Align="Align.End">
                     <FluentButton OnClick="() => BeginEdit(context)" Appearance="Appearance.Outline">@L["Fleet_Admin_Edit"]</FluentButton>
@@ -130,6 +128,7 @@
     private IReadOnlyList<CompanyVehicleDto>? _vehicles;
     private IReadOnlyList<ParkingSpotDto> _spots = [];
     private IReadOnlyList<UserSummary> _users = [];
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
 
     private string? _formPlate;
     private string? _formName;
@@ -151,10 +150,29 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _tz = await SiteSettings.GetTimeZoneAsync();
         _users = await UserAdmin.ListAsync(null);
         _spots = await Spots.ListAsync();
         await ReloadAsync();
     }
+
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
+
+    /// <summary>One pill per funnel state; Hint carries the explanation (and timestamps).</summary>
+    private (string Css, string Label, string? Hint) StatePill(CompanyVehicleDto v) => v.PairingState switch
+    {
+        FleetPairingState.Paired => ("state-pill--on", L["Fleet_State_Paired"],
+            v.PairedAtUtc is { } at ? L["Fleet_State_Paired_Hint", Fmt(at)] : null),
+        FleetPairingState.CodeSent => ("state-pill--info", L["Fleet_State_CodeSent"],
+            v.PairingCodeSentAtUtc is { } sent ? L["Fleet_State_CodeSent_Hint", Fmt(sent)] : null),
+        FleetPairingState.Locked => ("state-pill--warn", L["Fleet_State_Locked"],
+            v.PairingLockedUntilUtc is { } until ? L["Fleet_State_Locked_Hint", Fmt(until)] : null),
+        FleetPairingState.ReadyToPair => ("state-pill--info", L["Fleet_State_ReadyToPair"], L["Fleet_State_ReadyToPair_Hint"]),
+        FleetPairingState.PlateMissing => ("state-pill--info", L["Fleet_State_PlateMissing"], L["Fleet_State_PlateMissing_Hint"]),
+        FleetPairingState.NoAccount => ("state-pill--warn", L["Fleet_State_NoAccount"], L["Fleet_State_NoAccount_Hint"]),
+        FleetPairingState.ManualOnly => ("state-pill--off", L["Fleet_State_ManualOnly"], L["Fleet_State_ManualOnly_Hint"]),
+        _ => ("state-pill--off", L["Fleet_Admin_Inactive"], null),
+    };
 
     private string SpotLabel(string id)
     {

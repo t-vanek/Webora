@@ -15,7 +15,17 @@ public class AccountTests : AdminTest
         await Expect(Page.Locator(".profile-avatar")).ToContainTextAsync("AD");
         // Seeded from IdentitySeed:AdminDisplayName in appsettings.json.
         await Expect(Page.Locator(".profile-name")).ToContainTextAsync("Administrator");
+
+        // The hub carries the vehicle self-service (plate + fleet pairing entry point)...
+        await Expect(Page.GetByText("Vozidlo", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.Locator("fluent-text-field[name='VehicleInput.Plate']")).ToBeVisibleAsync();
+
+        // ...the security actions with their email-second-factor note...
+        await Expect(Page.GetByText("Zabezpečení a přihlášení")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Změnit heslo") })).ToBeVisibleAsync();
+
+        // ...and the destructive actions fenced off in the danger zone.
+        await Expect(Page.Locator(".danger-zone")).ToContainTextAsync("Deaktivovat účet");
     }
 
     [Test]

@@ -7,7 +7,6 @@
 @inject INotificationService NotificationService
 @inject ISiteSettingsService SiteSettings
 @inject IUserLocationService UserLocation
-@inject IFleetService Fleet
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
@@ -21,27 +20,6 @@
             <FluentLabel Typo="Typography.Body">
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
-
-            @*  Static SSR feedback: FluentMessageBar renders nothing without an interactive
-                circuit, and state a POST handler mutates outside the submitting form never
-                reaches the response. Every handler therefore finishes with a redirect
-                (post-redirect-get) carrying its message in the query string, rendered here.
-                Values are resource keys where the source provides them; already-localised
-                identity descriptions pass through the localizer unchanged.  *@
-            @if (!string.IsNullOrEmpty(Error))
-            {
-                <div class="auth-alert auth-alert--error" role="alert">
-                    <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span>@L[Error]</span>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Info))
-            {
-                <div class="auth-alert auth-alert--success" role="status">
-                    <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span>@L[Info]</span>
-                </div>
-            }
 
             <FluentCard Class="profile-section">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
@@ -64,6 +42,13 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
                         </FluentStack>
                     </EditForm>
+                    @*  FluentMessageBar renders nothing in static SSR, so form outcomes follow the
+                        Manage.razor contract instead: handlers redirect (post-redirect-get) with the
+                        message in the query string, rendered below their form as plain markup.  *@
+                    @if (!string.IsNullOrEmpty(_homeError))
+                    {
+                        <div class="auth-alert auth-alert--error" role="alert"><span>@L[_homeError]</span></div>
+                    }
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
                     @if (!string.IsNullOrWhiteSpace(_home.Address))
                     {
@@ -86,67 +71,9 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
                         </FluentStack>
                     </EditForm>
-                </FluentStack>
-            </FluentCard>
-
-            <FluentCard Class="profile-section">
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                    <FluentLabel Typo="Typography.Subject">@L["Profile_VehicleTitle"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_VehicleHelp"]</FluentLabel>
-                    <EditForm Model="VehicleInput" method="post" OnValidSubmit="SavePlateAsync" FormName="vehicle">
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
-                            <FluentTextField Name="VehicleInput.Plate" @bind-Value="VehicleInput.Plate" Maxlength="16"
-                                             Label="@L["Profile_VehiclePlate"]" Style="width:240px" />
-                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveVehicle"]</FluentButton>
-                        </FluentStack>
-                    </EditForm>
-
-                    @* Fleet pairing. NoPlate/NoMatch render nothing — a private car has no
-                       business seeing fleet mechanics. NotPairable stays deliberately vague
-                       (see VehiclePairingState) and points at the administrator. *@
-                    @switch (_pairing.State)
+                    @if (!string.IsNullOrEmpty(_saveError))
                     {
-                        case VehiclePairingState.Paired:
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-                                    <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Profile_Vehicle_PairedBadge"]</FluentBadge>
-                                    <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_Paired", PairedVehicleLabel]</FluentLabel>
-                                </FluentStack>
-                                @if (_pairing.SpotCode is { } pairedSpot)
-                                {
-                                    <FluentLabel Typo="Typography.Body"><strong>@L["Profile_Vehicle_PairedSpot", pairedSpot]</strong></FluentLabel>
-                                }
-                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_Vehicle_PairedHint"]</small></FluentLabel>
-                            </FluentStack>
-                            break;
-
-                        case VehiclePairingState.CodeRequired:
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                                <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_FleetMatch", PairedVehicleLabel]</FluentLabel>
-                                @if (_pairing.SpotCode is { } pairableSpot)
-                                {
-                                    <FluentLabel Typo="Typography.Body">@L["Profile_Vehicle_SpotInfo", pairableSpot]</FluentLabel>
-                                }
-                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_Vehicle_CodeIntro"]</FluentLabel>
-                                <MuteButton FormName="pairing-code" Appearance="Appearance.Accent"
-                                            Label="@(_pairing.CodeSentAtUtc is null ? L["Profile_Vehicle_SendCode"] : L["Profile_Vehicle_ResendCode"])"
-                                            OnSubmit="SendPairingCodeAsync" />
-                                @if (_pairing.CodeSentAtUtc is not null)
-                                {
-                                    <EditForm Model="CodeInput" method="post" OnValidSubmit="ConfirmPairingAsync" FormName="pairing-confirm">
-                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
-                                            <FluentTextField Name="CodeInput.Code" @bind-Value="CodeInput.Code" Maxlength="8"
-                                                             Label="@L["Profile_Vehicle_Code"]" Style="width:160px" />
-                                            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_Vehicle_ConfirmCode"]</FluentButton>
-                                        </FluentStack>
-                                    </EditForm>
-                                }
-                            </FluentStack>
-                            break;
-
-                        case VehiclePairingState.NotPairable:
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Profile_Vehicle_NotPairable"]</FluentLabel>
-                            break;
+                        <div class="auth-alert auth-alert--error" role="alert"><span>@_saveError</span></div>
                     }
                 </FluentStack>
             </FluentCard>
@@ -279,23 +206,32 @@
 #pragma warning disable BL0008
     [SupplyParameterFromForm(FormName = "home-address")] private HomeFormModel HomeInput { get; set; } = new();
     [SupplyParameterFromForm(FormName = "department")] private TeamFormModel TeamInput { get; set; } = new();
-    [SupplyParameterFromForm(FormName = "vehicle")] private VehicleFormModel VehicleInput { get; set; } = new();
-    [SupplyParameterFromForm(FormName = "pairing-confirm")] private PairingCodeModel CodeInput { get; set; } = new();
 #pragma warning restore BL0008
-    // Post-redirect-get feedback (see the markup note above the alerts). The properties must
-    // be public — static SSR does not bind [SupplyParameterFromQuery] to private ones.
-    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
-    [SupplyParameterFromQuery(Name = "info")] public string? Info { get; set; }
-
     private UserHomeDto _home = new(null, null, false);
-    private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null);
+    private string? _homeError;
+    private string? _saveError;
 
-    private string PairedVehicleLabel => _pairing.VehicleName is { Length: > 0 } name
-        ? $"{_pairing.VehiclePlate} ({name})"
-        : _pairing.VehiclePlate ?? string.Empty;
+    // Form outcomes ride the query string across the post-redirect-get: the POST response only
+    // re-renders the posting form's own subtree, so the reliable render that can show the
+    // outcome is the fresh GET after a redirect (same contract as Manage.razor).
+    [SupplyParameterFromQuery(Name = "homeError")] public string? HomeErrorKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saveError")] public string? SaveErrorText { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        // The error keys come from an open URL parameter, so they only pass through when they
+        // look like what our redirects actually emit (a Parking_* resource key / capped text).
+        if (HomeErrorKey is { } key && key.StartsWith("Parking_", StringComparison.Ordinal))
+        {
+            _homeError = key;
+        }
+
+        if (!string.IsNullOrWhiteSpace(SaveErrorText))
+        {
+            _saveError = SaveErrorText.Length <= 300 ? SaveErrorText : SaveErrorText[..300];
+        }
+
         _tz = await SiteSettings.GetTimeZoneAsync();
         await ReloadAsync();
         var state = await AuthState!;
@@ -305,8 +241,6 @@
             _home = await UserLocation.GetHomeAsync(user.Id);
             HomeInput.Address ??= _home.Address;
             TeamInput.Department ??= user.Department;
-            VehicleInput.Plate ??= user.LicensePlate;
-            _pairing = await Fleet.GetMyPairingStatusAsync(user.Id);
         }
     }
 
@@ -317,23 +251,17 @@
         if (user is not null)
         {
             user.Department = string.IsNullOrWhiteSpace(TeamInput.Department) ? null : TeamInput.Department.Trim();
-            ReportSave(await UserManager.UpdateAsync(user));
+            // A silently discarded IdentityResult made every failed save look like a success
+            // (the page just re-rendered) — carry the errors across the redirect instead.
+            var saved = await UserManager.UpdateAsync(user);
+            if (!saved.Succeeded)
+            {
+                RedirectWith("saveError", string.Join(" ", saved.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            Nav.NavigateTo("account/profile");
         }
-    }
-
-    // A silently discarded IdentityResult made every failed save look like a success (the page
-    // just re-rendered) — finish every save with the redirect that carries the outcome instead.
-    private void ReportSave(IdentityResult result)
-        => Redirect(error: result.Succeeded ? null : string.Join(" ", result.Errors.Select(e => e.Description)));
-
-    // NavigateTo does not interrupt a static SSR handler (no exception since .NET 10), so the
-    // caller keeps running to the end of its method — the redirect must stay its last real work.
-    private void Redirect(string? error = null, string? info = null)
-    {
-        var query = !string.IsNullOrEmpty(error) ? "?error=" + Uri.EscapeDataString(error)
-            : !string.IsNullOrEmpty(info) ? "?info=" + Uri.EscapeDataString(info)
-            : string.Empty;
-        Nav.NavigateTo("account/profile" + query);
     }
 
     private sealed class TeamFormModel
@@ -341,69 +269,18 @@
         public string? Department { get; set; }
     }
 
-    private async Task SavePlateAsync()
-    {
-        var state = await AuthState!;
-        var user = await UserManager.GetUserAsync(state.User);
-        if (user is not null)
-        {
-            // Stored upper-cased as typed; the admin matching ignores spacing and dashes anyway.
-            user.LicensePlate = string.IsNullOrWhiteSpace(VehicleInput.Plate)
-                ? null
-                : VehicleInput.Plate.Trim().ToUpperInvariant();
-            var saved = await UserManager.UpdateAsync(user);
-            if (saved.Succeeded)
-            {
-                // A changed plate may sever an existing fleet pairing (and the residency it
-                // carried); the redirected GET then shows where the user stands.
-                await Fleet.SyncUserPlateAsync(user.Id);
-            }
-
-            ReportSave(saved);
-        }
-    }
-
-    private async Task SendPairingCodeAsync()
-    {
-        if (await CurrentUserIdAsync() is { } userId)
-        {
-            var result = await Fleet.RequestPairingCodeAsync(userId);
-            if (result.Succeeded)
-            {
-                Redirect(info: "Profile_Vehicle_CodeSent");
-            }
-            else
-            {
-                Redirect(error: result.Errors.FirstOrDefault());
-            }
-        }
-    }
-
-    private async Task ConfirmPairingAsync()
-    {
-        if (await CurrentUserIdAsync() is { } userId)
-        {
-            var result = await Fleet.ConfirmPairingAsync(userId, CodeInput.Code ?? string.Empty);
-            Redirect(error: result.Succeeded ? null : result.Errors.FirstOrDefault());
-        }
-    }
-
-    private sealed class VehicleFormModel
-    {
-        public string? Plate { get; set; }
-    }
-
-    private sealed class PairingCodeModel
-    {
-        public string? Code { get; set; }
-    }
-
     private async Task SaveHomeAsync()
     {
         if (await CurrentUserIdAsync() is { } userId)
         {
             var result = await UserLocation.SetHomeAddressAsync(userId, HomeInput.Address);
-            Redirect(error: result.Succeeded ? null : result.Errors.FirstOrDefault());
+            if (!result.Succeeded)
+            {
+                RedirectWith("homeError", result.Errors.FirstOrDefault());
+                return;
+            }
+
+            Nav.NavigateTo("account/profile");
         }
     }
 
@@ -412,9 +289,14 @@
         if (await CurrentUserIdAsync() is { } userId)
         {
             await UserLocation.SetHomeAddressAsync(userId, null);
-            Redirect();
+            Nav.NavigateTo("account/profile");
         }
     }
+
+    private void RedirectWith(string parameter, string? value) =>
+        Nav.NavigateTo(string.IsNullOrEmpty(value)
+            ? "account/profile"
+            : $"account/profile?{parameter}={Uri.EscapeDataString(value)}");
 
     private sealed class HomeFormModel
     {
