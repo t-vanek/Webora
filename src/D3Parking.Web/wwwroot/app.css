@@ -2764,12 +2764,21 @@ fluent-menu-item:has(> .account-menu-link) {
 
 
 
-/* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy. */
+/* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy.
+
+   Šířku dialogu nese tenhle obsah, ne fluent-dialog. Zvenčí se ovládací prvek dialogu rozšířit
+   nedá — ověřeno v prohlížeči: ani `::part(control) { width }`, ani `--dialog-width` s ním nehnuly
+   (zůstal na min-content obsahu) a zabralo až inline `!important`. Panel se tak smrskával podle
+   toho, co v něm zrovna bylo: kalendářní řádky se lámaly do tří řádek a osa grafu do mazanice.
+   Roztažení podle obsahu ale funguje spolehlivě, takže šířku určuje .lot-detail a přes ::part se
+   řeší jen výška a vlastní scroll. */
 .lot-detail {
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 14px;
+    width: min(1000px, 92vw);
+    box-sizing: border-box;
 }
 
 .lot-detail__facts {
@@ -2813,6 +2822,8 @@ fluent-menu-item:has(> .account-menu-link) {
 
     .lot-calendar__when small { color: var(--neutral-foreground-hint, #6b6b6b); }
 
+.lot-calendar__muted { color: var(--neutral-foreground-hint, #6b6b6b); }
+
 .lot-calendar__status {
     display: flex;
     gap: 6px;
@@ -2855,6 +2866,25 @@ fluent-menu-item:has(> .account-menu-link) {
     padding: 6px 0;
 }
 
+/* Souhrn: tři krátké tabulky vedle sebe místo jedné vysoké. Jako jedna tabulka o jedenácti řádcích
+   měřil blok 429 px — půl viewportu utracená dřív, než je vidět samotná plocha. Sloupec s grafem má
+   jen první tabulka; metriky bez denní historie ho nemají čím naplnit. */
+.lot-summary-grid {
+    display: grid;
+    grid-template-columns: minmax(360px, 1.4fr) minmax(190px, 1fr) minmax(190px, 1fr);
+    gap: 4px 28px;
+    width: 100%;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .lot-summary-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
+    .lot-summary-grid { grid-template-columns: 1fr; }
+}
+
 /* Souhrnná tabulka: metrika, číslo, sparkline. Číslo je hlavní sdělení, proto velké a napravo
    od názvu; graf je až za ním a nese jen tvar. */
 .lot-summary {
@@ -2866,7 +2896,7 @@ fluent-menu-item:has(> .account-menu-link) {
     .lot-summary th,
     .lot-summary td {
         text-align: left;
-        padding: 5px 10px;
+        padding: 3px 8px;
         border-bottom: 1px solid var(--brand-hairline, #ececec);
     }
 
@@ -2895,7 +2925,7 @@ fluent-menu-item:has(> .account-menu-link) {
     padding-bottom: 0;
 }
 
-.lot-summary__nochart { color: var(--neutral-foreground-hint, #6b6b6b); }
+.lot-summary__chart:empty { border-bottom-color: transparent; }
 
 /* Vybočující metriky se barví na čísle — stejná paleta jako state-pill. Značkové tmavě navy
    se tu nepoužívá: na tmavém tématu by na tmavém podkladu zmizelo. */
@@ -2915,10 +2945,9 @@ fluent-menu-item:has(> .account-menu-link) {
     .lot-calendar__actions { justify-content: flex-start; }
 }
 
-/* Dialog s detailem místa: široký, ale ne přes celou obrazovku, a s vlastním scrollem —
-   kalendář na 14 dní se do výšky viewportu nevejde. */
+/* Dialog s detailem místa. Šířku určuje .lot-detail (viz komentář tam); tady zbývá jen výška
+   a vlastní scroll — kalendář na 14 dní se do výšky viewportu nevejde. */
 .lot-dialog::part(control) {
-    width: min(920px, 94vw);
     max-height: 88vh;
     overflow: auto;
 }
