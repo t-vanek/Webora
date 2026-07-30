@@ -2914,3 +2914,14 @@ fluent-menu-item:has(> .account-menu-link) {
     max-height: 88vh;
     overflow: auto;
 }
+
+/* Serverový pager pod tabulkou: dvě tlačítka a pozice. FluentPaginator se tu nepoužívá —
+   ten řídí PaginationState, který nemá hook na změnu stránky (počítá s klientským
+   stránkováním nad IQueryable), zatímco tady se stránkuje v SQL. */
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    padding-top: 4px;
+}

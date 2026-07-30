@@ -365,6 +365,19 @@
                 }
             </TemplateColumn>
         </FluentDataGrid>
+        @* Hand-rolled rather than <FluentPaginator>: that one drives PaginationState, which exposes no
+           page-change hook — it is built for a grid paging an IQueryable client-side. Here the paging
+           happens in SQL, so the buttons have to call back into the component. *@
+        @if (_reservationTotal > ReservationPageSize)
+        {
+            <div class="pager">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex == 0)"
+                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex - 1)">@L["Parking_PrevPage"]</FluentButton>
+                <span>@L["Parking_PageOf", _reservationPageIndex + 1, ReservationPageCount]</span>
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex >= ReservationPageCount - 1)"
+                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex + 1)">@L["Parking_NextPage"]</FluentButton>
+            </div>
+        }
     }
 </FluentStack>
 
@@ -381,6 +394,15 @@
     private IReadOnlyList<ParkingSpotDto>? _available;
     private ReservationQuoteDto? _quote;
     private IReadOnlyList<ReservationDto>? _myReservations;
+
+    // Paged in SQL. The unpaged read stops at 200 rows without saying so, which for a long-serving
+    // driver means their older bookings simply are not there.
+    private const int ReservationPageSize = 20;
+    private int _reservationPageIndex;
+    private int _reservationTotal;
+
+    private int ReservationPageCount =>
+        _reservationTotal == 0 ? 1 : (_reservationTotal + ReservationPageSize - 1) / ReservationPageSize;
     private IReadOnlyList<QueueEntryDto>? _myQueue;
     private string? _error;
     private string? _info;
@@ -435,10 +457,18 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
+        // UserManager stays on its own: it runs on the scoped Identity DbContext. Everything below
+        // goes through IDbContextFactory and gets a fresh context per call, which is exactly what
+        // makes issuing those calls together safe — and on a remote database it turns a chain of
+        // round trips, all of which the prerender waits for, into one.
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
-        _policy = await ParkingSettings.GetPolicyAsync();
-        _tz = await SiteSettings.GetTimeZoneAsync();
+
+        var policy = ParkingSettings.GetPolicyAsync();
+        var timeZone = SiteSettings.GetTimeZoneAsync();
+        await Task.WhenAll(policy, timeZone);
+        _policy = policy.Result;
+        _tz = timeZone.Result;
 
         // Re-seed the date defaults now that the site time zone is known: the field initializers
         // used the server's clock, and around midnight a UTC-hosted server would preselect the
@@ -449,14 +479,20 @@
         _reclaimFrom = _releaseFrom;
         _reclaimTo = _releaseFrom;
 
-        var home = await UserLocation.GetHomeAsync(_userId);
-        _distanceKm = home.Verified ? home.DistanceKm : null;
-        await ReloadOwnedSpotAsync();
-        await ReloadReservationsAsync();
-        await ReloadQueueAsync();
+        // Four independent reads. Each writes its own fields, and their continuations are serialised
+        // by the renderer's dispatcher, so there is nothing to race over.
+        var home = UserLocation.GetHomeAsync(_userId);
+        await Task.WhenAll(home, ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
+        _distanceKm = home.Result.Verified ? home.Result.DistanceKm : null;
     }
 
     private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
+
+    private async Task GoToReservationPageAsync(int pageIndex)
+    {
+        _reservationPageIndex = Math.Clamp(pageIndex, 0, ReservationPageCount - 1);
+        await ReloadReservationsAsync();
+    }
 
     // A changed window makes the shown spots and quote stale — clear them so the only path to
     // a reservation goes through a fresh search (the visitor agenda does the same).
@@ -838,11 +874,18 @@
 
     private async Task ReloadReservationsAsync()
     {
-        _myReservations = await Reservations.GetMyReservationsAsync(_userId);
-
         // The apology voucher can appear (blocked-spot flow), disappear (redeemed by a booking)
-        // or come back (timely cancel/release) with any reservation action — keep it in sync.
-        _voucher = await Reservations.GetMyApologyVoucherAsync(_userId);
+        // or come back (timely cancel/release) with any reservation action — keep it in sync. It
+        // does not depend on the reservation list, so both go at once.
+        var page = Reservations.GetMyReservationsPageAsync(_userId, _reservationPageIndex, ReservationPageSize);
+        var voucher = Reservations.GetMyApologyVoucherAsync(_userId);
+        await Task.WhenAll(page, voucher);
+        _myReservations = page.Result.Items;
+        _reservationTotal = page.Result.TotalCount;
+        // Taken back from the result, not assumed: the service walks the index back when the page it
+        // was asked for no longer exists (the last booking on it was just cancelled away).
+        _reservationPageIndex = page.Result.PageIndex;
+        _voucher = voucher.Result;
         if (_voucher is null)
         {
             _useVoucher = false;

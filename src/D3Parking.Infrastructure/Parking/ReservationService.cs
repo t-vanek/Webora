@@ -106,6 +106,38 @@ public sealed class ReservationService(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PagedResult<ReservationDto>> GetMyReservationsPageAsync(
+        Guid userId, int pageIndex, int pageSize, CancellationToken cancellationToken = default)
+    {
+        // Clamped here, not trusted from the caller: the page size decides how much a single request
+        // can ask the database to materialise.
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var mine = dbContext.Reservations.AsNoTracking().Where(r => r.UserId == userId);
+        var total = await mine.CountAsync(cancellationToken);
+
+        // A page past the end (the last booking on it was just cancelled away, say) walks back to the
+        // last page that exists rather than rendering an empty table.
+        var lastIndex = total == 0 ? 0 : (total - 1) / size;
+        index = Math.Min(index, lastIndex);
+
+        var items = await (from r in mine
+                           join s in dbContext.ParkingSpots on r.SpotId equals s.Id
+                           orderby r.StartUtc descending
+                           select new ReservationDto(
+                               r.Id, r.SpotId, s.Code, s.Type, r.UserId,
+                               r.StartUtc, r.EndUtc, r.Status, r.IsOffPeak, r.CreatedAtUtc,
+                               r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc))
+            .Skip(index * size)
+            .Take(size)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReservationDto>(items, total, index, size);
+    }
+
     public async Task<ReservationDto?> GetMyReservationAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);

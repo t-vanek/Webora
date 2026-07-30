@@ -1036,4 +1036,7 @@
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Reservation moved and the holder notified.</value></data>
   <data name="Lot_Info_Deactivated" xml:space="preserve"><value>The spot is out of service.</value></data>
   <data name="Lot_Info_Activated" xml:space="preserve"><value>The spot is back in service.</value></data>
+  <data name="Parking_PrevPage" xml:space="preserve"><value>← Previous</value></data>
+  <data name="Parking_NextPage" xml:space="preserve"><value>Next →</value></data>
+  <data name="Parking_PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
 </root>

@@ -1036,4 +1036,7 @@
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Rezervace přesunuta, držitel informován.</value></data>
   <data name="Lot_Info_Deactivated" xml:space="preserve"><value>Místo je odstavené.</value></data>
   <data name="Lot_Info_Activated" xml:space="preserve"><value>Místo je zpět v provozu.</value></data>
+  <data name="Parking_PrevPage" xml:space="preserve"><value>← Předchozí</value></data>
+  <data name="Parking_NextPage" xml:space="preserve"><value>Další →</value></data>
+  <data name="Parking_PageOf" xml:space="preserve"><value>Stránka {0} z {1}</value></data>
 </root>
