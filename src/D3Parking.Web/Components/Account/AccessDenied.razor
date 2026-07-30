@@ -5,8 +5,11 @@
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
     <FluentLabel Typo="Typography.PageTitle">@L["Auth_AccessDenied_Title"]</FluentLabel>
-    <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-        @L["Auth_AccessDenied_Message"]
-    </FluentMessageBar>
+    @*  Static SSR: FluentMessageBar renders nothing without an interactive circuit — the
+        global auth-alert div renders everywhere.  *@
+    <div class="auth-alert auth-alert--error" role="alert">
+        <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+        <span>@L["Auth_AccessDenied_Message"]</span>
+    </div>
     <FluentAnchor Href="" Appearance="Appearance.Hypertext">@L["NotFound_Home"]</FluentAnchor>
 </FluentStack>
