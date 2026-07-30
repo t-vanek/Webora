@@ -7,6 +7,7 @@ using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Contracts.Notifications;
 using D3Parking.Domain.Notifications;
+using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Application.Tests;
@@ -75,10 +76,10 @@ internal sealed class NullFleetService : IFleetService
     public Task<IReadOnlyList<CompanyVehicleDto>> ListAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<CompanyVehicleDto>>([]);
 
-    public Task<ParkingResult> CreateAsync(string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+    public Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
         Task.FromResult(ParkingResult.Success);
 
-    public Task<ParkingResult> UpdateAsync(Guid id, string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+    public Task<ParkingResult> UpdateAsync(Guid id, string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
         Task.FromResult(ParkingResult.Success);
 
     public Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default) =>
@@ -94,7 +95,7 @@ internal sealed class NullFleetService : IFleetService
         Task.FromResult(ParkingResult.Success);
 
     public Task<PairingStatusDto> GetMyPairingStatusAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new PairingStatusDto(VehiclePairingState.NoPlate, null, null, null, null));
+        Task.FromResult(new PairingStatusDto(VehiclePairingState.NoPlate, null, null, null, null, null));
 
     public Task<ParkingResult> RequestPairingCodeAsync(Guid userId, CancellationToken cancellationToken = default) =>
         Task.FromResult(ParkingResult.Success);

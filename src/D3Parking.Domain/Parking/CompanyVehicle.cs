@@ -21,6 +21,13 @@ public class CompanyVehicle : Entity
     public string? Name { get; private set; }
 
     /// <summary>
+    /// The entitlement class: a company vehicle may hold an assigned spot, an employee's own
+    /// vehicle never does (reservations only) — the registry keeps it for the verified
+    /// plate→account identity its pairing provides.
+    /// </summary>
+    public VehicleType Type { get; private set; }
+
+    /// <summary>
     /// Email of the vehicle's registered driver. Self-service pairing requires it to match the
     /// claiming account's email exactly — the plate alone is public information readable off the
     /// car, so it must never be sufficient on its own. Null means the vehicle (a pool car, an
@@ -53,15 +60,18 @@ public class CompanyVehicle : Entity
 
     private CompanyVehicle() { }
 
-    public CompanyVehicle(string plate, string? name, string? driverEmail, Guid? assignedSpotId, string? notes, DateTimeOffset createdAtUtc)
+    public CompanyVehicle(string plate, VehicleType type, string? name, string? driverEmail, Guid? assignedSpotId, string? notes, DateTimeOffset createdAtUtc)
     {
         Rename(plate);
+        Type = type;
         Name = name;
         DriverEmail = driverEmail;
         AssignedSpotId = assignedSpotId;
         Notes = notes;
         CreatedAtUtc = createdAtUtc;
     }
+
+    public void ChangeType(VehicleType type) => Type = type;
 
     public void Rename(string plate)
     {

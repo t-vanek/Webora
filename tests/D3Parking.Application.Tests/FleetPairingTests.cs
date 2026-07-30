@@ -95,7 +95,7 @@ public class FleetPairingTests
 
         var user = await CreateUserAsync(userManager, "happy", plate: "1AB 2345");
         var spotId = await CreateSpotAsync("FL-01");
-        Assert.That((await fleet.CreateAsync("1ab-2345", "Octavia", user.Email, spotId, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("1ab-2345", VehicleType.Company, "Octavia", user.Email, spotId, null)).Succeeded, Is.True);
 
         var status = await fleet.GetMyPairingStatusAsync(user.Id);
         Assert.That(status.State, Is.EqualTo(VehiclePairingState.CodeRequired),
@@ -130,7 +130,7 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope);
 
         var user = await CreateUserAsync(userManager, "lockout", plate: "2CD 6789");
-        Assert.That((await fleet.CreateAsync("2CD 6789", null, user.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("2CD 6789", VehicleType.Company, null, user.Email, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.RequestPairingCodeAsync(user.Id)).Succeeded, Is.True);
 
         for (var attempt = 0; attempt < 5; attempt++)
@@ -153,7 +153,7 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope);
 
         var user = await CreateUserAsync(userManager, "mismatch", plate: "3EF 1111");
-        Assert.That((await fleet.CreateAsync("3EF 1111", null, "somebody.else@test.local", null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("3EF 1111", VehicleType.Company, null, "somebody.else@test.local", null, null)).Succeeded, Is.True);
 
         var status = await fleet.GetMyPairingStatusAsync(user.Id);
         Assert.That(status.State, Is.EqualTo(VehiclePairingState.NotPairable),
@@ -163,7 +163,7 @@ public class FleetPairingTests
 
         // A pool car with no driver email must be indistinguishable from the mismatch above.
         var poolUser = await CreateUserAsync(userManager, "pool", plate: "4GH 2222");
-        Assert.That((await fleet.CreateAsync("4GH 2222", null, null, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("4GH 2222", VehicleType.Company, null, null, null, null)).Succeeded, Is.True);
         var poolStatus = await fleet.GetMyPairingStatusAsync(poolUser.Id);
         Assert.That(poolStatus.State, Is.EqualTo(VehiclePairingState.NotPairable));
         var poolRefused = await fleet.RequestPairingCodeAsync(poolUser.Id);
@@ -179,7 +179,7 @@ public class FleetPairingTests
 
         var user = await CreateUserAsync(userManager, "unpair", plate: "5IJ 3333");
         var spotId = await CreateSpotAsync("FL-02");
-        Assert.That((await fleet.CreateAsync("5IJ 3333", null, user.Email, spotId, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("5IJ 3333", VehicleType.Company, null, user.Email, spotId, null)).Succeeded, Is.True);
         var vehicle = await LoadVehicleAsync("5IJ3333");
         Assert.That((await fleet.PairManuallyAsync(vehicle.Id, user.Id)).Succeeded, Is.True);
 
@@ -205,7 +205,7 @@ public class FleetPairingTests
             userA = (await CreateUserAsync(userManager, "race-a", plate: "6KL 4444")).Id;
             userB = (await CreateUserAsync(userManager, "race-b", plate: "6KL 4444")).Id;
             spotId = await CreateSpotAsync("FL-03");
-            Assert.That((await fleet.CreateAsync("6KL 4444", null, null, spotId, null)).Succeeded, Is.True);
+            Assert.That((await fleet.CreateAsync("6KL 4444", VehicleType.Company, null, null, spotId, null)).Succeeded, Is.True);
             vehicleId = (await LoadVehicleAsync("6KL4444")).Id;
         }
 
@@ -235,14 +235,14 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope, sent);
 
         var user = await CreateUserAsync(userManager, "nudge", plate: "8OP 6666");
-        Assert.That((await fleet.CreateAsync("8OP 6666", null, user.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("8OP 6666", VehicleType.Company, null, user.Email, null, null)).Succeeded, Is.True);
         Assert.That(sent.Sent, Does.Contain((user.Id, "Fleet_Notify_Pairable_Title")),
             "A car registered after the account already exists must nudge the driver; nobody re-opens their profile on a hunch.");
 
         // Cosmetic edits (name, notes, spot) must not re-nudge — only identity changes do.
         sent.Sent.Clear();
         var vehicle = await LoadVehicleAsync("8OP6666");
-        Assert.That((await fleet.UpdateAsync(vehicle.Id, "8OP 6666", "Fabia", user.Email, null, "poznámka")).Succeeded, Is.True);
+        Assert.That((await fleet.UpdateAsync(vehicle.Id, "8OP 6666", VehicleType.Company, "Fabia", user.Email, null, "poznámka")).Succeeded, Is.True);
         Assert.That(sent.Sent, Is.Empty);
     }
 
@@ -255,11 +255,11 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope, sent);
 
         var user = await CreateUserAsync(userManager, "typo", plate: "9QR 7777");
-        Assert.That((await fleet.CreateAsync("9QR 7777", null, $"ghost-{Guid.NewGuid():N}@test.local", null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("9QR 7777", VehicleType.Company, null, $"ghost-{Guid.NewGuid():N}@test.local", null, null)).Succeeded, Is.True);
         Assert.That(sent.Sent, Is.Empty, "An email matching no account has nobody to nudge.");
 
         var vehicle = await LoadVehicleAsync("9QR7777");
-        Assert.That((await fleet.UpdateAsync(vehicle.Id, "9QR 7777", null, user.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.UpdateAsync(vehicle.Id, "9QR 7777", VehicleType.Company, null, user.Email, null, null)).Succeeded, Is.True);
         Assert.That(sent.Sent, Does.Contain((user.Id, "Fleet_Notify_Pairable_Title")),
             "Fixing the registry's email typo is exactly the moment the real driver becomes pairable.");
     }
@@ -273,7 +273,7 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope, sent);
 
         var user = await CreateUserAsync(userManager, "revive", plate: "1SU 8888");
-        Assert.That((await fleet.CreateAsync("1SU 8888", null, user.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("1SU 8888", VehicleType.Company, null, user.Email, null, null)).Succeeded, Is.True);
         var vehicle = await LoadVehicleAsync("1SU8888");
 
         sent.Sent.Clear();
@@ -292,11 +292,11 @@ public class FleetPairingTests
         var fleet = CreateFleetService(scope, sent);
 
         var user = await CreateUserAsync(userManager, "busy", plate: "2VW 9999");
-        Assert.That((await fleet.CreateAsync("3XY 0001", "Pool", null, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("3XY 0001", VehicleType.Company, "Pool", null, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.PairManuallyAsync((await LoadVehicleAsync("3XY0001")).Id, user.Id)).Succeeded, Is.True);
 
         sent.Sent.Clear();
-        Assert.That((await fleet.CreateAsync("2VW 9999", null, user.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("2VW 9999", VehicleType.Company, null, user.Email, null, null)).Succeeded, Is.True);
         Assert.That(sent.Sent, Does.Not.Contain((user.Id, "Fleet_Notify_Pairable_Title")),
             "One account, one pairing: whoever is paired already must not be lured into a second code ceremony.");
 
@@ -315,7 +315,7 @@ public class FleetPairingTests
 
         var user = await CreateUserAsync(userManager, "pooldriver", plate: null);
         var spotId = await CreateSpotAsync("FL-05");
-        Assert.That((await fleet.CreateAsync("4ZA 0002", "Pool Transporter", null, spotId, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("4ZA 0002", VehicleType.Company, "Pool Transporter", null, spotId, null)).Succeeded, Is.True);
         Assert.That((await fleet.PairManuallyAsync((await LoadVehicleAsync("4ZA0002")).Id, user.Id)).Succeeded, Is.True);
 
         var status = await fleet.GetMyPairingStatusAsync(user.Id);
@@ -332,21 +332,21 @@ public class FleetPairingTests
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var fleet = CreateFleetService(scope);
 
-        Assert.That((await fleet.CreateAsync("POOL 100", null, null, null, null)).Succeeded, Is.True);
-        Assert.That((await fleet.CreateAsync("GHST 200", null, $"ghost-{Guid.NewGuid():N}@test.local", null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("POOL 100", VehicleType.Company, null, null, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("GHST 200", VehicleType.Company, null, $"ghost-{Guid.NewGuid():N}@test.local", null, null)).Succeeded, Is.True);
 
         var plateless = await CreateUserAsync(userManager, "plateless", plate: null);
-        Assert.That((await fleet.CreateAsync("PLAT 300", null, plateless.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("PLAT 300", VehicleType.Company, null, plateless.Email, null, null)).Succeeded, Is.True);
 
         var ready = await CreateUserAsync(userManager, "ready", plate: "REDY 400");
-        Assert.That((await fleet.CreateAsync("REDY 400", null, ready.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("REDY 400", VehicleType.Company, null, ready.Email, null, null)).Succeeded, Is.True);
 
         var coded = await CreateUserAsync(userManager, "coded", plate: "CODE 500");
-        Assert.That((await fleet.CreateAsync("CODE 500", null, coded.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("CODE 500", VehicleType.Company, null, coded.Email, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.RequestPairingCodeAsync(coded.Id)).Succeeded, Is.True);
 
         var locked = await CreateUserAsync(userManager, "locked", plate: "LOCK 600");
-        Assert.That((await fleet.CreateAsync("LOCK 600", null, locked.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("LOCK 600", VehicleType.Company, null, locked.Email, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.RequestPairingCodeAsync(locked.Id)).Succeeded, Is.True);
         for (var attempt = 0; attempt < 5; attempt++)
         {
@@ -354,10 +354,10 @@ public class FleetPairingTests
         }
 
         var paired = await CreateUserAsync(userManager, "funnelpair", plate: "PAIR 700");
-        Assert.That((await fleet.CreateAsync("PAIR 700", null, paired.Email, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("PAIR 700", VehicleType.Company, null, paired.Email, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.PairManuallyAsync((await LoadVehicleAsync("PAIR700")).Id, paired.Id)).Succeeded, Is.True);
 
-        Assert.That((await fleet.CreateAsync("GONE 800", null, null, null, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("GONE 800", VehicleType.Company, null, null, null, null)).Succeeded, Is.True);
         Assert.That((await fleet.SetActiveAsync((await LoadVehicleAsync("GONE800")).Id, false)).Succeeded, Is.True);
 
         var list = await fleet.ListAsync();
@@ -389,7 +389,7 @@ public class FleetPairingTests
         var resident = await CreateUserAsync(userManager, "resident", plate: null);
         var spotId = await CreateSpotAsync("FL-04");
         Assert.That((await spots.AssignOwnerAsync(spotId, resident.Id)).Succeeded, Is.True);
-        Assert.That((await fleet.CreateAsync("7MN 5555", null, claimant.Email, spotId, null)).Succeeded, Is.True);
+        Assert.That((await fleet.CreateAsync("7MN 5555", VehicleType.Company, null, claimant.Email, spotId, null)).Succeeded, Is.True);
 
         Assert.That((await fleet.RequestPairingCodeAsync(claimant.Id)).Succeeded, Is.True);
         var refused = await fleet.ConfirmPairingAsync(claimant.Id, await GenerateCodeAsync(userManager, claimant));
@@ -401,6 +401,51 @@ public class FleetPairingTests
         await using var dbContext = new D3ParkingDbContext(_options);
         var owner = await dbContext.ParkingSpots.Where(s => s.Id == spotId).Select(s => s.OwnerId).SingleAsync();
         Assert.That(owner, Is.EqualTo(resident.Id));
+    }
+
+    [Test]
+    public async Task Employee_vehicles_never_carry_an_assigned_spot()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var fleet = CreateFleetService(scope);
+
+        var spotId = await CreateSpotAsync("FL-06");
+        var refused = await fleet.CreateAsync("5BC 0003", VehicleType.Employee, null, null, spotId, null);
+        Assert.That(refused.Errors, Does.Contain("Fleet_Error_EmployeeVehicleNoSpot"),
+            "An employee's own vehicle books from the pool; it must never register with a dedicated spot.");
+
+        Assert.That((await fleet.CreateAsync("5BC 0003", VehicleType.Employee, null, null, null, null)).Succeeded, Is.True);
+        var vehicle = await LoadVehicleAsync("5BC0003");
+        var promotedSpot = await fleet.UpdateAsync(vehicle.Id, "5BC 0003", VehicleType.Employee, null, null, spotId, null);
+        Assert.That(promotedSpot.Errors, Does.Contain("Fleet_Error_EmployeeVehicleNoSpot"),
+            "The rule holds on edit exactly as on registration.");
+    }
+
+    [Test]
+    public async Task Demoting_a_paired_company_car_to_an_employee_vehicle_releases_the_residency()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var fleet = CreateFleetService(scope);
+
+        var user = await CreateUserAsync(userManager, "demote", plate: "6DE 0004");
+        var spotId = await CreateSpotAsync("FL-07");
+        Assert.That((await fleet.CreateAsync("6DE 0004", VehicleType.Company, null, user.Email, spotId, null)).Succeeded, Is.True);
+        var vehicle = await LoadVehicleAsync("6DE0004");
+        Assert.That((await fleet.PairManuallyAsync(vehicle.Id, user.Id)).Succeeded, Is.True);
+
+        Assert.That((await fleet.UpdateAsync(vehicle.Id, "6DE 0004", VehicleType.Employee, null, user.Email, null, null)).Succeeded, Is.True);
+
+        await using var dbContext = new D3ParkingDbContext(_options);
+        var owner = await dbContext.ParkingSpots.Where(s => s.Id == spotId).Select(s => s.OwnerId).SingleAsync();
+        Assert.That(owner, Is.Null,
+            "The residency existed for the company car; an employee vehicle keeps reservations only.");
+        Assert.That((await LoadVehicleAsync("6DE0004")).PairedUserId, Is.EqualTo(user.Id),
+            "The verified plate→account identity survives the demotion — only the entitlement goes.");
+
+        var status = await fleet.GetMyPairingStatusAsync(user.Id);
+        Assert.That(status.VehicleType, Is.EqualTo(VehicleType.Employee));
+        Assert.That(status.SpotCode, Is.Null);
     }
 
     private FleetService CreateFleetService(AsyncServiceScope scope, INotificationService? notifications = null) => new(

@@ -142,6 +142,7 @@
             <details class="help-item">
                 <summary class="help-item__q">@L["Help_Resident_Q"]</summary>
                 <div class="help-item__a">
+                    <p>@L["Help_Resident_A0"]</p>
                     <p>@L["Help_Resident_A1", Time(policy.ResidentHoldUntil)]</p>
                     <p>
                         @(policy.ResidentReleaseMaxPoints > 0
@@ -192,6 +193,13 @@
         </AuthorizeView>
 
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)">
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_FleetAdmin_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_FleetAdmin_A1"]</p>
+                    <p>@L["Help_FleetAdmin_A2"]</p>
+                </div>
+            </details>
             <details class="help-item">
                 <summary class="help-item__q">@L["Help_Mismatch_Q"]</summary>
                 <div class="help-item__a">

@@ -59,12 +59,18 @@
                     case VehiclePairingState.Paired:
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Account_Vehicle_PairedBadge"]</FluentBadge>
+                                <FluentBadge Appearance="Appearance.Accent" Fill="success">@L[$"Account_Vehicle_PairedBadge_{PairingVehicleType}"]</FluentBadge>
                                 <FluentLabel Typo="Typography.Body">@L["Account_Vehicle_Paired", PairedVehicleLabel]</FluentLabel>
                             </FluentStack>
                             @if (_pairing.SpotCode is { } pairedSpot)
                             {
                                 <FluentLabel Typo="Typography.Body"><strong>@L["Account_Vehicle_PairedSpot", pairedSpot]</strong></FluentLabel>
+                            }
+                            @* The entitlement in one line: a company vehicle may hold a dedicated
+                               spot, an employee vehicle books from the shared pool. *@
+                            @if (_pairing.VehicleType is { } pairedType)
+                            {
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L[$"Account_Vehicle_Entitlement_{pairedType}"]</small></FluentLabel>
                             }
                             <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Account_Vehicle_PairedHint"]</small></FluentLabel>
                         </FluentStack>
@@ -76,6 +82,10 @@
                             @if (_pairing.SpotCode is { } pairableSpot)
                             {
                                 <FluentLabel Typo="Typography.Body">@L["Account_Vehicle_SpotInfo", pairableSpot]</FluentLabel>
+                            }
+                            @if (_pairing.VehicleType is { } matchedType)
+                            {
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L[$"Account_Vehicle_Entitlement_{matchedType}"]</small></FluentLabel>
                             }
                             <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Account_Vehicle_CodeIntro"]</FluentLabel>
                             <MuteButton FormName="pairing-code" Appearance="Appearance.Accent"
@@ -173,7 +183,7 @@
 
     private ApplicationUser? _user;
     private string? _saveError;
-    private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null);
+    private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null, null);
     private string? _pairingError;
 
 #pragma warning disable BL0008
@@ -193,6 +203,10 @@
     private string PairedVehicleLabel => _pairing.VehicleName is { Length: > 0 } name
         ? $"{_pairing.VehiclePlate} ({name})"
         : _pairing.VehiclePlate ?? string.Empty;
+
+    // Paired/CodeRequired always carry the matched vehicle's type; the fallback only guards
+    // against a state that renders no badge anyway.
+    private VehicleType PairingVehicleType => _pairing.VehicleType ?? VehicleType.Company;
 
     protected override async Task OnInitializedAsync()
     {

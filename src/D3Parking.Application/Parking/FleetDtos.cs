@@ -1,9 +1,12 @@
+using D3Parking.Domain.Parking;
+
 namespace D3Parking.Application.Parking;
 
 /// <summary>A fleet vehicle as the administration lists it.</summary>
 public sealed record CompanyVehicleDto(
     Guid Id,
     string Plate,
+    VehicleType Type,
     string? Name,
     string? DriverEmail,
     Guid? AssignedSpotId,
@@ -79,5 +82,8 @@ public sealed record PairingStatusDto(
     VehiclePairingState State,
     string? VehiclePlate,
     string? VehicleName,
+    // Null until a concrete vehicle is matched (NoPlate/NoMatch/NotPairable) — those states
+    // deliberately reveal nothing about what the registry knows.
+    VehicleType? VehicleType,
     string? SpotCode,
     DateTimeOffset? CodeSentAtUtc);
