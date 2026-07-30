@@ -4,7 +4,9 @@ namespace D3Parking.Domain.Parking;
 
 /// <summary>
 /// An apology for a blocked reserved spot: one reservation free of charge, dynamic price and peak
-/// surcharge included. A user holds at most one unredeemed voucher at a time and it expires, so
+/// surcharge included. The voucher is born pending — a spot manager reviews the report's photo
+/// proof and approves or rejects it, so value only ever flows from a human-confirmed mismatch.
+/// A user holds at most one pending-or-approved unredeemed voucher at a time and it expires, so
 /// faking mismatch reports cannot stockpile value. A timely cancel/release of the voucher-paid
 /// booking restores the voucher on the same terms as a credit refund.
 /// </summary>
@@ -15,9 +17,17 @@ public class ApologyVoucher : Entity
     /// <summary>The occupancy mismatch this voucher apologizes for.</summary>
     public Guid SourceMismatchId { get; private set; }
 
+    public ApologyVoucherStatus Status { get; private set; }
+
     public DateTimeOffset GrantedAtUtc { get; private set; }
 
     public DateTimeOffset ExpiresAtUtc { get; private set; }
+
+    /// <summary>When a spot manager approved or rejected the voucher.</summary>
+    public DateTimeOffset? ReviewedAtUtc { get; private set; }
+
+    /// <summary>The spot manager who approved or rejected the voucher.</summary>
+    public Guid? ReviewedById { get; private set; }
 
     public DateTimeOffset? RedeemedAtUtc { get; private set; }
 
@@ -32,8 +42,29 @@ public class ApologyVoucher : Entity
     {
         UserId = userId;
         SourceMismatchId = sourceMismatchId;
+        Status = ApologyVoucherStatus.PendingApproval;
         GrantedAtUtc = grantedAtUtc;
         ExpiresAtUtc = expiresAtUtc;
+    }
+
+    /// <summary>
+    /// The spot manager confirmed the report. Validity restarts from the approval, so a slow
+    /// review never eats into the 30 days the driver was promised.
+    /// </summary>
+    public void Approve(Guid reviewerId, DateTimeOffset at, TimeSpan validity)
+    {
+        Status = ApologyVoucherStatus.Approved;
+        ReviewedById = reviewerId;
+        ReviewedAtUtc = at;
+        ExpiresAtUtc = at + validity;
+    }
+
+    /// <summary>The spot manager judged the report unfounded; the voucher is dead for good.</summary>
+    public void Reject(Guid reviewerId, DateTimeOffset at)
+    {
+        Status = ApologyVoucherStatus.Rejected;
+        ReviewedById = reviewerId;
+        ReviewedAtUtc = at;
     }
 
     public void Redeem(Guid reservationId, int waivedCredits, DateTimeOffset at)

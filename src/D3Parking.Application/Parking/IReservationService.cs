@@ -27,7 +27,10 @@ public interface IReservationService
     /// </summary>
     Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default);
 
-    /// <summary>The caller's usable apology voucher (one free reservation), or null.</summary>
+    /// <summary>
+    /// The caller's live apology voucher, or null: an approved one (redeemable for one free
+    /// reservation) wins over a pending one still awaiting the spot manager's review.
+    /// </summary>
     Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
@@ -45,8 +48,11 @@ public interface IReservationService
     /// Records an occupancy mismatch (optionally with the blocking car's license plate), voids the
     /// reservation penalty-free with a full refund, and — when <paramref name="relocate"/> is set —
     /// books the first free spot for the same window with the original charge carried over.
+    /// The <paramref name="photo"/> proof is mandatory and single-use: a picture whose bytes were
+    /// ever used for another report is refused. Any apology voucher is granted pending the spot
+    /// manager's approval.
     /// </summary>
-    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, string? blockerPlate = null, CancellationToken cancellationToken = default);
+    Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the
