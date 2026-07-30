@@ -2,11 +2,13 @@
 @attribute [Authorize]
 @using D3Parking.Web.Components.Admin
 @inject UserManager<ApplicationUser> UserManager
+@inject IFleetService Fleet
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Manage_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.PageTitle">@L["Manage_Title"]</FluentLabel>
 
     @if (_user is not null)
@@ -19,17 +21,149 @@
                 <div class="profile-facts">
                     <StatusBadge Status="_user.Status" />
                     <span class="profile-sub">@L["Manage_Phone"]: @(_user.PhoneNumber ?? "—")</span>
+                    <span class="profile-sub">@L["Manage_Plate"]: @(string.IsNullOrWhiteSpace(_user.LicensePlate) ? "—" : _user.LicensePlate)</span>
                 </div>
             </div>
         </div>
 
-        <FluentLabel Typo="Typography.Subject">@L["Manage_Actions"]</FluentLabel>
-        <div class="account-actions">
-            <FluentAnchor Href="account/change-password" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePassword"]</FluentAnchor>
-            <FluentAnchor Href="account/change-email" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangeEmail"]</FluentAnchor>
-            <FluentAnchor Href="account/change-phone" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_ChangePhone"]</FluentAnchor>
-            <FluentAnchor Href="account/suspend" Appearance="Appearance.Neutral" Style="width:100%">@L["Manage_Suspend"]</FluentAnchor>
-            <FluentAnchor Href="account/deactivate" Appearance="Appearance.Outline" Style="width:100%">@L["Manage_Deactivate"]</FluentAnchor>
+        @* The vehicle self-service (and the fleet pairing built on the plate) lives here — this
+           is the page the avatar menu actually opens. /account/profile keeps the parking
+           preferences and notifications; the card below links to it.
+
+           Static SSR renders in a single pass and a form handler only runs when its form
+           renders, so anything the handler mutates must sit BELOW the form or it silently
+           renders from the pre-handler state. Hence: successes redirect (fresh GET shows the
+           new state everywhere), errors stay on the POST and surface in bars placed after
+           their forms. *@
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Account_VehicleTitle"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Account_VehicleHelp"]</FluentLabel>
+                <EditForm Model="VehicleInput" method="post" OnValidSubmit="SavePlateAsync" FormName="vehicle">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                        <FluentTextField Name="VehicleInput.Plate" @bind-Value="VehicleInput.Plate" Maxlength="16"
+                                         Label="@L["Account_VehiclePlate"]" Style="width:240px" />
+                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Account_VehicleSave"]</FluentButton>
+                    </FluentStack>
+                </EditForm>
+                @if (!string.IsNullOrEmpty(_saveError))
+                {
+                    <div class="auth-alert auth-alert--error" role="alert"><span>@_saveError</span></div>
+                }
+
+                @* Fleet pairing. NoPlate/NoMatch render nothing — a private car has no business
+                   seeing fleet mechanics. NotPairable stays deliberately vague (see
+                   VehiclePairingState) and points at the administrator. *@
+                @switch (_pairing.State)
+                {
+                    case VehiclePairingState.Paired:
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentBadge Appearance="Appearance.Accent" Fill="success">@L["Account_Vehicle_PairedBadge"]</FluentBadge>
+                                <FluentLabel Typo="Typography.Body">@L["Account_Vehicle_Paired", PairedVehicleLabel]</FluentLabel>
+                            </FluentStack>
+                            @if (_pairing.SpotCode is { } pairedSpot)
+                            {
+                                <FluentLabel Typo="Typography.Body"><strong>@L["Account_Vehicle_PairedSpot", pairedSpot]</strong></FluentLabel>
+                            }
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Account_Vehicle_PairedHint"]</small></FluentLabel>
+                        </FluentStack>
+                        break;
+
+                    case VehiclePairingState.CodeRequired:
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            <FluentLabel Typo="Typography.Body">@L["Account_Vehicle_FleetMatch", PairedVehicleLabel]</FluentLabel>
+                            @if (_pairing.SpotCode is { } pairableSpot)
+                            {
+                                <FluentLabel Typo="Typography.Body">@L["Account_Vehicle_SpotInfo", pairableSpot]</FluentLabel>
+                            }
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Account_Vehicle_CodeIntro"]</FluentLabel>
+                            <MuteButton FormName="pairing-code" Appearance="Appearance.Accent"
+                                        Label="@(_pairing.CodeSentAtUtc is null ? L["Account_Vehicle_SendCode"] : L["Account_Vehicle_ResendCode"])"
+                                        OnSubmit="SendPairingCodeAsync" />
+                            @if (_pairing.CodeSentAtUtc is not null)
+                            {
+                                @* State-driven, not a transient flash: the fresh GET after the
+                                   send-code redirect still tells the user where the code went. *@
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Account_Vehicle_CodeSent"]</small></FluentLabel>
+                                <EditForm Model="CodeInput" method="post" OnValidSubmit="ConfirmPairingAsync" FormName="pairing-confirm">
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                                        <FluentTextField Name="CodeInput.Code" @bind-Value="CodeInput.Code" Maxlength="8"
+                                                         Label="@L["Account_Vehicle_Code"]" Style="width:160px" />
+                                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Account_Vehicle_ConfirmCode"]</FluentButton>
+                                    </FluentStack>
+                                </EditForm>
+                            }
+                            @if (!string.IsNullOrEmpty(_pairingError))
+                            {
+                                <div class="auth-alert auth-alert--error" role="alert"><span>@L[_pairingError]</span></div>
+                            }
+                        </FluentStack>
+                        break;
+
+                    case VehiclePairingState.NotPairable:
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Account_Vehicle_NotPairable"]</FluentLabel>
+                        break;
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Manage_SecurityTitle"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Manage_SecurityHelp"]</FluentLabel>
+                <div class="settings-rows">
+                    <div class="settings-row">
+                        <div class="settings-row__text">
+                            <span class="settings-row__title">@L["Manage_Password"]</span>
+                            <span class="settings-row__desc">@L["Manage_ChangePasswordDesc"]</span>
+                        </div>
+                        <FluentAnchor Href="account/change-password" Appearance="Appearance.Neutral">@L["Manage_ChangePassword"]</FluentAnchor>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row__text">
+                            <span class="settings-row__title">@L["Manage_Email"]</span>
+                            <span class="settings-row__desc">@L["Manage_ChangeEmailDesc"]</span>
+                        </div>
+                        <FluentAnchor Href="account/change-email" Appearance="Appearance.Neutral">@L["Manage_ChangeEmail"]</FluentAnchor>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row__text">
+                            <span class="settings-row__title">@L["Manage_Phone"]</span>
+                            <span class="settings-row__desc">@L["Manage_ChangePhoneDesc"]</span>
+                        </div>
+                        <FluentAnchor Href="account/change-phone" Appearance="Appearance.Neutral">@L["Manage_ChangePhone"]</FluentAnchor>
+                    </div>
+                </div>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Manage_ParkingTitle"]</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Manage_ParkingDesc"]</FluentLabel>
+                <FluentAnchor Href="account/profile" Appearance="Appearance.Neutral">@L["Manage_ParkingOpen"]</FluentAnchor>
+            </FluentStack>
+        </FluentCard>
+
+        <div class="danger-zone">
+            <div class="danger-zone__title">@L["Manage_DangerTitle"]</div>
+            <div class="settings-rows">
+                <div class="settings-row">
+                    <div class="settings-row__text">
+                        <span class="settings-row__title">@L["Suspend_Title"]</span>
+                        <span class="settings-row__desc">@L["Manage_SuspendDesc"]</span>
+                    </div>
+                    <FluentAnchor Href="account/suspend" Appearance="Appearance.Neutral">@L["Manage_Suspend"]</FluentAnchor>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row__text">
+                        <span class="settings-row__title">@L["Deactivate_Title"]</span>
+                        <span class="settings-row__desc">@L["Manage_DeactivateDesc"]</span>
+                    </div>
+                    <FluentAnchor Href="account/deactivate" Appearance="Appearance.Outline">@L["Manage_Deactivate"]</FluentAnchor>
+                </div>
+            </div>
         </div>
     }
 </FluentStack>
@@ -38,11 +172,122 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private ApplicationUser? _user;
+    private string? _saveError;
+    private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null);
+    private string? _pairingError;
+
+#pragma warning disable BL0008
+    [SupplyParameterFromForm(FormName = "vehicle")] private VehicleFormModel VehicleInput { get; set; } = new();
+    [SupplyParameterFromForm(FormName = "pairing-confirm")] private PairingCodeModel CodeInput { get; set; } = new();
+
+#pragma warning restore BL0008
+
+    // Form outcomes ride the query string across the post-redirect-get: the POST response only
+    // re-renders the posting form's own subtree (verified empirically — the handler runs, the
+    // DB changes, markup outside the form doesn't budge), so the reliable render that can show
+    // the outcome is the fresh GET after a redirect.
+    [SupplyParameterFromQuery(Name = "pairingError")] public string? PairingErrorKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saveError")] public string? SaveErrorText { get; set; }
+
+    private string PairedVehicleLabel => _pairing.VehicleName is { Length: > 0 } name
+        ? $"{_pairing.VehiclePlate} ({name})"
+        : _pairing.VehiclePlate ?? string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        // The error keys come from an open URL parameter, so they only pass through when they
+        // look like what our redirects actually emit (a Fleet_* resource key / capped text).
+        if (PairingErrorKey is { } key && key.StartsWith("Fleet_", StringComparison.Ordinal))
+        {
+            _pairingError = key;
+        }
+
+        if (!string.IsNullOrWhiteSpace(SaveErrorText))
+        {
+            _saveError = SaveErrorText.Length <= 300 ? SaveErrorText : SaveErrorText[..300];
+        }
+
         var state = await AuthState!;
         _user = await UserManager.GetUserAsync(state.User);
+        if (_user is not null)
+        {
+            // On a form post the posted value is already bound here; ??= only seeds a fresh GET.
+            VehicleInput.Plate ??= _user.LicensePlate;
+            _pairing = await Fleet.GetMyPairingStatusAsync(_user.Id);
+        }
+    }
+
+    private async Task SavePlateAsync()
+    {
+        if (_user is null)
+        {
+            return;
+        }
+
+        // Stored upper-cased as typed; the admin matching ignores spacing and dashes anyway.
+        _user.LicensePlate = string.IsNullOrWhiteSpace(VehicleInput.Plate)
+            ? null
+            : VehicleInput.Plate.Trim().ToUpperInvariant();
+        var saved = await UserManager.UpdateAsync(_user);
+        if (!saved.Succeeded)
+        {
+            RedirectWith("saveError", string.Join(" ", saved.Errors.Select(e => e.Description)));
+            return;
+        }
+
+        // A changed plate may sever an existing fleet pairing (and the residency it carried).
+        await Fleet.SyncUserPlateAsync(_user.Id);
+        Nav.NavigateTo("account/manage");
+    }
+
+    private async Task SendPairingCodeAsync()
+    {
+        if (_user is null)
+        {
+            return;
+        }
+
+        var result = await Fleet.RequestPairingCodeAsync(_user.Id);
+        if (!result.Succeeded)
+        {
+            RedirectWith("pairingError", result.Errors.FirstOrDefault());
+            return;
+        }
+
+        Nav.NavigateTo("account/manage");
+    }
+
+    private async Task ConfirmPairingAsync()
+    {
+        if (_user is null)
+        {
+            return;
+        }
+
+        var result = await Fleet.ConfirmPairingAsync(_user.Id, CodeInput.Code ?? string.Empty);
+        if (!result.Succeeded)
+        {
+            RedirectWith("pairingError", result.Errors.FirstOrDefault());
+            return;
+        }
+
+        Nav.NavigateTo("account/manage");
+    }
+
+    private void RedirectWith(string parameter, string? value) =>
+        Nav.NavigateTo(string.IsNullOrEmpty(value)
+            ? "account/manage"
+            : $"account/manage?{parameter}={Uri.EscapeDataString(value)}");
+
+    private sealed class VehicleFormModel
+    {
+        public string? Plate { get; set; }
+    }
+
+    private sealed class PairingCodeModel
+    {
+        public string? Code { get; set; }
     }
 
     private string Initials()

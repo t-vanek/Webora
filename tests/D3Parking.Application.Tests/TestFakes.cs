@@ -107,6 +107,55 @@ internal sealed class NullFleetService : IFleetService
     public Task NotifyPairableAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
+/// <summary>Captures what would have been notified; the fleet tests assert the nudge loop closes.</summary>
+internal sealed class RecordingNotificationService : INotificationService
+{
+    public List<(Guid UserId, string Title)> Sent { get; } = [];
+
+    public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default)
+    {
+        Sent.Add((userId, title));
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default)
+    {
+        Sent.Add((userId, title));
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, NotificationEmailOptions? emailOptions, CancellationToken cancellationToken = default)
+    {
+        Sent.Add((userId, title));
+        return Task.CompletedTask;
+    }
+
+    // The read side mirrors NullNotificationService: nothing the exercised services rely on.
+    public Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<NotificationDto>>([]);
+
+    public Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+    public Task MarkReadAsync(Guid userId, Guid notificationId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task MarkAllReadAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<NotificationPreferencesDto> GetPreferencesAsync(Guid userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task MuteAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task MuteUntilAsync(Guid userId, DateTimeOffset untilUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task UnmuteAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task SetScopeAsync(Guid userId, NotificationScope scope, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task SetAvailabilityOptInAsync(Guid userId, bool allow, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task SubscribeToPushAsync(Guid userId, PushSubscriptionDto subscription, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task UnsubscribeFromPushAsync(Guid userId, string endpoint, CancellationToken cancellationToken = default) => Task.CompletedTask;
+}
+
 internal sealed class NullNotificationService : INotificationService
 {
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;

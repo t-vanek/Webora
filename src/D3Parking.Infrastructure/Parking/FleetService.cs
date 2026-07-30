@@ -47,14 +47,57 @@ public sealed class FleetService(
                           from s in spots.DefaultIfEmpty()
                           join u in dbContext.Users on v.PairedUserId equals u.Id into users
                           from u in users.DefaultIfEmpty()
-                          select new CompanyVehicleDto(
-                              v.Id, v.Plate, v.Name, v.DriverEmail, v.AssignedSpotId,
-                              s != null ? s.Code : null,
+                          // The driver's prospective account, looked up the way Identity itself
+                          // resolves emails. It only feeds the funnel column below — the
+                          // authorization still happens in LoadPairableAsync at pairing time.
+                          join d in dbContext.Users on v.DriverEmail!.ToUpper() equals d.NormalizedEmail into drivers
+                          from d in drivers.DefaultIfEmpty()
+                          select new
+                          {
+                              v.Id,
+                              v.Plate,
+                              v.NormalizedPlate,
+                              v.Name,
+                              v.DriverEmail,
+                              v.AssignedSpotId,
+                              SpotCode = s != null ? s.Code : null,
                               v.PairedUserId,
-                              u != null ? (u.DisplayName ?? u.Email) : null,
-                              v.IsActive, v.Notes))
+                              PairedUserName = u != null ? (u.DisplayName ?? u.Email) : null,
+                              v.PairedAtUtc,
+                              v.IsActive,
+                              v.Notes,
+                              v.PairingCodeSentAtUtc,
+                              v.PairingAttempts,
+                              v.PairingAttemptsWindowStartUtc,
+                              DriverStatus = d != null ? (AccountStatus?)d.Status : null,
+                              DriverEmailConfirmed = d != null && d.EmailConfirmed,
+                              DriverPlate = d != null ? d.LicensePlate : null,
+                          })
             .ToListAsync(cancellationToken);
-        return rows.OrderBy(v => v.Plate, StringComparer.OrdinalIgnoreCase).ToList();
+
+        var now = timeProvider.GetUtcNow();
+        return rows
+            .Select(r =>
+            {
+                var lockedUntil = LockedUntil(r.PairingAttempts, r.PairingAttemptsWindowStartUtc, now);
+
+                // The funnel reads top-down: the first missing ingredient names the state.
+                var state = !r.IsActive ? FleetPairingState.Inactive
+                    : r.PairedUserId is not null ? FleetPairingState.Paired
+                    : r.DriverEmail is null ? FleetPairingState.ManualOnly
+                    : r.DriverStatus is not AccountStatus.Active || !r.DriverEmailConfirmed ? FleetPairingState.NoAccount
+                    : r.DriverPlate is null || !string.Equals(PlateNormalizer.Normalize(r.DriverPlate), r.NormalizedPlate, StringComparison.Ordinal) ? FleetPairingState.PlateMissing
+                    : lockedUntil is not null ? FleetPairingState.Locked
+                    : r.PairingCodeSentAtUtc is not null ? FleetPairingState.CodeSent
+                    : FleetPairingState.ReadyToPair;
+
+                return new CompanyVehicleDto(
+                    r.Id, r.Plate, r.Name, r.DriverEmail, r.AssignedSpotId, r.SpotCode,
+                    r.PairedUserId, r.PairedUserName, r.PairedAtUtc, r.IsActive, r.Notes,
+                    state, r.PairingCodeSentAtUtc, lockedUntil);
+            })
+            .OrderBy(v => v.Plate, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public Task<ParkingResult> CreateAsync(string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
@@ -84,6 +127,7 @@ public sealed class FleetService(
                 return ParkingResult.Failure("Fleet_Error_DuplicatePlate");
             }
 
+            await NudgeDriverIfPairableAsync(vehicle, cancellationToken);
             return ParkingResult.Success;
         }, cancellationToken);
 
@@ -112,14 +156,14 @@ public sealed class FleetService(
                 return invalidSpot;
             }
 
+            var identityEdited = !string.Equals(vehicle.NormalizedPlate, newNormalizedPlate, StringComparison.Ordinal)
+                || !string.Equals(vehicle.DriverEmail, newEmail, StringComparison.OrdinalIgnoreCase);
+
             // A pairing is a validated (plate, email, code) triple; when the admin edits either
             // identity component, the validation no longer speaks for the paired user, so the
             // pairing dissolves (and its residency with it). A spot change alone keeps the
             // pairing — the resident just moves with the vehicle.
-            var identityChanged = vehicle.PairedUserId is not null
-                && (!string.Equals(vehicle.NormalizedPlate, newNormalizedPlate, StringComparison.Ordinal)
-                    || !string.Equals(vehicle.DriverEmail, newEmail, StringComparison.OrdinalIgnoreCase));
-            if (identityChanged)
+            if (identityEdited && vehicle.PairedUserId is not null)
             {
                 var unpaired = await ReleasePairingAsync(dbContext, vehicle, notifyUser: true, cancellationToken);
                 if (!unpaired.Succeeded)
@@ -150,6 +194,13 @@ public sealed class FleetService(
                 return ParkingResult.Failure("Fleet_Error_DuplicatePlate");
             }
 
+            // The new identity may match someone who could not pair before (a fixed typo in the
+            // email, a corrected plate) — close the loop the same way account activation does.
+            if (identityEdited && vehicle.PairedUserId is null)
+            {
+                await NudgeDriverIfPairableAsync(vehicle, cancellationToken);
+            }
+
             return ParkingResult.Success;
         }, cancellationToken);
 
@@ -163,6 +214,7 @@ public sealed class FleetService(
                 return ParkingResult.Failure("Fleet_Error_VehicleNotFound");
             }
 
+            var wasActive = vehicle.IsActive;
             if (active)
             {
                 vehicle.Activate();
@@ -180,6 +232,13 @@ public sealed class FleetService(
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            // A reactivated car is pairable again — nudge the driver like a fresh registration.
+            if (active && !wasActive)
+            {
+                await NudgeDriverIfPairableAsync(vehicle, cancellationToken);
+            }
+
             return ParkingResult.Success;
         }, cancellationToken);
 
@@ -260,6 +319,18 @@ public sealed class FleetService(
     public async Task<PairingStatusDto> GetMyPairingStatusAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // A pairing is the user's own state, not something to re-derive from the profile plate:
+        // a manually paired pool-car driver (no plate in the profile at all) still sees their
+        // pairing — and someone paired elsewhere is never offered a second code ceremony.
+        var paired = await dbContext.CompanyVehicles.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.PairedUserId == userId, cancellationToken);
+        if (paired is not null)
+        {
+            return new PairingStatusDto(VehiclePairingState.Paired, paired.Plate, paired.Name,
+                await SpotCodeAsync(dbContext, paired.AssignedSpotId, cancellationToken), null);
+        }
+
         var user = await dbContext.Users.AsNoTracking()
             .Where(u => u.Id == userId)
             .Select(u => new { u.LicensePlate, u.Email })
@@ -277,18 +348,6 @@ public sealed class FleetService(
             return new PairingStatusDto(VehiclePairingState.NoMatch, user.LicensePlate, null, null, null);
         }
 
-        var spotCode = vehicle.AssignedSpotId is { } spotId
-            ? await dbContext.ParkingSpots.AsNoTracking()
-                .Where(s => s.Id == spotId)
-                .Select(s => s.Code)
-                .FirstOrDefaultAsync(cancellationToken)
-            : null;
-
-        if (vehicle.PairedUserId == userId)
-        {
-            return new PairingStatusDto(VehiclePairingState.Paired, vehicle.Plate, vehicle.Name, spotCode, null);
-        }
-
         // Deliberately one opaque state for "paired to someone else", "no driver email on file"
         // and "email mismatch": the difference would tell a prober what the registry knows.
         if (vehicle.PairedUserId is not null
@@ -298,7 +357,8 @@ public sealed class FleetService(
             return new PairingStatusDto(VehiclePairingState.NotPairable, user.LicensePlate, null, null, null);
         }
 
-        return new PairingStatusDto(VehiclePairingState.CodeRequired, vehicle.Plate, vehicle.Name, spotCode, vehicle.PairingCodeSentAtUtc);
+        return new PairingStatusDto(VehiclePairingState.CodeRequired, vehicle.Plate, vehicle.Name,
+            await SpotCodeAsync(dbContext, vehicle.AssignedSpotId, cancellationToken), vehicle.PairingCodeSentAtUtc);
     }
 
     public Task<ParkingResult> RequestPairingCodeAsync(Guid userId, CancellationToken cancellationToken = default) =>
@@ -336,8 +396,7 @@ public sealed class FleetService(
             }
 
             var now = timeProvider.GetUtcNow();
-            if (vehicle!.PairingAttempts >= MaxCodeAttempts
-                && vehicle.PairingAttemptsWindowStartUtc is { } windowStart && now - windowStart <= AttemptWindow)
+            if (LockedUntil(vehicle!.PairingAttempts, vehicle.PairingAttemptsWindowStartUtc, now) is not null)
             {
                 return ParkingResult.Failure("Fleet_Error_TooManyAttempts");
             }
@@ -596,6 +655,48 @@ public sealed class FleetService(
         }
 
         return null;
+    }
+
+    /// <summary>When the failed-attempt budget is spent, the moment self-service reopens; else null.</summary>
+    private static DateTimeOffset? LockedUntil(int attempts, DateTimeOffset? windowStartUtc, DateTimeOffset now) =>
+        attempts >= MaxCodeAttempts && windowStartUtc is { } start && now - start <= AttemptWindow
+            ? start + AttemptWindow
+            : null;
+
+    private static async Task<string?> SpotCodeAsync(D3ParkingDbContext dbContext, Guid? spotId, CancellationToken cancellationToken) =>
+        spotId is { } id
+            ? await dbContext.ParkingSpots.AsNoTracking()
+                .Where(s => s.Id == id)
+                .Select(s => s.Code)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+    /// <summary>
+    /// Closes the loop after a registry change: when the vehicle's driver email belongs to an
+    /// active account, that user gets the same "you can pair" nudge account activation sends —
+    /// without it, a car registered after the account already exists sits unnoticed until the
+    /// driver happens to open their profile. Advisory: the registry change has already
+    /// committed, so a notification hiccup must not read back to the admin as a failed save.
+    /// </summary>
+    private async Task NudgeDriverIfPairableAsync(CompanyVehicle vehicle, CancellationToken cancellationToken)
+    {
+        if (vehicle.DriverEmail is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var user = await userManager.FindByEmailAsync(vehicle.DriverEmail);
+            if (user is { Status: AccountStatus.Active, EmailConfirmed: true })
+            {
+                await NotifyPairableAsync(user.Id, cancellationToken);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Fleet pairing nudge for vehicle {Plate} failed", vehicle.Plate);
+        }
     }
 
     // The purpose binds the code to this vehicle AND the driver email it was issued for: an admin
