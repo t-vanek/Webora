@@ -975,15 +975,12 @@
   <data name="Lot_State_Inactive" xml:space="preserve"><value>Inactive</value></data>
   <data name="Lot_Stat_Occupancy" xml:space="preserve"><value>Occupancy</value></data>
   <data name="Lot_Stat_Occupied" xml:space="preserve"><value>Cars on spots</value></data>
-  <data name="Lot_Stat_Booked" xml:space="preserve"><value>Booked</value></data>
-  <data name="Lot_Stat_Free" xml:space="preserve"><value>Available</value></data>
   <data name="Lot_Stat_Residents" xml:space="preserve"><value>Resident spots</value></data>
   <data name="Lot_Stat_Pool" xml:space="preserve"><value>In the shared pool</value></data>
   <data name="Lot_Stat_Visitors" xml:space="preserve"><value>Visitors today</value></data>
   <data name="Lot_Stat_Queue" xml:space="preserve"><value>In the queue</value></data>
   <data name="Lot_Stat_Mismatches" xml:space="preserve"><value>Mismatches (30 days)</value></data>
   <data name="Lot_Stat_WastedShares" xml:space="preserve"><value>Wasted shares (30 days)</value></data>
-  <data name="Lot_Stat_Inactive" xml:space="preserve"><value>Inactive spots</value></data>
   <data name="Lot_Tile_Resident" xml:space="preserve"><value>Spot's resident</value></data>
   <data name="Lot_Tile_Mismatches" xml:space="preserve"><value>Blocked-spot reports in the last 30 days</value></data>
   <data name="Lot_Detail_Panel" xml:space="preserve"><value>Selected spot</value></data>
@@ -1017,13 +1014,8 @@
   <data name="Lot_MoveNoTargets" xml:space="preserve"><value>No other spot is free for that window.</value></data>
   <data name="Lot_Window" xml:space="preserve"><value>Window</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Last {0} days</value></data>
-  <data name="Lot_Stat_AvgUtilization" xml:space="preserve"><value>Average utilization</value></data>
-  <data name="Lot_Stat_Bookings" xml:space="preserve"><value>Bookings in the window</value></data>
-  <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>No-show rate</value></data>
-  <data name="Lot_Stat_Peak" xml:space="preserve"><value>Peak</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Mismatches</value></data>
   <data name="Lot_Summary_Group_Trend" xml:space="preserve"><value>Trend</value></data>
-  <data name="Lot_Summary_Group_Today" xml:space="preserve"><value>On the lot today</value></data>
   <data name="Lot_Summary_Group_Lot" xml:space="preserve"><value>Lot makeup</value></data>
   <data name="Lot_Summary_Value" xml:space="preserve"><value>Now</value></data>
   <data name="Lot_Summary_Trend" xml:space="preserve"><value>{0}-day trend</value></data>
@@ -1046,4 +1038,58 @@
   <data name="Parking_PrevPage" xml:space="preserve"><value>← Previous</value></data>
   <data name="Parking_NextPage" xml:space="preserve"><value>Next →</value></data>
   <data name="Parking_PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Lot_State_OfferedFromQueue" xml:space="preserve"><value>Held for a waitlist claim</value></data>
+  <data name="Lot_Stat_ResidentHeld" xml:space="preserve"><value>Held for residents</value></data>
+  <data name="Lot_Stat_ActiveSpots" xml:space="preserve"><value>Active spots</value></data>
+  <data name="Lot_Stat_TotalSpots" xml:space="preserve"><value>Spots in total</value></data>
+  <data name="Lot_Stat_VisitorSpots" xml:space="preserve"><value>Visitor spots</value></data>
+  <data name="Lot_Stat_InactiveNote" xml:space="preserve"><value>{0} of them inactive</value></data>
+  <data name="Lot_Stat_QueueOffered" xml:space="preserve"><value>Holding an offer</value></data>
+  <data name="Lot_Stat_Relocated" xml:space="preserve"><value>Reports resolved by a move</value></data>
+  <data name="Lot_Summary_Group_Spots" xml:space="preserve"><value>Spots right now</value></data>
+  <data name="Lot_Unit_People" xml:space="preserve"><value>people</value></data>
+  <data name="Lot_Unit_Bookings" xml:space="preserve"><value>bookings</value></data>
+  <data name="Lot_Unit_Reports" xml:space="preserve"><value>reports</value></data>
+  <data name="Lot_Unit_Spots" xml:space="preserve"><value>spots</value></data>
+  <data name="Lot_Cap_Head" xml:space="preserve"><value>Where the capacity went</value></data>
+  <data name="Lot_Cap_Hint" xml:space="preserve"><value>{0} active spots times {1} days. Every spot-day falls in exactly one row of the table below, so the rows add back up.</value></data>
+  <data name="Lot_Cap_Group" xml:space="preserve"><value>Capacity of the window</value></data>
+  <data name="Lot_Cap_Unit" xml:space="preserve"><value>spot-days</value></data>
+  <data name="Lot_Cap_Share" xml:space="preserve"><value>Share</value></data>
+  <data name="Lot_Cap_Used" xml:space="preserve"><value>Used</value></data>
+  <data name="Lot_Cap_OfferedUnused" xml:space="preserve"><value>Offered, nobody took it</value></data>
+  <data name="Lot_Cap_Held" xml:space="preserve"><value>Held for residents</value></data>
+  <data name="Lot_Cap_Idle" xml:space="preserve"><value>Free, nobody asked</value></data>
+  <data name="Lot_Cap_Total" xml:space="preserve"><value>Capacity in total</value></data>
+  <data name="Lot_Cap_HeldNote" xml:space="preserve"><value>Held days are an upper bound: past the morning cutoff an unclaimed resident spot goes to the pool automatically and leaves no record, so such a day looks held here even though it was on offer.</value></data>
+  <data name="Lot_Stat_Use" xml:space="preserve"><value>Average use</value></data>
+  <data name="Lot_Stat_DeadSpots" xml:space="preserve"><value>Nothing stood on them</value></data>
+  <data name="Lot_Stat_BestDay" xml:space="preserve"><value>Strongest day</value></data>
+  <data name="Lot_Stat_WorstDay" xml:space="preserve"><value>Weakest day</value></data>
+  <data name="Lot_Queue_Head" xml:space="preserve"><value>Demand turned away</value></data>
+  <data name="Lot_Queue_Hint" xml:space="preserve"><value>The waitlist only opens for a window with nothing free in it, so each entry is a recorded refusal rather than mere interest.</value></data>
+  <data name="Lot_Stat_QueueEntries" xml:space="preserve"><value>Joined the waitlist</value></data>
+  <data name="Lot_Stat_QueueClaimed" xml:space="preserve"><value>Ended up parked</value></data>
+  <data name="Lot_Stat_QueueExpired" xml:space="preserve"><value>Left with nothing</value></data>
+  <data name="Lot_Stat_QueueConversion" xml:space="preserve"><value>Waitlist conversion</value></data>
+  <data name="Lot_Queue_Refused_Hint" xml:space="preserve"><value>The hours the turned-away demand was aiming at. Where this map differs from the one below is where capacity falls short — not where the bookings are.</value></data>
+  <data name="Lot_Rel_Head" xml:space="preserve"><value>How bookings ended</value></data>
+  <data name="Lot_Rel_Hint" xml:space="preserve"><value>Only bookings whose window ran out inside the period — one still ahead of us has not had the chance to fail. Three shares of one whole.</value></data>
+  <data name="Lot_Rel_Completed" xml:space="preserve"><value>Used as booked</value></data>
+  <data name="Lot_Rel_Released" xml:space="preserve"><value>Given up in time</value></data>
+  <data name="Lot_Rel_NoShow" xml:space="preserve"><value>Never showed up</value></data>
+  <data name="Lot_Rel_Counts" xml:space="preserve"><value>Bookings resolved: {0}. Cancellations, outside that whole: {1} — a cancelled booking cost nobody a spot.</value></data>
+  <data name="Lot_Stat_LeadTime" xml:space="preserve"><value>Median lead time</value></data>
+  <data name="Lot_Stat_LeadTime_Value" xml:space="preserve"><value>{0} h ahead</value></data>
+  <data name="Lot_Peak_Suggested" xml:space="preserve"><value>What the data shows</value></data>
+  <data name="Lot_Peak_Configured" xml:space="preserve"><value>Configured peak</value></data>
+  <data name="Lot_Peak_Matches" xml:space="preserve"><value>they agree</value></data>
+  <data name="Lot_Peak_Differs" xml:space="preserve"><value>they disagree</value></data>
+  <data name="Lot_Econ_Head" xml:space="preserve"><value>What the window cost</value></data>
+  <data name="Lot_Econ_Hint" xml:space="preserve"><value>Over the same resolved bookings as the funnel above, so the shares share its denominator.</value></data>
+  <data name="Lot_Stat_Charged" xml:space="preserve"><value>Charged</value></data>
+  <data name="Lot_Stat_Refunded" xml:space="preserve"><value>Refunded</value></data>
+  <data name="Lot_Stat_OffPeak" xml:space="preserve"><value>Booked off-peak</value></data>
+  <data name="Lot_Stat_FromQueue" xml:space="preserve"><value>Came from the waitlist</value></data>
+  <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hottest single hour</value></data>
 </root>

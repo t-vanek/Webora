@@ -2596,10 +2596,12 @@ fluent-menu-item:has(> .account-menu-link) {
     width: 100%;
 }
 
-/* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. */
+/* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. Minimum drží na jeden
+   řádek i nejdelší hodnoty, které se sem dostanou — datum s procentem („30.7. · 35 %") a medián
+   předstihu („55 h předem"); pod 130 px se lámaly na dvě řádky a pásek se rozjel do schodů. */
 .lot-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
     gap: 10px;
     width: 100%;
 }
@@ -2623,6 +2625,15 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-stat__label {
     font-size: 11.5px;
     color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Jednotka u čísla, ne v popisku: dlaždice s lidmi ve frontě stojí vedle tabulky s počty míst a
+   holá „3" se v tom sousedství čte jako tři místa. */
+.lot-stat__unit {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin-left: 3px;
 }
 
 /* Barví se jen vybočující stavy — normální hodnota si nechává výchozí popředí. Značkové
@@ -2704,6 +2715,9 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-tile--ResidentShared { border-left-color: var(--brand-green-deep); }
 .lot-tile--ResidentHeld { border-left-color: var(--brand-sherpa-soft); }
 .lot-tile--VisitorBooked { border-left-color: var(--brand-violet-deep); }
+/* Slíbeno někomu z fronty: prázdné, ale nedá se nabídnout — proto barva ze skupiny „zadáno",
+   ne ze skupiny „volno". */
+.lot-tile--OfferedFromQueue { border-left-color: var(--accent-fill-rest, #0f6cbd); }
 .lot-tile--Inactive {
     border-left-color: var(--neutral-foreground-hint, #9a9a9a);
     background: var(--neutral-fill-secondary-rest, #f5f5f5);
@@ -2736,6 +2750,7 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-tile__dot--ResidentShared { background: var(--brand-green-deep); }
 .lot-tile__dot--ResidentHeld { background: var(--brand-sherpa-soft); }
 .lot-tile__dot--VisitorBooked { background: var(--brand-violet-deep); }
+.lot-tile__dot--OfferedFromQueue { background: var(--accent-fill-rest, #0f6cbd); }
 .lot-tile__dot--Inactive { background: var(--neutral-foreground-hint, #9a9a9a); }
 
 .lot-tile__meta { font-size: 11px; }
@@ -3002,6 +3017,64 @@ fluent-menu-item:has(> .account-menu-link) {
     font-weight: 700;
     white-space: nowrap;
     width: 1%;
+}
+
+/* Součtový řádek. Bez něj čtenář neví, jestli řádky nad ním jsou celý příběh, nebo výběr —
+   a přesně na tom se dřív dalo splést dvě různá dělení plochy. */
+.lot-summary__total th,
+.lot-summary__total td {
+    border-top: 2px solid var(--neutral-stroke-rest, #d8d8d8);
+    border-bottom: none;
+    padding-top: 6px;
+}
+
+.lot-summary__total th {
+    font-weight: 600 !important;
+}
+
+.lot-summary__note {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Podíl vedle absolutního čísla: samotné „místo-dny" nikdo neumí zvážit, procento ano. */
+.lot-summary__share {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Rozpad kapacity stojí sám, ne ve trojmřížce souhrnu — má tři sloupce a delší popisky. */
+.lot-summary--wide {
+    max-width: 560px;
+}
+
+/* Odvozená špička proti nastavené. Účel bloku je porovnání, takže obě hodnoty stojí vedle sebe
+   a odkaz vede rovnou tam, kde se to dá změnit. */
+.lot-peak {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    font-size: 14px;
+}
+
+.lot-peak__item {
+    display: flex;
+    flex-direction: column;
+}
+
+.lot-peak__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--neutral-foreground-hint, #6b6b6b);
 }
 
 .lot-summary__chart {

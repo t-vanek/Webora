@@ -104,6 +104,16 @@ public sealed class LotDashboardService(
                 .ToListAsync(cancellationToken))
             .ToHashSet();
 
+        // Spots promised to a waitlist claim. The booking path already refuses to hand these out
+        // (see FreeSpotsForWindowAsync), so painting them free was the board telling the manager
+        // about capacity nobody could actually be given.
+        var offeredSpotIds = (await dbContext.QueueEntries.AsNoTracking()
+                .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId != null
+                    && q.OfferExpiresAtUtc > now && q.StartUtc < dayEnd && q.EndUtc > dayStart)
+                .Select(q => q.OfferedSpotId!.Value)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
         var signalFrom = now.AddDays(-SignalWindowDays);
         var mismatchesPerSpot = (await dbContext.OccupancyMismatches.AsNoTracking()
                 .Where(m => m.ReportedAtUtc >= signalFrom)
@@ -128,7 +138,8 @@ public sealed class LotDashboardService(
                 .FirstOrDefault();
             var visitor = visitors.Where(v => v.SpotId == spot.Id).OrderBy(v => v.StartUtc).FirstOrDefault();
 
-            var state = ResolveState(spot.IsActive, reservation?.Status, visitor is not null, spot.OwnerId is not null,
+            var state = ResolveState(spot.IsActive, reservation?.Status, visitor is not null,
+                offeredSpotIds.Contains(spot.Id), spot.OwnerId is not null,
                 releasedSpotIds.Contains(spot.Id) || autoShareActive);
             var holder = reservation?.HolderName ?? visitor?.VisitorName;
             var from = reservation?.StartUtc ?? visitor?.StartUtc;
@@ -140,20 +151,35 @@ public sealed class LotDashboardService(
         }
 
         var queueWaiting = await dbContext.QueueEntries.AsNoTracking()
-            .CountAsync(q => (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+            .CountAsync(q => q.Status == QueueEntryStatus.Waiting
                 && q.StartUtc < dayEnd && q.EndUtc > dayStart, cancellationToken);
-        var openMismatches = await dbContext.OccupancyMismatches.AsNoTracking()
+        var queueOffered = await dbContext.QueueEntries.AsNoTracking()
+            .CountAsync(q => q.Status == QueueEntryStatus.Offered
+                && q.StartUtc < dayEnd && q.EndUtc > dayStart, cancellationToken);
+        // Reported, not "open": a blocked-spot report has no triage state to be closed. What it does
+        // carry is whether the driver was put somewhere else, which is the only resolution the
+        // system knows about — so that is the second number rather than an invented one.
+        var reportedMismatches = await dbContext.OccupancyMismatches.AsNoTracking()
             .CountAsync(m => m.ReportedAtUtc >= signalFrom, cancellationToken);
+        var relocatedMismatches = await dbContext.OccupancyMismatches.AsNoTracking()
+            .CountAsync(m => m.ReportedAtUtc >= signalFrom && m.RelocatedToSpotId != null, cancellationToken);
+
+        var signalWindowStart = today.AddDays(-(SignalWindowDays - 1));
+        var activeSpotIds = spots.Where(s => s.IsActive).Select(s => s.Id).ToList();
+        var signalHonoured = await HonouredDaysAsync(dbContext, timeZone, signalWindowStart, today, activeSpotIds, cancellationToken);
         var unusedSharedDays = await CountUnusedSharedDaysAsync(
-            dbContext, timeZone, today.AddDays(-(SignalWindowDays - 1)), today, cancellationToken);
+            dbContext, signalWindowStart, today, activeSpotIds, signalHonoured, cancellationToken);
 
         var occupied = tiles.Count(t => t.State == SpotBoardState.Occupied);
         var booked = tiles.Count(t => t.State is SpotBoardState.Booked or SpotBoardState.VisitorBooked);
+        var offered = tiles.Count(t => t.State == SpotBoardState.OfferedFromQueue);
         var activeSpots = tiles.Count(t => t.IsActive);
         var free = tiles.Count(t => t.State is SpotBoardState.Free or SpotBoardState.ResidentShared);
         var held = tiles.Count(t => t.State == SpotBoardState.ResidentHeld);
         // Held resident spots are not "taken" but not offerable either; counting them out of the
-        // denominator would read as 100 % full on a quiet day with many residents.
+        // denominator would read as 100 % full on a quiet day with many residents. Everything else
+        // adds up on purpose: occupied + booked + offered + free + held == activeSpots, because
+        // Inactive is the one remaining state and it can only fall to an inactive spot.
         var bookable = activeSpots - held;
 
         var overview = new LotOverviewDto(
@@ -165,11 +191,15 @@ public sealed class LotDashboardService(
             VisitorSpots: tiles.Count(t => t.Type == ParkingSpotType.Visitor),
             Occupied: occupied,
             Booked: booked,
+            OfferedFromQueue: offered,
             Free: free,
-            OccupancyPercent: bookable <= 0 ? 0 : (int)Math.Round((occupied + booked) * 100.0 / bookable),
+            ResidentHeld: held,
+            OccupancyPercent: bookable <= 0 ? 0 : (int)Math.Round((occupied + booked + offered) * 100.0 / bookable),
             QueueWaiting: queueWaiting,
+            QueueOffered: queueOffered,
             VisitorBookings: visitors.Count,
-            OpenMismatches: openMismatches,
+            ReportedMismatches: reportedMismatches,
+            RelocatedMismatches: relocatedMismatches,
             UnusedSharedDays: unusedSharedDays);
 
         // Section first, then the code read as a number, so D3-2 precedes D3-10 and the unnamed
@@ -210,8 +240,10 @@ public sealed class LotDashboardService(
         D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly today, CancellationToken cancellationToken)
     {
         var from = today.AddDays(-(LotBoard.SummaryTrendDays - 1));
-        var spotIds = await dbContext.ParkingSpots.AsNoTracking().Select(s => s.Id).ToListAsync(cancellationToken);
-        var occupancy = await ComputeDailyOccupancyAsync(dbContext, timeZone, from, today, spotIds, cancellationToken);
+        var spotIds = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => s.IsActive).Select(s => s.Id).ToListAsync(cancellationToken);
+        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, today, spotIds, cancellationToken);
+        var occupancy = BuildDailyOccupancy(honoured, spotIds.Count, from, today);
 
         var (rangeStart, _) = SiteTime.Day(from, timeZone);
         var (_, rangeEnd) = SiteTime.Day(today, timeZone);
@@ -225,10 +257,9 @@ public sealed class LotDashboardService(
         // Shared days nobody took, per day — the same rule as CountUnusedSharedDaysAsync, just kept
         // per day instead of summed, and only for days that have already passed.
         var releases = await dbContext.SpotReleases.AsNoTracking()
-            .Where(r => r.Date >= from && r.Date < today)
+            .Where(r => spotIds.Contains(r.SpotId) && r.Date >= from && r.Date < today)
             .Select(r => new { r.SpotId, r.Date })
             .ToListAsync(cancellationToken);
-        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, today, spotIds, cancellationToken);
         var wastedPerDay = releases
             .Where(r => !honoured.Contains((r.SpotId, r.Date)))
             .GroupBy(r => r.Date)
@@ -251,14 +282,17 @@ public sealed class LotDashboardService(
     /// booking, and a resident spot is only pool capacity once it is actually shared.
     /// </summary>
     private static SpotBoardState ResolveState(bool isActive, ReservationStatus? liveBooking, bool hasVisitorBooking,
-        bool hasOwner, bool sharedForTheDay) =>
-        (isActive, liveBooking, hasVisitorBooking, hasOwner) switch
+        bool offeredFromQueue, bool hasOwner, bool sharedForTheDay) =>
+        (isActive, liveBooking, hasVisitorBooking, offeredFromQueue, hasOwner) switch
         {
-            (false, _, _, _) => SpotBoardState.Inactive,
-            (_, ReservationStatus.CheckedIn, _, _) => SpotBoardState.Occupied,
-            (_, not null, _, _) => SpotBoardState.Booked,
-            (_, _, true, _) => SpotBoardState.VisitorBooked,
-            (_, _, _, true) => sharedForTheDay ? SpotBoardState.ResidentShared : SpotBoardState.ResidentHeld,
+            (false, _, _, _, _) => SpotBoardState.Inactive,
+            (_, ReservationStatus.CheckedIn, _, _, _) => SpotBoardState.Occupied,
+            (_, not null, _, _, _) => SpotBoardState.Booked,
+            (_, _, true, _, _) => SpotBoardState.VisitorBooked,
+            // A waitlist offer only ever lands on a spot that is otherwise free or already shared, so
+            // it can outrank the resident branch without ever hiding a spot that is being held.
+            (_, _, _, true, _) => SpotBoardState.OfferedFromQueue,
+            (_, _, _, _, true) => sharedForTheDay ? SpotBoardState.ResidentShared : SpotBoardState.ResidentHeld,
             _ => SpotBoardState.Free,
         };
 
@@ -387,8 +421,12 @@ public sealed class LotDashboardService(
             .OrderByDescending(r => r.Status == ReservationStatus.CheckedIn)
             .Select(r => (ReservationStatus?)r.Status)
             .FirstOrDefault();
+        var offeredFromQueue = await dbContext.QueueEntries.AsNoTracking()
+            .AnyAsync(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId == spotId
+                && q.OfferExpiresAtUtc > now && q.StartUtc < todayEnd && q.EndUtc > todayStart, cancellationToken);
         var state = ResolveState(spot.IsActive, liveToday,
             visitorBookings.Any(v => v.StartUtc < todayEnd && v.EndUtc > todayStart),
+            offeredFromQueue,
             spot.OwnerId is not null,
             releases.Contains(today) || policy.IsResidentAutoShareActive(today, now, timeZone));
 
@@ -424,53 +462,308 @@ public sealed class LotDashboardService(
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var spotIds = await dbContext.ParkingSpots.AsNoTracking().Select(s => s.Id).ToListAsync(cancellationToken);
+        var allSpots = await dbContext.ParkingSpots.AsNoTracking()
+            .Select(s => new { s.Id, s.IsActive, s.OwnerId })
+            .ToListAsync(cancellationToken);
+        // The per-spot table lists every spot, including retired ones, because their history is still
+        // worth reading. Everything that divides by capacity counts active spots only, on both sides
+        // of the fraction.
+        var spotIds = allSpots.Select(s => s.Id).ToList();
+        var activeSpotIds = allSpots.Where(s => s.IsActive).Select(s => s.Id).ToList();
         var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
         var spots = await ComputeUtilizationAsync(dbContext, timeZone, from, to, today, spotIds, cancellationToken);
 
         var (rangeStart, _) = SiteTime.Day(from, timeZone);
-        var (_, rangeEnd) = SiteTime.Day(to.AddDays(1), timeZone);
-        var windows = await dbContext.Reservations.AsNoTracking()
-            .Where(r => r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
-            .Select(r => new { r.StartUtc, r.EndUtc, r.Status })
+        var (_, rangeEnd) = SiteTime.Day(to, timeZone);
+        // Containment on the end, not overlap: a booking that ran out inside the window is one the
+        // window can be held responsible for. Overlap pulled in bookings that merely brushed the
+        // boundary — and, through a stray AddDays(1), the whole day after the window as well.
+        var resolved = await dbContext.Reservations.AsNoTracking()
+            .Where(r => r.EndUtc > rangeStart && r.EndUtc <= rangeEnd)
+            .Select(r => new { r.Status, r.CreatedAtUtc, r.StartUtc, r.CreditsCharged, r.IsOffPeak, r.FromQueue })
+            .ToListAsync(cancellationToken);
+
+        var demandWindows = await dbContext.Reservations.AsNoTracking()
+            .Where(r => r.Status != ReservationStatus.Cancelled && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
+            .Select(r => new { r.StartUtc, r.EndUtc })
             .ToListAsync(cancellationToken);
 
         // Demand is measured in occupied spot-hours, not bookings: an 8-hour booking presses on the
         // lot for eight hours, and a count of bookings would flatten that into one tick at its start.
+        // No-shows are in here on purpose — the spot was asked for and withheld from everyone else,
+        // which is what demand means. Utilization is the other question and answers it separately.
         var demand = new Dictionary<(DayOfWeek Day, int Hour), int>();
-        foreach (var window in windows.Where(w => w.Status is not ReservationStatus.Cancelled))
+        foreach (var window in demandWindows)
         {
-            var localStart = TimeZoneInfo.ConvertTime(window.StartUtc, timeZone);
-            var localEnd = TimeZoneInfo.ConvertTime(window.EndUtc, timeZone);
-            for (var hour = localStart; hour < localEnd; hour = hour.AddHours(1))
-            {
-                var cell = (hour.DayOfWeek, hour.Hour);
-                demand[cell] = demand.GetValueOrDefault(cell) + 1;
-            }
+            AddHours(demand, window.StartUtc, window.EndUtc, timeZone);
         }
 
         var peak = demand.Count == 0 ? null : (KeyValuePair<(DayOfWeek Day, int Hour), int>?)demand.MaxBy(cell => cell.Value);
-        var completedOrLive = windows.Count(w => w.Status is not ReservationStatus.Cancelled);
-        var noShows = windows.Count(w => w.Status == ReservationStatus.NoShow);
+        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, activeSpotIds, cancellationToken);
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
 
         var analytics = new LotAnalyticsDto(
             From: from,
             To: to,
             WindowDays: windowDays,
             Spots: spots,
-            Daily: await ComputeDailyOccupancyAsync(dbContext, timeZone, from, to, spotIds, cancellationToken),
+            Daily: BuildDailyOccupancy(honoured, activeSpotIds.Count, from, to),
             Demand: demand.Select(cell => new DemandCellDto(cell.Key.Day, cell.Key.Hour, cell.Value))
                 .OrderBy(cell => cell.DayOfWeek).ThenBy(cell => cell.Hour).ToList(),
             PeakHour: peak?.Key.Hour,
             PeakDayOfWeek: peak?.Key.Day,
-            TotalReservations: completedOrLive,
-            NoShowPercent: completedOrLive == 0 ? 0 : (int)Math.Round(noShows * 100.0 / completedOrLive),
-            AverageOccupancyPercent: spots.Count == 0 ? 0 : (int)Math.Round(spots.Average(s => s.UtilizationPercent)));
+            Capacity: await ComputeCapacityUseAsync(dbContext, honoured,
+                allSpots.Where(s => s.IsActive).Select(s => (s.Id, s.OwnerId)).ToList(), from, to, today, cancellationToken),
+            Queue: await ComputeQueueDemandAsync(dbContext, timeZone, rangeStart, rangeEnd, cancellationToken),
+            Reliability: BuildReliability(resolved.Select(r => (r.Status, r.CreatedAtUtc, r.StartUtc))),
+            Peak: BuildPeakWindow(demand, policy.PeakStart, policy.PeakEnd),
+            Economy: await BuildEconomyAsync(dbContext, rangeStart, rangeEnd,
+                resolved.Select(r => (r.Status, r.CreditsCharged, r.IsOffPeak, r.FromQueue)), cancellationToken));
 
         using var entry = cache.CreateEntry(key);
         entry.Value = analytics;
         entry.AbsoluteExpirationRelativeToNow = AggregateCacheTtl;
         return analytics;
+    }
+
+    /// <summary>Adds one tick per local hour a window covers, into a weekday × hour tally.</summary>
+    private static void AddHours(Dictionary<(DayOfWeek Day, int Hour), int> tally,
+        DateTimeOffset startUtc, DateTimeOffset endUtc, TimeZoneInfo timeZone)
+    {
+        var hour = TimeZoneInfo.ConvertTime(startUtc, timeZone);
+        var localEnd = TimeZoneInfo.ConvertTime(endUtc, timeZone);
+        // A weekday × hour map saturates after a week; anything longer only repeats itself, and a
+        // pathological window would otherwise spin for as many hours as it spans.
+        for (var counted = 0; hour < localEnd && counted < 24 * 7; hour = hour.AddHours(1), counted++)
+        {
+            var cell = (hour.DayOfWeek, hour.Hour);
+            tally[cell] = tally.GetValueOrDefault(cell) + 1;
+        }
+    }
+
+    /// <summary>
+    /// Where the window's capacity went, as a partition of the active spot-days. Every spot-day lands
+    /// in exactly one bucket, so the four add back up to capacity and the manager can check them —
+    /// which is the whole point of splitting them out instead of reporting one utilization figure.
+    /// </summary>
+    private static async Task<CapacityUseDto> ComputeCapacityUseAsync(
+        D3ParkingDbContext dbContext, HashSet<(Guid SpotId, DateOnly Date)> honoured,
+        IReadOnlyList<(Guid Id, Guid? OwnerId)> activeSpots, DateOnly from, DateOnly to, DateOnly today,
+        CancellationToken cancellationToken)
+    {
+        var activeIds = activeSpots.Select(s => s.Id).ToList();
+        var released = (await dbContext.SpotReleases.AsNoTracking()
+                .Where(r => activeIds.Contains(r.SpotId) && r.Date >= from && r.Date <= to)
+                .Select(r => new { r.SpotId, r.Date })
+                .ToListAsync(cancellationToken))
+            .Select(r => (r.SpotId, r.Date))
+            .ToHashSet();
+
+        var windowDays = to.DayNumber - from.DayNumber + 1;
+        int used = 0, offeredUnused = 0, heldDays = 0, idle = 0;
+        var deadSpots = 0;
+
+        foreach (var (spotId, ownerId) in activeSpots)
+        {
+            var usedHere = 0;
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                if (honoured.Contains((spotId, date)))
+                {
+                    used++;
+                    usedHere++;
+                }
+                else if (released.Contains((spotId, date)) && date < today)
+                {
+                    // Offered and the day has passed with nobody on it. A release still ahead of us
+                    // is an open offer, not waste, and falls through to idle with the rest.
+                    offeredUnused++;
+                }
+                else if (ownerId is not null && !released.Contains((spotId, date)))
+                {
+                    heldDays++;
+                }
+                else
+                {
+                    idle++;
+                }
+            }
+
+            if (usedHere == 0)
+            {
+                deadSpots++;
+            }
+        }
+
+        var capacityDays = activeSpots.Count * windowDays;
+        return new CapacityUseDto(
+            ActiveSpots: activeSpots.Count,
+            WindowDays: windowDays,
+            CapacityDays: capacityDays,
+            UsedDays: used,
+            OfferedUnusedDays: offeredUnused,
+            ResidentHeldDays: heldDays,
+            IdleDays: idle,
+            UsePercent: capacityDays == 0 ? 0 : (int)Math.Round(used * 100.0 / capacityDays),
+            DeadSpots: deadSpots);
+    }
+
+    /// <summary>
+    /// Demand the lot turned away, from the waitlist. Entries are counted by when they were created,
+    /// because that is when somebody was refused; the hours they asked for are mapped separately so
+    /// the refusals can be read against the demand that did get in.
+    /// </summary>
+    private static async Task<QueueDemandDto> ComputeQueueDemandAsync(
+        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateTimeOffset rangeStart, DateTimeOffset rangeEnd,
+        CancellationToken cancellationToken)
+    {
+        var entries = await dbContext.QueueEntries.AsNoTracking()
+            .Where(q => q.CreatedAtUtc >= rangeStart && q.CreatedAtUtc < rangeEnd)
+            .Select(q => new { q.Status, q.StartUtc, q.EndUtc })
+            .ToListAsync(cancellationToken);
+
+        var refused = new Dictionary<(DayOfWeek Day, int Hour), int>();
+        foreach (var entry in entries)
+        {
+            AddHours(refused, entry.StartUtc, entry.EndUtc, timeZone);
+        }
+
+        var claimed = entries.Count(e => e.Status == QueueEntryStatus.Claimed);
+        var expired = entries.Count(e => e.Status == QueueEntryStatus.Expired);
+        var cancelled = entries.Count(e => e.Status == QueueEntryStatus.Cancelled);
+        var open = entries.Count(e => e.Status is QueueEntryStatus.Waiting or QueueEntryStatus.Offered);
+        var settled = claimed + expired + cancelled;
+
+        return new QueueDemandDto(
+            Entries: entries.Count,
+            Claimed: claimed,
+            Expired: expired,
+            Cancelled: cancelled,
+            Open: open,
+            // Against the entries that reached an outcome: one still waiting has not failed yet, and
+            // counting it as a miss would make a busy morning look like a broken waitlist.
+            ConversionPercent: settled == 0 ? 0 : (int)Math.Round(claimed * 100.0 / settled),
+            Refused: refused.Select(cell => new DemandCellDto(cell.Key.Day, cell.Key.Hour, cell.Value))
+                .OrderBy(cell => cell.DayOfWeek).ThenBy(cell => cell.Hour).ToList());
+    }
+
+    /// <summary>
+    /// What became of the bookings whose window ran out inside the period. Three outcomes over one
+    /// denominator, so they can be read as shares of a whole rather than as three loose counts.
+    /// </summary>
+    private static ReliabilityDto BuildReliability(
+        IEnumerable<(ReservationStatus Status, DateTimeOffset CreatedAtUtc, DateTimeOffset StartUtc)> ended)
+    {
+        var all = ended.ToList();
+        var completed = all.Count(r => r.Status is ReservationStatus.Completed or ReservationStatus.CheckedIn);
+        var released = all.Count(r => r.Status == ReservationStatus.Released);
+        var noShows = all.Count(r => r.Status == ReservationStatus.NoShow);
+        var cancelled = all.Count(r => r.Status == ReservationStatus.Cancelled);
+        var total = completed + released + noShows;
+
+        // How far ahead the lot gets planned. Median rather than mean: one booking made three months
+        // out would drag an average somewhere no actual booking sits. Over the same three outcomes the
+        // percentages are built on, so the whole strip of tiles describes one population.
+        var leads = all.Where(r => IsResolved(r.Status))
+            .Select(r => (r.StartUtc - r.CreatedAtUtc).TotalHours)
+            .Where(hours => hours >= 0)
+            .OrderBy(hours => hours)
+            .ToList();
+
+        return new ReliabilityDto(
+            Resolved: total,
+            Completed: completed,
+            Released: released,
+            NoShows: noShows,
+            Cancelled: cancelled,
+            NoShowPercent: total == 0 ? 0 : (int)Math.Round(noShows * 100.0 / total),
+            MedianLeadHours: leads.Count == 0 ? null : (int)Math.Round(leads[leads.Count / 2]));
+    }
+
+    /// <summary>
+    /// The busiest stretch of the day the window actually shows, cut to the same length as the peak
+    /// window the pricing is configured with so the two are comparable at a glance. Hours are summed
+    /// across weekdays: the price setting is one window for every day, so the evidence for it has to
+    /// be too.
+    /// </summary>
+    private static PeakWindowDto BuildPeakWindow(
+        Dictionary<(DayOfWeek Day, int Hour), int> demand, TimeOnly configuredStart, TimeOnly configuredEnd)
+    {
+        // Rounded up, not to nearest: the default peak is 07:30–10:00, and to-nearest turns two and a
+        // half hours into two, so the suggestion would quietly cover less ground than the window it is
+        // being compared with. Erring long keeps it an honest "a window your size belongs here".
+        var configuredHours = Math.Clamp((int)Math.Ceiling((configuredEnd - configuredStart).TotalHours), 1, 24);
+        if (demand.Count == 0)
+        {
+            return new PeakWindowDto(null, null, configuredStart, configuredEnd, Matches: false);
+        }
+
+        var perHour = new int[24];
+        foreach (var (cell, count) in demand)
+        {
+            perHour[cell.Hour] += count;
+        }
+
+        var bestStart = 0;
+        var bestTotal = -1;
+        // Wrapping on purpose: a lot whose pressure lands late evening to early morning has a real
+        // peak that a non-wrapping scan would cut in half and miss.
+        for (var start = 0; start < 24; start++)
+        {
+            var total = 0;
+            for (var offset = 0; offset < configuredHours; offset++)
+            {
+                total += perHour[(start + offset) % 24];
+            }
+
+            if (total > bestTotal)
+            {
+                bestTotal = total;
+                bestStart = start;
+            }
+        }
+
+        var suggestedEnd = (bestStart + configuredHours) % 24;
+        return new PeakWindowDto(bestStart, suggestedEnd, configuredStart, configuredEnd,
+            // The suggestion is whole hours, so a configured 7:30 is "the same" as a suggested 7:00
+            // only if nobody minds the half hour — hence the comparison is on the hour it starts.
+            Matches: bestStart == configuredStart.Hour);
+    }
+
+    /// <summary>
+    /// A booking that reached one of the three outcomes the reliability funnel measures. Everything
+    /// that describes "the bookings this window is responsible for" runs off this one predicate, so
+    /// the funnel, the lead time and the economy shares cannot end up describing different sets.
+    /// A cancelled booking is not one of them: it was called off, refunded, and cost nobody a spot.
+    /// A still-Reserved booking past its own end has not been swept yet and is nobody's outcome.
+    /// </summary>
+    private static bool IsResolved(ReservationStatus status) =>
+        status is ReservationStatus.Completed or ReservationStatus.CheckedIn
+            or ReservationStatus.Released or ReservationStatus.NoShow;
+
+    /// <summary>
+    /// What the window cost. Charges come from the same resolved bookings the funnel counts; refunds
+    /// come from the ledger, because a refund is its own event and the booking it reversed may well
+    /// have been made before the window started.
+    /// </summary>
+    private static async Task<LotEconomyDto> BuildEconomyAsync(
+        D3ParkingDbContext dbContext, DateTimeOffset rangeStart, DateTimeOffset rangeEnd,
+        IEnumerable<(ReservationStatus Status, int CreditsCharged, bool IsOffPeak, bool FromQueue)> ended,
+        CancellationToken cancellationToken)
+    {
+        // A cancelled booking was refunded and is counted on the refund side; leaving it in the
+        // charges would make the lot look like it earned twice what it did.
+        var kept = ended.Where(r => IsResolved(r.Status)).ToList();
+        var refunded = await dbContext.PointsLedgerEntries.AsNoTracking()
+            .Where(e => e.Reason == IncentiveReason.ReservationRefund
+                && e.OccurredAtUtc >= rangeStart && e.OccurredAtUtc < rangeEnd)
+            .SumAsync(e => e.Points, cancellationToken);
+
+        return new LotEconomyDto(
+            CreditsCharged: kept.Sum(r => r.CreditsCharged),
+            CreditsRefunded: refunded,
+            OffPeakPercent: kept.Count == 0 ? 0 : (int)Math.Round(kept.Count(r => r.IsOffPeak) * 100.0 / kept.Count),
+            FromQueuePercent: kept.Count == 0 ? 0 : (int)Math.Round(kept.Count(r => r.FromQueue) * 100.0 / kept.Count));
     }
 
     /// <summary>
@@ -546,16 +839,13 @@ public sealed class LotDashboardService(
     }
 
     /// <summary>
-    /// How many spots each day of the window carried, oldest first. The denominator is today's
-    /// bookable capacity — see <see cref="DailyOccupancyDto"/> for why there cannot be a per-day one.
+    /// How many spots each day of the window carried, oldest first. The denominator is today's active
+    /// spot count — see <see cref="DailyOccupancyDto"/> for why there cannot be a per-day one, and why
+    /// both sides of the fraction have to count the same spots.
     /// </summary>
-    private static async Task<List<DailyOccupancyDto>> ComputeDailyOccupancyAsync(
-        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly to,
-        IReadOnlyList<Guid> spotIds, CancellationToken cancellationToken)
+    private static List<DailyOccupancyDto> BuildDailyOccupancy(
+        HashSet<(Guid SpotId, DateOnly Date)> honoured, int capacity, DateOnly from, DateOnly to)
     {
-        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, spotIds, cancellationToken);
-        var capacity = await dbContext.ParkingSpots.AsNoTracking()
-            .CountAsync(s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
         var perDay = honoured.GroupBy(x => x.Date).ToDictionary(g => g.Key, g => g.Count());
 
         var daily = new List<DailyOccupancyDto>();
@@ -654,28 +944,22 @@ public sealed class LotDashboardService(
     /// release's reward state: a day released past the cutoff or over the monthly quota carries no
     /// points to reverse, so the reconciliation never touches it, yet it was just as wasted.
     /// </summary>
+    /// <remarks>
+    /// Takes the honoured set rather than deriving its own. It used to run its own query with its own
+    /// rule — any non-cancelled reservation, visitor bookings ignored — which made a released day the
+    /// taker no-showed on "not wasted" here and "wasted" in the per-spot table beside it. One rule,
+    /// one answer.
+    /// </remarks>
     private static async Task<int> CountUnusedSharedDaysAsync(
-        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly toExclusive,
-        CancellationToken cancellationToken)
+        D3ParkingDbContext dbContext, DateOnly from, DateOnly toExclusive, IReadOnlyList<Guid> activeSpotIds,
+        HashSet<(Guid SpotId, DateOnly Date)> honoured, CancellationToken cancellationToken)
     {
+        // Scoped to the same spots the honoured set covers. A release on a spot that has since been
+        // deactivated has no honoured days to be checked against, so counting it would conjure waste.
         var releases = await dbContext.SpotReleases.AsNoTracking()
-            .Where(r => r.Date >= from && r.Date < toExclusive)
+            .Where(r => activeSpotIds.Contains(r.SpotId) && r.Date >= from && r.Date < toExclusive)
             .Select(r => new { r.SpotId, r.Date })
             .ToListAsync(cancellationToken);
-        if (releases.Count == 0)
-        {
-            return 0;
-        }
-
-        var (rangeStart, _) = SiteTime.Day(from, timeZone);
-        var (_, rangeEnd) = SiteTime.Day(toExclusive, timeZone);
-        var honoured = (await dbContext.Reservations.AsNoTracking()
-                .Where(r => r.Status != ReservationStatus.Cancelled
-                    && r.StartUtc < rangeEnd && r.EndUtc > rangeStart)
-                .Select(r => new { r.SpotId, r.StartUtc, r.EndUtc })
-                .ToListAsync(cancellationToken))
-            .SelectMany(r => LocalDaysOf(r.StartUtc, r.EndUtc, timeZone).Select(day => (r.SpotId, Date: day)))
-            .ToHashSet();
 
         return releases.Count(r => !honoured.Contains((r.SpotId, r.Date)));
     }
