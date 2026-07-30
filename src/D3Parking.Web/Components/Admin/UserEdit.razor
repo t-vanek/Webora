@@ -58,7 +58,7 @@
             </div>
         </div>
 
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)" Context="commute">
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.VerifyResidency)" Context="commute">
             <FluentCard Class="profile-section">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                     <FluentLabel Typo="Typography.Subject">@L["Admin_UserEdit_Commute"]</FluentLabel>
@@ -94,14 +94,36 @@
                 <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
                     @foreach (var role in _allRoles)
                     {
-                        <FluentCheckbox Label="@role"
+                        @* Checkboxes track the permission that saves them. Leaving them live for a
+                           reader would invite edits the missing Save button then throws away. *@
+                        <FluentCheckbox Label="@RoleName(role)"
                                         Value="@_selectedRoles.Contains(role)"
-                                        ValueChanged="@(c => ToggleRole(role, c))" />
+                                        ValueChanged="@(c => ToggleRole(role, c))"
+                                        Disabled="@(!_canAssignRoles || IsPinned(role))" />
                     }
                 </FluentStack>
-                <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Edit)" Context="editRoles">
+                @if (_detail.IsFederated)
+                {
+                    @* Roles this account holds because of the directory are taken back on the next
+                       sign-in, so a hand edit here is at best temporary. Say which mapping is at
+                       work rather than let it look like the save failed. *@
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @L["Admin_UserEdit_FederatedRoles", _detail.ExternalProvider!]
+                    </FluentMessageBar>
+                }
+                @if (_detail.IsLastAdministrator)
+                {
+                    @* The service refuses to strip the last administrator — including from oneself,
+                       and including by swapping the role for another, which is the same removal.
+                       Saying so here beats letting someone uncheck it and find out on save. *@
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @L["Admin_UserEdit_LastAdministrator"]
+                    </FluentMessageBar>
+                }
+                @if (_canAssignRoles)
+                {
                     <FluentButton OnClick="SaveRolesAsync" Appearance="Appearance.Accent">@L["Admin_Save"]</FluentButton>
-                </AuthorizeView>
+                }
             </FluentStack>
         </FluentCard>
 
@@ -193,6 +215,7 @@
     private bool _loaded;
     private Guid _adminId;
     private bool _isSelf;
+    private bool _canAssignRoles;
     private IReadOnlyList<string> _allRoles = [];
     private HashSet<string> _selectedRoles = new(StringComparer.Ordinal);
     private IReadOnlyList<AccountAuditEntry> _audit = [];
@@ -209,9 +232,19 @@
     {
         var state = await AuthState!;
         _adminId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
+        _canAssignRoles = state.User.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Users.AssignRoles);
         _allRoles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
         _tz = await SiteSettings.GetTimeZoneAsync();
     }
+
+    private string RoleName(string role) => AuthorizationDisplay.RoleName(L, role);
+
+    /// <summary>
+    /// The Administrator role of the last administrator standing cannot be given up — not to
+    /// themselves, not by anyone else, and not by swapping it for a different role.
+    /// </summary>
+    private bool IsPinned(string role) =>
+        _detail?.IsLastAdministrator == true && string.Equals(role, Roles.Administrator, StringComparison.Ordinal);
 
     protected override async Task OnParametersSetAsync()
     {

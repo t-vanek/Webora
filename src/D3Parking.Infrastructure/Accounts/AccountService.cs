@@ -112,6 +112,11 @@ public sealed class AccountService(
         var role = await siteSettings.GetDefaultRoleAsync(cancellationToken);
         if (string.IsNullOrEmpty(role))
         {
+            // A legitimate configuration for sites that vet every account by hand, but it leaves
+            // the new account with no permissions at all — signed in, with an empty application.
+            // Say so, because the symptom otherwise looks like a broken navigation menu.
+            logger.LogWarning("No default role is configured; {UserId} registered with no permissions. "
+                + "Set a default role in site settings to give new accounts the parking baseline.", user.Id);
             return;
         }
 
@@ -225,7 +230,15 @@ public sealed class AccountService(
     public async Task<AccountResult> RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
-        if (user is not null)
+
+        // A federated account has no local password, so a reset link would set up a second way in
+        // that the directory neither knows about nor can revoke. Skipped silently, like a missing
+        // address: the response must not reveal how an account signs in either.
+        if (user is not null && user.IsFederated)
+        {
+            logger.LogInformation("Ignored a password reset request for the federated account {UserId}", user.Id);
+        }
+        else if (user is not null)
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var link = await BuildLinkAsync("account/reset-password", ("email", email), ("token", token));
@@ -240,7 +253,7 @@ public sealed class AccountService(
     public async Task<AccountResult> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
-        if (user is null)
+        if (user is null || user.IsFederated)
         {
             return AccountResult.Failure(messages["Error_InvalidPasswordReset"]);
         }
@@ -575,12 +588,7 @@ public sealed class AccountService(
             return false;
         }
 
-        var adminCount = await (from ur in identityDbContext.UserRoles
-                                join r in identityDbContext.Roles on ur.RoleId equals r.Id
-                                where r.Name == Roles.Administrator
-                                select ur.UserId).CountAsync();
-
-        return adminCount <= 1;
+        return await AdministratorCover.IsLastAdministratorCountAsync(identityDbContext);
     }
 
     private Task SendAsync(ApplicationUser user, string subject, string html) =>

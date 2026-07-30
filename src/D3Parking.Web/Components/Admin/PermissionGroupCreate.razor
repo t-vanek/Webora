@@ -1,0 +1,87 @@
+@page "/admin/permission-groups/create"
+@attribute [HasPermission(Permissions.PermissionGroups.Create)]
+@rendermode InteractiveServer
+@inject IPermissionGroupAdminService Groups
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_Groups_Create"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Groups_Create"]</FluentLabel>
+    <FluentAnchor Href="admin/permission-groups" Appearance="Appearance.Hypertext">&laquo; @L["Nav_AdminPermissionGroups"]</FluentAnchor>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+            @_error
+        </FluentMessageBar>
+    }
+
+    <FluentCard Class="profile-section">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <FluentTextField @bind-Value="_name" Label="@L["Admin_Groups_Name"]" Style="max-width:480px" />
+            <FluentTextArea @bind-Value="_description" Label="@L["Admin_Groups_Description"]" Rows="2" Style="max-width:640px" />
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Class="profile-section">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <FluentLabel Typo="Typography.Subject">@L["Admin_Roles_Permissions"]</FluentLabel>
+            <PermissionEditor Catalog="Groups.PermissionCatalog"
+                              Selected="_selected"
+                              Grantable="_grantable"
+                              SelectionChanged="StateHasChanged" />
+            <div class="perm-editor__actions">
+                <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Groups_Create"]</FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+</FluentStack>
+
+@code {
+    [SupplyParameterFromQuery(Name = "from")] private Guid? From { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? _name;
+    private string? _description;
+    private HashSet<string> _selected = new(StringComparer.Ordinal);
+    private Guid _actorId;
+    private IReadOnlySet<string>? _grantable;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _actorId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
+        _grantable = state.User.Claims
+            .Where(c => c.Type == D3ParkingClaimTypes.Permission)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // Arriving from a group's "Duplicate" action — the way a site customizes a built-in bundle,
+        // since the seeder owns the original and would revert any edit to it.
+        if (From is { } sourceId && await Groups.GetAsync(sourceId) is { } source)
+        {
+            _selected = source.Permissions
+                .Where(p => _grantable is null || _grantable.Contains(p))
+                .ToHashSet(StringComparer.Ordinal);
+            _name = L["Admin_Roles_CopyName", AuthorizationDisplay.GroupName(L, source.Name)];
+            _description = AuthorizationDisplay.GroupDescription(L, source.Name, source.Description);
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _error = null;
+        var result = await Groups.CreateAsync(_name ?? string.Empty, _description, _selected.ToArray(), _actorId);
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo("admin/permission-groups");
+            return;
+        }
+
+        _error = string.Join(" ", result.Errors);
+    }
+}

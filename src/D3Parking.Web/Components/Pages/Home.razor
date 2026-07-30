@@ -114,6 +114,10 @@
         </FluentMessageBar>
     }
 
+    @* Parking.View is the "takes part in the lot" baseline. An account without it — an auditor, a
+       user manager brought in from outside — gets the administration it was given and no standing
+       of its own to show. *@
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.View)" Context="lot">
     @if (_reservation is not null || _queueEntry is not null || _ownedSpot is not null || _score is not null)
     {
         <h2 class="home-section">@L["Home_Today"]</h2>
@@ -209,6 +213,7 @@
             }
         </div>
     }
+    </AuthorizeView>
 
     <AuthorizeView Context="auth">
         <Authorized>
@@ -244,6 +249,14 @@
             </a>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewAnalytics)">
+            <a href="admin/parking/dashboard" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--analytics"><FluentIcon Value="@(new Icons.Regular.Size24.DataTrending())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminLot"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Analytics"]</span>
+            </a>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)">
             <a href="admin/parking/settings" class="home-tile">
                 <span class="home-tile__ic home-tile__ic--rules"><FluentIcon Value="@(new Icons.Regular.Size24.Options())" Color="Color.Custom" CustomColor="currentColor" /></span>
@@ -265,6 +278,22 @@
                 <span class="home-tile__ic home-tile__ic--roles"><FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Color="Color.Custom" CustomColor="currentColor" /></span>
                 <span class="home-tile__title">@L["Nav_AdminRoles"]</span>
                 <span class="home-tile__desc">@L["Home_Card_Roles"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.PermissionGroups.View)">
+            <a href="admin/permission-groups" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--groups"><FluentIcon Value="@(new Icons.Regular.Size24.Braces())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminPermissionGroups"]</span>
+                <span class="home-tile__desc">@L["Home_Card_PermissionGroups"]</span>
+            </a>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Audit.View)">
+            <a href="admin/audit" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--audit"><FluentIcon Value="@(new Icons.Regular.Size24.History())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">@L["Nav_AdminAudit"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Audit"]</span>
             </a>
         </AuthorizeView>
 

@@ -1,0 +1,185 @@
+@page "/admin/directory"
+@attribute [HasPermission(Permissions.Roles.View)]
+@rendermode InteractiveServer
+@using Microsoft.Extensions.Options
+@using D3Parking.Application.Identity
+@inject IExternalRoleMappingService Mappings
+@inject IRoleAdminService RoleAdmin
+@inject UserManager<ApplicationUser> UserManager
+@inject IOptions<EntraIdOptions> Entra
+@inject IStringLocalizer<SharedResource> L
+
+@* The directory decides who holds "ParkingLotManager"; this page decides what that means here.
+   Keeping the translation visible and audited beats burying it in configuration nobody reads. *@
+
+<PageTitle>@L["Admin_Directory_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Admin_Directory_Title"]</FluentLabel>
+                @if (_mappings is not null)
+                {
+                    <span class="count-chip">@_mappings.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Admin_Directory_Intro"]</p>
+        </div>
+    </div>
+
+    @if (!Entra.Value.Enabled && !Entra.Value.Scim.Enabled)
+    {
+        @* Mapping without a configured tenant is not wrong — it is how an installation prepares
+           before the tenant is wired up — but pretending it is live would be. *@
+        <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+            @L["Admin_Directory_NotConfigured"]
+        </FluentMessageBar>
+    }
+    else
+    {
+        <div class="directory-status">
+            <span class="tag">@L[Entra.Value.IsSignInConfigured ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</span>
+            <span class="tag">@L[Entra.Value.Scim.IsConfigured ? "Admin_Directory_ScimOn" : "Admin_Directory_ScimOff"]</span>
+            @if (Entra.Value.Scim.IsConfigured)
+            {
+                <code class="perm-row__id">@_scimUrl</code>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+    }
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="add">
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Admin_Directory_Add"]</FluentLabel>
+                <p class="admin-head__intro">@L["Admin_Directory_AddIntro"]</p>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
+                    <FluentTextField @bind-Value="_newExternalRole" Label="@L["Admin_Directory_AppRole"]"
+                                     Placeholder="Parking.LotManager" Style="min-width:280px" />
+                    <FluentSelect TOption="RoleSummary"
+                                  Items="@_roles"
+                                  OptionValue="@(r => r.Id.ToString())"
+                                  OptionText="@(r => AuthorizationDisplay.RoleName(L, r.Name))"
+                                  @bind-SelectedOption="_newRole"
+                                  Label="@L["Admin_Directory_LocalRole"]"
+                                  Style="min-width:240px" />
+                    <FluentButton OnClick="AddAsync" Appearance="Appearance.Accent">@L["Admin_Directory_AddAction"]</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    </AuthorizeView>
+
+    @if (_mappings is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_mappings.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Directory_Empty"]</div>
+    }
+    else
+    {
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_mappings.AsQueryable()" TGridItem="ExternalRoleMappingSummary"
+                            GridTemplateColumns="1.4fr 1.2fr 0.8fr auto">
+                <TemplateColumn Title="@L["Admin_Directory_AppRole"]">
+                    <code class="perm-row__id">@context.ExternalRole</code>
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Directory_LocalRole"]">
+                    <a href="@($"admin/roles/{context.RoleId}")">@AuthorizationDisplay.RoleName(L, context.RoleName)</a>
+                </TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Directory_Assigned"]">
+                    @PluralText.For(L, "Admin_Roles_MemberCount", context.AssignedUserCount)
+                </TemplateColumn>
+                <TemplateColumn Align="Align.End">
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="remove">
+                        <FluentButton OnClick="() => RemoveAsync(context.Id)" Appearance="Appearance.Outline">
+                            @L["Admin_Directory_Remove"]
+                        </FluentButton>
+                    </AuthorizeView>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private IReadOnlyList<ExternalRoleMappingSummary>? _mappings;
+    private IReadOnlyList<RoleSummary> _roles = [];
+    private RoleSummary? _newRole;
+    private string? _newExternalRole;
+    private Guid _actorId;
+    private string _scimUrl = string.Empty;
+    private string? _message;
+    private string? _error;
+
+    private const string Provider = ExternalProviders.EntraId;
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _actorId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
+
+        // Shown so whoever configures the Enterprise Application can copy it rather than guess.
+        _scimUrl = new Uri(new Uri(Nav.BaseUri), "scim/v2").ToString();
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _roles = await RoleAdmin.ListAsync();
+        _mappings = await Mappings.ListAsync(Provider);
+    }
+
+    private async Task AddAsync()
+    {
+        _message = _error = null;
+        if (_newRole is null)
+        {
+            _error = L["Admin_Directory_PickRole"];
+            return;
+        }
+
+        var result = await Mappings.CreateAsync(Provider, _newExternalRole ?? string.Empty, _newRole.Id, _actorId);
+        if (result.Succeeded)
+        {
+            _message = L["Admin_Directory_Added"];
+            _newExternalRole = null;
+            _newRole = null;
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+
+    private async Task RemoveAsync(Guid mappingId)
+    {
+        _message = _error = null;
+        var result = await Mappings.DeleteAsync(mappingId, _actorId);
+        if (result.Succeeded)
+        {
+            _message = L["Admin_Directory_Removed"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+}

@@ -51,6 +51,10 @@ builder.Services.AddD3ParkingIdentity();
 builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddPermissionAuthorization();
 
+// Microsoft Entra ID as an additional sign-in provider and as an inbound provisioning source. Both
+// halves are opt-in; with no EntraId section configured this registers nothing and changes nothing.
+builder.Services.AddEntraIdAuthentication(builder.Configuration);
+
 // Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
 // and WebAssembly components — the WASM client also registers AddFluentUIComponents() in its host.
 builder.Services.AddFluentUIComponents();
@@ -209,6 +213,8 @@ app.MapHub<NotificationsHub>(NotificationsHub.Path);
 app.MapNotificationApi();
 app.MapCalendarApi();
 app.MapMismatchPhotoApi();
+app.MapExternalSignInApi();
+app.MapScimApi();
 
 // Antiforgery token endpoint for the WASM client. The client fetches the token and attaches it as
 // the RequestVerificationToken header on every POST/PUT/DELETE; the notification API group

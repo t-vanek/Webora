@@ -1094,4 +1094,255 @@
   <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hodina s nejvyšší poptávkou</value></data>
   <data name="Lot_Hint_Aria" xml:space="preserve"><value>Metodická poznámka k části {0}</value></data>
   <data name="Lot_Queue_Refused" xml:space="preserve"><value>Rozložení odmítnuté poptávky</value></data>
+  <data name="Nav_AdminAudit" xml:space="preserve"><value>Auditní záznam</value></data>
+  <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
+  <data name="Nav_AdminMismatches" xml:space="preserve"><value>Nesrovnalosti</value></data>
+  <data name="Nav_Short_Mismatches" xml:space="preserve"><value>Nesrov.</value></data>
+  <data name="Nav_AdminCollusion" xml:space="preserve"><value>Podezřelé dvojice</value></data>
+  <data name="Nav_Short_Collusion" xml:space="preserve"><value>Dvojice</value></data>
+  <data name="Home_Card_Analytics" xml:space="preserve"><value>Obsazenost, trendy a odmítnutá poptávka</value></data>
+  <data name="Home_Card_Audit" xml:space="preserve"><value>Historie změn účtů a oprávnění</value></data>
+  <data name="Perm_Parking_View" xml:space="preserve"><value>Zobrazit parkoviště</value></data>
+  <data name="Perm_Parking_View_Desc" xml:space="preserve"><value>Základ pro každého parkujícího: vidí parkoviště, volná místa a svůj stav.</value></data>
+  <data name="Perm_Parking_Reserve" xml:space="preserve"><value>Rezervovat místo</value></data>
+  <data name="Perm_Parking_Reserve_Desc" xml:space="preserve"><value>Zakládá a ruší vlastní rezervace, uvolňuje místo a stojí ve frontě.</value></data>
+  <data name="Perm_Parking_ViewLeaderboard" xml:space="preserve"><value>Zobrazit žebříček</value></data>
+  <data name="Perm_Parking_ViewLeaderboard_Desc" xml:space="preserve"><value>Vidí žebříček, získané odznaky a vlastní skóre.</value></data>
+  <data name="Perm_Parking_ManageSpots" xml:space="preserve"><value>Spravovat parkovací místa</value></data>
+  <data name="Perm_Parking_ManageSpots_Desc" xml:space="preserve"><value>Zakládá, upravuje a ruší místa a přiděluje jim vlastníky.</value></data>
+  <data name="Perm_Parking_ManageFleet" xml:space="preserve"><value>Spravovat vozový park</value></data>
+  <data name="Perm_Parking_ManageFleet_Desc" xml:space="preserve"><value>Vede evidenci firemních vozidel a jejich párování s řidiči.</value></data>
+  <data name="Perm_Parking_ManageReservations" xml:space="preserve"><value>Spravovat cizí rezervace</value></data>
+  <data name="Perm_Parking_ManageReservations_Desc" xml:space="preserve"><value>Ruší a přesouvá rezervace jiných lidí a řeší nedostavení.</value></data>
+  <data name="Perm_Parking_ManageVisitors" xml:space="preserve"><value>Spravovat návštěvy</value></data>
+  <data name="Perm_Parking_ManageVisitors_Desc" xml:space="preserve"><value>Zakládá a schvaluje parkování pro návštěvy.</value></data>
+  <data name="Perm_Parking_ReviewMismatches" xml:space="preserve"><value>Řešit nesrovnalosti</value></data>
+  <data name="Perm_Parking_ReviewMismatches_Desc" xml:space="preserve"><value>Prohlíží hlášení obsazených míst včetně fotografií cizích vozidel a SPZ.</value></data>
+  <data name="Perm_Parking_ViewAnalytics" xml:space="preserve"><value>Zobrazit analytiku</value></data>
+  <data name="Perm_Parking_ViewAnalytics_Desc" xml:space="preserve"><value>Čte přehled parkoviště: obsazenost, trendy a odmítnutou poptávku.</value></data>
+  <data name="Perm_Parking_ManageIncentives" xml:space="preserve"><value>Spravovat motivační pravidla</value></data>
+  <data name="Perm_Parking_ManageIncentives_Desc" xml:space="preserve"><value>Nastavuje bodové hodnoty, prahy a úrovně věrnosti.</value></data>
+  <data name="Perm_Parking_ReviewCollusion" xml:space="preserve"><value>Přezkoumávat podezřelé dvojice</value></data>
+  <data name="Perm_Parking_ReviewCollusion_Desc" xml:space="preserve"><value>Prohlíží podezření na domluvu mezi konkrétními uživateli a rozhoduje o nich.</value></data>
+  <data name="Perm_Parking_VerifyResidency" xml:space="preserve"><value>Ověřovat bydliště</value></data>
+  <data name="Perm_Parking_VerifyResidency_Desc" xml:space="preserve"><value>Potvrzuje domácí adresu uživatele, která rozhoduje o nároku podle dojezdu.</value></data>
+  <data name="Perm_Users_View" xml:space="preserve"><value>Zobrazit uživatele</value></data>
+  <data name="Perm_Users_View_Desc" xml:space="preserve"><value>Otevírá seznam účtů a jejich detail.</value></data>
+  <data name="Perm_Users_Create" xml:space="preserve"><value>Zakládat uživatele</value></data>
+  <data name="Perm_Users_Create_Desc" xml:space="preserve"><value>Vytváří nové účty včetně jejich hesla.</value></data>
+  <data name="Perm_Users_Edit" xml:space="preserve"><value>Upravovat uživatele</value></data>
+  <data name="Perm_Users_Edit_Desc" xml:space="preserve"><value>Mění údaje účtu a jeho stav (blokace, odblokování).</value></data>
+  <data name="Perm_Users_Delete" xml:space="preserve"><value>Mazat uživatele</value></data>
+  <data name="Perm_Users_Delete_Desc" xml:space="preserve"><value>Trvale odstraňuje účet a uvolňuje jeho místo i rezervace.</value></data>
+  <data name="Perm_Users_AssignRoles" xml:space="preserve"><value>Přidělovat role</value></data>
+  <data name="Perm_Users_AssignRoles_Desc" xml:space="preserve"><value>Mění role účtu. Přidělit lze jen roli, jejíž oprávnění sami máte.</value></data>
+  <data name="Perm_Roles_View" xml:space="preserve"><value>Zobrazit role</value></data>
+  <data name="Perm_Roles_View_Desc" xml:space="preserve"><value>Otevírá přehled rolí a jejich oprávnění.</value></data>
+  <data name="Perm_Roles_Create" xml:space="preserve"><value>Zakládat role</value></data>
+  <data name="Perm_Roles_Create_Desc" xml:space="preserve"><value>Vytváří vlastní role, i duplikací vestavěné.</value></data>
+  <data name="Perm_Roles_Edit" xml:space="preserve"><value>Upravovat role</value></data>
+  <data name="Perm_Roles_Edit_Desc" xml:space="preserve"><value>Přejmenovává vlastní role a mění jejich oprávnění — jen v rozsahu, který sami máte.</value></data>
+  <data name="Perm_Roles_Delete" xml:space="preserve"><value>Mazat role</value></data>
+  <data name="Perm_Roles_Delete_Desc" xml:space="preserve"><value>Odstraňuje vlastní role, které nemají žádné členy.</value></data>
+  <data name="Perm_Audit_View" xml:space="preserve"><value>Číst auditní záznam</value></data>
+  <data name="Perm_Audit_View_Desc" xml:space="preserve"><value>Prohlíží historii změn účtů, rolí a oprávnění napříč všemi uživateli.</value></data>
+  <data name="Perm_Settings_View" xml:space="preserve"><value>Zobrazit nastavení</value></data>
+  <data name="Perm_Settings_View_Desc" xml:space="preserve"><value>Čte nastavení webu: doména, jazyk, kódování, účty.</value></data>
+  <data name="Perm_Settings_Edit" xml:space="preserve"><value>Měnit nastavení</value></data>
+  <data name="Perm_Settings_Edit_Desc" xml:space="preserve"><value>Ukládá změny nastavení webu.</value></data>
+  <data name="Role_Administrator_Name" xml:space="preserve"><value>Administrátor</value></data>
+  <data name="Role_Administrator_Desc" xml:space="preserve"><value>Plná kontrola nad aplikací včetně uživatelů, rolí a nastavení webu.</value></data>
+  <data name="Role_LotManager_Name" xml:space="preserve"><value>Správce parkoviště</value></data>
+  <data name="Role_LotManager_Desc" xml:space="preserve"><value>Vede fyzické parkoviště: mapu míst, vlastnictví, vozový park a hlášené nesrovnalosti.</value></data>
+  <data name="Role_FrontDesk_Name" xml:space="preserve"><value>Recepce</value></data>
+  <data name="Role_FrontDesk_Desc" xml:space="preserve"><value>Řeší provoz dne: parkování návštěv a opravy cizích rezervací.</value></data>
+  <data name="Role_IncentiveCoordinator_Name" xml:space="preserve"><value>Koordinátor benefitů</value></data>
+  <data name="Role_IncentiveCoordinator_Desc" xml:space="preserve"><value>Vlastní motivační schéma: bodová pravidla, úrovně a přezkum podezřelých dvojic.</value></data>
+  <data name="Role_Analyst_Name" xml:space="preserve"><value>Analytik</value></data>
+  <data name="Role_Analyst_Desc" xml:space="preserve"><value>Čte čísla o parkovišti. Žádné osobní údaje, žádné zásahy.</value></data>
+  <data name="Role_UserManager_Name" xml:space="preserve"><value>Správce uživatelů</value></data>
+  <data name="Role_UserManager_Desc" xml:space="preserve"><value>Zakládá, upravuje a ruší účty a ověřuje bydliště. Role přiděluje jen v rozsahu vlastních oprávnění.</value></data>
+  <data name="Role_Auditor_Name" xml:space="preserve"><value>Auditor</value></data>
+  <data name="Role_Auditor_Desc" xml:space="preserve"><value>Vidí celou správu včetně auditního záznamu a nic nemění.</value></data>
+  <data name="Role_Employee_Name" xml:space="preserve"><value>Zaměstnanec</value></data>
+  <data name="Role_Employee_Desc" xml:space="preserve"><value>Základ pro každého parkujícího: vidí parkoviště, rezervuje a sbírá body.</value></data>
+  <data name="Admin_Roles_CustomDesc" xml:space="preserve"><value>Vlastní role vytvořená správcem.</value></data>
+  <data name="Admin_Roles_ViewLabel" xml:space="preserve"><value>Zobrazení</value></data>
+  <data name="Admin_Roles_ViewCards" xml:space="preserve"><value>Karty</value></data>
+  <data name="Admin_Roles_ViewMatrix" xml:space="preserve"><value>Matice</value></data>
+  <data name="Admin_Roles_NoPermissions" xml:space="preserve"><value>Bez oprávnění</value></data>
+  <data name="Admin_Roles_MorePermissions_1" xml:space="preserve"><value>+{0} další</value></data>
+  <data name="Admin_Roles_MorePermissions_2" xml:space="preserve"><value>+{0} další</value></data>
+  <data name="Admin_Roles_MorePermissions_5" xml:space="preserve"><value>+{0} dalších</value></data>
+  <data name="Admin_Roles_MemberCount_1" xml:space="preserve"><value>{0} uživatel</value></data>
+  <data name="Admin_Roles_MemberCount_2" xml:space="preserve"><value>{0} uživatelé</value></data>
+  <data name="Admin_Roles_MemberCount_5" xml:space="preserve"><value>{0} uživatelů</value></data>
+  <data name="Admin_Roles_PermissionCount_1" xml:space="preserve"><value>{0} oprávnění</value></data>
+  <data name="Admin_Roles_PermissionCount_2" xml:space="preserve"><value>{0} oprávnění</value></data>
+  <data name="Admin_Roles_PermissionCount_5" xml:space="preserve"><value>{0} oprávnění</value></data>
+  <data name="Admin_Roles_Template" xml:space="preserve"><value>Začít ze šablony</value></data>
+  <data name="Admin_Roles_TemplateIntro" xml:space="preserve"><value>Vyberte vestavěnou roli, která se novému nastavení nejvíc blíží, a upravte rozdíly.</value></data>
+  <data name="Admin_Roles_CopyName" xml:space="preserve"><value>{0} (kopie)</value></data>
+  <data name="Admin_RoleEdit_Overview" xml:space="preserve"><value>Přehled</value></data>
+  <data name="Admin_RoleEdit_Members" xml:space="preserve"><value>Členové</value></data>
+  <data name="Admin_RoleEdit_NoMembers" xml:space="preserve"><value>Roli zatím nikdo nemá.</value></data>
+  <data name="Admin_RoleEdit_BuiltInNote" xml:space="preserve"><value>Vestavěnou roli spravuje systém — její oprávnění se při každém startu obnoví. Pro vlastní nastavení ji duplikujte.</value></data>
+  <data name="Admin_RoleEdit_ReadOnly" xml:space="preserve"><value>Nemáte oprávnění tuto roli měnit.</value></data>
+  <data name="Admin_RoleEdit_Duplicate" xml:space="preserve"><value>Duplikovat</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_1" xml:space="preserve"><value>Roli nelze smazat, dokud ji má přiřazený {0} uživatel. Odeberte ho nejdřív v jeho detailu.</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_2" xml:space="preserve"><value>Roli nelze smazat, dokud ji mají přiřazení {0} uživatelé. Odeberte je nejdřív v jejich detailu.</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_5" xml:space="preserve"><value>Roli nelze smazat, dokud ji má přiřazeno {0} uživatelů. Odeberte je nejdřív v jejich detailu.</value></data>
+  <data name="Admin_Perms_Search" xml:space="preserve"><value>Hledat oprávnění</value></data>
+  <data name="Admin_Perms_SelectedCount" xml:space="preserve"><value>Vybráno {0} z {1}</value></data>
+  <data name="Admin_Perms_Changed_1" xml:space="preserve"><value>{0} neuložená změna</value></data>
+  <data name="Admin_Perms_Changed_2" xml:space="preserve"><value>{0} neuložené změny</value></data>
+  <data name="Admin_Perms_Changed_5" xml:space="preserve"><value>{0} neuložených změn</value></data>
+  <data name="Admin_Perms_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádné oprávnění.</value></data>
+  <data name="Admin_Perms_SelectGroup" xml:space="preserve"><value>Vybrat vše</value></data>
+  <data name="Admin_Perms_ClearGroup" xml:space="preserve"><value>Zrušit vše</value></data>
+  <data name="Admin_Perms_Locked" xml:space="preserve"><value>Toto oprávnění sami nemáte, proto ho nemůžete udělit.</value></data>
+  <data name="Admin_Perms_Requires" xml:space="preserve"><value>Vyžaduje: {0}</value></data>
+  <data name="Admin_Audit_Title" xml:space="preserve"><value>Auditní záznam</value></data>
+  <data name="Admin_Audit_Intro" xml:space="preserve"><value>Historie změn účtů, rolí a oprávnění napříč všemi uživateli.</value></data>
+  <data name="Admin_Audit_SearchHint" xml:space="preserve"><value>Hledat e-mail, jméno nebo detail</value></data>
+  <data name="Admin_Audit_AllTypes" xml:space="preserve"><value>Všechny události</value></data>
+  <data name="Admin_Audit_Empty" xml:space="preserve"><value>Žádné události neodpovídají filtru.</value></data>
+  <data name="Admin_Audit_Event" xml:space="preserve"><value>Událost</value></data>
+  <data name="Admin_Audit_Subject" xml:space="preserve"><value>Účet</value></data>
+  <data name="Admin_Audit_DeletedUser" xml:space="preserve"><value>Smazaný účet</value></data>
+  <data name="Audit_Type_Registered" xml:space="preserve"><value>Registrace</value></data>
+  <data name="Audit_Type_RegistrationRepeated" xml:space="preserve"><value>Opakovaná registrace</value></data>
+  <data name="Audit_Type_ActivationRequested" xml:space="preserve"><value>Žádost o aktivaci</value></data>
+  <data name="Audit_Type_Activated" xml:space="preserve"><value>Aktivace</value></data>
+  <data name="Audit_Type_Deactivated" xml:space="preserve"><value>Deaktivace</value></data>
+  <data name="Audit_Type_ReactivationRequested" xml:space="preserve"><value>Žádost o obnovení</value></data>
+  <data name="Audit_Type_Reactivated" xml:space="preserve"><value>Obnovení účtu</value></data>
+  <data name="Audit_Type_SuspendRequested" xml:space="preserve"><value>Žádost o pozastavení</value></data>
+  <data name="Audit_Type_Suspended" xml:space="preserve"><value>Pozastavení</value></data>
+  <data name="Audit_Type_Blocked" xml:space="preserve"><value>Blokace</value></data>
+  <data name="Audit_Type_Unblocked" xml:space="preserve"><value>Odblokování</value></data>
+  <data name="Audit_Type_RolesChanged" xml:space="preserve"><value>Změna rolí účtu</value></data>
+  <data name="Audit_Type_RolePermissionsChanged" xml:space="preserve"><value>Změna oprávnění role</value></data>
+  <data name="Audit_Type_SettingsChanged" xml:space="preserve"><value>Změna nastavení</value></data>
+  <data name="Audit_Type_ReservationOverridden" xml:space="preserve"><value>Zásah do rezervace</value></data>
+  <data name="Audit_Type_PasswordChanged" xml:space="preserve"><value>Změna hesla</value></data>
+  <data name="Audit_Type_PasswordResetRequested" xml:space="preserve"><value>Žádost o reset hesla</value></data>
+  <data name="Audit_Type_PasswordReset" xml:space="preserve"><value>Reset hesla</value></data>
+  <data name="Audit_Type_EmailChangeRequested" xml:space="preserve"><value>Žádost o změnu e-mailu</value></data>
+  <data name="Audit_Type_EmailChanged" xml:space="preserve"><value>Změna e-mailu</value></data>
+  <data name="Audit_Type_PhoneChangeRequested" xml:space="preserve"><value>Žádost o změnu telefonu</value></data>
+  <data name="Audit_Type_PhoneChanged" xml:space="preserve"><value>Změna telefonu</value></data>
+  <data name="Admin_Settings_NoDefaultRoleWarning" xml:space="preserve"><value>Bez výchozí role se nově registrovaný účet přihlásí bez jakéhokoli oprávnění — uvidí prázdnou aplikaci.</value></data>
+  <data name="PermGroup_FullControl_Name" xml:space="preserve"><value>Úplná kontrola</value></data>
+  <data name="PermGroup_FullControl_Desc" xml:space="preserve"><value>Všechna oprávnění v aplikaci. Základ role Administrátor.</value></data>
+  <data name="PermGroup_ParkingAccess_Name" xml:space="preserve"><value>Přístup k parkovišti</value></data>
+  <data name="PermGroup_ParkingAccess_Desc" xml:space="preserve"><value>Vidí parkoviště, volná místa a žebříček. Bez práva rezervovat.</value></data>
+  <data name="PermGroup_ParkingBooking_Name" xml:space="preserve"><value>Rezervace místa</value></data>
+  <data name="PermGroup_ParkingBooking_Desc" xml:space="preserve"><value>Zakládá a ruší vlastní rezervace.</value></data>
+  <data name="PermGroup_LotOperations_Name" xml:space="preserve"><value>Provoz parkoviště</value></data>
+  <data name="PermGroup_LotOperations_Desc" xml:space="preserve"><value>Mapa parkovacích míst a evidence firemních vozidel.</value></data>
+  <data name="PermGroup_MismatchReview_Name" xml:space="preserve"><value>Řešení nesrovnalostí</value></data>
+  <data name="PermGroup_MismatchReview_Desc" xml:space="preserve"><value>Hlášení obsazených míst včetně fotografií cizích vozidel a SPZ.</value></data>
+  <data name="PermGroup_LotAnalytics_Name" xml:space="preserve"><value>Analytika parkoviště</value></data>
+  <data name="PermGroup_LotAnalytics_Desc" xml:space="preserve"><value>Přehled obsazenosti, trendů a odmítnuté poptávky.</value></data>
+  <data name="PermGroup_VisitorDesk_Name" xml:space="preserve"><value>Recepční agenda</value></data>
+  <data name="PermGroup_VisitorDesk_Desc" xml:space="preserve"><value>Parkování návštěv a opravy cizích rezervací.</value></data>
+  <data name="PermGroup_IncentiveScheme_Name" xml:space="preserve"><value>Motivační schéma</value></data>
+  <data name="PermGroup_IncentiveScheme_Desc" xml:space="preserve"><value>Bodová pravidla a přezkum podezřelých dvojic.</value></data>
+  <data name="PermGroup_ResidencyVerification_Name" xml:space="preserve"><value>Ověřování bydliště</value></data>
+  <data name="PermGroup_ResidencyVerification_Desc" xml:space="preserve"><value>Potvrzení domácí adresy, která rozhoduje o nároku podle dojezdu.</value></data>
+  <data name="PermGroup_AccountsRead_Name" xml:space="preserve"><value>Čtení účtů</value></data>
+  <data name="PermGroup_AccountsRead_Desc" xml:space="preserve"><value>Seznam účtů a jejich detail, bez možnosti zásahu.</value></data>
+  <data name="PermGroup_AccountAdministration_Name" xml:space="preserve"><value>Správa účtů</value></data>
+  <data name="PermGroup_AccountAdministration_Desc" xml:space="preserve"><value>Zakládání, úpravy a rušení účtů.</value></data>
+  <data name="PermGroup_RoleAssignment_Name" xml:space="preserve"><value>Přidělování rolí</value></data>
+  <data name="PermGroup_RoleAssignment_Desc" xml:space="preserve"><value>Změna rolí účtu, jen v rozsahu vlastních oprávnění.</value></data>
+  <data name="PermGroup_RolesRead_Name" xml:space="preserve"><value>Čtení rolí</value></data>
+  <data name="PermGroup_RolesRead_Desc" xml:space="preserve"><value>Přehled rolí a toho, co udělují.</value></data>
+  <data name="PermGroup_RoleAdministration_Name" xml:space="preserve"><value>Správa rolí</value></data>
+  <data name="PermGroup_RoleAdministration_Desc" xml:space="preserve"><value>Skládání rolí ze skupin oprávnění.</value></data>
+  <data name="PermGroup_PermissionGroupAdministration_Name" xml:space="preserve"><value>Správa skupin oprávnění</value></data>
+  <data name="PermGroup_PermissionGroupAdministration_Desc" xml:space="preserve"><value>Určování toho, co samotné skupiny obsahují.</value></data>
+  <data name="PermGroup_AuditReading_Name" xml:space="preserve"><value>Čtení auditu</value></data>
+  <data name="PermGroup_AuditReading_Desc" xml:space="preserve"><value>Historie změn účtů, rolí a oprávnění.</value></data>
+  <data name="PermGroup_SiteSettingsRead_Name" xml:space="preserve"><value>Čtení nastavení</value></data>
+  <data name="PermGroup_SiteSettingsRead_Desc" xml:space="preserve"><value>Nastavení webu jen ke čtení.</value></data>
+  <data name="PermGroup_SiteSettingsAdministration_Name" xml:space="preserve"><value>Správa nastavení</value></data>
+  <data name="PermGroup_SiteSettingsAdministration_Desc" xml:space="preserve"><value>Změny nastavení webu.</value></data>
+  <data name="PermArea_Parking" xml:space="preserve"><value>Parkoviště</value></data>
+  <data name="PermArea_Users" xml:space="preserve"><value>Uživatelé</value></data>
+  <data name="PermArea_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="PermArea_PermissionGroups" xml:space="preserve"><value>Skupiny oprávnění</value></data>
+  <data name="PermArea_Audit" xml:space="preserve"><value>Audit</value></data>
+  <data name="PermArea_Settings" xml:space="preserve"><value>Nastavení</value></data>
+  <data name="Perm_PermissionGroups_View" xml:space="preserve"><value>Zobrazit skupiny oprávnění</value></data>
+  <data name="Perm_PermissionGroups_View_Desc" xml:space="preserve"><value>Otevírá přehled skupin a jejich obsahu.</value></data>
+  <data name="Perm_PermissionGroups_Create" xml:space="preserve"><value>Zakládat skupiny oprávnění</value></data>
+  <data name="Perm_PermissionGroups_Create_Desc" xml:space="preserve"><value>Vytváří vlastní skupiny, i duplikací vestavěné.</value></data>
+  <data name="Perm_PermissionGroups_Edit" xml:space="preserve"><value>Upravovat skupiny oprávnění</value></data>
+  <data name="Perm_PermissionGroups_Edit_Desc" xml:space="preserve"><value>Mění obsah vlastních skupin — jen v rozsahu, který sami máte. Změna se okamžitě promítne do všech rolí se skupinou.</value></data>
+  <data name="Perm_PermissionGroups_Delete" xml:space="preserve"><value>Mazat skupiny oprávnění</value></data>
+  <data name="Perm_PermissionGroups_Delete_Desc" xml:space="preserve"><value>Odstraňuje vlastní skupiny, které nejsou v žádné roli.</value></data>
+  <data name="Nav_AdminPermissionGroups" xml:space="preserve"><value>Skupiny oprávnění</value></data>
+  <data name="Nav_Short_PermissionGroups" xml:space="preserve"><value>Skupiny</value></data>
+  <data name="Home_Card_PermissionGroups" xml:space="preserve"><value>Balíčky oprávnění, ze kterých se skládají role</value></data>
+  <data name="Admin_Groups_Intro" xml:space="preserve"><value>Skupina je pojmenovaný balíček oprávnění. Role se skládají z nich, takže je vždy vidět, odkud které oprávnění pochází.</value></data>
+  <data name="Admin_Groups_Create" xml:space="preserve"><value>Nová skupina</value></data>
+  <data name="Admin_Groups_EditTitle" xml:space="preserve"><value>Detail skupiny</value></data>
+  <data name="Admin_Groups_NotFound" xml:space="preserve"><value>Skupina oprávnění nebyla nalezena.</value></data>
+  <data name="Admin_Groups_Name" xml:space="preserve"><value>Název skupiny</value></data>
+  <data name="Admin_Groups_Description" xml:space="preserve"><value>Popis</value></data>
+  <data name="Admin_Groups_CustomDesc" xml:space="preserve"><value>Vlastní skupina vytvořená správcem.</value></data>
+  <data name="Admin_Groups_BuiltInNote" xml:space="preserve"><value>Vestavěnou skupinu spravuje systém — její obsah se při každém startu obnoví. Pro vlastní nastavení ji duplikujte.</value></data>
+  <data name="Admin_Groups_ReadOnly" xml:space="preserve"><value>Nemáte oprávnění tuto skupinu měnit.</value></data>
+  <data name="Admin_Groups_Locked" xml:space="preserve"><value>Skupina obsahuje oprávnění, která sami nemáte, proto ji nemůžete přidat.</value></data>
+  <data name="Admin_Groups_UsedBy" xml:space="preserve"><value>Použito v rolích</value></data>
+  <data name="Admin_Groups_Unused" xml:space="preserve"><value>Skupina zatím není v žádné roli.</value></data>
+  <data name="Admin_Groups_Saved" xml:space="preserve"><value>Skupina uložena.</value></data>
+  <data name="Admin_Groups_Delete" xml:space="preserve"><value>Smazat skupinu</value></data>
+  <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Opravdu skupinu smazat? Akci nelze vrátit.</value></data>
+  <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>Změna se okamžitě promítne do {0} rolí a {1} uživatelům.</value></data>
+  <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>Bez skupin</value></data>
+  <data name="Admin_Roles_Effective" xml:space="preserve"><value>Výsledná oprávnění</value></data>
+  <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Složení role</value></data>
+  <data name="Admin_RoleEdit_CompositionIntro" xml:space="preserve"><value>Role se skládá ze skupin oprávnění. Výsledná oprávnění jsou jejich sjednocení.</value></data>
+  <data name="Admin_UserEdit_LastAdministrator" xml:space="preserve"><value>Tento účet je posledním administrátorem, který se může přihlásit. Roli Administrátor mu proto nelze odebrat ani vyměnit za jinou — nejdřív ustanovte dalšího administrátora.</value></data>
+  <data name="Admin_Roles_GroupCount_1" xml:space="preserve"><value>{0} skupina</value></data>
+  <data name="Admin_Roles_GroupCount_2" xml:space="preserve"><value>{0} skupiny</value></data>
+  <data name="Admin_Roles_GroupCount_5" xml:space="preserve"><value>{0} skupin</value></data>
+  <data name="Admin_Groups_RoleCount_1" xml:space="preserve"><value>{0} role</value></data>
+  <data name="Admin_Groups_RoleCount_2" xml:space="preserve"><value>{0} role</value></data>
+  <data name="Admin_Groups_RoleCount_5" xml:space="preserve"><value>{0} rolí</value></data>
+  <data name="Admin_Groups_DeleteBlocked_1" xml:space="preserve"><value>Skupinu nelze smazat, dokud ji používá {0} role. Odeberte ji nejdřív z ní.</value></data>
+  <data name="Admin_Groups_DeleteBlocked_2" xml:space="preserve"><value>Skupinu nelze smazat, dokud ji používají {0} role. Odeberte ji nejdřív z nich.</value></data>
+  <data name="Admin_Groups_DeleteBlocked_5" xml:space="preserve"><value>Skupinu nelze smazat, dokud ji používá {0} rolí. Odeberte ji nejdřív z nich.</value></data>
+  <data name="Login_Or" xml:space="preserve"><value>nebo</value></data>
+  <data name="Login_External" xml:space="preserve"><value>Přihlásit se přes {0}</value></data>
+  <data name="Login_ExternalFailed" xml:space="preserve"><value>Přihlášení přes firemní účet se nepodařilo dokončit. Zkuste to prosím znovu.</value></data>
+  <data name="Login_ExternalNoAccount" xml:space="preserve"><value>K tomuto firemnímu účtu tu není přístup. Obraťte se na správce.</value></data>
+  <data name="Login_ExternalBlocked" xml:space="preserve"><value>Účet není aktivní. Obraťte se na správce.</value></data>
+  <data name="Account_FederatedNoPassword" xml:space="preserve"><value>Tento účet se přihlašuje přes firemní adresář, vlastní heslo tady nemá. Heslo se mění v účtu Microsoft.</value></data>
+  <data name="Nav_AdminDirectory" xml:space="preserve"><value>Firemní adresář</value></data>
+  <data name="Nav_Short_Directory" xml:space="preserve"><value>Adresář</value></data>
+  <data name="Home_Card_Directory" xml:space="preserve"><value>Napojení na Entra ID a mapování rolí</value></data>
+  <data name="Admin_Directory_Title" xml:space="preserve"><value>Firemní adresář</value></data>
+  <data name="Admin_Directory_Intro" xml:space="preserve"><value>Napojení na Microsoft Entra ID: které role z adresáře odpovídají kterým rolím tady.</value></data>
+  <data name="Admin_Directory_NotConfigured" xml:space="preserve"><value>Entra ID zatím není nakonfigurované. Mapování si můžete připravit teď a zapnout ho, až bude tenant hotový.</value></data>
+  <data name="Admin_Directory_SignInOn" xml:space="preserve"><value>Přihlašování přes Entra zapnuté</value></data>
+  <data name="Admin_Directory_SignInOff" xml:space="preserve"><value>Přihlašování přes Entra vypnuté</value></data>
+  <data name="Admin_Directory_ScimOn" xml:space="preserve"><value>Provisioning (SCIM) zapnutý</value></data>
+  <data name="Admin_Directory_ScimOff" xml:space="preserve"><value>Provisioning (SCIM) vypnutý</value></data>
+  <data name="Admin_Directory_Add" xml:space="preserve"><value>Nové mapování</value></data>
+  <data name="Admin_Directory_AddIntro" xml:space="preserve"><value>Zadejte hodnotu app role z registrace aplikace v Entra — ne její zobrazovaný název.</value></data>
+  <data name="Admin_Directory_AddAction" xml:space="preserve"><value>Přidat</value></data>
+  <data name="Admin_Directory_AppRole" xml:space="preserve"><value>App role v Entra</value></data>
+  <data name="Admin_Directory_LocalRole" xml:space="preserve"><value>Role v aplikaci</value></data>
+  <data name="Admin_Directory_Assigned" xml:space="preserve"><value>Přiděleno</value></data>
+  <data name="Admin_Directory_Remove" xml:space="preserve"><value>Odebrat</value></data>
+  <data name="Admin_Directory_Empty" xml:space="preserve"><value>Zatím není namapovaná žádná role z adresáře.</value></data>
+  <data name="Admin_Directory_PickRole" xml:space="preserve"><value>Vyberte roli v aplikaci.</value></data>
+  <data name="Admin_Directory_Added" xml:space="preserve"><value>Mapování přidáno.</value></data>
+  <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapování odebráno.</value></data>
+  <data name="Admin_Users_Federated" xml:space="preserve"><value>Firemní účet</value></data>
+  <data name="Admin_UserEdit_FederatedRoles" xml:space="preserve"><value>Účet spravuje {0}. Role z adresáře se při dalším přihlášení srovnají podle mapování — ruční změna tady u nich nevydrží. Role přidělené ručně zůstávají.</value></data>
 </root>

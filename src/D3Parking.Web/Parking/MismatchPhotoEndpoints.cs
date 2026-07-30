@@ -20,7 +20,7 @@ public static class MismatchPhotoEndpoints
                 return photo is null
                     ? Results.NotFound()
                     : Results.File(photo.Content, photo.ContentType);
-            }).RequireAuthorization(PermissionPolicies.For(Permissions.Parking.ManageSpots));
+            }).RequireAuthorization(PermissionPolicies.For(Permissions.Parking.ReviewMismatches));
 
         return app;
     }

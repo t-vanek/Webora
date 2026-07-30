@@ -1,0 +1,97 @@
+@page "/admin/audit"
+@attribute [HasPermission(Permissions.Audit.View)]
+@rendermode InteractiveServer
+@inject IAuditService Audit
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+@* The account trail has been written since the first release and, until this page, could only be
+   read one user at a time from their detail screen. Oversight questions are cross-account by
+   nature — who changed roles this week, who deleted an account — so the whole trail lives here. *@
+
+<PageTitle>@L["Admin_Audit_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Admin_Audit_Title"]</FluentLabel>
+                @if (_entries is not null)
+                {
+                    <span class="count-chip">@_entries.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Admin_Audit_Intro"]</p>
+        </div>
+    </div>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+        <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
+                      Placeholder="@L["Admin_Audit_SearchHint"]" Style="max-width:320px" />
+        <FluentSelect TOption="string"
+                      Items="@_typeOptions"
+                      OptionValue="@(t => t)"
+                      OptionText="@(t => t.Length == 0 ? L["Admin_Audit_AllTypes"] : L[$"Audit_Type_{t}"])"
+                      @bind-SelectedOption="_type"
+                      @bind-SelectedOption:after="ReloadAsync"
+                      Style="min-width:260px" />
+    </FluentStack>
+
+    @if (_entries is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_entries.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Audit_Empty"]</div>
+    }
+    else
+    {
+        <div class="admin-panel">
+            <FluentDataGrid Items="@_entries.AsQueryable()" TGridItem="AuditLogEntry"
+                            GridTemplateColumns="0.9fr 1.1fr 1.2fr 0.9fr 2fr">
+                <TemplateColumn Title="@L["Admin_UserEdit_AuditWhen"]">@Fmt(context.OccurredAtUtc)</TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Audit_Event"]">@L[$"Audit_Type_{context.Type}"]</TemplateColumn>
+                <TemplateColumn Title="@L["Admin_Audit_Subject"]">
+                    @if (context.UserEmail is null)
+                    {
+                        @* The account is gone; its history is not. *@
+                        <span class="audit-subject audit-subject--gone">@L["Admin_Audit_DeletedUser"]</span>
+                    }
+                    else
+                    {
+                        <a href="@($"admin/users/{context.UserId}")">@(context.UserDisplayName ?? context.UserEmail)</a>
+                    }
+                </TemplateColumn>
+                <PropertyColumn Property="@(e => e.Actor)" Title="@L["Admin_UserEdit_AuditActor"]" />
+                <TemplateColumn Title="@L["Admin_UserEdit_AuditDetail"]">@(context.Detail ?? "—")</TemplateColumn>
+            </FluentDataGrid>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    private const int PageSize = 200;
+
+    private IReadOnlyList<AuditLogEntry>? _entries;
+    private string? _search;
+    private string _type = string.Empty;
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
+
+    private readonly string[] _typeOptions =
+        [string.Empty, .. Enum.GetNames<AccountAuditEventType>()];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        AccountAuditEventType? type = Enum.TryParse<AccountAuditEventType>(_type, out var parsed) ? parsed : null;
+        _entries = await Audit.SearchAsync(_search, type, PageSize);
+    }
+
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
+}

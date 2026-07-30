@@ -86,10 +86,24 @@
   <data name="Error_RoleNameRequired" xml:space="preserve"><value>Název role je povinný.</value></data>
   <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Výchozí role nelze přejmenovat ani smazat.</value></data>
   <data name="Error_RoleHasMembers" xml:space="preserve"><value>Roli nelze smazat, dokud má přiřazené uživatele.</value></data>
-  <data name="Error_AdministratorAllPermissions" xml:space="preserve"><value>Role Administrator má vždy všechna oprávnění a nelze ji upravovat.</value></data>
+  <data name="Error_BuiltInRolePermissions" xml:space="preserve"><value>Vestavěné role spravuje systém a jejich oprávnění nelze měnit. Pro vlastní nastavení roli duplikujte.</value></data>
   <data name="Error_UnknownPermission" xml:space="preserve"><value>Oprávnění „{0}" není v katalogu.</value></data>
+  <data name="Error_PermissionNotHeld" xml:space="preserve"><value>Nemůžete udělit oprávnění, která sami nemáte: {0}.</value></data>
+  <data name="Error_RoleNotAssignable" xml:space="preserve"><value>Roli „{0}" nemůžete přiřadit — obsahuje oprávnění, která sami nemáte.</value></data>
   <data name="Error_InvalidHost" xml:space="preserve"><value>Název domény „{0}" je neplatný.</value></data>
   <data name="Error_InvalidPort" xml:space="preserve"><value>Port musí být v rozsahu 1–65535.</value></data>
   <data name="Error_InvalidTimeZone" xml:space="preserve"><value>Časové pásmo „{0}" není platné.</value></data>
   <data name="Error_InvalidCharset" xml:space="preserve"><value>Kódování „{0}" není platné.</value></data>
+  <data name="Error_PermissionGroupNotFound" xml:space="preserve"><value>Skupina oprávnění nebyla nalezena.</value></data>
+  <data name="Error_PermissionGroupNameRequired" xml:space="preserve"><value>Název skupiny oprávnění je povinný.</value></data>
+  <data name="Error_PermissionGroupNameTaken" xml:space="preserve"><value>Skupina oprávnění „{0}" už existuje.</value></data>
+  <data name="Error_PermissionGroupInUse" xml:space="preserve"><value>Skupinu nelze smazat, dokud je součástí některé role. Odeberte ji nejdřív z rolí.</value></data>
+  <data name="Error_BuiltInGroupProtected" xml:space="preserve"><value>Vestavěné skupiny oprávnění spravuje systém a nelze je měnit ani mazat. Pro vlastní nastavení skupinu duplikujte.</value></data>
+  <data name="Error_GroupNotComposable" xml:space="preserve"><value>Skupinu „{0}" nemůžete vložit do role — obsahuje oprávnění, která sami nemáte.</value></data>
+  <data name="Error_ExternalIdentityIncomplete" xml:space="preserve"><value>Adresář neposlal dost údajů k založení účtu (chybí identifikátor nebo e-mail).</value></data>
+  <data name="Error_ExternalTenantNotAllowed" xml:space="preserve"><value>Účet pochází z jiného tenanta, než tato instalace přijímá.</value></data>
+  <data name="Error_ExternalAccountUnknown" xml:space="preserve"><value>K této identitě zde není účet a založení nového není povolené.</value></data>
+  <data name="Error_ExternalRoleRequired" xml:space="preserve"><value>Název role z adresáře je povinný.</value></data>
+  <data name="Error_ExternalRoleMapped" xml:space="preserve"><value>Role „{0}" už je namapovaná.</value></data>
+  <data name="Error_ExternalRoleMappingNotFound" xml:space="preserve"><value>Mapování role nebylo nalezeno.</value></data>
 </root>

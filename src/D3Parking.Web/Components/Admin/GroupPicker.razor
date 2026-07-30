@@ -1,0 +1,107 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* Composing a role is picking bundles, not ticking 28 boxes: each card says what the group is for
+   and exactly which permissions come with it, and the panel underneath shows what the picked
+   groups add up to — because the union, not any single group, is what the role really grants. *@
+
+<div class="group-picker">
+    <div class="group-picker__grid">
+        @foreach (var group in Groups)
+        {
+            var selected = Selected.Contains(group.Id);
+            var locked = IsLocked(group);
+
+            <div class="group-pick @(selected ? "group-pick--on" : string.Empty) @(locked ? "group-pick--locked" : string.Empty)">
+                <div class="group-pick__head">
+                    <FluentCheckbox Value="@selected"
+                                    ValueChanged="@(v => ToggleAsync(group, v))"
+                                    Disabled="@(ReadOnly || locked)" />
+                    <span class="group-pick__name">
+                        @AuthorizationDisplay.GroupName(L, group.Name)
+                        @if (locked)
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())"
+                                        Color="Color.Custom" CustomColor="currentColor"
+                                        Title="@L["Admin_Groups_Locked"]" />
+                        }
+                    </span>
+                    <span class="group-pick__count">@PluralText.For(L, "Admin_Roles_PermissionCount", group.Permissions.Count)</span>
+                </div>
+                <p class="group-pick__desc">@Describe(group)</p>
+                <div class="group-pick__perms">
+                    @foreach (var permission in group.Permissions)
+                    {
+                        <span class="tag">@AuthorizationDisplay.PermissionName(L, permission)</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="group-picker__effective">
+        <div class="group-picker__effective-head">
+            <span class="group-picker__effective-title">@L["Admin_Roles_Effective"]</span>
+            <span class="count-chip">@Effective.Count</span>
+        </div>
+        @if (Effective.Count == 0)
+        {
+            <span class="role-card__none">@L["Admin_Roles_NoPermissions"]</span>
+        }
+        else
+        {
+            <div class="group-picker__effective-list">
+                @foreach (var permission in Effective)
+                {
+                    <span class="tag">@AuthorizationDisplay.PermissionName(L, permission)</span>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PermissionGroupSummary> Groups { get; set; } = [];
+
+    /// <summary>The picked group ids. Mutated in place; <see cref="SelectionChanged"/> fires after every edit.</summary>
+    [Parameter, EditorRequired] public HashSet<Guid> Selected { get; set; } = [];
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// What the person composing holds themselves. A group reaching past it is locked, because the
+    /// server refuses to compose from it — offering it would only produce a save that fails.
+    /// </summary>
+    [Parameter] public IReadOnlySet<string>? Grantable { get; set; }
+
+    [Parameter] public EventCallback SelectionChanged { get; set; }
+
+    /// <summary>What the picked groups add up to, closed over the catalog's dependencies.</summary>
+    private IReadOnlyList<string> Effective => Permissions.Expand(
+        Groups.Where(g => Selected.Contains(g.Id)).SelectMany(g => g.Permissions));
+
+    private string Describe(PermissionGroupSummary group) =>
+        AuthorizationDisplay.GroupDescription(L, group.Name, group.Description);
+
+    private bool IsLocked(PermissionGroupSummary group) => Grantable is not null
+        && !Selected.Contains(group.Id)
+        && group.Permissions.Any(p => !Grantable.Contains(p));
+
+    private async Task ToggleAsync(PermissionGroupSummary group, bool selected)
+    {
+        if (ReadOnly || IsLocked(group))
+        {
+            return;
+        }
+
+        if (selected)
+        {
+            Selected.Add(group.Id);
+        }
+        else
+        {
+            Selected.Remove(group.Id);
+        }
+
+        await SelectionChanged.InvokeAsync();
+    }
+}

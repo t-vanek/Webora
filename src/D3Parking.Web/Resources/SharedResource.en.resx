@@ -1094,4 +1094,255 @@
   <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hour with the highest demand</value></data>
   <data name="Lot_Hint_Aria" xml:space="preserve"><value>Method note on {0}</value></data>
   <data name="Lot_Queue_Refused" xml:space="preserve"><value>Distribution of rejected demand</value></data>
+  <data name="Nav_AdminAudit" xml:space="preserve"><value>Audit trail</value></data>
+  <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
+  <data name="Nav_AdminMismatches" xml:space="preserve"><value>Mismatches</value></data>
+  <data name="Nav_Short_Mismatches" xml:space="preserve"><value>Mismat.</value></data>
+  <data name="Nav_AdminCollusion" xml:space="preserve"><value>Suspicious pairs</value></data>
+  <data name="Nav_Short_Collusion" xml:space="preserve"><value>Pairs</value></data>
+  <data name="Home_Card_Analytics" xml:space="preserve"><value>Occupancy, trends and turned-away demand</value></data>
+  <data name="Home_Card_Audit" xml:space="preserve"><value>History of account and permission changes</value></data>
+  <data name="Perm_Parking_View" xml:space="preserve"><value>See the lot</value></data>
+  <data name="Perm_Parking_View_Desc" xml:space="preserve"><value>The baseline every parker needs: the lot, spot availability and their own standing.</value></data>
+  <data name="Perm_Parking_Reserve" xml:space="preserve"><value>Book a spot</value></data>
+  <data name="Perm_Parking_Reserve_Desc" xml:space="preserve"><value>Books and cancels their own reservations, releases a spot and joins the waitlist.</value></data>
+  <data name="Perm_Parking_ViewLeaderboard" xml:space="preserve"><value>See the leaderboard</value></data>
+  <data name="Perm_Parking_ViewLeaderboard_Desc" xml:space="preserve"><value>Sees the leaderboard, earned badges and their own score.</value></data>
+  <data name="Perm_Parking_ManageSpots" xml:space="preserve"><value>Manage parking spots</value></data>
+  <data name="Perm_Parking_ManageSpots_Desc" xml:space="preserve"><value>Creates, edits and retires spots, and assigns their owners.</value></data>
+  <data name="Perm_Parking_ManageFleet" xml:space="preserve"><value>Manage the fleet</value></data>
+  <data name="Perm_Parking_ManageFleet_Desc" xml:space="preserve"><value>Maintains the company vehicle registry and its driver pairings.</value></data>
+  <data name="Perm_Parking_ManageReservations" xml:space="preserve"><value>Manage others' reservations</value></data>
+  <data name="Perm_Parking_ManageReservations_Desc" xml:space="preserve"><value>Cancels and moves other people's bookings and resolves no-shows.</value></data>
+  <data name="Perm_Parking_ManageVisitors" xml:space="preserve"><value>Manage visitors</value></data>
+  <data name="Perm_Parking_ManageVisitors_Desc" xml:space="preserve"><value>Books and approves visitor parking.</value></data>
+  <data name="Perm_Parking_ReviewMismatches" xml:space="preserve"><value>Review mismatches</value></data>
+  <data name="Perm_Parking_ReviewMismatches_Desc" xml:space="preserve"><value>Reviews reported occupancy mismatches, including photos of other people's cars and plates.</value></data>
+  <data name="Perm_Parking_ViewAnalytics" xml:space="preserve"><value>See the analytics</value></data>
+  <data name="Perm_Parking_ViewAnalytics_Desc" xml:space="preserve"><value>Reads the lot dashboard: occupancy, trends and turned-away demand.</value></data>
+  <data name="Perm_Parking_ManageIncentives" xml:space="preserve"><value>Manage incentive rules</value></data>
+  <data name="Perm_Parking_ManageIncentives_Desc" xml:space="preserve"><value>Sets point values, thresholds and loyalty tiers.</value></data>
+  <data name="Perm_Parking_ReviewCollusion" xml:space="preserve"><value>Review suspicious pairs</value></data>
+  <data name="Perm_Parking_ReviewCollusion_Desc" xml:space="preserve"><value>Reviews and decides collusion flags raised against named users.</value></data>
+  <data name="Perm_Parking_VerifyResidency" xml:space="preserve"><value>Verify home address</value></data>
+  <data name="Perm_Parking_VerifyResidency_Desc" xml:space="preserve"><value>Confirms a user's home address, which decides their commute-based entitlements.</value></data>
+  <data name="Perm_Users_View" xml:space="preserve"><value>See users</value></data>
+  <data name="Perm_Users_View_Desc" xml:space="preserve"><value>Opens the account list and each account's detail.</value></data>
+  <data name="Perm_Users_Create" xml:space="preserve"><value>Create users</value></data>
+  <data name="Perm_Users_Create_Desc" xml:space="preserve"><value>Creates new accounts, including their password.</value></data>
+  <data name="Perm_Users_Edit" xml:space="preserve"><value>Edit users</value></data>
+  <data name="Perm_Users_Edit_Desc" xml:space="preserve"><value>Changes account details and status (block, unblock).</value></data>
+  <data name="Perm_Users_Delete" xml:space="preserve"><value>Delete users</value></data>
+  <data name="Perm_Users_Delete_Desc" xml:space="preserve"><value>Permanently removes an account and frees its spot and bookings.</value></data>
+  <data name="Perm_Users_AssignRoles" xml:space="preserve"><value>Assign roles</value></data>
+  <data name="Perm_Users_AssignRoles_Desc" xml:space="preserve"><value>Changes an account's roles. Only roles whose permissions you hold yourself can be assigned.</value></data>
+  <data name="Perm_Roles_View" xml:space="preserve"><value>See roles</value></data>
+  <data name="Perm_Roles_View_Desc" xml:space="preserve"><value>Opens the role overview and each role's permissions.</value></data>
+  <data name="Perm_Roles_Create" xml:space="preserve"><value>Create roles</value></data>
+  <data name="Perm_Roles_Create_Desc" xml:space="preserve"><value>Creates custom roles, including by duplicating a built-in one.</value></data>
+  <data name="Perm_Roles_Edit" xml:space="preserve"><value>Edit roles</value></data>
+  <data name="Perm_Roles_Edit_Desc" xml:space="preserve"><value>Renames custom roles and changes their permissions — only within what you hold yourself.</value></data>
+  <data name="Perm_Roles_Delete" xml:space="preserve"><value>Delete roles</value></data>
+  <data name="Perm_Roles_Delete_Desc" xml:space="preserve"><value>Removes custom roles that have no members.</value></data>
+  <data name="Perm_Audit_View" xml:space="preserve"><value>Read the audit trail</value></data>
+  <data name="Perm_Audit_View_Desc" xml:space="preserve"><value>Reads the history of account, role and permission changes across all users.</value></data>
+  <data name="Perm_Settings_View" xml:space="preserve"><value>See settings</value></data>
+  <data name="Perm_Settings_View_Desc" xml:space="preserve"><value>Reads the site settings: domain, language, encoding, accounts.</value></data>
+  <data name="Perm_Settings_Edit" xml:space="preserve"><value>Change settings</value></data>
+  <data name="Perm_Settings_Edit_Desc" xml:space="preserve"><value>Saves changes to the site settings.</value></data>
+  <data name="Role_Administrator_Name" xml:space="preserve"><value>Administrator</value></data>
+  <data name="Role_Administrator_Desc" xml:space="preserve"><value>Full control of the application, including users, roles and site settings.</value></data>
+  <data name="Role_LotManager_Name" xml:space="preserve"><value>Lot manager</value></data>
+  <data name="Role_LotManager_Desc" xml:space="preserve"><value>Runs the physical lot: the spot map, ownership, the fleet and reported mismatches.</value></data>
+  <data name="Role_FrontDesk_Name" xml:space="preserve"><value>Front desk</value></data>
+  <data name="Role_FrontDesk_Desc" xml:space="preserve"><value>Runs the day: visitor parking and fixing other people's bookings.</value></data>
+  <data name="Role_IncentiveCoordinator_Name" xml:space="preserve"><value>Incentive coordinator</value></data>
+  <data name="Role_IncentiveCoordinator_Desc" xml:space="preserve"><value>Owns the incentive scheme: point rules, tiers and the review of suspicious pairs.</value></data>
+  <data name="Role_Analyst_Name" xml:space="preserve"><value>Analyst</value></data>
+  <data name="Role_Analyst_Desc" xml:space="preserve"><value>Reads the lot's numbers. No personal data, no changes.</value></data>
+  <data name="Role_UserManager_Name" xml:space="preserve"><value>User manager</value></data>
+  <data name="Role_UserManager_Desc" xml:space="preserve"><value>Creates, edits and offboards accounts and verifies home addresses. Assigns roles only within their own permissions.</value></data>
+  <data name="Role_Auditor_Name" xml:space="preserve"><value>Auditor</value></data>
+  <data name="Role_Auditor_Desc" xml:space="preserve"><value>Sees all of administration, including the audit trail, and changes nothing.</value></data>
+  <data name="Role_Employee_Name" xml:space="preserve"><value>Employee</value></data>
+  <data name="Role_Employee_Desc" xml:space="preserve"><value>The baseline every parker gets: see the lot, book a spot, collect points.</value></data>
+  <data name="Admin_Roles_CustomDesc" xml:space="preserve"><value>A custom role created by an administrator.</value></data>
+  <data name="Admin_Roles_ViewLabel" xml:space="preserve"><value>View</value></data>
+  <data name="Admin_Roles_ViewCards" xml:space="preserve"><value>Cards</value></data>
+  <data name="Admin_Roles_ViewMatrix" xml:space="preserve"><value>Matrix</value></data>
+  <data name="Admin_Roles_NoPermissions" xml:space="preserve"><value>No permissions</value></data>
+  <data name="Admin_Roles_MorePermissions_1" xml:space="preserve"><value>+{0} more</value></data>
+  <data name="Admin_Roles_MorePermissions_2" xml:space="preserve"><value>+{0} more</value></data>
+  <data name="Admin_Roles_MorePermissions_5" xml:space="preserve"><value>+{0} more</value></data>
+  <data name="Admin_Roles_MemberCount_1" xml:space="preserve"><value>{0} user</value></data>
+  <data name="Admin_Roles_MemberCount_2" xml:space="preserve"><value>{0} users</value></data>
+  <data name="Admin_Roles_MemberCount_5" xml:space="preserve"><value>{0} users</value></data>
+  <data name="Admin_Roles_PermissionCount_1" xml:space="preserve"><value>{0} permission</value></data>
+  <data name="Admin_Roles_PermissionCount_2" xml:space="preserve"><value>{0} permissions</value></data>
+  <data name="Admin_Roles_PermissionCount_5" xml:space="preserve"><value>{0} permissions</value></data>
+  <data name="Admin_Roles_Template" xml:space="preserve"><value>Start from a template</value></data>
+  <data name="Admin_Roles_TemplateIntro" xml:space="preserve"><value>Pick the built-in role closest to what you need, then edit the differences.</value></data>
+  <data name="Admin_Roles_CopyName" xml:space="preserve"><value>{0} (copy)</value></data>
+  <data name="Admin_RoleEdit_Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Admin_RoleEdit_Members" xml:space="preserve"><value>Members</value></data>
+  <data name="Admin_RoleEdit_NoMembers" xml:space="preserve"><value>Nobody holds this role yet.</value></data>
+  <data name="Admin_RoleEdit_BuiltInNote" xml:space="preserve"><value>This built-in role is managed by the system — its permissions are re-applied on every start. Duplicate it to customize.</value></data>
+  <data name="Admin_RoleEdit_ReadOnly" xml:space="preserve"><value>You do not have permission to change this role.</value></data>
+  <data name="Admin_RoleEdit_Duplicate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_1" xml:space="preserve"><value>The role cannot be deleted while {0} user holds it. Remove them from their detail page first.</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_2" xml:space="preserve"><value>The role cannot be deleted while {0} users hold it. Remove them from their detail pages first.</value></data>
+  <data name="Admin_RoleEdit_DeleteBlocked_5" xml:space="preserve"><value>The role cannot be deleted while {0} users hold it. Remove them from their detail pages first.</value></data>
+  <data name="Admin_Perms_Search" xml:space="preserve"><value>Search permissions</value></data>
+  <data name="Admin_Perms_SelectedCount" xml:space="preserve"><value>{0} of {1} selected</value></data>
+  <data name="Admin_Perms_Changed_1" xml:space="preserve"><value>{0} unsaved change</value></data>
+  <data name="Admin_Perms_Changed_2" xml:space="preserve"><value>{0} unsaved changes</value></data>
+  <data name="Admin_Perms_Changed_5" xml:space="preserve"><value>{0} unsaved changes</value></data>
+  <data name="Admin_Perms_NoMatch" xml:space="preserve"><value>No permission matches the search.</value></data>
+  <data name="Admin_Perms_SelectGroup" xml:space="preserve"><value>Select all</value></data>
+  <data name="Admin_Perms_ClearGroup" xml:space="preserve"><value>Clear all</value></data>
+  <data name="Admin_Perms_Locked" xml:space="preserve"><value>You do not hold this permission yourself, so you cannot grant it.</value></data>
+  <data name="Admin_Perms_Requires" xml:space="preserve"><value>Requires: {0}</value></data>
+  <data name="Admin_Audit_Title" xml:space="preserve"><value>Audit trail</value></data>
+  <data name="Admin_Audit_Intro" xml:space="preserve"><value>History of account, role and permission changes across all users.</value></data>
+  <data name="Admin_Audit_SearchHint" xml:space="preserve"><value>Search email, name or detail</value></data>
+  <data name="Admin_Audit_AllTypes" xml:space="preserve"><value>All events</value></data>
+  <data name="Admin_Audit_Empty" xml:space="preserve"><value>No events match the filter.</value></data>
+  <data name="Admin_Audit_Event" xml:space="preserve"><value>Event</value></data>
+  <data name="Admin_Audit_Subject" xml:space="preserve"><value>Account</value></data>
+  <data name="Admin_Audit_DeletedUser" xml:space="preserve"><value>Deleted account</value></data>
+  <data name="Audit_Type_Registered" xml:space="preserve"><value>Registered</value></data>
+  <data name="Audit_Type_RegistrationRepeated" xml:space="preserve"><value>Repeated registration</value></data>
+  <data name="Audit_Type_ActivationRequested" xml:space="preserve"><value>Activation requested</value></data>
+  <data name="Audit_Type_Activated" xml:space="preserve"><value>Activated</value></data>
+  <data name="Audit_Type_Deactivated" xml:space="preserve"><value>Deactivated</value></data>
+  <data name="Audit_Type_ReactivationRequested" xml:space="preserve"><value>Reactivation requested</value></data>
+  <data name="Audit_Type_Reactivated" xml:space="preserve"><value>Reactivated</value></data>
+  <data name="Audit_Type_SuspendRequested" xml:space="preserve"><value>Suspension requested</value></data>
+  <data name="Audit_Type_Suspended" xml:space="preserve"><value>Suspended</value></data>
+  <data name="Audit_Type_Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Audit_Type_Unblocked" xml:space="preserve"><value>Unblocked</value></data>
+  <data name="Audit_Type_RolesChanged" xml:space="preserve"><value>Account roles changed</value></data>
+  <data name="Audit_Type_RolePermissionsChanged" xml:space="preserve"><value>Role permissions changed</value></data>
+  <data name="Audit_Type_SettingsChanged" xml:space="preserve"><value>Settings changed</value></data>
+  <data name="Audit_Type_ReservationOverridden" xml:space="preserve"><value>Reservation overridden</value></data>
+  <data name="Audit_Type_PasswordChanged" xml:space="preserve"><value>Password changed</value></data>
+  <data name="Audit_Type_PasswordResetRequested" xml:space="preserve"><value>Password reset requested</value></data>
+  <data name="Audit_Type_PasswordReset" xml:space="preserve"><value>Password reset</value></data>
+  <data name="Audit_Type_EmailChangeRequested" xml:space="preserve"><value>Email change requested</value></data>
+  <data name="Audit_Type_EmailChanged" xml:space="preserve"><value>Email changed</value></data>
+  <data name="Audit_Type_PhoneChangeRequested" xml:space="preserve"><value>Phone change requested</value></data>
+  <data name="Audit_Type_PhoneChanged" xml:space="preserve"><value>Phone changed</value></data>
+  <data name="Admin_Settings_NoDefaultRoleWarning" xml:space="preserve"><value>With no default role, a newly registered account signs in with no permissions at all — it sees an empty application.</value></data>
+  <data name="PermGroup_FullControl_Name" xml:space="preserve"><value>Full control</value></data>
+  <data name="PermGroup_FullControl_Desc" xml:space="preserve"><value>Every permission in the application. The basis of the Administrator role.</value></data>
+  <data name="PermGroup_ParkingAccess_Name" xml:space="preserve"><value>Lot access</value></data>
+  <data name="PermGroup_ParkingAccess_Desc" xml:space="preserve"><value>Sees the lot, spot availability and the leaderboard. No right to book.</value></data>
+  <data name="PermGroup_ParkingBooking_Name" xml:space="preserve"><value>Spot booking</value></data>
+  <data name="PermGroup_ParkingBooking_Desc" xml:space="preserve"><value>Books and cancels their own reservations.</value></data>
+  <data name="PermGroup_LotOperations_Name" xml:space="preserve"><value>Lot operations</value></data>
+  <data name="PermGroup_LotOperations_Desc" xml:space="preserve"><value>The spot map and the company vehicle registry.</value></data>
+  <data name="PermGroup_MismatchReview_Name" xml:space="preserve"><value>Mismatch review</value></data>
+  <data name="PermGroup_MismatchReview_Desc" xml:space="preserve"><value>Reported occupancy mismatches, including photos of other drivers cars and plates.</value></data>
+  <data name="PermGroup_LotAnalytics_Name" xml:space="preserve"><value>Lot analytics</value></data>
+  <data name="PermGroup_LotAnalytics_Desc" xml:space="preserve"><value>The dashboard of occupancy, trends and turned-away demand.</value></data>
+  <data name="PermGroup_VisitorDesk_Name" xml:space="preserve"><value>Front desk</value></data>
+  <data name="PermGroup_VisitorDesk_Desc" xml:space="preserve"><value>Visitor parking and fixing other drivers bookings.</value></data>
+  <data name="PermGroup_IncentiveScheme_Name" xml:space="preserve"><value>Incentive scheme</value></data>
+  <data name="PermGroup_IncentiveScheme_Desc" xml:space="preserve"><value>The point rules and the review of suspicious pairs.</value></data>
+  <data name="PermGroup_ResidencyVerification_Name" xml:space="preserve"><value>Residency verification</value></data>
+  <data name="PermGroup_ResidencyVerification_Desc" xml:space="preserve"><value>Confirming a home address, which decides commute-based entitlements.</value></data>
+  <data name="PermGroup_AccountsRead_Name" xml:space="preserve"><value>Accounts (read)</value></data>
+  <data name="PermGroup_AccountsRead_Desc" xml:space="preserve"><value>The account list and detail, with no ability to change anything.</value></data>
+  <data name="PermGroup_AccountAdministration_Name" xml:space="preserve"><value>Account administration</value></data>
+  <data name="PermGroup_AccountAdministration_Desc" xml:space="preserve"><value>Creating, editing and offboarding accounts.</value></data>
+  <data name="PermGroup_RoleAssignment_Name" xml:space="preserve"><value>Role assignment</value></data>
+  <data name="PermGroup_RoleAssignment_Desc" xml:space="preserve"><value>Changing an accounts roles, only within ones own permissions.</value></data>
+  <data name="PermGroup_RolesRead_Name" xml:space="preserve"><value>Roles (read)</value></data>
+  <data name="PermGroup_RolesRead_Desc" xml:space="preserve"><value>The role overview and what each one grants.</value></data>
+  <data name="PermGroup_RoleAdministration_Name" xml:space="preserve"><value>Role administration</value></data>
+  <data name="PermGroup_RoleAdministration_Desc" xml:space="preserve"><value>Composing roles out of permission groups.</value></data>
+  <data name="PermGroup_PermissionGroupAdministration_Name" xml:space="preserve"><value>Permission group administration</value></data>
+  <data name="PermGroup_PermissionGroupAdministration_Desc" xml:space="preserve"><value>Defining what the groups themselves contain.</value></data>
+  <data name="PermGroup_AuditReading_Name" xml:space="preserve"><value>Audit reading</value></data>
+  <data name="PermGroup_AuditReading_Desc" xml:space="preserve"><value>The history of account, role and permission changes.</value></data>
+  <data name="PermGroup_SiteSettingsRead_Name" xml:space="preserve"><value>Settings (read)</value></data>
+  <data name="PermGroup_SiteSettingsRead_Desc" xml:space="preserve"><value>The site settings, read only.</value></data>
+  <data name="PermGroup_SiteSettingsAdministration_Name" xml:space="preserve"><value>Settings administration</value></data>
+  <data name="PermGroup_SiteSettingsAdministration_Desc" xml:space="preserve"><value>Changing the site settings.</value></data>
+  <data name="PermArea_Parking" xml:space="preserve"><value>Parking</value></data>
+  <data name="PermArea_Users" xml:space="preserve"><value>Users</value></data>
+  <data name="PermArea_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="PermArea_PermissionGroups" xml:space="preserve"><value>Permission groups</value></data>
+  <data name="PermArea_Audit" xml:space="preserve"><value>Audit</value></data>
+  <data name="PermArea_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Perm_PermissionGroups_View" xml:space="preserve"><value>See permission groups</value></data>
+  <data name="Perm_PermissionGroups_View_Desc" xml:space="preserve"><value>Opens the group overview and their contents.</value></data>
+  <data name="Perm_PermissionGroups_Create" xml:space="preserve"><value>Create permission groups</value></data>
+  <data name="Perm_PermissionGroups_Create_Desc" xml:space="preserve"><value>Creates custom groups, including by duplicating a built-in one.</value></data>
+  <data name="Perm_PermissionGroups_Edit" xml:space="preserve"><value>Edit permission groups</value></data>
+  <data name="Perm_PermissionGroups_Edit_Desc" xml:space="preserve"><value>Changes what custom groups contain — only within what you hold yourself. The change reaches every role built from the group at once.</value></data>
+  <data name="Perm_PermissionGroups_Delete" xml:space="preserve"><value>Delete permission groups</value></data>
+  <data name="Perm_PermissionGroups_Delete_Desc" xml:space="preserve"><value>Removes custom groups that no role is composed of.</value></data>
+  <data name="Nav_AdminPermissionGroups" xml:space="preserve"><value>Permission groups</value></data>
+  <data name="Nav_Short_PermissionGroups" xml:space="preserve"><value>Groups</value></data>
+  <data name="Home_Card_PermissionGroups" xml:space="preserve"><value>The bundles roles are built from</value></data>
+  <data name="Admin_Groups_Intro" xml:space="preserve"><value>A group is a named bundle of permissions. Roles are composed of them, so where any permission came from is always visible.</value></data>
+  <data name="Admin_Groups_Create" xml:space="preserve"><value>New group</value></data>
+  <data name="Admin_Groups_EditTitle" xml:space="preserve"><value>Group detail</value></data>
+  <data name="Admin_Groups_NotFound" xml:space="preserve"><value>The permission group was not found.</value></data>
+  <data name="Admin_Groups_Name" xml:space="preserve"><value>Group name</value></data>
+  <data name="Admin_Groups_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Admin_Groups_CustomDesc" xml:space="preserve"><value>A custom group created by an administrator.</value></data>
+  <data name="Admin_Groups_BuiltInNote" xml:space="preserve"><value>This built-in group is managed by the system — its contents are re-applied on every start. Duplicate it to customize.</value></data>
+  <data name="Admin_Groups_ReadOnly" xml:space="preserve"><value>You do not have permission to change this group.</value></data>
+  <data name="Admin_Groups_Locked" xml:space="preserve"><value>The group carries permissions you do not hold yourself, so you cannot add it.</value></data>
+  <data name="Admin_Groups_UsedBy" xml:space="preserve"><value>Used by roles</value></data>
+  <data name="Admin_Groups_Unused" xml:space="preserve"><value>No role is composed of this group yet.</value></data>
+  <data name="Admin_Groups_Saved" xml:space="preserve"><value>Group saved.</value></data>
+  <data name="Admin_Groups_Delete" xml:space="preserve"><value>Delete group</value></data>
+  <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Delete this group? This cannot be undone.</value></data>
+  <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>The change reaches {0} roles and {1} users at once.</value></data>
+  <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>No groups</value></data>
+  <data name="Admin_Roles_Effective" xml:space="preserve"><value>Effective permissions</value></data>
+  <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Role composition</value></data>
+  <data name="Admin_RoleEdit_CompositionIntro" xml:space="preserve"><value>A role is composed of permission groups. Its effective permissions are their union.</value></data>
+  <data name="Admin_UserEdit_LastAdministrator" xml:space="preserve"><value>This account is the last administrator who can still sign in. Its Administrator role cannot be removed or swapped for another — appoint another administrator first.</value></data>
+  <data name="Admin_Roles_GroupCount_1" xml:space="preserve"><value>{0} group</value></data>
+  <data name="Admin_Roles_GroupCount_2" xml:space="preserve"><value>{0} groups</value></data>
+  <data name="Admin_Roles_GroupCount_5" xml:space="preserve"><value>{0} groups</value></data>
+  <data name="Admin_Groups_RoleCount_1" xml:space="preserve"><value>{0} role</value></data>
+  <data name="Admin_Groups_RoleCount_2" xml:space="preserve"><value>{0} roles</value></data>
+  <data name="Admin_Groups_RoleCount_5" xml:space="preserve"><value>{0} roles</value></data>
+  <data name="Admin_Groups_DeleteBlocked_1" xml:space="preserve"><value>The group cannot be deleted while {0} role is composed of it. Remove it there first.</value></data>
+  <data name="Admin_Groups_DeleteBlocked_2" xml:space="preserve"><value>The group cannot be deleted while {0} roles are composed of it. Remove it there first.</value></data>
+  <data name="Admin_Groups_DeleteBlocked_5" xml:space="preserve"><value>The group cannot be deleted while {0} roles are composed of it. Remove it there first.</value></data>
+  <data name="Login_Or" xml:space="preserve"><value>or</value></data>
+  <data name="Login_External" xml:space="preserve"><value>Sign in with {0}</value></data>
+  <data name="Login_ExternalFailed" xml:space="preserve"><value>The company sign-in could not be completed. Please try again.</value></data>
+  <data name="Login_ExternalNoAccount" xml:space="preserve"><value>This company account has no access here. Please contact your administrator.</value></data>
+  <data name="Login_ExternalBlocked" xml:space="preserve"><value>The account is not active. Please contact your administrator.</value></data>
+  <data name="Account_FederatedNoPassword" xml:space="preserve"><value>This account signs in through the company directory and has no password here. Change it in your Microsoft account.</value></data>
+  <data name="Nav_AdminDirectory" xml:space="preserve"><value>Company directory</value></data>
+  <data name="Nav_Short_Directory" xml:space="preserve"><value>Directory</value></data>
+  <data name="Home_Card_Directory" xml:space="preserve"><value>Entra ID connection and role mapping</value></data>
+  <data name="Admin_Directory_Title" xml:space="preserve"><value>Company directory</value></data>
+  <data name="Admin_Directory_Intro" xml:space="preserve"><value>The Microsoft Entra ID connection: which directory roles correspond to which roles here.</value></data>
+  <data name="Admin_Directory_NotConfigured" xml:space="preserve"><value>Entra ID is not configured yet. You can prepare the mapping now and switch it on once the tenant is ready.</value></data>
+  <data name="Admin_Directory_SignInOn" xml:space="preserve"><value>Entra sign-in on</value></data>
+  <data name="Admin_Directory_SignInOff" xml:space="preserve"><value>Entra sign-in off</value></data>
+  <data name="Admin_Directory_ScimOn" xml:space="preserve"><value>Provisioning (SCIM) on</value></data>
+  <data name="Admin_Directory_ScimOff" xml:space="preserve"><value>Provisioning (SCIM) off</value></data>
+  <data name="Admin_Directory_Add" xml:space="preserve"><value>New mapping</value></data>
+  <data name="Admin_Directory_AddIntro" xml:space="preserve"><value>Enter the app role value from the Entra app registration — not its display name.</value></data>
+  <data name="Admin_Directory_AddAction" xml:space="preserve"><value>Add</value></data>
+  <data name="Admin_Directory_AppRole" xml:space="preserve"><value>Entra app role</value></data>
+  <data name="Admin_Directory_LocalRole" xml:space="preserve"><value>Role in this app</value></data>
+  <data name="Admin_Directory_Assigned" xml:space="preserve"><value>Assigned</value></data>
+  <data name="Admin_Directory_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Admin_Directory_Empty" xml:space="preserve"><value>No directory role is mapped yet.</value></data>
+  <data name="Admin_Directory_PickRole" xml:space="preserve"><value>Pick a role in this app.</value></data>
+  <data name="Admin_Directory_Added" xml:space="preserve"><value>Mapping added.</value></data>
+  <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapping removed.</value></data>
+  <data name="Admin_Users_Federated" xml:space="preserve"><value>Company account</value></data>
+  <data name="Admin_UserEdit_FederatedRoles" xml:space="preserve"><value>This account is managed by {0}. Directory roles are reconciled from the mapping at the next sign-in, so a hand edit to those will not last. Hand-granted roles stay.</value></data>
 </root>

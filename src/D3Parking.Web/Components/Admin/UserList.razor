@@ -60,7 +60,7 @@
                         <span class="role-tags">
                             @foreach (var role in context.Roles)
                             {
-                                <span class="tag">@role</span>
+                                <span class="tag">@AuthorizationDisplay.RoleName(L, role)</span>
                             }
                         </span>
                     }

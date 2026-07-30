@@ -15,6 +15,8 @@ public enum AccountAuditEventType
     Blocked,
     Unblocked,
     RolesChanged,
+    /// <summary>This account changed which permissions a role grants, or created/deleted a role.</summary>
+    RolePermissionsChanged,
     SettingsChanged,
     /// <summary>A spot manager cancelled or moved one of this account's parking reservations.</summary>
     ReservationOverridden,
