@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json.Serialization;
+using ApexCharts;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.SignalR;
@@ -53,6 +54,10 @@ builder.Services.AddPermissionAuthorization();
 // Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
 // and WebAssembly components — the WASM client also registers AddFluentUIComponents() in its host.
 builder.Services.AddFluentUIComponents();
+
+// Charts on the lot dashboard. Needs an interactive render mode on the hosting page (the dashboard
+// is InteractiveServer) because the wrapper drives ApexCharts.js over JS interop.
+builder.Services.AddApexCharts();
 
 // Real-time messaging + per-user notification delivery over SignalR.
 builder.Services.AddSignalR();

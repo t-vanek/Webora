@@ -2578,3 +2578,272 @@ fluent-menu-item:has(> .account-menu-link) {
                 display: none;
             }
 }
+
+/* --- Dashboard parkovací plochy (správce míst) --- */
+
+/* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. */
+.lot-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.lot-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.lot-stat__value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.lot-stat__label {
+    font-size: 11.5px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Barví se jen vybočující stavy — normální hodnota si nechává výchozí popředí. Značkové
+   tmavě navy (brand-sherpa) tu použít nelze: na tmavém tématu je karta taky tmavá a text by
+   zmizel (poměr ~1,1:1). Ve state-pill funguje, protože tam leží na světlé výplni. */
+.lot-stat--warn { border-color: var(--warning-rest, #f7a900); }
+.lot-stat--warn .lot-stat__value { color: var(--warning-rest, #f7a900); }
+.lot-stat--off .lot-stat__value { color: var(--neutral-foreground-hint, #6b6b6b); }
+.lot-stat--meter__fill--high .lot-stat__value { color: var(--error-rest, #d13438); }
+.lot-stat--meter__fill--mid .lot-stat__value { color: var(--warning-rest, #f7a900); }
+
+.lot-toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.lot-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.lot-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lot-section { width: 100%; }
+
+/* Plocha: dlaždice míst v mřížce, která se sama skládá podle šířky. Pevná minimální
+   šířka drží kódy čitelné i u dlouhých názvů sekcí. */
+.lot-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.lot-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border: 1px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-left: 4px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-radius: 8px;
+    background: var(--neutral-layer-1, #fff);
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+    .lot-tile:hover {
+        box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+        transform: translateY(-1px);
+    }
+
+    .lot-tile:focus-visible {
+        outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+        outline-offset: 2px;
+    }
+
+.lot-tile--selected {
+    box-shadow: 0 0 0 2px var(--accent-fill-rest, #0f6cbd);
+}
+
+/* Stav místa nese levý pruh i tečka — barva sama by nestačila, proto je v dlaždici
+   vždy i textový držitel/vlastník a legenda pojmenovává každý stav. */
+.lot-tile--Occupied { border-left-color: var(--error-rest, #d13438); }
+.lot-tile--Booked { border-left-color: var(--warning-rest, #f7a900); }
+.lot-tile--Free { border-left-color: var(--brand-green); }
+.lot-tile--ResidentShared { border-left-color: var(--brand-green-deep); }
+.lot-tile--ResidentHeld { border-left-color: var(--brand-sherpa-soft); }
+.lot-tile--VisitorBooked { border-left-color: var(--brand-violet-deep); }
+.lot-tile--Inactive {
+    border-left-color: var(--neutral-foreground-hint, #9a9a9a);
+    background: var(--neutral-fill-secondary-rest, #f5f5f5);
+    opacity: .75;
+}
+
+.lot-tile__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.lot-tile__code {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.lot-tile__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--neutral-stroke-rest, #e0e0e0);
+}
+
+.lot-tile__dot--Occupied { background: var(--error-rest, #d13438); }
+.lot-tile__dot--Booked { background: var(--warning-rest, #f7a900); }
+.lot-tile__dot--Free { background: var(--brand-green); }
+.lot-tile__dot--ResidentShared { background: var(--brand-green-deep); }
+.lot-tile__dot--ResidentHeld { background: var(--brand-sherpa-soft); }
+.lot-tile__dot--VisitorBooked { background: var(--brand-violet-deep); }
+.lot-tile__dot--Inactive { background: var(--neutral-foreground-hint, #9a9a9a); }
+
+.lot-tile__meta { font-size: 11px; }
+
+/* Dvě řádky napevno (vlastník + držitel), aby dlaždice v jednom řádku mřížky měly stejnou
+   výšku i tam, kde je místo prázdné — jinak řádek roztáhne jediná obsazená dlaždice. */
+.lot-tile__holder {
+    display: flex;
+    flex-direction: column;
+    font-size: 11.5px;
+    min-height: 30px;
+}
+
+.lot-tile__owner {
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lot-tile__guest {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lot-tile__flag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--warning-rest, #b86e00);
+}
+
+/* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy. */
+.lot-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+}
+
+.lot-detail__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 6px 18px;
+    font-size: 13px;
+}
+
+.lot-detail__label {
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin-right: 4px;
+}
+
+.lot-calendar {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.lot-calendar__row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.4fr 1.3fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--brand-hairline, #ececec);
+    border-left: 3px solid transparent;
+    font-size: 13px;
+}
+
+.lot-calendar__row--Reservation { border-left-color: var(--accent-fill-rest, #0f6cbd); }
+.lot-calendar__row--VisitorBooking { border-left-color: var(--brand-violet-deep); }
+.lot-calendar__row--ResidentRelease { border-left-color: var(--brand-green); }
+.lot-calendar__row--Mismatch { border-left-color: var(--warning-rest, #f7a900); }
+
+.lot-calendar__when {
+    display: flex;
+    flex-direction: column;
+}
+
+    .lot-calendar__when small { color: var(--neutral-foreground-hint, #6b6b6b); }
+
+.lot-calendar__status {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.lot-calendar__actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.lot-calendar__move {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 8px 8px 12px 11px;
+    border-bottom: 1px solid var(--brand-hairline, #ececec);
+    background: var(--neutral-fill-secondary-rest, #f7f7f7);
+}
+
+/* Podrobná tabulka pod grafy — grafy vedou, tabulka drží čísla, která nenesou (nedostavení,
+   neshody, sdílené dny). */
+.lot-table-toggle > summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 0;
+}
+
+@media (max-width: 640px) {
+    .lot-board {
+        grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    }
+
+    .lot-calendar__row {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 4px;
+    }
+
+    .lot-calendar__actions { justify-content: flex-start; }
+}
