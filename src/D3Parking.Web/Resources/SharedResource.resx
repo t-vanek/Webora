@@ -231,7 +231,6 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role byla přejmenována.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Oprávnění byla uložena.</value></data>
-  <data name="Nav_Administration" xml:space="preserve"><value>Administrace</value></data>
   <data name="Home_Title" xml:space="preserve"><value>D3Parking</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>Rezervační systém firemního parkoviště s motivačními body za co nejlepší využití míst.</value></data>
   <data name="Home_QuickActions" xml:space="preserve"><value>Rychlé akce</value></data>
@@ -1345,4 +1344,7 @@
   <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapování odebráno.</value></data>
   <data name="Admin_Users_Federated" xml:space="preserve"><value>Firemní účet</value></data>
   <data name="Admin_UserEdit_FederatedRoles" xml:space="preserve"><value>Účet spravuje {0}. Role z adresáře se při dalším přihlášení srovnají podle mapování — ruční změna tady u nich nevydrží. Role přidělené ručně zůstávají.</value></data>
+  <data name="Nav_Section_Access" xml:space="preserve"><value>Uživatelé a práva</value></data>
+  <data name="Nav_Section_Lot" xml:space="preserve"><value>Správa parkoviště</value></data>
+  <data name="Nav_Section_System" xml:space="preserve"><value>Systém</value></data>
 </root>

@@ -84,10 +84,15 @@
             </NavLink>
         }
 
-        @if (_canAnyAdmin)
+        @* Administration outgrew a single heading: thirteen items under one "ADMINISTRACE" label
+           read as a pile rather than a menu. They fall into three plain groups — who may do what,
+           the lot itself, and the site — so each gets its own heading. Headings rather than
+           collapsible groups on purpose: the rail state already shrinks a section to a separator,
+           and a second collapse mechanism would fight it for no gain at this list length. *@
+        @if (_canAnyAccess)
         {
             <div class="side-nav__section">
-                <span class="side-nav__section-title">@L["Nav_Administration"]</span>
+                <span class="side-nav__section-title">@L["Nav_Section_Access"]</span>
             </div>
             @if (_canAdminUsers)
             {
@@ -134,6 +139,13 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Audit"]</span>
                 </NavLink>
             }
+        }
+
+        @if (_canAnyLot)
+        {
+            <div class="side-nav__section">
+                <span class="side-nav__section-title">@L["Nav_Section_Lot"]</span>
+            </div>
             @if (_canViewAnalytics)
             {
                 <NavLink href="admin/parking/dashboard" class="side-nav__item" ActiveClass="side-nav__item--active"
@@ -199,15 +211,21 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Collusion"]</span>
                 </NavLink>
             }
-            @if (_canSettings)
-            {
-                <NavLink href="admin/settings" class="side-nav__item" ActiveClass="side-nav__item--active"
-                         aria-label="@L["Nav_AdminSettings"]">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.Settings())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span class="side-nav__label">@L["Nav_AdminSettings"]</span>
-                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Settings"]</span>
-                </NavLink>
-            }
+        }
+
+        @* Its own heading even though it holds one item: without it, site-wide settings sit under
+           the lot heading and read as one more parking screen. *@
+        @if (_canSettings)
+        {
+            <div class="side-nav__section">
+                <span class="side-nav__section-title">@L["Nav_Section_System"]</span>
+            </div>
+            <NavLink href="admin/settings" class="side-nav__item" ActiveClass="side-nav__item--active"
+                     aria-label="@L["Nav_AdminSettings"]">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Settings())" Color="Color.Custom" CustomColor="currentColor" />
+                <span class="side-nav__label">@L["Nav_AdminSettings"]</span>
+                <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Settings"]</span>
+            </NavLink>
         }
 
         <button type="button" class="side-nav__collapse" @onclick="ToggleRailAsync"
@@ -244,7 +262,10 @@
     private bool _canManageIncentives;
     private bool _canReviewCollusion;
 
-    private bool _canAnyAdmin;
+    // One flag per heading: a heading with nothing under it is a label for an empty list, which is
+    // exactly what a permission-filtered menu produces if nobody checks.
+    private bool _canAnyAccess;
+    private bool _canAnyLot;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -284,9 +305,9 @@
             _canManageIncentives = Can(Permissions.Parking.ManageIncentives);
             _canReviewCollusion = Can(Permissions.Parking.ReviewCollusion);
 
-            _canAnyAdmin = _canAdminUsers || _canAdminRoles || _canPermissionGroups || _canAudit || _canSettings
-                || _canManageSpots || _canManageFleet || _canReviewMismatches || _canViewAnalytics
-                || _canManageVisitors || _canManageIncentives || _canReviewCollusion;
+            _canAnyAccess = _canAdminUsers || _canAdminRoles || _canPermissionGroups || _canAudit;
+            _canAnyLot = _canManageSpots || _canManageFleet || _canReviewMismatches
+                || _canViewAnalytics || _canManageVisitors || _canManageIncentives || _canReviewCollusion;
         }
     }
 

@@ -231,7 +231,6 @@
   <data name="Admin_RoleEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
   <data name="Admin_RoleEdit_Renamed" xml:space="preserve"><value>Role renamed.</value></data>
   <data name="Admin_RoleEdit_PermsSaved" xml:space="preserve"><value>Permissions saved.</value></data>
-  <data name="Nav_Administration" xml:space="preserve"><value>Administration</value></data>
   <data name="Home_Title" xml:space="preserve"><value>D3Parking</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>A reservation system for the company car park, with incentive points that reward making the best use of every spot.</value></data>
   <data name="Home_QuickActions" xml:space="preserve"><value>Quick actions</value></data>
@@ -1345,4 +1344,7 @@
   <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapping removed.</value></data>
   <data name="Admin_Users_Federated" xml:space="preserve"><value>Company account</value></data>
   <data name="Admin_UserEdit_FederatedRoles" xml:space="preserve"><value>This account is managed by {0}. Directory roles are reconciled from the mapping at the next sign-in, so a hand edit to those will not last. Hand-granted roles stay.</value></data>
+  <data name="Nav_Section_Access" xml:space="preserve"><value>Users and permissions</value></data>
+  <data name="Nav_Section_Lot" xml:space="preserve"><value>Lot administration</value></data>
+  <data name="Nav_Section_System" xml:space="preserve"><value>System</value></data>
 </root>
