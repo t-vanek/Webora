@@ -28,6 +28,14 @@
 <FluentDesignTheme StorageName="theme" @bind-Mode="_themeMode" CustomColor="#884DFF" />
 <FluentMenuProvider />
 
+@* FluentMenu's JS interop has taken this circuit down before — see the teardown notes below and
+   the ShouldRender guard — and it can still throw from OnAfterRenderAsync for reasons outside our
+   control (a null AnchoredRegion module, a disposed menu instance). Whatever the trigger, the worst
+   case must be "the preference corner is missing until the next page load", not a dead page. The
+   boundary deliberately starts here: FluentDesignTheme above must stay mounted, or the page loses
+   its design tokens. *@
+<ErrorBoundary>
+    <ChildContent>
 <AuthorizeView>
     <Authorized>
         <FluentButton Id="account-menu-trigger"
@@ -113,6 +121,10 @@
         </FluentButton>
     </NotAuthorized>
 </AuthorizeView>
+    </ChildContent>
+    @* Intentionally empty: the corner goes away, the page keeps working. *@
+    <ErrorContent>@{ }</ErrorContent>
+</ErrorBoundary>
 
 @code {
     private bool _accountOpen;
