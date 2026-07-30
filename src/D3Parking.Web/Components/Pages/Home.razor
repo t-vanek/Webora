@@ -180,6 +180,22 @@
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_Release"]</FluentButton>
                         </span>
                     }
+                    else if (s.TodayState == OwnedSpotDayState.SharedFree)
+                    {
+                        @* Right of first refusal: while nobody booked the shared day, the resident
+                           takes it back — a released day via Reclaim, an auto-shared one by
+                           confirming arrival (either way any waitlist hold is withdrawn). *@
+                        <span class="today-card__actions">
+                            @if (s.ReleasedToday)
+                            {
+                                <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="ReclaimOwnedTodayAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
+                            }
+                            else
+                            {
+                                <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
+                            }
+                        </span>
+                    }
                 </div>
             }
 
@@ -342,6 +358,12 @@
         {
             _actionBusy = false;
         }
+    }
+
+    private Task ReclaimOwnedTodayAsync()
+    {
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, _tz).DateTime);
+        return RunAsync(() => ResidentSpots.ReclaimAsync(_userId, today, today));
     }
 
     private Task ReleaseOwnedTodayAsync()

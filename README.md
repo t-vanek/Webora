@@ -300,8 +300,12 @@ lhůta no-show):
 - Rezident **potvrdí příjezd**, aby si místo na den udržel, nebo ho **uvolní** (jeden den, či rozsah dnů)
   do sdíleného fondu.
 - Pokud do cutoffu nepotvrdí ani neuvolní, místo se na ten den **automaticky sdílí**.
-- **Pravidlo konfliktu:** jakmile si host sdílené místo zarezervuje, je pevné; pozdě dorazivší rezident
-  soutěží o volné místo jako každý jiný (žádné vyhazování).
+- **Pravidlo konfliktu:** jakmile si host sdílené místo zarezervuje, je pevné; rezident, jehož místo
+  už host drží, soutěží o jiné volné místo jako každý jiný (žádné vyhazování).
+- **Přednostní právo rezidenta:** dokud si sdílený den jeho místa nikdo nezarezervoval, má na něm
+  rezident vždy přednost — uvolněný den si vezme zpět („Vzít zpět", odměna za den se odečte) a po
+  uzávěrce mu stačí potvrdit příjezd. Přednost předběhne i nabídku drženou pro čekatele fronty;
+  čekatel o pořadí nepřijde a dostane další uvolněné místo.
 - Před cutoffem se posílá připomínka.
 
 **Odměna za sdílení** je odstupňovaná: `min(strop, hodiny_předstihu × sazba) × (1 + příděl × pct/100)`.

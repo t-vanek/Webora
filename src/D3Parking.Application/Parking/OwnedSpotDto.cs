@@ -18,6 +18,9 @@ public enum OwnedSpotDayState
     SharedTaken,
 }
 
+/// <summary>A day the resident has released into the pool, and whether a guest already booked it.</summary>
+public sealed record ReleasedDayDto(DateOnly Date, bool TakenByGuest);
+
 /// <summary>A resident's view of their reserved spot, with today's state and sharing controls.</summary>
 public sealed record OwnedSpotDto(
     Guid SpotId,
@@ -27,4 +30,7 @@ public sealed record OwnedSpotDto(
     int MaxShareAllowance,
     OwnedSpotDayState TodayState,
     bool ReleasedToday,
-    int PotentialReleasePointsToday);
+    int PotentialReleasePointsToday,
+    // Today-or-later released days; the ones no guest booked yet are reclaimable — the resident's
+    // right of first refusal on their own spot.
+    IReadOnlyList<ReleasedDayDto> UpcomingReleases);

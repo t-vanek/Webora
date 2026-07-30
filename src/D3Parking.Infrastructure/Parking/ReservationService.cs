@@ -223,13 +223,33 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_SpotConflict");
         }
 
-        // A spot held for someone else's waitlist offer can't be booked out from under them.
-        var heldByOther = await dbContext.QueueEntries.AnyAsync(q => q.Status == QueueEntryStatus.Offered
-            && q.OfferedSpotId == spotId && q.UserId != userId && q.OfferExpiresAtUtc > now
-            && q.StartUtc < endUtc && q.EndUtc > startUtc, cancellationToken);
-        if (heldByOther)
+        // A spot held for someone else's waitlist offer can't be booked out from under them —
+        // except by the spot's own resident, whose right of first refusal outranks a pending
+        // offer (a hold is not a booking). The withdrawn waiter keeps their queue position and
+        // hears about it after the commit; the maintenance loop deals them the next freed spot.
+        var withdrawnWaiters = new List<Guid>();
+        if (spot.OwnerId == userId)
         {
-            return ParkingResult.Failure("Parking_Error_SpotHeld");
+            var holds = await dbContext.QueueEntries
+                .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId == spotId
+                    && q.UserId != userId && q.OfferExpiresAtUtc > now
+                    && q.StartUtc < endUtc && q.EndUtc > startUtc)
+                .ToListAsync(cancellationToken);
+            foreach (var hold in holds)
+            {
+                hold.WithdrawOffer();
+                withdrawnWaiters.Add(hold.UserId);
+            }
+        }
+        else
+        {
+            var heldByOther = await dbContext.QueueEntries.AnyAsync(q => q.Status == QueueEntryStatus.Offered
+                && q.OfferedSpotId == spotId && q.UserId != userId && q.OfferExpiresAtUtc > now
+                && q.StartUtc < endUtc && q.EndUtc > startUtc, cancellationToken);
+            if (heldByOther)
+            {
+                return ParkingResult.Failure("Parking_Error_SpotHeld");
+            }
         }
 
         var ownConflict = await dbContext.Reservations.AnyAsync(r => r.UserId == userId
@@ -341,6 +361,13 @@ public sealed class ReservationService(
         await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
             messages["Parking_Notify_Reserved_Title"],
             messages["Parking_Notify_Reserved_Body", spot.Code, cost], cancellationToken);
+
+        foreach (var waiterId in withdrawnWaiters)
+        {
+            await notifications.NotifyAsync(waiterId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                messages["Parking_Notify_QueueHoldReclaimed_Title"],
+                messages["Parking_Notify_QueueHoldReclaimed_Body", spot.Code], cancellationToken);
+        }
 
         // Warn when the wallet can no longer cover even a base-price booking. Bell/push only: the
         // warning is neither actionable on a deadline nor a formal record, so an email would just

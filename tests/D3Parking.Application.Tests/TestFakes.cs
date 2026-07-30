@@ -8,6 +8,7 @@ using D3Parking.Application.Settings;
 using D3Parking.Contracts.Notifications;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Application.Tests;
@@ -21,6 +22,24 @@ internal sealed class TestDbContextFactory(DbContextOptions<D3ParkingDbContext> 
 internal sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
 {
     public override DateTimeOffset GetUtcNow() => now;
+}
+
+/// <summary>Serves a fixed policy; the write/adaptive members are never exercised.</summary>
+internal sealed class FakeParkingSettings(IncentivePolicy? policy = null) : IParkingSettingsService
+{
+    public IncentivePolicy Policy { get; } = policy ?? new IncentivePolicy();
+
+    public Task<IncentivePolicy> GetPolicyAsync(CancellationToken cancellationToken = default) => Task.FromResult(Policy);
+
+    public Task<TimeSpan> GetSweepIntervalAsync(CancellationToken cancellationToken = default) => Task.FromResult(TimeSpan.FromMinutes(5));
+
+    public Task<GeoPoint?> GetLotLocationAsync(CancellationToken cancellationToken = default) => Task.FromResult<GeoPoint?>(null);
+
+    public Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 /// <summary>Returns the resource key itself; the tests assert behavior, not message text.</summary>

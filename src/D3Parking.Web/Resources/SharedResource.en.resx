@@ -493,6 +493,7 @@
   <data name="Help_Resident_A1" xml:space="preserve"><value>Your spot is held for you every day until {0}. If you're coming that day, confirm it with Confirm arrival. If you neither confirm nor release it, the spot is offered to everyone else after that hour.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) — you earn {0} for every hour of notice, up to {1} a day. The reward applies up to a monthly limit you set yourself.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) so somebody else can use it.</value></data>
+  <data name="Help_Resident_A3" xml:space="preserve"><value>You always have first claim on your own spot: take a released day back with Take back, and past the cutoff simply confirm arrival — as long as nobody has booked the spot. The claim outranks offers held for the waitlist (the waiter keeps their position); a colleague's completed booking stands. The reward for a taken-back day is returned.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifications, emails and the calendar</value></data>
   <data name="Help_Notifications_A1" xml:space="preserve"><value>Alerts arrive in the bell in the header. You can install the app on your phone or desktop and enable push notifications — then a queue offer or a reminder reaches you even with the app closed. We only email what matters: deadline-driven queue offers, penalties and account security changes.</value></data>
   <data name="Help_Notifications_A2" xml:space="preserve"><value>Every booking has an Add to calendar button — it downloads an event for Outlook, Google and Apple Calendar, including a reminder 30 minutes ahead. In your profile you can mute notifications temporarily or turn off the free-capacity tips.</value></data>
@@ -672,6 +673,15 @@
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>The end of the range must be after its start.</value></data>
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>The range is too long.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Nothing to release in the chosen range.</value></data>
+  <data name="Parking_Error_NothingToReclaim" xml:space="preserve"><value>Nothing to take back — the chosen days aren't released, or somebody has already booked them.</value></data>
+  <data name="Parking_Owned_ReleasedDays" xml:space="preserve"><value>Released days</value></data>
+  <data name="Parking_Owned_DayTaken" xml:space="preserve"><value>(taken)</value></data>
+  <data name="Parking_Owned_ReclaimFrom" xml:space="preserve"><value>Take back from</value></data>
+  <data name="Parking_Owned_ReclaimTo" xml:space="preserve"><value>Take back to</value></data>
+  <data name="Parking_Owned_Reclaim" xml:space="preserve"><value>Take back</value></data>
+  <data name="Parking_Owned_Reclaimed" xml:space="preserve"><value>The days are yours again — the spot is held for you once more.</value></data>
+  <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>You always have first claim on your own spot: a released day can be taken back until somebody books it — including days held for the waitlist. The reward for a taken-back day is returned.</value></data>
+  <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Past the cutoff the spot is offered to others, but until somebody takes it, confirming arrival takes it back.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Reward clawback when the taker no-shows (%)</value></data>
   <data name="Profile_CommuteTitle" xml:space="preserve"><value>Commute to work</value></data>
   <data name="Profile_CommuteHelp" xml:space="preserve"><value>Enter your home address – we compute the distance to the lot from it. The farther you live, the more points you earn for taking a freed spot.</value></data>
