@@ -2754,6 +2754,8 @@ fluent-menu-item:has(> .account-menu-link) {
     color: var(--warning-rest, #b86e00);
 }
 
+
+
 /* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy. */
 .lot-detail {
     display: flex;
@@ -2826,6 +2828,16 @@ fluent-menu-item:has(> .account-menu-link) {
     background: var(--neutral-fill-secondary-rest, #f7f7f7);
 }
 
+/* Tělo tabu: FluentStack a jeho mezery zůstaly nad taby, takže si obsah panelu řídí rozestupy
+   sám. Horní odsazení odděluje obsah od lišty tabů. */
+.lot-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    padding-top: 14px;
+}
+
 /* Podrobná tabulka pod grafy — grafy vedou, tabulka drží čísla, která nenesou (nedostavení,
    neshody, sdílené dny). */
 .lot-table-toggle > summary {
@@ -2835,10 +2847,57 @@ fluent-menu-item:has(> .account-menu-link) {
     padding: 6px 0;
 }
 
-@media (max-width: 640px) {
-    .lot-board {
-        grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+/* Souhrnná tabulka: metrika, číslo, sparkline. Číslo je hlavní sdělení, proto velké a napravo
+   od názvu; graf je až za ním a nese jen tvar. */
+.lot-summary {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .lot-summary th,
+    .lot-summary td {
+        text-align: left;
+        padding: 5px 10px;
+        border-bottom: 1px solid var(--brand-hairline, #ececec);
     }
+
+    .lot-summary thead th {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: var(--neutral-foreground-hint, #6b6b6b);
+    }
+
+    .lot-summary tbody th {
+        font-weight: 400;
+    }
+
+.lot-summary__num {
+    font-size: 17px;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 1%;
+}
+
+.lot-summary__chart {
+    width: 190px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.lot-summary__nochart { color: var(--neutral-foreground-hint, #6b6b6b); }
+
+/* Vybočující metriky se barví na čísle — stejná paleta jako state-pill. Značkové tmavě navy
+   se tu nepoužívá: na tmavém tématu by na tmavém podkladu zmizelo. */
+.lot-summary--warn .lot-summary__num { color: var(--warning-rest, #f7a900); }
+.lot-summary--off .lot-summary__num { color: var(--neutral-foreground-hint, #6b6b6b); }
+.lot-summary--meter__fill--high .lot-summary__num { color: var(--error-rest, #d13438); }
+.lot-summary--meter__fill--mid .lot-summary__num { color: var(--warning-rest, #f7a900); }
+
+@media (max-width: 640px) {
+    .lot-summary__chart { display: none; }
 
     .lot-calendar__row {
         grid-template-columns: 1fr 1fr;
@@ -2846,4 +2905,12 @@ fluent-menu-item:has(> .account-menu-link) {
     }
 
     .lot-calendar__actions { justify-content: flex-start; }
+}
+
+/* Dialog s detailem místa: široký, ale ne přes celou obrazovku, a s vlastním scrollem —
+   kalendář na 14 dní se do výšky viewportu nevejde. */
+.lot-dialog::part(control) {
+    width: min(920px, 94vw);
+    max-height: 88vh;
+    overflow: auto;
 }

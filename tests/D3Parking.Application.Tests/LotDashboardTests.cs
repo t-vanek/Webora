@@ -87,7 +87,7 @@ public class LotDashboardTests
         await BookAsync(closed, Guid.NewGuid(), checkedIn: true);
 
         var board = await CreateDashboard().GetBoardAsync(Today);
-        var tiles = board.Sections.SelectMany(s => s.Spots).ToDictionary(t => t.Code, t => t.State);
+        var tiles = board.Spots.ToDictionary(t => t.Code, t => t.State);
 
         Assert.Multiple(() =>
         {
@@ -115,7 +115,7 @@ public class LotDashboardTests
         // Before the hold cutoff, so auto-share cannot be what makes the difference.
         var morning = new DateTimeOffset(2026, 9, 15, 6, 0, 0, TimeSpan.Zero);
         var board = await CreateDashboard(morning).GetBoardAsync(Today);
-        var tiles = board.Sections.SelectMany(s => s.Spots).ToDictionary(t => t.Code, t => t.State);
+        var tiles = board.Spots.ToDictionary(t => t.Code, t => t.State);
 
         Assert.That(tiles["B-1"], Is.EqualTo(SpotBoardState.ResidentHeld));
         Assert.That(tiles["B-2"], Is.EqualTo(SpotBoardState.ResidentShared));
@@ -126,7 +126,7 @@ public class LotDashboardTests
     }
 
     [Test]
-    public async Task Sections_come_from_the_code_prefix_and_sort_naturally()
+    public async Task Rows_carry_their_section_and_land_ordered_by_section_then_by_number()
     {
         await CreateSpotAsync("P2-10");
         await CreateSpotAsync("P2-2");
@@ -135,11 +135,44 @@ public class LotDashboardTests
 
         var board = await CreateDashboard().GetBoardAsync(Today);
 
-        Assert.That(board.Sections.Select(s => s.Name), Is.EqualTo(new[] { string.Empty, "A", "P2" }),
-            "A code with no letter prefix belongs to one unnamed section, not a section of its own.");
-        Assert.That(board.Sections.First(s => s.Name == "P2").Spots.Select(t => t.Code),
-            Is.EqualTo(new[] { "P2-2", "P2-10" }),
-            "Spot codes sort as numbers inside a section, so P2-2 precedes P2-10.");
+        Assert.That(board.Spots.Select(s => s.Code), Is.EqualTo(new[] { "7", "A-1", "P2-2", "P2-10" }),
+            "Sectionless codes first, then by section, and inside a section codes read as numbers.");
+        Assert.That(board.Spots.Single(s => s.Code == "P2-10").Section, Is.EqualTo("P2"));
+        Assert.That(board.Spots.Single(s => s.Code == "7").Section, Is.Empty,
+            "A code with no letter prefix has no section rather than being a section of its own.");
+    }
+
+    [Test]
+    public async Task The_summary_trends_are_a_fixed_window_with_a_point_for_every_day()
+    {
+        var owner = Guid.NewGuid();
+        var spot = await CreateSpotAsync("M-1", ownerId: owner);
+        await CreateSpotAsync("M-2");
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            // Shared and taken, then shared and nobody came.
+            dbContext.SpotReleases.Add(new SpotRelease(spot, owner, Today.AddDays(-2), Noon, 0));
+            dbContext.SpotReleases.Add(new SpotRelease(spot, owner, Today.AddDays(-1), Noon, 0));
+            await dbContext.SaveChangesAsync();
+        }
+
+        var trends = (await CreateDashboard().GetBoardAsync(Today)).Trends;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(trends.Occupancy, Has.Count.EqualTo(LotBoard.SummaryTrendDays),
+                "A sparkline needs a point per day, busy or not.");
+            Assert.That(trends.Mismatches, Has.Count.EqualTo(LotBoard.SummaryTrendDays));
+            Assert.That(trends.WastedShares, Has.Count.EqualTo(LotBoard.SummaryTrendDays));
+            Assert.That(trends.Occupancy[^1].Date, Is.EqualTo(Today), "Oldest first, so the last point is today.");
+        });
+
+        Assert.That(trends.Occupancy.Single(d => d.Date == Today.AddDays(-2)).Occupied, Is.EqualTo(1));
+        Assert.That(trends.Occupancy.Single(d => d.Date == Today.AddDays(-1)).Occupied, Is.Zero);
+        Assert.That(trends.WastedShares.Where(d => d.Count > 0).Select(d => d.Date),
+            Is.EqualTo(new[] { Today.AddDays(-1) }),
+            "Only the shared day nobody took is waste; the one that was taken worked.");
     }
 
     [Test]
@@ -332,7 +365,7 @@ public class LotDashboardTests
         }
 
         var board = await CreateDashboard().GetBoardAsync(Today);
-        var tile = board.Sections.SelectMany(s => s.Spots).Single(t => t.Code == "V-1");
+        var tile = board.Spots.Single(t => t.Code == "V-1");
 
         Assert.That(tile.State, Is.EqualTo(SpotBoardState.VisitorBooked));
         Assert.That(tile.HolderName, Is.EqualTo("Jana Dvořáková"),

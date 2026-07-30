@@ -963,6 +963,8 @@
   <data name="Lot_Today" xml:space="preserve"><value>Dnes</value></data>
   <data name="Lot_NotToday" xml:space="preserve"><value>Jiný den — dlaždice ukazují, co je na ten den zarezervováno, ne aktuální stav</value></data>
   <data name="Lot_SectionUnnamed" xml:space="preserve"><value>Bez sekce</value></data>
+  <data name="Lot_Tab_Board" xml:space="preserve"><value>Plocha</value></data>
+  <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytika</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Zavřít</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Volné</value></data>
   <data name="Lot_State_Booked" xml:space="preserve"><value>Zarezervováno</value></data>
@@ -1009,8 +1011,6 @@
   <data name="Lot_MoveConfirm" xml:space="preserve"><value>Přesunout</value></data>
   <data name="Lot_MoveAbort" xml:space="preserve"><value>Zpět</value></data>
   <data name="Lot_MoveNoTargets" xml:space="preserve"><value>V tom čase není volné žádné jiné místo.</value></data>
-  <data name="Lot_Analytics" xml:space="preserve"><value>Analytika vytíženosti</value></data>
-  <data name="Lot_Analytics_Hint" xml:space="preserve"><value>Řazeno od nejvytíženějšího místa. Konec tabulky je mrtvá kapacita — místa, o která nikdo nestojí.</value></data>
   <data name="Lot_Window" xml:space="preserve"><value>Okno</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Posledních {0} dní</value></data>
   <data name="Lot_Stat_AvgUtilization" xml:space="preserve"><value>Průměrná vytíženost</value></data>
@@ -1018,6 +1018,10 @@
   <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>Nedostavení</value></data>
   <data name="Lot_Stat_Peak" xml:space="preserve"><value>Špička</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Neshody</value></data>
+  <data name="Lot_Summary_Metric" xml:space="preserve"><value>Metrika</value></data>
+  <data name="Lot_Summary_Value" xml:space="preserve"><value>Teď</value></data>
+  <data name="Lot_Summary_Trend" xml:space="preserve"><value>Trend {0} dní</value></data>
+  <data name="Lot_Summary_NoTrend" xml:space="preserve"><value>Tahle metrika nemá denní historii, ze které by se trend dal spočítat.</value></data>
   <data name="Lot_Trend" xml:space="preserve"><value>Zatížení v čase</value></data>
   <data name="Lot_Trend_Hint" xml:space="preserve"><value>Kolik míst každý den skutečně někdo obsadil. Škála jde k dnešní kapacitě ({0} míst) — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní jmenovatel by byl vymyšlený.</value></data>
   <data name="Lot_Trend_Series" xml:space="preserve"><value>Obsazených míst</value></data>

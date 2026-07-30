@@ -48,20 +48,51 @@
     }
     else
     {
-        <div class="lot-stats">
-            @Stat(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %", MeterClass(_board.Overview.OccupancyPercent))
-            @Stat(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null)
-            @Stat(L["Lot_Stat_Booked"], _board.Overview.Booked.ToString(), null)
-            @Stat(L["Lot_Stat_Free"], _board.Overview.Free.ToString(), null)
-            @Stat(L["Lot_Stat_Residents"], _board.Overview.ResidentSpots.ToString(), null)
-            @Stat(L["Lot_Stat_Pool"], _board.Overview.PoolSpots.ToString(), null)
-            @Stat(L["Lot_Stat_Visitors"], _board.Overview.VisitorBookings.ToString(), null)
-            @Stat(L["Lot_Stat_Queue"], _board.Overview.QueueWaiting.ToString(), _board.Overview.QueueWaiting > 0 ? "warn" : null)
-            @Stat(L["Lot_Stat_Mismatches"], _board.Overview.OpenMismatches.ToString(), _board.Overview.OpenMismatches > 0 ? "warn" : null)
-            @Stat(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(), _board.Overview.UnusedSharedDays > 0 ? "warn" : null)
-            @Stat(L["Lot_Stat_Inactive"], _board.Overview.InactiveSpots.ToString(), _board.Overview.InactiveSpots > 0 ? "off" : null)
-        </div>
+        @* The live summary as a table: one row per metric, its number, and a sparkline for the metrics
+           that actually have a day-by-day history. The rows without one show no chart rather than a
+           flat line — a trend for "how many spots are residents'" would be invented. *@
+        <table class="lot-summary">
+            <thead>
+                <tr>
+                    <th scope="col">@L["Lot_Summary_Metric"]</th>
+                    <th scope="col" class="lot-summary__num">@L["Lot_Summary_Value"]</th>
+                    <th scope="col">@L["Lot_Summary_Trend", LotBoard.SummaryTrendDays]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @SummaryRow(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %",
+                    MeterClass(_board.Overview.OccupancyPercent), OccupancyTrend, percent: true)
+                @SummaryRow(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null, OccupiedTrend)
+                @SummaryRow(L["Lot_Stat_Mismatches"], _board.Overview.OpenMismatches.ToString(),
+                    _board.Overview.OpenMismatches > 0 ? "warn" : null, MismatchTrend)
+                @SummaryRow(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(),
+                    _board.Overview.UnusedSharedDays > 0 ? "warn" : null, WastedShareTrend)
+                @SummaryRow(L["Lot_Stat_Booked"], _board.Overview.Booked.ToString(), null, null)
+                @SummaryRow(L["Lot_Stat_Free"], _board.Overview.Free.ToString(), null, null)
+                @SummaryRow(L["Lot_Stat_Residents"], _board.Overview.ResidentSpots.ToString(), null, null)
+                @SummaryRow(L["Lot_Stat_Pool"], _board.Overview.PoolSpots.ToString(), null, null)
+                @SummaryRow(L["Lot_Stat_Visitors"], _board.Overview.VisitorBookings.ToString(), null, null)
+                @SummaryRow(L["Lot_Stat_Queue"], _board.Overview.QueueWaiting.ToString(),
+                    _board.Overview.QueueWaiting > 0 ? "warn" : null, null)
+                @SummaryRow(L["Lot_Stat_Inactive"], _board.Overview.InactiveSpots.ToString(),
+                    _board.Overview.InactiveSpots > 0 ? "off" : null, null)
+            </tbody>
+        </table>
 
+        @* Two tabs: the lot as a picture, and the lot as numbers over time. Everything on one page
+           was a single long scroll where the board and the charts competed for the same attention.
+           The summary table above stays outside the tabs — "how is the lot doing right now" should
+           not cost a tab switch.
+
+           Both tab bodies render unconditionally, and must stay that way. Guarding them with
+           @if (_activeTab == …) looks tempting — it would keep charts out of a hidden panel — but it
+           fights FluentTabs: swapping a panel's children on selection makes the web component re-read
+           its children and snap the selection back to the first tab, so the page bounces to "Plocha"
+           the moment you leave it. Left alone, the analytics charts pick up their real width when
+           their panel is shown (measured: 975 px, not 0), so there is nothing to work around. *@
+        <FluentTabs @bind-ActiveTabId="_activeTab">
+            <FluentTab Id="@BoardTab" Label="@L["Lot_Tab_Board"]">
+        <div class="lot-tab">
         <div class="lot-toolbar">
             <div class="field">
                 <label>@L["Lot_Day"]</label>
@@ -85,25 +116,26 @@
             }
         </div>
 
-        @* The loop variable is not called "section": @section is a reserved Razor directive, so
+        @* The lot drawn as itself: a tile per spot, grouped into the sections the codes imply. The
+           loop variable is not called "section" — @section is a reserved Razor directive, so
            @section.Spots would be parsed as one. *@
-        @foreach (var zone in _board.Sections)
+        @foreach (var zone in _board.Spots.GroupBy(s => s.Section))
         {
             <div class="lot-section">
                 <div class="section-head">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Accent" />
-                    <span>@(string.IsNullOrEmpty(zone.Name) ? L["Lot_SectionUnnamed"] : zone.Name)</span>
-                    <span class="count-chip">@zone.Spots.Count</span>
+                    <span>@(string.IsNullOrEmpty(zone.Key) ? L["Lot_SectionUnnamed"] : zone.Key)</span>
+                    <span class="count-chip">@zone.Count()</span>
                 </div>
                 <div class="lot-board">
-                    @foreach (var tile in zone.Spots)
+                    @foreach (var tile in zone)
                     {
                         @* A button, not a div: the board is keyboard-navigable and each tile opens the
-                           spot's detail — the same affordance a screen reader announces. *@
+                           spot's dialog — the same affordance a screen reader announces. *@
                         <button type="button"
                                 class="lot-tile lot-tile--@tile.State @(_detail?.SpotId == tile.SpotId ? "lot-tile--selected" : null)"
                                 title="@TileTooltip(tile)"
-                                @onclick="() => OpenDetailAsync(tile.SpotId)">
+                                @onclick="() => SelectSpotAsync(tile.SpotId)">
                             <span class="lot-tile__head">
                                 <span class="lot-tile__code">@tile.Code</span>
                                 <span class="lot-tile__dot lot-tile__dot--@tile.State"></span>
@@ -130,9 +162,131 @@
                 </div>
             </div>
         }
+        </div>
+            </FluentTab>
 
+            <FluentTab Id="@AnalyticsTab" Label="@L["Lot_Tab_Analytics"]">
+        <div class="lot-tab">
+            <div class="lot-toolbar">
+                <FluentSelect TOption="int" Items="@AnalyticsWindows"
+                              OptionValue="@(d => d.ToString())"
+                              OptionText="@(d => L["Lot_LastDays", d].Value)"
+                              Value="@_analyticsDays.ToString()"
+                              ValueChanged="ChangeAnalyticsWindowAsync"
+                              Label="@L["Lot_Window"]" />
+            </div>
+            @if (_analytics is null)
+            {
+                <div class="loading"><FluentProgressRing /></div>
+            }
+            else
+            {
+                <div class="lot-stats">
+                    @Stat(L["Lot_Stat_AvgUtilization"], $"{_analytics.AverageOccupancyPercent} %", MeterClass(_analytics.AverageOccupancyPercent))
+                    @Stat(L["Lot_Stat_Bookings"], _analytics.TotalReservations.ToString(), null)
+                    @Stat(L["Lot_Stat_NoShowRate"], $"{_analytics.NoShowPercent} %", _analytics.NoShowPercent > 10 ? "warn" : null)
+                    @Stat(L["Lot_Stat_Peak"], PeakLabel(_analytics), null)
+                </div>
+
+                @* Load over time — the "busiest spot in time" question the table alone could not
+                   answer. Keyed on the window so switching it rebuilds the chart instead of
+                   animating between two different x-axes. *@
+                @if (_analytics.Daily.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Subject">@L["Lot_Trend"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Trend_Hint", _analytics.Daily[0].Capacity]</FluentLabel>
+                    <ApexChart @key="@($"daily-{_analyticsDays}")" TItem="DailyOccupancyDto"
+                               Options="@_dailyOptions" Height="240">
+                        <ApexPointSeries TItem="DailyOccupancyDto"
+                                         Items="@_analytics.Daily"
+                                         Name="@L["Lot_Trend_Series"].Value"
+                                         SeriesType="SeriesType.Area"
+                                         XValue="@(d => d.Date.ToString("d.M."))"
+                                         YValue="@(d => d.Occupied)" />
+                    </ApexChart>
+                }
+
+                @if (_analytics.Spots.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Subject">@L["Lot_Busiest"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Busiest_Hint", TopSpotCount]</FluentLabel>
+                    <ApexChart @key="@($"busiest-{_analyticsDays}")" TItem="SpotUtilizationDto"
+                               Options="@_busiestOptions" Height="@(60 + TopSpots.Count * 26)">
+                        <ApexPointSeries TItem="SpotUtilizationDto"
+                                         Items="@TopSpots"
+                                         Name="@L["Lot_Detail_Utilization"].Value"
+                                         SeriesType="SeriesType.Bar"
+                                         XValue="@(s => s.Code)"
+                                         YValue="@(s => s.UtilizationPercent)" />
+                    </ApexChart>
+                }
+
+                @if (_analytics.Demand.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Subject">@L["Lot_Demand"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Demand_Hint"]</FluentLabel>
+                    @* One heatmap series per weekday, Monday first — the row order is the series
+                       order reversed, because ApexCharts stacks the first series at the bottom. *@
+                    <ApexChart @key="@($"demand-{_analyticsDays}")" TItem="DemandCellDto"
+                               Options="@_demandOptions" Height="260">
+                        @foreach (var day in WeekOrder.Reverse())
+                        {
+                            <ApexPointSeries TItem="DemandCellDto"
+                                             Items="@DemandRow(day)"
+                                             Name="@ShortDay(day)"
+                                             SeriesType="SeriesType.Heatmap"
+                                             XValue="@(c => c.Hour)"
+                                             YValue="@(c => c.Count)" />
+                        }
+                    </ApexChart>
+                }
+
+                @* The numbers a chart cannot carry: no-shows, blocked-spot reports and shared days per
+                   spot. Kept behind a disclosure so the charts lead but the detail stays reachable. *@
+                @if (_analytics.Spots.Count > 0)
+                {
+                    <details class="lot-table-toggle">
+                        <summary>@L["Lot_Analytics_Table"]</summary>
+                        <FluentDataGrid Items="@_analytics.Spots.AsQueryable()" TGridItem="SpotUtilizationDto"
+                                        GridTemplateColumns="1fr 1.2fr 1.4fr 1fr 0.8fr 0.8fr 1fr">
+                            <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+                            <TemplateColumn Title="@L["Parking_Admin_Type"]">
+                                <span class="type-pill type-pill--@context.Type">@L[$"Parking_SpotType_{context.Type}"]</span>
+                            </TemplateColumn>
+                            <TemplateColumn Title="@L["Parking_Admin_Resident"]">
+                                @(context.OwnerName ?? "—")
+                            </TemplateColumn>
+                            <TemplateColumn Title="@L["Lot_Detail_Utilization"]">
+                                @context.UtilizationPercent % · @context.BookedDays/@context.WindowDays
+                            </TemplateColumn>
+                            <PropertyColumn Property="@(s => s.NoShows)" Title="@L["Lot_Detail_NoShows"]" />
+                            <PropertyColumn Property="@(s => s.Mismatches)" Title="@L["Lot_Col_Mismatch"]" />
+                            <TemplateColumn Title="@L["Lot_Detail_Shared"]">
+                                @if (context.SharedDays == 0)
+                                {
+                                    <span>—</span>
+                                }
+                                else
+                                {
+                                    <span>@context.SharedDays (@context.UnusedSharedDays)</span>
+                                }
+                            </TemplateColumn>
+                        </FluentDataGrid>
+                    </details>
+                }
+            }
+        </div>
+            </FluentTab>
+        </FluentTabs>
+
+        @* The spot's detail is a dialog, not a tab: it belongs to the tile you just clicked, and a
+           tab would have sat there empty until something was selected. Rendered only while open, so
+           the chart inside mounts into a laid-out dialog and can measure itself. *@
         @if (_detail is not null)
         {
+            <FluentDialog Hidden="false" Modal="true" TrapFocus="true"
+                          Class="lot-dialog" OnDismiss="CloseDetail"
+                          aria-label="@_detail.Code">
             <div class="admin-panel lot-detail">
                 <div class="section-head">
                     <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Accent" />
@@ -141,7 +295,7 @@
                     <span class="state-pill state-pill--@(_detail.IsActive ? "on" : "off")">
                         @L[_detail.IsActive ? "Parking_Admin_Active" : "Parking_Admin_Inactive"]
                     </span>
-                    <FluentButton Appearance="Appearance.Stealth" OnClick="() => _detail = null">@L["Lot_Close"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="CloseDetail">@L["Lot_Close"]</FluentButton>
                 </div>
 
                 <div class="lot-detail__facts">
@@ -312,127 +466,16 @@
                     </div>
                 }
             </div>
+            </FluentDialog>
         }
-
-        <div class="admin-panel">
-            <div class="section-head">
-                <FluentIcon Value="@(new Icons.Regular.Size20.DataTrending())" Color="Color.Accent" />
-                <span>@L["Lot_Analytics"]</span>
-            </div>
-            <div class="lot-toolbar">
-                <FluentSelect TOption="int" Items="@AnalyticsWindows"
-                              OptionValue="@(d => d.ToString())"
-                              OptionText="@(d => L["Lot_LastDays", d].Value)"
-                              Value="@_analyticsDays.ToString()"
-                              ValueChanged="ChangeAnalyticsWindowAsync"
-                              Label="@L["Lot_Window"]" />
-            </div>
-
-            @if (_analytics is null)
-            {
-                <div class="loading"><FluentProgressRing /></div>
-            }
-            else
-            {
-                <div class="lot-stats">
-                    @Stat(L["Lot_Stat_AvgUtilization"], $"{_analytics.AverageOccupancyPercent} %", MeterClass(_analytics.AverageOccupancyPercent))
-                    @Stat(L["Lot_Stat_Bookings"], _analytics.TotalReservations.ToString(), null)
-                    @Stat(L["Lot_Stat_NoShowRate"], $"{_analytics.NoShowPercent} %", _analytics.NoShowPercent > 10 ? "warn" : null)
-                    @Stat(L["Lot_Stat_Peak"], PeakLabel(_analytics), null)
-                </div>
-
-                @* Load over time — the "busiest spot in time" question the table alone could not
-                   answer. Keyed on the window so switching it rebuilds the chart instead of
-                   animating between two different x-axes. *@
-                @if (_analytics.Daily.Count > 0)
-                {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Trend"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Trend_Hint", _analytics.Daily[0].Capacity]</FluentLabel>
-                    <ApexChart @key="@($"daily-{_analyticsDays}")" TItem="DailyOccupancyDto"
-                               Options="@_dailyOptions" Height="240">
-                        <ApexPointSeries TItem="DailyOccupancyDto"
-                                         Items="@_analytics.Daily"
-                                         Name="@L["Lot_Trend_Series"].Value"
-                                         SeriesType="SeriesType.Area"
-                                         XValue="@(d => d.Date.ToString("d.M."))"
-                                         YValue="@(d => d.Occupied)" />
-                    </ApexChart>
-                }
-
-                @if (_analytics.Spots.Count > 0)
-                {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Busiest"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Busiest_Hint", TopSpotCount]</FluentLabel>
-                    <ApexChart @key="@($"busiest-{_analyticsDays}")" TItem="SpotUtilizationDto"
-                               Options="@_busiestOptions" Height="@(60 + TopSpots.Count * 26)">
-                        <ApexPointSeries TItem="SpotUtilizationDto"
-                                         Items="@TopSpots"
-                                         Name="@L["Lot_Detail_Utilization"].Value"
-                                         SeriesType="SeriesType.Bar"
-                                         XValue="@(s => s.Code)"
-                                         YValue="@(s => s.UtilizationPercent)" />
-                    </ApexChart>
-                }
-
-                @if (_analytics.Demand.Count > 0)
-                {
-                    <FluentLabel Typo="Typography.Subject">@L["Lot_Demand"]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Demand_Hint"]</FluentLabel>
-                    @* One heatmap series per weekday, Monday first — the row order is the series
-                       order reversed, because ApexCharts stacks the first series at the bottom. *@
-                    <ApexChart @key="@($"demand-{_analyticsDays}")" TItem="DemandCellDto"
-                               Options="@_demandOptions" Height="260">
-                        @foreach (var day in WeekOrder.Reverse())
-                        {
-                            <ApexPointSeries TItem="DemandCellDto"
-                                             Items="@DemandRow(day)"
-                                             Name="@ShortDay(day)"
-                                             SeriesType="SeriesType.Heatmap"
-                                             XValue="@(c => c.Hour)"
-                                             YValue="@(c => c.Count)" />
-                        }
-                    </ApexChart>
-                }
-
-                @* The numbers a chart cannot carry: no-shows, blocked-spot reports and shared days per
-                   spot. Kept behind a disclosure so the charts lead but the detail stays reachable. *@
-                @if (_analytics.Spots.Count > 0)
-                {
-                    <details class="lot-table-toggle">
-                        <summary>@L["Lot_Analytics_Table"]</summary>
-                        <FluentDataGrid Items="@_analytics.Spots.AsQueryable()" TGridItem="SpotUtilizationDto"
-                                        GridTemplateColumns="1fr 1.2fr 1.4fr 1fr 0.8fr 0.8fr 1fr">
-                            <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
-                            <TemplateColumn Title="@L["Parking_Admin_Type"]">
-                                <span class="type-pill type-pill--@context.Type">@L[$"Parking_SpotType_{context.Type}"]</span>
-                            </TemplateColumn>
-                            <TemplateColumn Title="@L["Parking_Admin_Resident"]">
-                                @(context.OwnerName ?? "—")
-                            </TemplateColumn>
-                            <TemplateColumn Title="@L["Lot_Detail_Utilization"]">
-                                @context.UtilizationPercent % · @context.BookedDays/@context.WindowDays
-                            </TemplateColumn>
-                            <PropertyColumn Property="@(s => s.NoShows)" Title="@L["Lot_Detail_NoShows"]" />
-                            <PropertyColumn Property="@(s => s.Mismatches)" Title="@L["Lot_Col_Mismatch"]" />
-                            <TemplateColumn Title="@L["Lot_Detail_Shared"]">
-                                @if (context.SharedDays == 0)
-                                {
-                                    <span>—</span>
-                                }
-                                else
-                                {
-                                    <span>@context.SharedDays (@context.UnusedSharedDays)</span>
-                                }
-                            </TemplateColumn>
-                        </FluentDataGrid>
-                    </details>
-                }
-            }
-        </div>
     }
 </FluentStack>
 
+
 @code {
+    private const string BoardTab = "tab-board";
+    private const string AnalyticsTab = "tab-analytics";
+
     private static readonly SpotBoardState[] BoardStates = Enum.GetValues<SpotBoardState>();
     private static readonly int[] AnalyticsWindows = [7, 30, 90];
 
@@ -447,6 +490,7 @@
     private SpotDetailDto? _detail;
     private LotAnalyticsDto? _analytics;
 
+    private string? _activeTab = BoardTab;
     private DateTime _day = DateTime.Today;
     private int _analyticsDays = 30;
 
@@ -504,6 +548,20 @@
         return options;
     }
 
+    /// <summary>
+    /// A sparkline for one table row: no axes, no grid, no tooltip chrome — at 34 px tall the shape is
+    /// the whole message, and the exact days live in the spot's own tab. A fresh instance per row
+    /// because ApexCharts writes into the options object it is handed.
+    /// </summary>
+    private static ApexChartOptions<SpotDayDto> RowTrendOptions()
+    {
+        var options = ChartBase<SpotDayDto>();
+        options.Chart.Sparkline = new ChartSparkline { Enabled = true };
+        options.Yaxis = [new YAxis { Min = 0, Max = 1, Show = false }];
+        options.Tooltip = new Tooltip { Enabled = false };
+        return options;
+    }
+
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private DateOnly Day => DateOnly.FromDateTime(_day);
@@ -548,12 +606,21 @@
         return ReloadBoardAsync();
     }
 
+    /// <summary>Clicking a tile opens that spot's dialog.</summary>
+    private Task SelectSpotAsync(Guid spotId) => OpenDetailAsync(spotId);
+
     private async Task OpenDetailAsync(Guid spotId)
     {
         CancelMove();
         // Two weeks ahead from the day on the board: enough to see the week being planned without
-        // turning the panel into a scroll marathon.
+        // turning the dialog into a scroll marathon.
         _detail = await Dashboard.GetSpotDetailAsync(spotId, Day, 14);
+    }
+
+    private void CloseDetail()
+    {
+        CancelMove();
+        _detail = null;
     }
 
     private async Task ChangeAnalyticsWindowAsync(string? days)
@@ -661,7 +728,10 @@
         return string.IsNullOrEmpty(listed) ? L["Lot_Detail_PlanNone"] : listed;
     }
 
-    /// <summary>One tile of the summary strip; `tone` maps onto the shared state-pill palette.</summary>
+    /// <summary>
+    /// One tile of the analytics headline strip. Those four are single figures over the chosen window
+    /// with no day-by-day history to draw, so they stay tiles rather than joining a trend table.
+    /// </summary>
     private RenderFragment Stat(string label, string value, string? tone) => __builder =>
     {
         <div class="lot-stat @(tone is null ? null : $"lot-stat--{tone}")">
@@ -669,6 +739,63 @@
             <span class="lot-stat__label">@label</span>
         </div>
     };
+
+    /// <summary>
+    /// One row of the summary table: the metric, its current number, and its sparkline when the metric
+    /// has a daily history. `tone` maps onto the shared state-pill palette; `percent` scales the chart
+    /// to 0–100 instead of letting it fit the data, so an occupancy line is read against the whole lot.
+    /// </summary>
+    private RenderFragment SummaryRow(string label, string value, string? tone,
+        IReadOnlyList<DailyCountDto>? trend, bool percent = false) => __builder =>
+    {
+        <tr class="@(tone is null ? null : $"lot-summary--{tone}")">
+            <th scope="row">@label</th>
+            <td class="lot-summary__num">@value</td>
+            <td class="lot-summary__chart">
+                @if (trend is { Count: > 0 })
+                {
+                    @* Explicit pixel width: ApexCharts measures its container on mount and a table cell
+                       has no resolved width yet, so a relative chart comes out zero-wide. *@
+                    <ApexChart @key="@($"sum-{label}")" TItem="DailyCountDto"
+                               Options="@SparklineOptions(percent)" Height="34" Width="180">
+                        <ApexPointSeries TItem="DailyCountDto"
+                                         Items="@trend"
+                                         Name="@label"
+                                         SeriesType="SeriesType.Area"
+                                         XValue="@(d => d.Date.ToString("d.M."))"
+                                         YValue="@(d => d.Count)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <span class="lot-summary__nochart" title="@L["Lot_Summary_NoTrend"]">—</span>
+                }
+            </td>
+        </tr>
+    };
+
+    private IReadOnlyList<DailyCountDto>? OccupancyTrend =>
+        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.OccupancyPercent)).ToList();
+
+    private IReadOnlyList<DailyCountDto>? OccupiedTrend =>
+        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.Occupied)).ToList();
+
+    private IReadOnlyList<DailyCountDto>? MismatchTrend => _board?.Trends.Mismatches;
+
+    private IReadOnlyList<DailyCountDto>? WastedShareTrend => _board?.Trends.WastedShares;
+
+    /// <summary>
+    /// A sparkline for a summary row: no axes or grid at 34 px tall, the shape is the whole message.
+    /// A fresh instance per row because ApexCharts writes into the options object it is handed.
+    /// </summary>
+    private static ApexChartOptions<DailyCountDto> SparklineOptions(bool percent)
+    {
+        var options = ChartBase<DailyCountDto>();
+        options.Chart.Sparkline = new ChartSparkline { Enabled = true };
+        options.Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 };
+        options.Yaxis = [new YAxis { Min = 0, Max = percent ? 100 : null, Show = false }];
+        return options;
+    }
 
     private async Task SetActiveAsync(bool active)
     {
