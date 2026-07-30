@@ -393,7 +393,7 @@
   <data name="Parking_Blocked_PlateLabel" xml:space="preserve"><value>Blocking car's license plate (optional)</value></data>
   <data name="Parking_Blocked_PlatePlaceholder" xml:space="preserve"><value>e.g. 3AB 1234</value></data>
   <data name="Parking_Blocked_PhotoLabel" xml:space="preserve"><value>Photo of the blocked spot (required)</value></data>
-  <data name="Parking_Blocked_PhotoHint" xml:space="preserve"><value>Take the picture right at the lot so both the spot marking and the blocking car are visible. A spot manager reviews it, and each photo can be used only once.</value></data>
+  <data name="Parking_Blocked_PhotoHint" xml:space="preserve"><value>Take the picture right at the lot so both the spot marking and the blocking car are visible. The photo helps us verify the situation; each photo can be used only once.</value></data>
   <data name="Parking_Blocked_PhotoAttached" xml:space="preserve"><value>Attached photo: {0}</value></data>
   <data name="Parking_Error_PhotoRequired" xml:space="preserve"><value>The report needs a photo of the blocked spot.</value></data>
   <data name="Parking_Error_PhotoTooLarge" xml:space="preserve"><value>The photo is too large (8 MB limit).</value></data>
@@ -486,8 +486,8 @@
   <data name="Help_Queue_A2_Tiered" xml:space="preserve"><value>The order blends your tier with how long you've waited, so a lower tier still gets served. If you miss the claim window, the spot goes to the next in line and you rejoin at the back.</value></data>
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Note: a no-show on a spot claimed from the queue is penalised more heavily — {0}, {1} and {2} without access to the queue.</value></data>
   <data name="Help_Blocked_Q" xml:space="preserve"><value>Someone else's car is on my spot. Now what?</value></data>
-  <data name="Help_Blocked_A1" xml:space="preserve"><value>Click "I can't park" on your booking and attach a photo of the blocked spot (mandatory — it serves as proof, and each photo can be used only once). We'll either find you another free spot for the same window (the payment carries over, you pay nothing extra) or cancel the booking with a full refund. Either way it never counts as a no-show.</value></data>
-  <data name="Help_Blocked_A2" xml:space="preserve"><value>As an apology you're due a voucher for one free booking — peak included. A spot manager first approves it based on your photo; from approval it stays valid 30 days and is redeemed by ticking the box when booking. It helps if you copy the blocking car's plate into the form: the admin can then tell whether it's a colleague or a vehicle from outside the system.</value></data>
+  <data name="Help_Blocked_A1" xml:space="preserve"><value>Click "I can't park" on your booking and attach a photo of the blocked spot (mandatory — we use it to verify the situation, and each photo can be used only once). We'll either find you another free spot for the same window (the payment carries over, you pay nothing extra) or cancel the booking with a full refund. Either way it never counts as a no-show.</value></data>
+  <data name="Help_Blocked_A2" xml:space="preserve"><value>As an apology you're due a voucher for one free booking — peak included. We first verify the report from your photo; once the check is done the voucher activates, stays valid for 30 days and is redeemed by ticking the box when booking. It helps if you copy the blocking car's plate into the form: the admin can then tell whether it's a colleague or a vehicle from outside the system.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>I have my own (resident) spot</value></data>
   <data name="Help_Resident_A1" xml:space="preserve"><value>Your spot is held for you every day until {0}. If you're coming that day, confirm it with Confirm arrival. If you neither confirm nor release it, the spot is offered to everyone else after that hour.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) — you earn {0} for every hour of notice, up to {1} a day. The reward applies up to a monthly limit you set yourself.</value></data>
@@ -529,8 +529,8 @@
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>
-  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>Your apology voucher is awaiting the spot manager's review of the photo proof — we'll let you know once they decide.</value></data>
-  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>As an apology you're due a voucher for one free reservation (peak included). A spot manager first reviews the photo proof — once approved, it stays usable for 30 days.</value></data>
+  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>We're checking your blocked-spot report right now. Once the check is done we'll activate your apology voucher for one free reservation — we'll let you know.</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>We'll now verify the situation at the spot — once the check is done, we'll activate an apology voucher for one free reservation (peak included), valid for 30 days.</value></data>
   <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>The apology voucher is no longer available.</value></data>
   <data name="Parking_AddToCalendar" xml:space="preserve"><value>Add to calendar</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because of an action on your D3Parking account.</value></data>

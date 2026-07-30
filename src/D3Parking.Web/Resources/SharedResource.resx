@@ -393,7 +393,7 @@
   <data name="Parking_Blocked_PlateLabel" xml:space="preserve"><value>SPZ blokujícího vozidla (nepovinné)</value></data>
   <data name="Parking_Blocked_PlatePlaceholder" xml:space="preserve"><value>např. 3AB 1234</value></data>
   <data name="Parking_Blocked_PhotoLabel" xml:space="preserve"><value>Fotografie zablokovaného místa (povinná)</value></data>
-  <data name="Parking_Blocked_PhotoHint" xml:space="preserve"><value>Vyfoťte místo přímo na parkovišti tak, aby bylo vidět označení místa i blokující vozidlo. Fotku posoudí správce parkovacích míst; každou fotografii lze použít jen jednou.</value></data>
+  <data name="Parking_Blocked_PhotoHint" xml:space="preserve"><value>Vyfoťte místo přímo na parkovišti tak, aby bylo vidět označení místa i blokující vozidlo. Fotka nám pomůže situaci ověřit; každou fotografii lze použít jen jednou.</value></data>
   <data name="Parking_Blocked_PhotoAttached" xml:space="preserve"><value>Přiložená fotka: {0}</value></data>
   <data name="Parking_Error_PhotoRequired" xml:space="preserve"><value>Bez fotografie zablokovaného místa nelze záznam pořídit.</value></data>
   <data name="Parking_Error_PhotoTooLarge" xml:space="preserve"><value>Fotografie je příliš velká (limit 8 MB).</value></data>
@@ -486,8 +486,8 @@
   <data name="Help_Queue_A2_Tiered" xml:space="preserve"><value>Pořadí se řídí vaší úrovní a dobou čekání, takže i nižší úroveň se dočká. Když nabídku nestihnete převzít, místo dostane další v pořadí a vy se zařadíte na konec fronty.</value></data>
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Pozor: nedostavení se na místo převzaté z fronty je penalizované přísněji — {0}, {1} a {2} bez možnosti se do fronty postavit.</value></data>
   <data name="Help_Blocked_Q" xml:space="preserve"><value>Na mém místě stojí cizí auto. Co teď?</value></data>
-  <data name="Help_Blocked_A1" xml:space="preserve"><value>U rezervace klikněte na Nemůžu zaparkovat a přiložte fotografii zablokovaného místa (je povinná — slouží jako důkaz a každou fotku lze použít jen jednou). Buď vám najdeme jiné volné místo na stejné okno (platba se převede, nic navíc neplatíte), nebo rezervaci zrušíme s plnou vratkou. V žádném případě se to nepočítá jako nedostavení.</value></data>
-  <data name="Help_Blocked_A2" xml:space="preserve"><value>Jako omluvu vám náleží kupón na jednu rezervaci zdarma — platí i ve špičce. Nejdřív ho podle fotografie schválí správce parkovacích míst; od schválení platí 30 dní a uplatníte ho zaškrtnutím při rezervaci. Pomůže, když do formuláře opíšete SPZ blokujícího auta: správce pak pozná, jestli jde o kolegu, nebo o vozidlo mimo systém.</value></data>
+  <data name="Help_Blocked_A1" xml:space="preserve"><value>U rezervace klikněte na Nemůžu zaparkovat a přiložte fotografii zablokovaného místa (je povinná — podle ní situaci ověříme a každou fotku lze použít jen jednou). Buď vám najdeme jiné volné místo na stejné okno (platba se převede, nic navíc neplatíte), nebo rezervaci zrušíme s plnou vratkou. V žádném případě se to nepočítá jako nedostavení.</value></data>
+  <data name="Help_Blocked_A2" xml:space="preserve"><value>Jako omluvu vám náleží kupón na jednu rezervaci zdarma — platí i ve špičce. Hlášení nejdřív podle fotografie prověříme; jakmile je kontrola hotová, kupón se aktivuje, platí 30 dní a uplatníte ho zaškrtnutím při rezervaci. Pomůže, když do formuláře opíšete SPZ blokujícího auta: správce pak pozná, jestli jde o kolegu, nebo o vozidlo mimo systém.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>Mám přidělené vlastní (rezidentní) místo</value></data>
   <data name="Help_Resident_A1" xml:space="preserve"><value>Vaše místo se pro vás každý den drží do {0}. Když ten den přijedete, potvrďte to tlačítkem Potvrdit příjezd. Pokud nepotvrdíte ani neuvolníte, místo se po této hodině automaticky nabídne ostatním.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou) — dostanete {0} za každou hodinu předstihu, nejvýše {1} za den. Odměna platí do měsíčního limitu, který si nastavíte sami.</value></data>
@@ -529,8 +529,8 @@
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
   <data name="Parking_Voucher_Available" xml:space="preserve"><value>Máte omluvný kupón na jednu rezervaci zdarma — platí i ve špičce, do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Uplatnit kupón — tato rezervace zdarma</value></data>
-  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>Váš omluvný kupón čeká na schválení správcem parkovacích míst — dáme vám vědět, jakmile fotodůkaz posoudí.</value></data>
-  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Jako omluvu vám náleží kupón na jednu rezervaci zdarma (i ve špičce). Nejdřív ho podle fotodůkazu schválí správce parkovacích míst — pak bude 30 dní připraven k použití.</value></data>
+  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>Vaše hlášení o zablokovaném místě právě prověřujeme. Jakmile kontrolu dokončíme, aktivujeme vám omluvný kupón na jednu rezervaci zdarma — dáme vám vědět.</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Situaci na místě ještě prověříme — jakmile bude kontrola hotová, aktivujeme vám jako omluvu kupón na jednu rezervaci zdarma (i ve špičce), platný 30 dní.</value></data>
   <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>Omluvný kupón už není k dispozici.</value></data>
   <data name="Parking_AddToCalendar" xml:space="preserve"><value>Do kalendáře</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali na základě akce ve vašem účtu D3Parking.</value></data>
