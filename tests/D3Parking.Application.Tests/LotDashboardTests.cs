@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using D3Parking.Application.Parking;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
@@ -157,7 +158,7 @@ public class LotDashboardTests
             await dbContext.SaveChangesAsync();
         }
 
-        var trends = (await CreateDashboard().GetBoardAsync(Today)).Trends;
+        var trends = await CreateDashboard().GetSummaryTrendsAsync();
 
         Assert.Multiple(() =>
         {
@@ -421,12 +422,14 @@ public class LotDashboardTests
         Assert.That(await CreateDashboard().GetSpotDetailAsync(Guid.NewGuid(), Today, 7), Is.Null);
     }
 
+    // A fresh cache per instance, so one test's cached aggregate can never answer another's question.
     private LotDashboardService CreateDashboard(DateTimeOffset? now = null) =>
         new(new TestDbContextFactory(_options),
             new FakeParkingSettings(),
             new FakeSiteSettings(),
             new FixedTimeProvider(now ?? Noon),
             new NullNotificationService(),
+            new MemoryCache(new MemoryCacheOptions()),
             new PassthroughLocalizer<ParkingMessages>());
 
     private async Task<Guid> CreateSpotAsync(string code, bool active = true, Guid? ownerId = null,

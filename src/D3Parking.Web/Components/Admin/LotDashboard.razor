@@ -90,7 +90,7 @@
            its children and snap the selection back to the first tab, so the page bounces to "Plocha"
            the moment you leave it. Left alone, the analytics charts pick up their real width when
            their panel is shown (measured: 975 px, not 0), so there is nothing to work around. *@
-        <FluentTabs @bind-ActiveTabId="_activeTab">
+        <FluentTabs @bind-ActiveTabId="_activeTab" OnTabChange="OnTabChangedAsync">
             <FluentTab Id="@BoardTab" Label="@L["Lot_Tab_Board"]">
         <div class="lot-tab">
         <div class="lot-toolbar">
@@ -487,6 +487,7 @@
     ];
 
     private LotBoardDto? _board;
+    private LotSummaryTrendsDto? _trends;
     private SpotDetailDto? _detail;
     private LotAnalyticsDto? _analytics;
 
@@ -580,8 +581,10 @@
         // UTC-hosted server would preselect yesterday for a lot that is already past midnight.
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz).ToDateTime(TimeOnly.MinValue);
 
+        // The board and the summary header are what the page opens on. The analytics tab's queries
+        // scan every booking in its window, so they wait until somebody actually goes there.
         await ReloadBoardAsync();
-        await ReloadAnalyticsAsync();
+        _trends = await Dashboard.GetSummaryTrendsAsync();
     }
 
     private async Task ReloadBoardAsync()
@@ -591,6 +594,20 @@
         if (_detail is not null)
         {
             await OpenDetailAsync(_detail.SpotId);
+        }
+    }
+
+    /// <summary>
+    /// Loads the analytics the first time its tab is shown. Bound to the tab strip rather than guarding
+    /// the panel's markup: an @if around a tab body makes FluentTabs snap the selection back to the
+    /// first tab (see the note next to FluentTabs).
+    /// </summary>
+    private async Task OnTabChangedAsync(FluentTab tab)
+    {
+        _activeTab = tab?.Id;
+        if (_activeTab == AnalyticsTab && _analytics is null)
+        {
+            await ReloadAnalyticsAsync();
         }
     }
 
@@ -775,14 +792,14 @@
     };
 
     private IReadOnlyList<DailyCountDto>? OccupancyTrend =>
-        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.OccupancyPercent)).ToList();
+        _trends?.Occupancy.Select(d => new DailyCountDto(d.Date, d.OccupancyPercent)).ToList();
 
     private IReadOnlyList<DailyCountDto>? OccupiedTrend =>
-        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.Occupied)).ToList();
+        _trends?.Occupancy.Select(d => new DailyCountDto(d.Date, d.Occupied)).ToList();
 
-    private IReadOnlyList<DailyCountDto>? MismatchTrend => _board?.Trends.Mismatches;
+    private IReadOnlyList<DailyCountDto>? MismatchTrend => _trends?.Mismatches;
 
-    private IReadOnlyList<DailyCountDto>? WastedShareTrend => _board?.Trends.WastedShares;
+    private IReadOnlyList<DailyCountDto>? WastedShareTrend => _trends?.WastedShares;
 
     /// <summary>
     /// A sparkline for a summary row: no axes or grid at 34 px tall, the shape is the whole message.
@@ -870,7 +887,14 @@
             _busy = false;
         }
 
+        // The service drops its cached aggregates on an override, so these re-read fresh numbers.
+        // Analytics is only refreshed when it has been opened — otherwise the intervention would
+        // pay for a window nobody is looking at.
         await ReloadBoardAsync();
-        await ReloadAnalyticsAsync();
+        _trends = await Dashboard.GetSummaryTrendsAsync();
+        if (_analytics is not null)
+        {
+            await ReloadAnalyticsAsync();
+        }
     }
 }

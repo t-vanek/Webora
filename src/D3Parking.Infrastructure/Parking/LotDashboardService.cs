@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
@@ -18,14 +19,30 @@ namespace D3Parking.Infrastructure.Parking;
 /// transaction): the board is a picture of a moment and a stale tile costs nothing, whereas the two
 /// override operations at the bottom write and take the same protection the booking paths do.
 /// </summary>
+/// <remarks>
+/// Only the backward-looking aggregates are cached — the analytics window and the summary trends.
+/// Both scan every booking in a range to answer a question about the past, and both are read again
+/// on every visit to the page. The board is never cached: it answers "who is standing on which spot
+/// right now", which is exactly what the manager acts on. Both overrides evict the aggregates, so a
+/// cancel or a move is never followed by numbers that still count the booking.
+/// </remarks>
 public sealed class LotDashboardService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     IParkingSettingsService parkingSettings,
     ISiteSettingsService siteSettings,
     TimeProvider timeProvider,
     INotificationService notifications,
+    IMemoryCache cache,
     IStringLocalizer<ParkingMessages> messages) : ILotDashboardService
 {
+    /// <summary>
+    /// How long a computed aggregate is reused. Short on purpose: long enough that stepping between
+    /// tabs or re-entering the page is free, short enough that the manager is never looking at
+    /// yesterday's answer without noticing.
+    /// </summary>
+    private static readonly TimeSpan AggregateCacheTtl = TimeSpan.FromSeconds(60);
+
+    private const string CachePrefix = "d3parking:lot-dashboard:";
     /// <summary>
     /// How far back the "needs a look" signals reach (mismatches, wasted shares, a spot's own
     /// utilization). Inclusive of today, so it lines up with the analytics windows the page offers —
@@ -162,8 +179,26 @@ public sealed class LotDashboardService(
             .ThenBy(t => t.Code, SpotCodeComparer.Instance)
             .ToList();
 
+        return new LotBoardDto(date, isToday, overview, ordered);
+    }
+
+    public async Task<LotSummaryTrendsDto> GetSummaryTrendsAsync(CancellationToken cancellationToken = default)
+    {
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
+        var key = $"{CachePrefix}trends:{CacheGeneration}:{today:yyyy-MM-dd}";
+        if (cache.TryGetValue(key, out var cached) && cached is LotSummaryTrendsDto hit)
+        {
+            return hit;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var trends = await ComputeSummaryTrendsAsync(dbContext, timeZone, today, cancellationToken);
-        return new LotBoardDto(date, isToday, overview, trends, ordered);
+
+        using var entry = cache.CreateEntry(key);
+        entry.Value = trends;
+        entry.AbsoluteExpirationRelativeToNow = AggregateCacheTtl;
+        return trends;
     }
 
     /// <summary>
@@ -380,6 +415,14 @@ public sealed class LotDashboardService(
 
         var windowDays = to.DayNumber - from.DayNumber + 1;
 
+        // Keyed on the clamped window, so the three window choices the page offers each get their own
+        // entry rather than fighting over one.
+        var key = $"{CachePrefix}analytics:{CacheGeneration}:{from:yyyy-MM-dd}:{to:yyyy-MM-dd}";
+        if (cache.TryGetValue(key, out var cached) && cached is LotAnalyticsDto hit)
+        {
+            return hit;
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var spotIds = await dbContext.ParkingSpots.AsNoTracking().Select(s => s.Id).ToListAsync(cancellationToken);
         var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
@@ -401,8 +444,8 @@ public sealed class LotDashboardService(
             var localEnd = TimeZoneInfo.ConvertTime(window.EndUtc, timeZone);
             for (var hour = localStart; hour < localEnd; hour = hour.AddHours(1))
             {
-                var key = (hour.DayOfWeek, hour.Hour);
-                demand[key] = demand.GetValueOrDefault(key) + 1;
+                var cell = (hour.DayOfWeek, hour.Hour);
+                demand[cell] = demand.GetValueOrDefault(cell) + 1;
             }
         }
 
@@ -410,7 +453,7 @@ public sealed class LotDashboardService(
         var completedOrLive = windows.Count(w => w.Status is not ReservationStatus.Cancelled);
         var noShows = windows.Count(w => w.Status == ReservationStatus.NoShow);
 
-        return new LotAnalyticsDto(
+        var analytics = new LotAnalyticsDto(
             From: from,
             To: to,
             WindowDays: windowDays,
@@ -423,6 +466,31 @@ public sealed class LotDashboardService(
             TotalReservations: completedOrLive,
             NoShowPercent: completedOrLive == 0 ? 0 : (int)Math.Round(noShows * 100.0 / completedOrLive),
             AverageOccupancyPercent: spots.Count == 0 ? 0 : (int)Math.Round(spots.Average(s => s.UtilizationPercent)));
+
+        using var entry = cache.CreateEntry(key);
+        entry.Value = analytics;
+        entry.AbsoluteExpirationRelativeToNow = AggregateCacheTtl;
+        return analytics;
+    }
+
+    /// <summary>
+    /// Every aggregate key carries this number, so invalidating is one write instead of a list of keys
+    /// to remove. Enumerating keys would mean knowing every window the UI might ask for — miss one and
+    /// it silently serves a stale answer. Orphaned entries are simply unreachable and expire on their
+    /// own TTL. A lost race on the increment costs at most one TTL of staleness, not correctness.
+    /// </summary>
+    private long CacheGeneration =>
+        cache.TryGetValue($"{CachePrefix}generation", out var value) && value is long generation ? generation : 0;
+
+    /// <summary>
+    /// Makes the cached aggregates unreachable. Called after an override: the booking the manager just
+    /// cancelled or moved is counted in those numbers, and showing them unchanged would read as the
+    /// intervention not having happened.
+    /// </summary>
+    private void InvalidateAggregates()
+    {
+        using var entry = cache.CreateEntry($"{CachePrefix}generation");
+        entry.Value = CacheGeneration + 1;
     }
 
     /// <summary>
@@ -716,6 +784,8 @@ public sealed class LotDashboardService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        InvalidateAggregates();
+
         await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminCancelled_Title"],
             messages["Parking_Notify_AdminCancelled_Body", spotCode, reservation.CreditsCharged],
@@ -781,6 +851,8 @@ public sealed class LotDashboardService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        InvalidateAggregates();
 
         await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminMoved_Title"],

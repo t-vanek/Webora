@@ -16,6 +16,14 @@ public interface ILotDashboardService
     Task<LotBoardDto> GetBoardAsync(DateOnly date, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The daily series the summary table draws. Deliberately not part of the board: it is always the
+    /// last <see cref="LotBoard.SummaryTrendDays"/> days ending today and has nothing to do with the
+    /// day being looked at, so stepping through days must not recompute it. Cached briefly — it is
+    /// history, unlike the board, which is a live picture and never cached.
+    /// </summary>
+    Task<LotSummaryTrendsDto> GetSummaryTrendsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// One spot in full: its settings, the resident's plan, the calendar for
     /// <paramref name="days"/> days from <paramref name="from"/> (reservations, visitor bookings and
     /// released resident days), the blocked-spot reports against it, and its utilization. Null when
@@ -26,6 +34,7 @@ public interface ILotDashboardService
     /// <summary>
     /// Utilization per spot over [from, to] (busiest first) and the weekday × hour demand map, so the
     /// bottleneck spots and the dead capacity are both visible. The window is inclusive and capped.
+    /// Cached briefly per window: it scans every booking in the range, and the answer is history.
     /// </summary>
     Task<LotAnalyticsDto> GetAnalyticsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 
