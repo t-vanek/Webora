@@ -40,6 +40,7 @@ vyhrazeného místa) a penalizují nedostavení se.
   - [Rezidentní místa](#rezidentní-místa)
   - [Dojezdová vzdálenost](#dojezdová-vzdálenost)
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
+  - [Plocha parkoviště pro správce](#plocha-parkoviště-pro-správce)
   - [Údržba na pozadí](#údržba-na-pozadí)
   - [Role a oprávnění](#role-a-oprávnění)
 - [Technická dokumentace](docs/TECHNICAL.md)
@@ -357,6 +358,45 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
     **odemyká až schválení správcem parkovacích míst** (vlastní kupón schválit nelze). Drží se
     nejvýše jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají
     co těžit.
+
+### Plocha parkoviště pro správce
+
+<details>
+<summary>Živý přehled celé plochy, kalendář místa, ruční zásahy a analytika vytíženosti</summary>
+
+`/admin/parking/dashboard` (`Parking.ManageSpots`) je jedna obrazovka, na které správce vidí i řeší
+celé parkoviště — na rozdíl od [správy míst](#role-a-oprávnění), která je CRUD nad katalogem.
+
+- **Souhrn plochy:** obsazenost, kolik vozů stojí na místech, kolik je zarezervováno a k dispozici,
+  poměr rezidentních a sdílených míst, čekatelé ve frontě, návštěvy, nahlášené neshody a
+  **promarněná sdílení** (dny, které rezident uvolnil a nikdo si je nevzal).
+- **Plocha:** dlaždice míst seskupené do **sekcí podle prefixu kódu** (`A-12` → sekce `A`) a řazené
+  přirozeně (`P2-2` před `P2-10`). Barva a tečka nesou stav, ale nikdy samy: dlaždice vždy pojmenuje
+  vlastníka i držitele a legenda pojmenuje každý stav. Datum lze přepínat dopředu i dozadu — pro
+  jiný než dnešní den dlaždice ukazují, co je na něj zarezervováno.
+- **Precedence stavu** je jedno jediné místo v kódu: neaktivní místo je mimo parkoviště bez ohledu na
+  vše ostatní, přítomný řidič přebíjí pouhou rezervaci a rezidentní místo je kapacita fondu teprve
+  tehdy, když je skutečně sdílené.
+- **Detail místa:** nastavení, plán využití rezidenta, stav dnes, **kalendář na 14 dní** (rezervace,
+  návštěvy a uvolněné dny, které nikdo nezabral), historie nahlášených neshod a vytíženost.
+- **Ruční zásahy** pro případ, kdy realita nesouhlasí se systémem:
+  - **zrušení cizí rezervace** s **plnou vratkou bez ohledu na čas** — tady chybu udělalo
+    parkoviště, ne řidič, takže platí stejné bezvinné pravidlo jako u zablokovaného místa (včetně
+    vrácení omluvného kupónu, a to i s jeho stropem, aby zásah nebyl cestou kolem něj);
+  - **přesun rezervace na jiné volné místo** — rezervace se jen **přesměruje**, nezakládá se nová:
+    cena, potvrzený příjezd i historie zůstávají, takže se v peněžence nic nehýbe;
+  - **odstavení místa** (údržba).
+
+  Zrušit lze jen rezervaci, na kterou nikdo nedorazil (stavový automat jiný přechod nepovoluje);
+  u potvrzené je čestný zásah přesun. Každý zásah držitele notifikuje a zapíše se do jeho auditu
+  (`ReservationOverridden`, aktér `admin:<id>`).
+- **Analytika** v okně 7 / 30 / 90 dní: **vytíženost per místo** od nejvytíženějšího (konec tabulky je
+  mrtvá kapacita), nedostavení, neshody, sdílené a promarněné dny, a **heatmapa poptávky** den v týdnu
+  × hodina. Vytíženost počítá asfalt, ne papír — zrušená rezervace neobsadila nic a nedostavení
+  obsadilo místo jen na papíře, takže se do ní nezapočítávají. Poptávka se měří v **obsazených
+  hodinách míst**, ne v počtu rezervací, aby osmihodinová rezervace nesplynula s jedním tikem.
+
+</details>
 
 ### Údržba na pozadí
 

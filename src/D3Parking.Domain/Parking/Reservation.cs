@@ -56,6 +56,20 @@ public class Reservation : Entity
     public bool Overlaps(DateTimeOffset startUtc, DateTimeOffset endUtc) =>
         startUtc < EndUtc && endUtc > StartUtc;
 
+    /// <summary>
+    /// Re-points a live booking at another spot, keeping its window, price, status and history. This
+    /// is what a spot manager's "move" does: the booking is the same booking, so nothing is refunded
+    /// or re-charged and the holder keeps their check-in and any voucher that paid for it. A finished
+    /// booking (completed, released, no-showed, cancelled) is history and cannot be moved.
+    /// </summary>
+    public void MoveTo(Guid spotId)
+    {
+        if (Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
+            throw new InvalidOperationException($"Cannot move a {Status} reservation.");
+
+        SpotId = spotId;
+    }
+
     public void CheckIn(DateTimeOffset at)
     {
         TransitionTo(ReservationStatus.CheckedIn);

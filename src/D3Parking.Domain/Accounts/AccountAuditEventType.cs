@@ -16,6 +16,8 @@ public enum AccountAuditEventType
     Unblocked,
     RolesChanged,
     SettingsChanged,
+    /// <summary>A spot manager cancelled or moved one of this account's parking reservations.</summary>
+    ReservationOverridden,
     PasswordChanged,
     PasswordResetRequested,
     PasswordReset,

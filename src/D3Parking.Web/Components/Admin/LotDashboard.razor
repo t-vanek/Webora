@@ -1,0 +1,635 @@
+@page "/admin/parking/dashboard"
+@attribute [HasPermission(Permissions.Parking.ManageSpots)]
+@rendermode InteractiveServer
+@using System.Globalization
+@inject ILotDashboardService Dashboard
+@inject IParkingSpotService Spots
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Lot_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Lot_Title"]</FluentLabel>
+            @if (_board is not null)
+            {
+                <span class="count-chip">@_board.Overview.TotalSpots</span>
+            }
+        </div>
+        <p class="admin-head__intro">
+            @L["Lot_Intro"]
+            <FluentAnchor Href="/admin/parking/spots" Appearance="Appearance.Hypertext">@L["Lot_LinkSpots"]</FluentAnchor>
+            <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+        </p>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
+    }
+
+    @if (_board is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else
+    {
+        <div class="lot-stats">
+            @Stat(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %", MeterClass(_board.Overview.OccupancyPercent))
+            @Stat(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null)
+            @Stat(L["Lot_Stat_Booked"], _board.Overview.Booked.ToString(), null)
+            @Stat(L["Lot_Stat_Free"], _board.Overview.Free.ToString(), null)
+            @Stat(L["Lot_Stat_Residents"], _board.Overview.ResidentSpots.ToString(), null)
+            @Stat(L["Lot_Stat_Pool"], _board.Overview.PoolSpots.ToString(), null)
+            @Stat(L["Lot_Stat_Visitors"], _board.Overview.VisitorBookings.ToString(), null)
+            @Stat(L["Lot_Stat_Queue"], _board.Overview.QueueWaiting.ToString(), _board.Overview.QueueWaiting > 0 ? "warn" : null)
+            @Stat(L["Lot_Stat_Mismatches"], _board.Overview.OpenMismatches.ToString(), _board.Overview.OpenMismatches > 0 ? "warn" : null)
+            @Stat(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(), _board.Overview.UnusedSharedDays > 0 ? "warn" : null)
+            @Stat(L["Lot_Stat_Inactive"], _board.Overview.InactiveSpots.ToString(), _board.Overview.InactiveSpots > 0 ? "off" : null)
+        </div>
+
+        <div class="lot-toolbar">
+            <div class="field">
+                <label>@L["Lot_Day"]</label>
+                <input type="date" @bind="_day" @bind:after="ReloadBoardAsync" class="parking-input" />
+            </div>
+            <FluentButton Appearance="Appearance.Outline" OnClick="() => ShiftDayAsync(-1)">@L["Lot_PrevDay"]</FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="() => ShiftDayAsync(1)">@L["Lot_NextDay"]</FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="GoTodayAsync">@L["Lot_Today"]</FluentButton>
+            @if (!_board.IsToday)
+            {
+                <span class="state-pill state-pill--info">@L["Lot_NotToday"]</span>
+            }
+        </div>
+
+        <div class="lot-legend">
+            @foreach (var state in BoardStates)
+            {
+                <span class="lot-legend__item">
+                    <span class="lot-tile__dot lot-tile__dot--@state"></span>@L[$"Lot_State_{state}"]
+                </span>
+            }
+        </div>
+
+        @* The loop variable is not called "section": @section is a reserved Razor directive, so
+           @section.Spots would be parsed as one. *@
+        @foreach (var zone in _board.Sections)
+        {
+            <div class="lot-section">
+                <div class="section-head">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Accent" />
+                    <span>@(string.IsNullOrEmpty(zone.Name) ? L["Lot_SectionUnnamed"] : zone.Name)</span>
+                    <span class="count-chip">@zone.Spots.Count</span>
+                </div>
+                <div class="lot-board">
+                    @foreach (var tile in zone.Spots)
+                    {
+                        @* A button, not a div: the board is keyboard-navigable and each tile opens the
+                           spot's detail — the same affordance a screen reader announces. *@
+                        <button type="button"
+                                class="lot-tile lot-tile--@tile.State @(_detail?.SpotId == tile.SpotId ? "lot-tile--selected" : null)"
+                                title="@TileTooltip(tile)"
+                                @onclick="() => OpenDetailAsync(tile.SpotId)">
+                            <span class="lot-tile__head">
+                                <span class="lot-tile__code">@tile.Code</span>
+                                <span class="lot-tile__dot lot-tile__dot--@tile.State"></span>
+                            </span>
+                            <span class="lot-tile__meta">
+                                <span class="type-pill type-pill--@tile.Type">@L[$"Parking_SpotType_{tile.Type}"]</span>
+                            </span>
+                            <span class="lot-tile__holder">
+                                @if (tile.OwnerName is not null)
+                                {
+                                    <span class="lot-tile__owner" title="@L["Lot_Tile_Resident"]">@tile.OwnerName</span>
+                                }
+                                @if (tile.HolderName is not null)
+                                {
+                                    <span class="lot-tile__guest">@tile.HolderName</span>
+                                }
+                            </span>
+                            @if (tile.MismatchCount > 0)
+                            {
+                                <span class="lot-tile__flag" title="@L["Lot_Tile_Mismatches"]">▲ @tile.MismatchCount</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (_detail is not null)
+        {
+            <div class="admin-panel lot-detail">
+                <div class="section-head">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Accent" />
+                    <span>@_detail.Code</span>
+                    <span class="type-pill type-pill--@_detail.Type">@L[$"Parking_SpotType_{_detail.Type}"]</span>
+                    <span class="state-pill state-pill--@(_detail.IsActive ? "on" : "off")">
+                        @L[_detail.IsActive ? "Parking_Admin_Active" : "Parking_Admin_Inactive"]
+                    </span>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="() => _detail = null">@L["Lot_Close"]</FluentButton>
+                </div>
+
+                <div class="lot-detail__facts">
+                    <div><span class="lot-detail__label">@L["Lot_Detail_State"]</span> @L[$"Lot_State_{_detail.State}"]</div>
+                    <div>
+                        <span class="lot-detail__label">@L["Parking_Admin_Resident"]</span>
+                        @(_detail.OwnerName ?? L["Lot_Detail_NoResident"].Value)
+                    </div>
+                    @if (_detail.OwnerId is not null)
+                    {
+                        <div>
+                            <span class="lot-detail__label">@L["Lot_Detail_Plan"]</span>
+                            @PlanLabel(_detail)
+                        </div>
+                        <div>
+                            <span class="lot-detail__label">@L["Parking_Owned_Allowance"]</span>
+                            @_detail.MonthlyShareAllowance
+                        </div>
+                    }
+                    <div>
+                        <span class="lot-detail__label">@L["Lot_Detail_Utilization"]</span>
+                        @_detail.Stats.UtilizationPercent % (@_detail.Stats.BookedDays / @_detail.Stats.WindowDays @L["Lot_Detail_Days"])
+                    </div>
+                    <div>
+                        <span class="lot-detail__label">@L["Lot_Detail_NoShows"]</span> @_detail.Stats.NoShows
+                    </div>
+                    <div>
+                        <span class="lot-detail__label">@L["Lot_Detail_Mismatches"]</span> @_detail.Stats.Mismatches
+                    </div>
+                    @if (_detail.Stats.SharedDays > 0)
+                    {
+                        <div>
+                            <span class="lot-detail__label">@L["Lot_Detail_Shared"]</span>
+                            @_detail.Stats.SharedDays (@L["Lot_Detail_Wasted"]: @_detail.Stats.UnusedSharedDays)
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_detail.Notes))
+                    {
+                        <div><span class="lot-detail__label">@L["Parking_Admin_Notes"]</span> @_detail.Notes</div>
+                    }
+                </div>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    @if (_detail.IsActive)
+                    {
+                        <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                      OnClick="() => SetActiveAsync(false)">@L["Lot_Deactivate"]</FluentButton>
+                    }
+                    else
+                    {
+                        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                      OnClick="() => SetActiveAsync(true)">@L["Parking_Admin_Activate"]</FluentButton>
+                    }
+                </FluentStack>
+
+                <FluentLabel Typo="Typography.Subject">@L["Lot_Calendar"]</FluentLabel>
+                @if (_detail.Calendar.Count == 0)
+                {
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Calendar_Empty"]</FluentLabel>
+                }
+                else
+                {
+                    <div class="lot-calendar">
+                        @foreach (var entry in _detail.Calendar)
+                        {
+                            <div class="lot-calendar__row lot-calendar__row--@entry.Kind">
+                                <span class="lot-calendar__when">
+                                    @entry.Date.ToString("ddd d. M.")
+                                    <small>@Local(entry.StartUtc, "H:mm")–@Local(entry.EndUtc, "H:mm")</small>
+                                </span>
+                                @* No fallback label here: an entry without a holder is a released day,
+                                   and the status pill on the right already names it. *@
+                                <span class="lot-calendar__who">@entry.HolderName</span>
+                                <span class="lot-calendar__status">
+                                    @if (entry.Status is { } status)
+                                    {
+                                        <span class="state-pill state-pill--@StatusClass(status)">@L[$"Parking_State_{status}"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="state-pill state-pill--info">@L[$"Lot_CalendarKind_{entry.Kind}"]</span>
+                                    }
+                                    @if (entry.CreditsCharged > 0)
+                                    {
+                                        <span class="tag">@entry.CreditsCharged @L["Parking_Credits"]</span>
+                                    }
+                                </span>
+                                <span class="lot-calendar__actions">
+                                    @if (entry.CanCancel)
+                                    {
+                                        <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                                      OnClick="() => CancelAsync(entry.ReservationId!.Value)">@L["Lot_CancelBooking"]</FluentButton>
+                                    }
+                                    @if (entry.CanMove)
+                                    {
+                                        <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                                      OnClick="() => BeginMoveAsync(entry.ReservationId!.Value)">@L["Lot_MoveBooking"]</FluentButton>
+                                    }
+                                </span>
+                            </div>
+                            @if (_moveReservationId == entry.ReservationId)
+                            {
+                                <div class="lot-calendar__move">
+                                    @if (_moveTargets is null)
+                                    {
+                                        <FluentProgressRing Style="width:20px;height:20px" />
+                                    }
+                                    else if (_moveTargets.Count == 0)
+                                    {
+                                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_MoveNoTargets"]</FluentLabel>
+                                    }
+                                    else
+                                    {
+                                        <FluentSelect TOption="MoveTargetDto"
+                                                      Items="@_moveTargets"
+                                                      OptionValue="@(t => t.SpotId.ToString())"
+                                                      OptionText="@(t => t.Code)"
+                                                      @bind-Value="_moveTargetId"
+                                                      Label="@L["Lot_MoveTo"]" />
+                                        <FluentButton Appearance="Appearance.Accent" Disabled="@(_busy || string.IsNullOrEmpty(_moveTargetId))"
+                                                      OnClick="ConfirmMoveAsync">@L["Lot_MoveConfirm"]</FluentButton>
+                                        <FluentButton Appearance="Appearance.Stealth" OnClick="CancelMove">@L["Lot_MoveAbort"]</FluentButton>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+                @if (_detail.Mismatches.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_MismatchLog"]</FluentLabel>
+                    <div class="lot-calendar">
+                        @foreach (var mismatch in _detail.Mismatches)
+                        {
+                            <div class="lot-calendar__row lot-calendar__row--Mismatch">
+                                <span class="lot-calendar__when">@Local(mismatch.ReportedAtUtc, "d. M. H:mm")</span>
+                                <span class="lot-calendar__who">@mismatch.ReporterName</span>
+                                <span class="lot-calendar__status">
+                                    @if (mismatch.BlockerPlate is not null)
+                                    {
+                                        <span class="tag">@mismatch.BlockerPlate</span>
+                                    }
+                                    @if (mismatch.Relocated)
+                                    {
+                                        <span class="state-pill state-pill--on">@L["Lot_Detail_Relocated"]</span>
+                                    }
+                                </span>
+                                <span class="lot-calendar__actions"></span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="admin-panel">
+            <div class="section-head">
+                <FluentIcon Value="@(new Icons.Regular.Size20.DataTrending())" Color="Color.Accent" />
+                <span>@L["Lot_Analytics"]</span>
+            </div>
+            <div class="lot-toolbar">
+                <FluentSelect TOption="int" Items="@AnalyticsWindows"
+                              OptionValue="@(d => d.ToString())"
+                              OptionText="@(d => L["Lot_LastDays", d].Value)"
+                              Value="@_analyticsDays.ToString()"
+                              ValueChanged="ChangeAnalyticsWindowAsync"
+                              Label="@L["Lot_Window"]" />
+            </div>
+
+            @if (_analytics is null)
+            {
+                <div class="loading"><FluentProgressRing /></div>
+            }
+            else
+            {
+                <div class="lot-stats">
+                    @Stat(L["Lot_Stat_AvgUtilization"], $"{_analytics.AverageOccupancyPercent} %", MeterClass(_analytics.AverageOccupancyPercent))
+                    @Stat(L["Lot_Stat_Bookings"], _analytics.TotalReservations.ToString(), null)
+                    @Stat(L["Lot_Stat_NoShowRate"], $"{_analytics.NoShowPercent} %", _analytics.NoShowPercent > 10 ? "warn" : null)
+                    @Stat(L["Lot_Stat_Peak"], PeakLabel(_analytics), null)
+                </div>
+
+                @if (_analytics.Spots.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Analytics_Hint"]</FluentLabel>
+                    <FluentDataGrid Items="@_analytics.Spots.AsQueryable()" TGridItem="SpotUtilizationDto"
+                                    GridTemplateColumns="1fr 1.2fr 1.4fr 1.6fr 0.8fr 0.8fr 1fr">
+                        <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+                        <TemplateColumn Title="@L["Parking_Admin_Type"]">
+                            <span class="type-pill type-pill--@context.Type">@L[$"Parking_SpotType_{context.Type}"]</span>
+                        </TemplateColumn>
+                        <TemplateColumn Title="@L["Parking_Admin_Resident"]">
+                            @(context.OwnerName ?? "—")
+                        </TemplateColumn>
+                        <TemplateColumn Title="@L["Lot_Detail_Utilization"]">
+                            <div class="lot-util">
+                                <div class="meter"><div class="meter__fill @MeterClass(context.UtilizationPercent)" style="width:@(context.UtilizationPercent)%"></div></div>
+                                <span>@context.UtilizationPercent % · @context.BookedDays/@context.WindowDays</span>
+                            </div>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(s => s.NoShows)" Title="@L["Lot_Detail_NoShows"]" />
+                        <PropertyColumn Property="@(s => s.Mismatches)" Title="@L["Lot_Col_Mismatch"]" />
+                        <TemplateColumn Title="@L["Lot_Detail_Shared"]">
+                            @if (context.SharedDays == 0)
+                            {
+                                <span>—</span>
+                            }
+                            else
+                            {
+                                <span>@context.SharedDays (@context.UnusedSharedDays)</span>
+                            }
+                        </TemplateColumn>
+                    </FluentDataGrid>
+                }
+
+                @if (_analytics.Demand.Count > 0)
+                {
+                    <FluentLabel Typo="Typography.Subject">@L["Lot_Demand"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Demand_Hint"]</FluentLabel>
+                    <div class="lot-heatmap">
+                        <div class="lot-heatmap__row lot-heatmap__row--head">
+                            <span class="lot-heatmap__label"></span>
+                            @for (var hour = 0; hour < 24; hour++)
+                            {
+                                <span class="lot-heatmap__hour">@(hour % 3 == 0 ? hour.ToString() : "")</span>
+                            }
+                        </div>
+                        @foreach (var day in WeekOrder)
+                        {
+                            <div class="lot-heatmap__row">
+                                <span class="lot-heatmap__label">@ShortDay(day)</span>
+                                @for (var hour = 0; hour < 24; hour++)
+                                {
+                                    var count = DemandAt(day, hour);
+                                    <span class="lot-heatmap__cell" style="--heat:@HeatRatio(count)"
+                                          title="@ShortDay(day) @hour:00 — @count"></span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+</FluentStack>
+
+@code {
+    private static readonly SpotBoardState[] BoardStates = Enum.GetValues<SpotBoardState>();
+    private static readonly int[] AnalyticsWindows = [7, 30, 90];
+
+    // Monday-first, like the rest of the app's day pickers.
+    private static readonly DayOfWeek[] WeekOrder =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday,
+    ];
+
+    private LotBoardDto? _board;
+    private SpotDetailDto? _detail;
+    private LotAnalyticsDto? _analytics;
+
+    private DateTime _day = DateTime.Today;
+    private int _analyticsDays = 30;
+
+    private Guid? _moveReservationId;
+    private IReadOnlyList<MoveTargetDto>? _moveTargets;
+    private string? _moveTargetId;
+
+    private Guid _userId;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+    private bool _busy;
+    private string? _error;
+    private string? _info;
+
+    /// <summary>Highest demand cell in the window; the heatmap shades everything relative to it.</summary>
+    private int _demandPeak;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private DateOnly Day => DateOnly.FromDateTime(_day);
+
+    /// <summary>Renders a stored UTC instant as local wall-clock at the lot.</summary>
+    private string Local(DateTimeOffset utc, string format) => TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        _userId = user?.Id ?? Guid.Empty;
+        _tz = await SiteSettings.GetTimeZoneAsync();
+
+        // Re-seed "today" through the site zone: the field initializer used the server's clock, and a
+        // UTC-hosted server would preselect yesterday for a lot that is already past midnight.
+        _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz).ToDateTime(TimeOnly.MinValue);
+
+        await ReloadBoardAsync();
+        await ReloadAnalyticsAsync();
+    }
+
+    private async Task ReloadBoardAsync()
+    {
+        _board = await Dashboard.GetBoardAsync(Day);
+        // The open detail must follow the day being looked at, or its calendar and the board disagree.
+        if (_detail is not null)
+        {
+            await OpenDetailAsync(_detail.SpotId);
+        }
+    }
+
+    private Task ShiftDayAsync(int days)
+    {
+        _day = _day.AddDays(days);
+        return ReloadBoardAsync();
+    }
+
+    private Task GoTodayAsync()
+    {
+        _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz).ToDateTime(TimeOnly.MinValue);
+        return ReloadBoardAsync();
+    }
+
+    private async Task OpenDetailAsync(Guid spotId)
+    {
+        CancelMove();
+        // Two weeks ahead from the day on the board: enough to see the week being planned without
+        // turning the panel into a scroll marathon.
+        _detail = await Dashboard.GetSpotDetailAsync(spotId, Day, 14);
+    }
+
+    private async Task ChangeAnalyticsWindowAsync(string? days)
+    {
+        if (int.TryParse(days, out var parsed))
+        {
+            _analyticsDays = parsed;
+            await ReloadAnalyticsAsync();
+        }
+    }
+
+    private async Task ReloadAnalyticsAsync()
+    {
+        var today = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        _analytics = await Dashboard.GetAnalyticsAsync(today.AddDays(-(_analyticsDays - 1)), today);
+        _demandPeak = _analytics.Demand.Count == 0 ? 0 : _analytics.Demand.Max(cell => cell.Count);
+    }
+
+    private int DemandAt(DayOfWeek day, int hour) =>
+        _analytics?.Demand.FirstOrDefault(cell => cell.DayOfWeek == day && cell.Hour == hour)?.Count ?? 0;
+
+    // Shading is relative to the busiest cell, so a quiet lot still shows its own shape instead of
+    // rendering uniformly blank against some absolute scale.
+    private string HeatRatio(int count) =>
+        (_demandPeak <= 0 ? 0d : Math.Round(count / (double)_demandPeak, 2)).ToString(CultureInfo.InvariantCulture);
+
+    private static string ShortDay(DayOfWeek day) =>
+        CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedDayName(day);
+
+    private string PeakLabel(LotAnalyticsDto analytics) =>
+        analytics is { PeakHour: { } hour, PeakDayOfWeek: { } day }
+            ? $"{ShortDay(day)} {hour}:00"
+            : "—";
+
+    private static string MeterClass(int percent) => percent switch
+    {
+        >= 85 => "meter__fill--high",
+        >= 60 => "meter__fill--mid",
+        _ => "meter__fill--low",
+    };
+
+    private static string StatusClass(ReservationStatus status) => status switch
+    {
+        ReservationStatus.CheckedIn => "on",
+        ReservationStatus.Completed => "on",
+        ReservationStatus.NoShow => "warn",
+        ReservationStatus.Cancelled => "off",
+        ReservationStatus.Released => "info",
+        _ => "info",
+    };
+
+    private string TileTooltip(SpotTileDto tile)
+    {
+        var parts = new List<string> { tile.Code, L[$"Lot_State_{tile.State}"].Value };
+        if (tile.OwnerName is not null)
+        {
+            parts.Add($"{L["Parking_Admin_Resident"]}: {tile.OwnerName}");
+        }
+
+        if (tile.HolderName is not null && tile.FromUtc is { } from && tile.ToUtc is { } to)
+        {
+            parts.Add($"{tile.HolderName} {Local(from, "H:mm")}–{Local(to, "H:mm")}");
+        }
+
+        if (tile.MismatchCount > 0)
+        {
+            parts.Add($"{L["Lot_Tile_Mismatches"]}: {tile.MismatchCount}");
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    private string PlanLabel(SpotDetailDto detail)
+    {
+        if (!detail.AutoReleaseUnplannedDays)
+        {
+            return L["Lot_Detail_PlanOff"];
+        }
+
+        var days = WeekOrder.Where(d => (detail.PlannedUseDays & d.ToWeekday()) != 0).Select(ShortDay);
+        var listed = string.Join(", ", days);
+        return string.IsNullOrEmpty(listed) ? L["Lot_Detail_PlanNone"] : listed;
+    }
+
+    /// <summary>One tile of the summary strip; `tone` maps onto the shared state-pill palette.</summary>
+    private RenderFragment Stat(string label, string value, string? tone) => __builder =>
+    {
+        <div class="lot-stat @(tone is null ? null : $"lot-stat--{tone}")">
+            <span class="lot-stat__value">@value</span>
+            <span class="lot-stat__label">@label</span>
+        </div>
+    };
+
+    private async Task SetActiveAsync(bool active)
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        await RunAsync(() => Spots.SetActiveAsync(_detail.SpotId, active),
+            active ? "Lot_Info_Activated" : "Lot_Info_Deactivated");
+    }
+
+    private Task CancelAsync(Guid reservationId) =>
+        RunAsync(() => Dashboard.CancelReservationAsync(reservationId, _userId), "Lot_Info_Cancelled");
+
+    private async Task BeginMoveAsync(Guid reservationId)
+    {
+        _moveReservationId = reservationId;
+        _moveTargets = null;
+        _moveTargetId = null;
+        _moveTargets = await Dashboard.GetMoveTargetsAsync(reservationId);
+        _moveTargetId = _moveTargets.FirstOrDefault()?.SpotId.ToString();
+    }
+
+    private void CancelMove()
+    {
+        _moveReservationId = null;
+        _moveTargets = null;
+        _moveTargetId = null;
+    }
+
+    private async Task ConfirmMoveAsync()
+    {
+        if (_moveReservationId is not { } reservationId || !Guid.TryParse(_moveTargetId, out var targetSpotId))
+        {
+            return;
+        }
+
+        await RunAsync(() => Dashboard.MoveReservationAsync(reservationId, targetSpotId, _userId), "Lot_Info_Moved");
+        CancelMove();
+    }
+
+    /// <summary>
+    /// Runs one intervention, then reloads everything it could have changed. The board, the open
+    /// detail and the analytics all read the same rows, so refreshing only one of them would leave
+    /// the manager looking at a screen that half-agrees with itself.
+    /// </summary>
+    private async Task RunAsync(Func<Task<ParkingResult>> action, string successKey)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _info = null;
+        try
+        {
+            var result = await action();
+            if (result.Succeeded)
+            {
+                _info = L[successKey];
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault() ?? "Parking_Error_InvalidState";
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await ReloadBoardAsync();
+        await ReloadAnalyticsAsync();
+    }
+}

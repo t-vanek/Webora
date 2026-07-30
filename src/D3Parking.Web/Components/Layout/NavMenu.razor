@@ -109,6 +109,12 @@
             }
             @if (_canManageSpots)
             {
+                <NavLink href="admin/parking/dashboard" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminLot"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.DataTrending())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminLot"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Lot"]</span>
+                </NavLink>
                 <NavLink href="admin/parking/spots" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminParking"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
