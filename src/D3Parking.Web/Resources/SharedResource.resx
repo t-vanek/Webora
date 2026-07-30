@@ -986,6 +986,8 @@
   <data name="Lot_Stat_Inactive" xml:space="preserve"><value>Neaktivních míst</value></data>
   <data name="Lot_Tile_Resident" xml:space="preserve"><value>Rezident místa</value></data>
   <data name="Lot_Tile_Mismatches" xml:space="preserve"><value>Nahlášené neshody za 30 dní</value></data>
+  <data name="Lot_Detail_Panel" xml:space="preserve"><value>Vybrané místo</value></data>
+  <data name="Lot_Detail_PickSpot" xml:space="preserve"><value>Klikněte na místo v ploše vlevo a jeho detail — kalendář, zatížení a nahlášené neshody — se otevře tady.</value></data>
   <data name="Lot_Detail_State" xml:space="preserve"><value>Stav dnes</value></data>
   <data name="Lot_Detail_NoResident" xml:space="preserve"><value>bez rezidenta (sdílený fond)</value></data>
   <data name="Lot_Detail_Plan" xml:space="preserve"><value>Plán využití</value></data>
@@ -1031,6 +1033,8 @@
   <data name="Lot_Busiest" xml:space="preserve"><value>Nejvytíženější místa</value></data>
   <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Top {0} míst podle podílu dnů, kdy je někdo skutečně obsadil. Škála je 0–100 % celého okna, ne vůči nejlepšímu místu.</value></data>
   <data name="Lot_Analytics_Table" xml:space="preserve"><value>Podrobná tabulka všech míst (nedostavení, neshody, sdílené dny)</value></data>
+  <data name="Lot_Analytics_Now" xml:space="preserve"><value>Plocha právě teď</value></data>
+  <data name="Lot_Analytics_Window" xml:space="preserve"><value>Za delší období</value></data>
   <data name="Lot_Detail_Trend" xml:space="preserve"><value>Zatížení tohoto místa</value></data>
   <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Obsazeno</value></data>
   <data name="Lot_Demand" xml:space="preserve"><value>Kdy poptávka dopadá</value></data>

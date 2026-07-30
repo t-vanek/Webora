@@ -2589,6 +2589,13 @@ fluent-menu-item:has(> .account-menu-link) {
 
 /* --- Dashboard parkovací plochy (správce míst) --- */
 
+/* fluent-tabs se přizpůsobuje šířce obsahu aktivního tabu, protože FluentStack zarovnává děti
+   doleva, ne roztažením — stejná past jako v nastavení parkování. Bez toho vyšel hostitel na 794 px
+   z 1370 dostupných: detail vedle plochy si vzal svých 400 a na dlaždice zbyly dva sloupce. */
+.lot-tabs {
+    width: 100%;
+}
+
 /* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. */
 .lot-stats {
     display: grid;
@@ -2764,21 +2771,80 @@ fluent-menu-item:has(> .account-menu-link) {
 
 
 
-/* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy.
+/* Plocha vlevo, kliknuté místo vpravo. Detail býval modální dialog: clona překryla přesně tu
+   plochu, proti které se detail čte, a před kliknutím na další místo se musel zavřít. Vedle sebe je
+   proklikání míst jedno kliknutí na místo a plocha zůstává vidět. */
+.lot-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 18px;
+    width: 100%;
+    align-items: start;
+}
 
-   Šířku dialogu nese tenhle obsah, ne fluent-dialog. Zvenčí se ovládací prvek dialogu rozšířit
-   nedá — ověřeno v prohlížeči: ani `::part(control) { width }`, ani `--dialog-width` s ním nehnuly
-   (zůstal na min-content obsahu) a zabralo až inline `!important`. Panel se tak smrskával podle
-   toho, co v něm zrovna bylo: kalendářní řádky se lámaly do tří řádek a osa grafu do mazanice.
-   Roztažení podle obsahu ale funguje spolehlivě, takže šířku určuje .lot-detail a přes ::part se
-   řeší jen výška a vlastní scroll. */
+.lot-split__board {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Container query, ne media query: řádky kalendáře se skládají podle šířky panelu, a ta je úzká
+   i na širokém monitoru. */
+.lot-split__side {
+    container-type: inline-size;
+}
+
+/* Obě strany mají vlastní scroll a stejný strop, aby plocha i detail zůstaly vedle sebe i na
+   parkovišti o dvou stech místech. Kdyby rostly se stránkou, kliknutí na dlaždici dole by detail
+   vykreslilo kus nad viewportem a vypadalo by, že se nic nestalo. Sticky panel by to řešil
+   elegantněji, ale v tomhle layoutu nefunguje: .main má overflow:hidden a .body-content
+   overflow:auto (obojí z MainLayoutu), přitom scrolluje až stránka — nejbližší scrollport nad
+   panelem se tedy nikdy neposune a sticky nemá vůči čemu držet. Ověřeno v prohlížeči: panel
+   odjel s obsahem na y = -65. Strop je `max()`, aby na nízkém okně nesplaskl na pár řádků; malé
+   parkoviště zůstává vysoké podle obsahu. */
+.lot-split__board,
+.lot-split__side {
+    min-width: 0;
+    max-height: max(420px, calc(100vh - 360px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 1100px) {
+    /* Pod sebou: dva scrollující bloky nad sebou uvnitř scrollující stránky jsou past, a plocha
+       s detailem se stejně nevidí naráz. Obojí platí jen pro sloupce vedle sebe. */
+    .lot-split { grid-template-columns: minmax(0, 1fr); }
+
+    .lot-split__board,
+    .lot-split__side {
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* Vedle plochy je prázdný panel pozvánkou ke kliknutí; pod ní by to byla jen obrazovka
+       navíc, kterou musí každý přerolovat, než na místo vůbec klikne. */
+    .lot-detail--empty { display: none; }
+}
+
+/* Detail místa: fakta pod sebou, pak kalendář a zásahy. Šířku bere ze sloupce, ve kterém stojí. */
 .lot-detail {
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    width: min(1000px, 92vw);
+    width: 100%;
     box-sizing: border-box;
+}
+
+/* Než se na něco klikne. Přerušovaný rámeček říká "sem to přijde", ne "tady něco je". */
+.lot-detail--empty {
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 180px;
+    padding: 28px 20px;
+    border-style: dashed;
+    text-align: center;
 }
 
 .lot-detail__facts {
@@ -2799,15 +2865,29 @@ fluent-menu-item:has(> .account-menu-link) {
     width: 100%;
 }
 
+/* Ve výchozím stavu dvouřádkově — v úzkém panelu vedle plochy by čtyři sloupce vedle sebe daly
+   každému kolem 90 px a jméno i stav by se lámaly po slabikách. Do jednoho řádku se rozloží až
+   tam, kde na to panel má šířku (viz container query níž). */
 .lot-calendar__row {
     display: grid;
-    grid-template-columns: 1.1fr 1.4fr 1.3fr auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "when status"
+        "who  actions";
+    gap: 2px 10px;
     align-items: center;
     padding: 7px 8px;
     border-bottom: 1px solid var(--brand-hairline, #ececec);
     border-left: 3px solid transparent;
     font-size: 13px;
+}
+
+@container (min-width: 620px) {
+    .lot-calendar__row {
+        grid-template-columns: 1.1fr 1.4fr 1.3fr auto;
+        grid-template-areas: "when who status actions";
+        gap: 10px;
+    }
 }
 
 .lot-calendar__row--Reservation { border-left-color: var(--accent-fill-rest, #0f6cbd); }
@@ -2816,15 +2896,19 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-calendar__row--Mismatch { border-left-color: var(--warning-rest, #f7a900); }
 
 .lot-calendar__when {
+    grid-area: when;
     display: flex;
     flex-direction: column;
 }
+
+.lot-calendar__who { grid-area: who; }
 
     .lot-calendar__when small { color: var(--neutral-foreground-hint, #6b6b6b); }
 
 .lot-calendar__muted { color: var(--neutral-foreground-hint, #6b6b6b); }
 
 .lot-calendar__status {
+    grid-area: status;
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
@@ -2832,6 +2916,7 @@ fluent-menu-item:has(> .account-menu-link) {
 }
 
 .lot-calendar__actions {
+    grid-area: actions;
     display: flex;
     gap: 4px;
     justify-content: flex-end;
@@ -2936,20 +3021,6 @@ fluent-menu-item:has(> .account-menu-link) {
 
 @media (max-width: 640px) {
     .lot-summary__chart { display: none; }
-
-    .lot-calendar__row {
-        grid-template-columns: 1fr 1fr;
-        row-gap: 4px;
-    }
-
-    .lot-calendar__actions { justify-content: flex-start; }
-}
-
-/* Dialog s detailem místa. Šířku určuje .lot-detail (viz komentář tam); tady zbývá jen výška
-   a vlastní scroll — kalendář na 14 dní se do výšky viewportu nevejde. */
-.lot-dialog::part(control) {
-    max-height: 88vh;
-    overflow: auto;
 }
 
 /* Serverový pager pod tabulkou: dvě tlačítka a pozice. FluentPaginator se tu nepoužívá —

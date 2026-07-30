@@ -986,6 +986,8 @@
   <data name="Lot_Stat_Inactive" xml:space="preserve"><value>Inactive spots</value></data>
   <data name="Lot_Tile_Resident" xml:space="preserve"><value>Spot's resident</value></data>
   <data name="Lot_Tile_Mismatches" xml:space="preserve"><value>Blocked-spot reports in the last 30 days</value></data>
+  <data name="Lot_Detail_Panel" xml:space="preserve"><value>Selected spot</value></data>
+  <data name="Lot_Detail_PickSpot" xml:space="preserve"><value>Pick a spot on the floor plan and its detail — calendar, load and reported mismatches — opens here.</value></data>
   <data name="Lot_Detail_State" xml:space="preserve"><value>State today</value></data>
   <data name="Lot_Detail_NoResident" xml:space="preserve"><value>no resident (shared pool)</value></data>
   <data name="Lot_Detail_Plan" xml:space="preserve"><value>Usage plan</value></data>
@@ -1031,6 +1033,8 @@
   <data name="Lot_Busiest" xml:space="preserve"><value>Busiest spots</value></data>
   <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Top {0} spots by the share of days somebody actually took them. The scale is 0–100 % of the whole window, not relative to the best spot.</value></data>
   <data name="Lot_Analytics_Table" xml:space="preserve"><value>Detailed table of every spot (no-shows, mismatches, shared days)</value></data>
+  <data name="Lot_Analytics_Now" xml:space="preserve"><value>The lot right now</value></data>
+  <data name="Lot_Analytics_Window" xml:space="preserve"><value>Over a longer window</value></data>
   <data name="Lot_Detail_Trend" xml:space="preserve"><value>This spot's load</value></data>
   <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Taken</value></data>
   <data name="Lot_Demand" xml:space="preserve"><value>When demand lands</value></data>
