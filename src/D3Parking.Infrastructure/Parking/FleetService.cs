@@ -57,6 +57,7 @@ public sealed class FleetService(
                               v.Id,
                               v.Plate,
                               v.NormalizedPlate,
+                              v.Type,
                               v.Name,
                               v.DriverEmail,
                               v.AssignedSpotId,
@@ -92,7 +93,7 @@ public sealed class FleetService(
                     : FleetPairingState.ReadyToPair;
 
                 return new CompanyVehicleDto(
-                    r.Id, r.Plate, r.Name, r.DriverEmail, r.AssignedSpotId, r.SpotCode,
+                    r.Id, r.Plate, r.Type, r.Name, r.DriverEmail, r.AssignedSpotId, r.SpotCode,
                     r.PairedUserId, r.PairedUserName, r.PairedAtUtc, r.IsActive, r.Notes,
                     state, r.PairingCodeSentAtUtc, lockedUntil);
             })
@@ -100,12 +101,18 @@ public sealed class FleetService(
             .ToList();
     }
 
-    public Task<ParkingResult> CreateAsync(string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+    public Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(async () =>
         {
             if (string.IsNullOrWhiteSpace(plate) || PlateNormalizer.Normalize(plate).Length == 0)
             {
                 return ParkingResult.Failure("Fleet_Error_PlateRequired");
+            }
+
+            // The entitlement rule: a dedicated spot goes with a company vehicle only.
+            if (type == VehicleType.Employee && spotId is not null)
+            {
+                return ParkingResult.Failure("Fleet_Error_EmployeeVehicleNoSpot");
             }
 
             await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -114,7 +121,7 @@ public sealed class FleetService(
                 return invalidSpot;
             }
 
-            var vehicle = new CompanyVehicle(plate, Trimmed(name), NormalizedEmail(driverEmail), spotId, Trimmed(notes), timeProvider.GetUtcNow());
+            var vehicle = new CompanyVehicle(plate, type, Trimmed(name), NormalizedEmail(driverEmail), spotId, Trimmed(notes), timeProvider.GetUtcNow());
             dbContext.CompanyVehicles.Add(vehicle);
             try
             {
@@ -131,12 +138,19 @@ public sealed class FleetService(
             return ParkingResult.Success;
         }, cancellationToken);
 
-    public Task<ParkingResult> UpdateAsync(Guid id, string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
+    public Task<ParkingResult> UpdateAsync(Guid id, string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(async () =>
         {
             if (string.IsNullOrWhiteSpace(plate) || PlateNormalizer.Normalize(plate).Length == 0)
             {
                 return ParkingResult.Failure("Fleet_Error_PlateRequired");
+            }
+
+            // Same entitlement rule as CreateAsync; demoting a company car therefore forces the
+            // admin to clear its spot in the same edit, and the residency moves out with it below.
+            if (type == VehicleType.Employee && spotId is not null)
+            {
+                return ParkingResult.Failure("Fleet_Error_EmployeeVehicleNoSpot");
             }
 
             await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -173,6 +187,7 @@ public sealed class FleetService(
             }
 
             vehicle.Rename(plate);
+            vehicle.ChangeType(type);
             vehicle.Update(Trimmed(name), newEmail, Trimmed(notes));
             vehicle.AssignSpot(spotId);
 
@@ -327,7 +342,7 @@ public sealed class FleetService(
             .FirstOrDefaultAsync(v => v.PairedUserId == userId, cancellationToken);
         if (paired is not null)
         {
-            return new PairingStatusDto(VehiclePairingState.Paired, paired.Plate, paired.Name,
+            return new PairingStatusDto(VehiclePairingState.Paired, paired.Plate, paired.Name, paired.Type,
                 await SpotCodeAsync(dbContext, paired.AssignedSpotId, cancellationToken), null);
         }
 
@@ -337,7 +352,7 @@ public sealed class FleetService(
             .FirstOrDefaultAsync(cancellationToken);
         if (user is null || string.IsNullOrWhiteSpace(user.LicensePlate))
         {
-            return new PairingStatusDto(VehiclePairingState.NoPlate, null, null, null, null);
+            return new PairingStatusDto(VehiclePairingState.NoPlate, null, null, null, null, null);
         }
 
         var normalized = PlateNormalizer.Normalize(user.LicensePlate);
@@ -345,7 +360,7 @@ public sealed class FleetService(
             .FirstOrDefaultAsync(v => v.NormalizedPlate == normalized && v.IsActive, cancellationToken);
         if (vehicle is null)
         {
-            return new PairingStatusDto(VehiclePairingState.NoMatch, user.LicensePlate, null, null, null);
+            return new PairingStatusDto(VehiclePairingState.NoMatch, user.LicensePlate, null, null, null, null);
         }
 
         // Deliberately one opaque state for "paired to someone else", "no driver email on file"
@@ -354,10 +369,10 @@ public sealed class FleetService(
             || vehicle.DriverEmail is null
             || !string.Equals(vehicle.DriverEmail, user.Email, StringComparison.OrdinalIgnoreCase))
         {
-            return new PairingStatusDto(VehiclePairingState.NotPairable, user.LicensePlate, null, null, null);
+            return new PairingStatusDto(VehiclePairingState.NotPairable, user.LicensePlate, null, null, null, null);
         }
 
-        return new PairingStatusDto(VehiclePairingState.CodeRequired, vehicle.Plate, vehicle.Name,
+        return new PairingStatusDto(VehiclePairingState.CodeRequired, vehicle.Plate, vehicle.Name, vehicle.Type,
             await SpotCodeAsync(dbContext, vehicle.AssignedSpotId, cancellationToken), vehicle.PairingCodeSentAtUtc);
     }
 

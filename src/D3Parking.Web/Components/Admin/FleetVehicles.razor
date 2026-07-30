@@ -40,17 +40,33 @@
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                 <FluentTextField Id="fleet-plate" Immediate="true" @bind-Value="_formPlate" Maxlength="16"
                                  Label="@L["Fleet_Admin_Plate"]" Placeholder="1AB 2345" Style="width:150px" />
+                @* String Value/ValueChanged, not @bind-SelectedOption: the web component's
+                   change event does not cross the shadow boundary reliably, and hiding the
+                   spot select below depends on this rerender. *@
+                <FluentSelect Id="fleet-type" TOption="VehicleType"
+                              Items="@_vehicleTypes"
+                              OptionValue="@(t => t.ToString())"
+                              OptionText="@(t => L[$"Fleet_Type_{t}"].Value)"
+                              Value="@_formType.ToString()"
+                              ValueChanged="@(v => OnTypeChanged(v))"
+                              Label="@L["Fleet_Admin_Type"]"
+                              Style="min-width:170px" />
                 <FluentTextField @bind-Value="_formName" Maxlength="128"
                                  Label="@L["Fleet_Admin_Name"]" Style="width:220px" />
                 <FluentTextField Id="fleet-email" @bind-Value="_formEmail" Maxlength="256"
                                  Label="@L["Fleet_Admin_DriverEmail"]" Style="width:260px" />
-                <FluentSelect TOption="string"
-                              Items="@_spotOptions"
-                              OptionValue="@(id => id)"
-                              OptionText="@(id => SpotLabel(id))"
-                              @bind-Value="_formSpotId"
-                              Label="@L["Fleet_Admin_Spot"]"
-                              Style="min-width:150px" />
+                @* The dedicated spot is the company-vehicle entitlement; for an employee vehicle
+                   the control disappears (and FormSpotId sends null) instead of erroring later. *@
+                @if (_formType == VehicleType.Company)
+                {
+                    <FluentSelect TOption="string"
+                                  Items="@_spotOptions"
+                                  OptionValue="@(id => id)"
+                                  OptionText="@(id => SpotLabel(id))"
+                                  @bind-Value="_formSpotId"
+                                  Label="@L["Fleet_Admin_Spot"]"
+                                  Style="min-width:150px" />
+                }
                 <FluentTextField @bind-Value="_formNotes" Maxlength="512" Label="@L["Fleet_Admin_Notes"]" />
                 @if (_editing is null)
                 {
@@ -62,6 +78,7 @@
                     <FluentButton Appearance="Appearance.Outline" OnClick="CancelEdit">@L["Fleet_Admin_Cancel"]</FluentButton>
                 }
             </FluentStack>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Fleet_Admin_TypeHint"]</FluentLabel>
             <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Fleet_Admin_EmailHint"]</FluentLabel>
         </FluentStack>
     </div>
@@ -78,8 +95,11 @@
     {
         <div class="admin-panel">
             <FluentDataGrid Items="@_vehicles.AsQueryable()" TGridItem="CompanyVehicleDto"
-                            GridTemplateColumns="1fr 1.3fr 1.5fr 0.7fr 1.5fr 1.2fr auto">
+                            GridTemplateColumns="1fr 1.1fr 1.3fr 1.5fr 0.7fr 1.5fr 1.2fr auto">
                 <PropertyColumn Property="@(v => v.Plate)" Title="@L["Fleet_Admin_Plate"]" />
+                <TemplateColumn Title="@L["Fleet_Admin_Type"]">
+                    @L[$"Fleet_Type_{context.Type}"]
+                </TemplateColumn>
                 <TemplateColumn Title="@L["Fleet_Admin_Name"]">
                     @(string.IsNullOrWhiteSpace(context.Name) ? "—" : context.Name)
                 </TemplateColumn>
@@ -131,11 +151,13 @@
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
 
     private string? _formPlate;
+    private VehicleType _formType = VehicleType.Company;
     private string? _formName;
     private string? _formEmail;
     private string _formSpotId = string.Empty;
     private string? _formNotes;
     private CompanyVehicleDto? _editing;
+    private readonly VehicleType[] _vehicleTypes = Enum.GetValues<VehicleType>();
 
     private string? _error;
     private string? _info;
@@ -195,12 +217,24 @@
         return user is null ? id : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
     }
 
-    private Guid? FormSpotId => Guid.TryParse(_formSpotId, out var parsed) ? parsed : null;
+    // The hidden spot select keeps its value while the form says "employee vehicle", so the
+    // submitted spot must follow what the admin sees: none.
+    private Guid? FormSpotId => _formType == VehicleType.Employee
+        ? null
+        : Guid.TryParse(_formSpotId, out var parsed) ? parsed : null;
+
+    private void OnTypeChanged(string? value)
+    {
+        if (Enum.TryParse<VehicleType>(value, out var parsed))
+        {
+            _formType = parsed;
+        }
+    }
 
     private async Task CreateAsync()
     {
         _error = _info = null;
-        var result = await Fleet.CreateAsync(_formPlate ?? string.Empty, _formName, _formEmail, FormSpotId, _formNotes);
+        var result = await Fleet.CreateAsync(_formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
         if (result.Succeeded)
         {
             ResetForm();
@@ -217,6 +251,7 @@
         _error = _info = null;
         _editing = vehicle;
         _formPlate = vehicle.Plate;
+        _formType = vehicle.Type;
         _formName = vehicle.Name;
         _formEmail = vehicle.DriverEmail;
         _formSpotId = vehicle.AssignedSpotId?.ToString() ?? string.Empty;
@@ -233,7 +268,7 @@
         }
 
         _error = _info = null;
-        var result = await Fleet.UpdateAsync(_editing.Id, _formPlate ?? string.Empty, _formName, _formEmail, FormSpotId, _formNotes);
+        var result = await Fleet.UpdateAsync(_editing.Id, _formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
         if (result.Succeeded)
         {
             ResetForm();
@@ -300,6 +335,7 @@
     {
         _editing = null;
         _formPlate = _formName = _formEmail = _formNotes = null;
+        _formType = VehicleType.Company;
         _formSpotId = string.Empty;
     }
 

@@ -1,18 +1,23 @@
+using D3Parking.Domain.Parking;
+
 namespace D3Parking.Application.Parking;
 
 /// <summary>
 /// The company-vehicle registry and its pairing with user accounts. Pairing is the three-factor
 /// handshake: the profile's plate matches a fleet vehicle, the vehicle's registered driver email
 /// matches the account's email, and the user confirms a code sent to that email. A paired vehicle
-/// with an assigned spot materializes as the user's residency (ParkingSpot.OwnerId).
+/// with an assigned spot materializes as the user's residency (ParkingSpot.OwnerId). The
+/// vehicle's type is the entitlement class: only a company vehicle may carry an assigned spot,
+/// an employee's own vehicle is registered for the verified identity alone and books from the
+/// shared pool.
 /// </summary>
 public interface IFleetService
 {
     Task<IReadOnlyList<CompanyVehicleDto>> ListAsync(CancellationToken cancellationToken = default);
 
-    Task<ParkingResult> CreateAsync(string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);
+    Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);
 
-    Task<ParkingResult> UpdateAsync(Guid id, string plate, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);
+    Task<ParkingResult> UpdateAsync(Guid id, string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default);
 

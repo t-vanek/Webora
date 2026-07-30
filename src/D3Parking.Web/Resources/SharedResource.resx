@@ -489,6 +489,7 @@
   <data name="Help_Blocked_A1" xml:space="preserve"><value>U rezervace klikněte na Nemůžu zaparkovat a přiložte fotografii zablokovaného místa (je povinná — podle ní situaci ověříme a každou fotku lze použít jen jednou). Buď vám najdeme jiné volné místo na stejné okno (platba se převede, nic navíc neplatíte), nebo rezervaci zrušíme s plnou vratkou. V žádném případě se to nepočítá jako nedostavení.</value></data>
   <data name="Help_Blocked_A2" xml:space="preserve"><value>Jako omluvu vám náleží kupón na jednu rezervaci zdarma — platí i ve špičce. Hlášení nejdřív podle fotografie prověříme; jakmile je kontrola hotová, kupón se aktivuje, platí 30 dní a uplatníte ho zaškrtnutím při rezervaci. Pomůže, když do formuláře opíšete SPZ blokujícího auta: správce pak pozná, jestli jde o kolegu, nebo o vozidlo mimo systém.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>Mám přidělené vlastní (rezidentní) místo</value></data>
+  <data name="Help_Resident_A0" xml:space="preserve"><value>Vlastní místo je vázané na firemní vozidlo z vozového parku: vzniká spárováním vašeho účtu s firemním vozidlem, kterému správce přidělil místo. Vozidla zaměstnanců vlastní místo nemají — parkují přes rezervace z fondu.</value></data>
   <data name="Help_Resident_A1" xml:space="preserve"><value>Vaše místo se pro vás každý den drží do {0}. Když ten den přijedete, potvrďte to tlačítkem Potvrdit příjezd. Pokud nepotvrdíte ani neuvolníte, místo se po této hodině automaticky nabídne ostatním.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou) — dostanete {0} za každou hodinu předstihu, nejvýše {1} za den. Odměna platí do měsíčního limitu, který si nastavíte sami.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou), ať ho může využít někdo jiný.</value></data>
@@ -498,7 +499,10 @@
   <data name="Help_Profile_Q" xml:space="preserve"><value>Co si nastavit v profilu</value></data>
   <data name="Help_Profile_A1" xml:space="preserve"><value>Profil ovlivňuje, co vám aplikace nabízí a za co dostáváte body:</value></data>
   <data name="Help_Profile_Li1" xml:space="preserve"><value>Domácí adresa — po ověření zvyšuje odměnu za obsazení sdíleného místa podle dojezdu.</value></data>
-  <data name="Help_Profile_Li2" xml:space="preserve"><value>SPZ vozidla (uložíte si ji v Můj účet) — správce vás dohledá, kdyby vaše auto omylem blokovalo cizí rezervaci, a ozve se vám dřív, než se to řeší dál.</value></data>
+  <data name="Help_Profile_Li2" xml:space="preserve"><value>SPZ vozidla (uložíte si ji v Můj účet) — správce vás dohledá, kdyby vaše auto omylem blokovalo cizí rezervaci, a ozve se vám dřív, než se to řeší dál. Když SPZ odpovídá vozidlu z vozového parku, můžete se s ním spárovat: firemní vozidlo tím získá své vlastní místo, vozidlo zaměstnance ověřenou identifikaci.</value></data>
+  <data name="Help_FleetAdmin_Q" xml:space="preserve"><value>Vozový park a typy vozidel</value></data>
+  <data name="Help_FleetAdmin_A1" xml:space="preserve"><value>Ve vozovém parku evidujete vozidla podle SPZ ve dvou typech: firemní vozidlo může mít přidělené vlastní (rezidentní) místo — rezidentem se řidič stane spárováním účtu s vozidlem. Vozidlo zaměstnance slouží k ověřené identifikaci SPZ a rezervuje jen z fondu; vlastní místo mu přidělit nejde.</value></data>
+  <data name="Help_FleetAdmin_A2" xml:space="preserve"><value>Když firemní vozidlo přepnete na vozidlo zaměstnance, musíte mu v téže úpravě odebrat místo — rezidence spárovaného řidiče se uvolní, samotné spárování ale zůstává.</value></data>
   <data name="Help_Profile_Li3" xml:space="preserve"><value>Tým nebo oddělení — zapojí vás do týmového žebříčku.</value></data>
   <data name="Help_AdminSection" xml:space="preserve"><value>Pro správce</value></data>
   <data name="Help_Visitors_Q" xml:space="preserve"><value>Jak zarezervovat místo pro návštěvu</value></data>
@@ -856,7 +860,11 @@
   <data name="Nav_AdminFleet" xml:space="preserve"><value>Vozový park</value></data>
   <data name="Nav_Short_Fleet" xml:space="preserve"><value>Vozy</value></data>
   <data name="Fleet_Admin_Title" xml:space="preserve"><value>Vozový park</value></data>
-  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>Evidence firemních vozidel podle SPZ. Když si uživatel uloží do svého účtu SPZ vozidla, jehož e-mail řidiče se shoduje s jeho účtem, může se s vozidlem spárovat potvrzovacím kódem z e-mailu — a stane se rezidentem přiděleného místa.</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>Evidence vozidel podle SPZ, rozlišená typem: firemní vozidlo může mít přidělené vlastní (rezidentní) místo, vozidlo zaměstnance rezervuje jen z fondu. Když si uživatel uloží do svého účtu SPZ vozidla, jehož e-mail řidiče se shoduje s jeho účtem, může se s vozidlem spárovat potvrzovacím kódem z e-mailu — u firemního vozidla se tím stane rezidentem přiděleného místa.</value></data>
+  <data name="Fleet_Admin_Type" xml:space="preserve"><value>Typ vozidla</value></data>
+  <data name="Fleet_Type_Company" xml:space="preserve"><value>firemní vozidlo</value></data>
+  <data name="Fleet_Type_Employee" xml:space="preserve"><value>vozidlo zaměstnance</value></data>
+  <data name="Fleet_Admin_TypeHint" xml:space="preserve"><value>Firemní vozidlo má vedle rezervací nárok i na vlastní (rezidentní) místo; vozidlo zaměstnance rezervuje pouze z fondu volných míst, proto u něj místo přidělit nejde.</value></data>
   <data name="Fleet_Admin_AddTitle" xml:space="preserve"><value>Přidat vozidlo</value></data>
   <data name="Fleet_Admin_EditTitle" xml:space="preserve"><value>Upravit vozidlo {0}</value></data>
   <data name="Fleet_Admin_Plate" xml:space="preserve"><value>SPZ</value></data>
@@ -893,6 +901,7 @@
   <data name="Fleet_Admin_NoSpot" xml:space="preserve"><value>— žádné —</value></data>
   <data name="Fleet_Admin_NotPaired" xml:space="preserve"><value>— nespárováno —</value></data>
   <data name="Fleet_Error_PlateRequired" xml:space="preserve"><value>Zadejte SPZ.</value></data>
+  <data name="Fleet_Error_EmployeeVehicleNoSpot" xml:space="preserve"><value>Vozidlo zaměstnance nemůže mít přidělené vlastní místo — nárok na rezidentní místo mají jen firemní vozidla.</value></data>
   <data name="Fleet_Error_DuplicatePlate" xml:space="preserve"><value>Vozidlo s touto SPZ už je evidováno, nebo je zvolené místo právě obsazené jiným vozidlem.</value></data>
   <data name="Fleet_Error_VehicleNotFound" xml:space="preserve"><value>Vozidlo nebylo nalezeno.</value></data>
   <data name="Fleet_Error_VehicleInactive" xml:space="preserve"><value>Vozidlo je neaktivní.</value></data>
@@ -906,11 +915,14 @@
   <data name="Fleet_Error_SpotOccupied" xml:space="preserve"><value>Místo vozidla už má jiného rezidenta. Obraťte se prosím na správce.</value></data>
   <data name="Fleet_Error_SpotTaken" xml:space="preserve"><value>Toto místo už je přiřazené jinému vozidlu.</value></data>
   <data name="Fleet_Error_VisitorSpot" xml:space="preserve"><value>Návštěvnické místo nelze přiřadit firemnímu vozidlu.</value></data>
-  <data name="Account_Vehicle_PairedBadge" xml:space="preserve"><value>Firemní vozidlo</value></data>
-  <data name="Account_Vehicle_Paired" xml:space="preserve"><value>Spárováno s firemním vozidlem {0}.</value></data>
+  <data name="Account_Vehicle_PairedBadge_Company" xml:space="preserve"><value>Firemní vozidlo</value></data>
+  <data name="Account_Vehicle_PairedBadge_Employee" xml:space="preserve"><value>Vozidlo zaměstnance</value></data>
+  <data name="Account_Vehicle_Paired" xml:space="preserve"><value>Spárováno s vozidlem {0} z vozového parku.</value></data>
   <data name="Account_Vehicle_PairedSpot" xml:space="preserve"><value>Vaše rezidentní místo: {0}</value></data>
   <data name="Account_Vehicle_PairedHint" xml:space="preserve"><value>Odstraněním SPZ z účtu se spárování zruší a rezidentní místo se uvolní.</value></data>
-  <data name="Account_Vehicle_FleetMatch" xml:space="preserve"><value>SPZ odpovídá firemnímu vozidlu {0}.</value></data>
+  <data name="Account_Vehicle_Entitlement_Company" xml:space="preserve"><value>Firemní vozidlo — vedle rezervací má nárok i na vlastní (rezidentní) místo.</value></data>
+  <data name="Account_Vehicle_Entitlement_Employee" xml:space="preserve"><value>Vozidlo zaměstnance — parkování řešíte rezervacemi z fondu volných míst.</value></data>
+  <data name="Account_Vehicle_FleetMatch" xml:space="preserve"><value>SPZ odpovídá vozidlu {0} z vozového parku.</value></data>
   <data name="Account_Vehicle_SpotInfo" xml:space="preserve"><value>Vozidlo má přidělené parkovací místo {0} — spárováním se stanete jeho rezidentem.</value></data>
   <data name="Account_Vehicle_CodeIntro" xml:space="preserve"><value>Vlastnictví potvrdíte kódem, který vám zašleme na e-mail účtu.</value></data>
   <data name="Account_Vehicle_SendCode" xml:space="preserve"><value>Poslat ověřovací kód</value></data>

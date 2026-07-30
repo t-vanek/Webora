@@ -61,6 +61,10 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Anti-collusion** — detekce recipročních kruhů sdílení + cap váhy hrany v grafu důvěry; flagy k revizi.
 - **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
+- **Vozový park s typy vozidel** — evidence vozidel podle SPZ s bezpečným párováním na účty
+  (SPZ + e-mail řidiče + kód z e-mailu). **Firemní vozidlo** má vedle rezervací nárok i na vlastní
+  rezidentní místo (spárováním se řidič stává rezidentem); **vozidlo zaměstnance** rezervuje pouze
+  z fondu — vlastní místo mu přidělit nejde.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
@@ -286,7 +290,10 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
 <details>
 <summary>Místa držená pro vlastníka s odstupňovanou odměnou za sdílení</summary>
 
-Místu lze administrátorem přiřadit **rezidentního vlastníka** (např. držitele firemního auta). Místo je
+Místu lze administrátorem přiřadit **rezidentního vlastníka**. Rezidence typicky vzniká přes **vozový
+park**: nárok na vlastní místo mají jen **firemní vozidla** — správce vozidlu místo přidělí a řidič se
+stane rezidentem spárováním účtu s vozidlem (vozidla zaměstnanců rezervují pouze z fondu; přepnutí
+firemního vozidla na vozidlo zaměstnance vyžaduje místo odebrat a rezidence se uvolní). Místo je
 pak **drženo pro rezidenta každý den až do konfigurovatelného cutoffu** (`ResidentHoldUntil` + ochranná
 lhůta no-show):
 

@@ -247,6 +247,11 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             vehicle.HasKey(v => v.Id);
             vehicle.Property(v => v.Plate).HasMaxLength(16).IsRequired();
             vehicle.Property(v => v.NormalizedPlate).HasMaxLength(16).IsRequired();
+            // Pre-existing registry rows are the company cars the registry was built for.
+            vehicle.Property(v => v.Type)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(VehicleType.Company);
             vehicle.Property(v => v.Name).HasMaxLength(128);
             vehicle.Property(v => v.DriverEmail).HasMaxLength(256);
             vehicle.Property(v => v.Notes).HasMaxLength(512);

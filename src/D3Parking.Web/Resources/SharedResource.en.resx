@@ -489,6 +489,7 @@
   <data name="Help_Blocked_A1" xml:space="preserve"><value>Click "I can't park" on your booking and attach a photo of the blocked spot (mandatory — we use it to verify the situation, and each photo can be used only once). We'll either find you another free spot for the same window (the payment carries over, you pay nothing extra) or cancel the booking with a full refund. Either way it never counts as a no-show.</value></data>
   <data name="Help_Blocked_A2" xml:space="preserve"><value>As an apology you're due a voucher for one free booking — peak included. We first verify the report from your photo; once the check is done the voucher activates, stays valid for 30 days and is redeemed by ticking the box when booking. It helps if you copy the blocking car's plate into the form: the admin can then tell whether it's a colleague or a vehicle from outside the system.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>I have my own (resident) spot</value></data>
+  <data name="Help_Resident_A0" xml:space="preserve"><value>A dedicated spot is tied to a company vehicle from the fleet registry: it comes from pairing your account with a company vehicle the administrator assigned the spot to. Employee vehicles carry no dedicated spot — they park through pool reservations.</value></data>
   <data name="Help_Resident_A1" xml:space="preserve"><value>Your spot is held for you every day until {0}. If you're coming that day, confirm it with Confirm arrival. If you neither confirm nor release it, the spot is offered to everyone else after that hour.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) — you earn {0} for every hour of notice, up to {1} a day. The reward applies up to a monthly limit you set yourself.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) so somebody else can use it.</value></data>
@@ -498,7 +499,10 @@
   <data name="Help_Profile_Q" xml:space="preserve"><value>What to set up in your profile</value></data>
   <data name="Help_Profile_A1" xml:space="preserve"><value>Your profile shapes what the app offers you and what you earn points for:</value></data>
   <data name="Help_Profile_Li1" xml:space="preserve"><value>Home address — once verified, it increases the reward for taking a shared spot based on your commute.</value></data>
-  <data name="Help_Profile_Li2" xml:space="preserve"><value>License plate (saved under My account) — lets the admin find you if your car ever blocks someone's booking, so you hear about it first.</value></data>
+  <data name="Help_Profile_Li2" xml:space="preserve"><value>License plate (saved under My account) — lets the admin find you if your car ever blocks someone's booking, so you hear about it first. When the plate matches a fleet vehicle you can pair with it: a company vehicle brings its dedicated spot, an employee vehicle a verified identity.</value></data>
+  <data name="Help_FleetAdmin_Q" xml:space="preserve"><value>The fleet registry and vehicle types</value></data>
+  <data name="Help_FleetAdmin_A1" xml:space="preserve"><value>The registry lists vehicles by plate in two types: a company vehicle may hold a dedicated (resident) spot — the driver becomes its resident by pairing their account with the vehicle. An employee vehicle provides the verified plate identity and books from the shared pool only; no spot can be assigned to it.</value></data>
+  <data name="Help_FleetAdmin_A2" xml:space="preserve"><value>Switching a company vehicle to an employee vehicle requires clearing its spot in the same edit — a paired driver's residency is released, while the pairing itself stays.</value></data>
   <data name="Help_Profile_Li3" xml:space="preserve"><value>Team or department — puts you on the team leaderboard.</value></data>
   <data name="Help_AdminSection" xml:space="preserve"><value>For administrators</value></data>
   <data name="Help_Visitors_Q" xml:space="preserve"><value>How to book a spot for a visitor</value></data>
@@ -856,7 +860,11 @@
   <data name="Nav_AdminFleet" xml:space="preserve"><value>Company fleet</value></data>
   <data name="Nav_Short_Fleet" xml:space="preserve"><value>Fleet</value></data>
   <data name="Fleet_Admin_Title" xml:space="preserve"><value>Company fleet</value></data>
-  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>The registry of company vehicles by license plate. When a user saves a plate to their account and the vehicle's driver email matches their account, they can pair with the vehicle using an emailed confirmation code — and become the resident of its assigned spot.</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>The vehicle registry by license plate, split by type: a company vehicle may hold a dedicated (resident) spot, an employee vehicle books from the shared pool only. When a user saves a plate to their account and the vehicle's driver email matches their account, they can pair with the vehicle using an emailed confirmation code — for a company vehicle that makes them the resident of its assigned spot.</value></data>
+  <data name="Fleet_Admin_Type" xml:space="preserve"><value>Vehicle type</value></data>
+  <data name="Fleet_Type_Company" xml:space="preserve"><value>company vehicle</value></data>
+  <data name="Fleet_Type_Employee" xml:space="preserve"><value>employee vehicle</value></data>
+  <data name="Fleet_Admin_TypeHint" xml:space="preserve"><value>A company vehicle is entitled to a dedicated (resident) spot on top of reservations; an employee vehicle books from the shared pool only, so no spot can be assigned to it.</value></data>
   <data name="Fleet_Admin_AddTitle" xml:space="preserve"><value>Add a vehicle</value></data>
   <data name="Fleet_Admin_EditTitle" xml:space="preserve"><value>Edit vehicle {0}</value></data>
   <data name="Fleet_Admin_Plate" xml:space="preserve"><value>License plate</value></data>
@@ -893,6 +901,7 @@
   <data name="Fleet_Admin_NoSpot" xml:space="preserve"><value>— none —</value></data>
   <data name="Fleet_Admin_NotPaired" xml:space="preserve"><value>— not paired —</value></data>
   <data name="Fleet_Error_PlateRequired" xml:space="preserve"><value>Enter a license plate.</value></data>
+  <data name="Fleet_Error_EmployeeVehicleNoSpot" xml:space="preserve"><value>An employee vehicle cannot hold a dedicated spot — only company vehicles qualify for a resident spot.</value></data>
   <data name="Fleet_Error_DuplicatePlate" xml:space="preserve"><value>A vehicle with this plate is already registered, or the chosen spot was just taken by another vehicle.</value></data>
   <data name="Fleet_Error_VehicleNotFound" xml:space="preserve"><value>The vehicle was not found.</value></data>
   <data name="Fleet_Error_VehicleInactive" xml:space="preserve"><value>The vehicle is inactive.</value></data>
@@ -906,11 +915,14 @@
   <data name="Fleet_Error_SpotOccupied" xml:space="preserve"><value>The vehicle's spot already has another resident. Please contact an administrator.</value></data>
   <data name="Fleet_Error_SpotTaken" xml:space="preserve"><value>This spot is already assigned to another vehicle.</value></data>
   <data name="Fleet_Error_VisitorSpot" xml:space="preserve"><value>A visitor spot cannot be assigned to a fleet vehicle.</value></data>
-  <data name="Account_Vehicle_PairedBadge" xml:space="preserve"><value>Company vehicle</value></data>
-  <data name="Account_Vehicle_Paired" xml:space="preserve"><value>Paired with company vehicle {0}.</value></data>
+  <data name="Account_Vehicle_PairedBadge_Company" xml:space="preserve"><value>Company vehicle</value></data>
+  <data name="Account_Vehicle_PairedBadge_Employee" xml:space="preserve"><value>Employee vehicle</value></data>
+  <data name="Account_Vehicle_Paired" xml:space="preserve"><value>Paired with fleet vehicle {0}.</value></data>
   <data name="Account_Vehicle_PairedSpot" xml:space="preserve"><value>Your resident spot: {0}</value></data>
   <data name="Account_Vehicle_PairedHint" xml:space="preserve"><value>Removing the plate from your account dissolves the pairing and releases the resident spot.</value></data>
-  <data name="Account_Vehicle_FleetMatch" xml:space="preserve"><value>The plate matches company vehicle {0}.</value></data>
+  <data name="Account_Vehicle_Entitlement_Company" xml:space="preserve"><value>A company vehicle — entitled to a dedicated (resident) spot on top of reservations.</value></data>
+  <data name="Account_Vehicle_Entitlement_Employee" xml:space="preserve"><value>An employee vehicle — you park through reservations from the shared pool.</value></data>
+  <data name="Account_Vehicle_FleetMatch" xml:space="preserve"><value>The plate matches fleet vehicle {0}.</value></data>
   <data name="Account_Vehicle_SpotInfo" xml:space="preserve"><value>The vehicle has parking spot {0} assigned — pairing makes you its resident.</value></data>
   <data name="Account_Vehicle_CodeIntro" xml:space="preserve"><value>Confirm ownership with a code we will send to your account's email.</value></data>
   <data name="Account_Vehicle_SendCode" xml:space="preserve"><value>Send verification code</value></data>
