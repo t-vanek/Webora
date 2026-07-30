@@ -963,6 +963,8 @@
   <data name="Lot_Today" xml:space="preserve"><value>Today</value></data>
   <data name="Lot_NotToday" xml:space="preserve"><value>Another day — tiles show what is booked for it, not the live state</value></data>
   <data name="Lot_SectionUnnamed" xml:space="preserve"><value>No section</value></data>
+  <data name="Lot_Tab_Board" xml:space="preserve"><value>Lot floor</value></data>
+  <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytics</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Free</value></data>
   <data name="Lot_State_Booked" xml:space="preserve"><value>Booked</value></data>
@@ -1009,8 +1011,6 @@
   <data name="Lot_MoveConfirm" xml:space="preserve"><value>Move</value></data>
   <data name="Lot_MoveAbort" xml:space="preserve"><value>Back</value></data>
   <data name="Lot_MoveNoTargets" xml:space="preserve"><value>No other spot is free for that window.</value></data>
-  <data name="Lot_Analytics" xml:space="preserve"><value>Utilization analytics</value></data>
-  <data name="Lot_Analytics_Hint" xml:space="preserve"><value>Busiest spot first. The tail of the table is dead capacity — spots nobody wants.</value></data>
   <data name="Lot_Window" xml:space="preserve"><value>Window</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Last {0} days</value></data>
   <data name="Lot_Stat_AvgUtilization" xml:space="preserve"><value>Average utilization</value></data>
@@ -1018,6 +1018,10 @@
   <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>No-show rate</value></data>
   <data name="Lot_Stat_Peak" xml:space="preserve"><value>Peak</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Mismatches</value></data>
+  <data name="Lot_Summary_Metric" xml:space="preserve"><value>Metric</value></data>
+  <data name="Lot_Summary_Value" xml:space="preserve"><value>Now</value></data>
+  <data name="Lot_Summary_Trend" xml:space="preserve"><value>{0}-day trend</value></data>
+  <data name="Lot_Summary_NoTrend" xml:space="preserve"><value>This metric has no daily history to compute a trend from.</value></data>
   <data name="Lot_Trend" xml:space="preserve"><value>Load over time</value></data>
   <data name="Lot_Trend_Hint" xml:space="preserve"><value>How many spots somebody actually took each day. The scale runs to today's capacity ({0} spots) — there is no history of how many spots were in service when, so a per-day denominator would be invented.</value></data>
   <data name="Lot_Trend_Series" xml:space="preserve"><value>Spots taken</value></data>

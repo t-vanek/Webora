@@ -367,9 +367,15 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 `/admin/parking/dashboard` (`Parking.ManageSpots`) je jedna obrazovka, na které správce vidí i řeší
 celé parkoviště — na rozdíl od [správy míst](#role-a-oprávnění), která je CRUD nad katalogem.
 
-- **Souhrn plochy:** obsazenost, kolik vozů stojí na místech, kolik je zarezervováno a k dispozici,
-  poměr rezidentních a sdílených míst, čekatelé ve frontě, návštěvy, nahlášené neshody a
-  **promarněná sdílení** (dny, které rezident uvolnil a nikdo si je nevzal).
+Stránka je rozdělená na dva taby — **Plocha** (parkoviště jako obrázek) a **Analytika** (parkoviště
+jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
+
+- **Souhrn:** tabulka metrik s aktuálním číslem a **sparklinem za 14 dní** u těch, které denní
+  historii opravdu mají (obsazenost, kolik vozů stojí na místech, nahlášené neshody a **promarněná
+  sdílení** — dny, které rezident uvolnil a nikdo si je nevzal). Metriky bez denní historie
+  (rezidentních míst, ve sdíleném fondu, ve frontě, návštěvy dnes, neaktivních) ukazují jen číslo;
+  trendová čára by u nich byla vymyšlená. Okno souhrnu je záměrně pevné, aby se neměnilo, když
+  někdo na druhém tabu přepne okno analytiky.
 - **Plocha:** dlaždice míst seskupené do **sekcí podle prefixu kódu** (`A-12` → sekce `A`) a řazené
   přirozeně (`P2-2` před `P2-10`). Barva a tečka nesou stav, ale nikdy samy: dlaždice vždy pojmenuje
   vlastníka i držitele a legenda pojmenuje každý stav. Datum lze přepínat dopředu i dozadu — pro
@@ -377,8 +383,9 @@ celé parkoviště — na rozdíl od [správy míst](#role-a-oprávnění), kter
 - **Precedence stavu** je jedno jediné místo v kódu: neaktivní místo je mimo parkoviště bez ohledu na
   vše ostatní, přítomný řidič přebíjí pouhou rezervaci a rezidentní místo je kapacita fondu teprve
   tehdy, když je skutečně sdílené.
-- **Detail místa:** nastavení, plán využití rezidenta, stav dnes, **kalendář na 14 dní** (rezervace,
-  návštěvy a uvolněné dny, které nikdo nezabral), historie nahlášených neshod a vytíženost.
+- **Detail místa** se otevře **kliknutím na dlaždici** jako modální okno: nastavení, plán využití
+  rezidenta, stav dnes, graf zatížení místa, **kalendář na 14 dní** (rezervace, návštěvy a uvolněné
+  dny, které nikdo nezabral), historie nahlášených neshod a vytíženost.
 - **Ruční zásahy** pro případ, kdy realita nesouhlasí se systémem:
   - **zrušení cizí rezervace** s **plnou vratkou bez ohledu na čas** — tady chybu udělalo
     parkoviště, ne řidič, takže platí stejné bezvinné pravidlo jako u zablokovaného místa (včetně

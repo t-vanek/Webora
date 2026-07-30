@@ -8,9 +8,10 @@ namespace D3Parking.Application.Parking;
 public interface ILotDashboardService
 {
     /// <summary>
-    /// The board for one local day: lot-level counts plus every spot as a tile, grouped into the
-    /// sections its code implies. For today the tiles reflect the live moment (who is checked in
-    /// right now); for another day they reflect what is booked on it.
+    /// The board for one local day: lot-level counts plus every spot as a row, ordered by the section
+    /// its code implies and then by that code read as a number. For today the rows reflect the live
+    /// moment (who is checked in right now); for another day they reflect what is booked on it. Each
+    /// row also carries its own recent load, so the table can show a sparkline per spot.
     /// </summary>
     Task<LotBoardDto> GetBoardAsync(DateOnly date, CancellationToken cancellationToken = default);
 

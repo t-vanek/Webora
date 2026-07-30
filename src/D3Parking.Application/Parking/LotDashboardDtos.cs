@@ -50,10 +50,12 @@ public sealed record LotOverviewDto(
     /// <summary>Shared days in the recent window that nobody booked — capacity given away for nothing.</summary>
     int UnusedSharedDays);
 
-/// <summary>One spot as a tile on the board.</summary>
+/// <summary>One spot as a row on the board.</summary>
 public sealed record SpotTileDto(
     Guid SpotId,
     string Code,
+    /// <summary>The section the code starts with ("A-12" → "A"); empty when the code has no prefix.</summary>
+    string Section,
     ParkingSpotType Type,
     bool IsActive,
     Guid? OwnerId,
@@ -66,15 +68,16 @@ public sealed record SpotTileDto(
     /// <summary>Blocked-spot reports on this spot in the recent window — the "check this one" marker.</summary>
     int MismatchCount);
 
-/// <summary>Spots grouped by the section their code starts with ("A-12" → "A", "12" → unnamed).</summary>
-public sealed record LotSectionDto(string Name, IReadOnlyList<SpotTileDto> Spots);
-
-/// <summary>The whole board for one day: lot summary plus the sections of tiles.</summary>
+/// <summary>
+/// The whole board for one day: the lot summary plus every spot, ordered by section and then by code
+/// read as a number, which is the order the table lands in before the manager sorts it themselves.
+/// </summary>
 public sealed record LotBoardDto(
     DateOnly Date,
     bool IsToday,
     LotOverviewDto Overview,
-    IReadOnlyList<LotSectionDto> Sections);
+    LotSummaryTrendsDto Trends,
+    IReadOnlyList<SpotTileDto> Spots);
 
 /// <summary>What kind of thing occupies a slot in a spot's calendar.</summary>
 public enum SpotCalendarKind
@@ -157,6 +160,25 @@ public sealed record DailyOccupancyDto(DateOnly Date, int Occupied, int Capacity
 
 /// <summary>One day of a single spot's history: did it carry a booking somebody stood by.</summary>
 public sealed record SpotDayDto(DateOnly Date, bool Busy);
+
+/// <summary>One day of a plain daily count (mismatches reported, shared days nobody took, …).</summary>
+public sealed record DailyCountDto(DateOnly Date, int Count);
+
+/// <summary>
+/// The daily series behind the summary table's sparklines, oldest first. Only the metrics that have a
+/// real day-by-day history are here — a trend line for "how many spots are residents'" would be
+/// invented, so those rows show their number and nothing else.
+/// </summary>
+public sealed record LotSummaryTrendsDto(
+    IReadOnlyList<DailyOccupancyDto> Occupancy,
+    IReadOnlyList<DailyCountDto> Mismatches,
+    IReadOnlyList<DailyCountDto> WastedShares);
+
+/// <summary>How many days back the summary table's sparklines reach.</summary>
+public static class LotBoard
+{
+    public const int SummaryTrendDays = 14;
+}
 
 /// <summary>The lot's analytics over a window: which spots work hardest, and when demand lands.</summary>
 public sealed record LotAnalyticsDto(

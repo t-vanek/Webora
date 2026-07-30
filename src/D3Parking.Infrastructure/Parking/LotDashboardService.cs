@@ -117,8 +117,9 @@ public sealed class LotDashboardService(
             var from = reservation?.StartUtc ?? visitor?.StartUtc;
             var to = reservation?.EndUtc ?? visitor?.EndUtc;
 
-            tiles.Add(new SpotTileDto(spot.Id, spot.Code, spot.Type, spot.IsActive, spot.OwnerId, spot.OwnerName,
-                state, holder, from, to, mismatchesPerSpot.GetValueOrDefault(spot.Id)));
+            tiles.Add(new SpotTileDto(spot.Id, spot.Code, SectionOf(spot.Code), spot.Type, spot.IsActive,
+                spot.OwnerId, spot.OwnerName, state, holder, from, to,
+                mismatchesPerSpot.GetValueOrDefault(spot.Id)));
         }
 
         var queueWaiting = await dbContext.QueueEntries.AsNoTracking()
@@ -154,7 +155,59 @@ public sealed class LotDashboardService(
             OpenMismatches: openMismatches,
             UnusedSharedDays: unusedSharedDays);
 
-        return new LotBoardDto(date, isToday, overview, GroupIntoSections(tiles));
+        // Section first, then the code read as a number, so D3-2 precedes D3-10 and the unnamed
+        // section (codes with no letter prefix) sorts ahead of the named ones.
+        var ordered = tiles
+            .OrderBy(t => t.Section, SpotCodeComparer.Instance)
+            .ThenBy(t => t.Code, SpotCodeComparer.Instance)
+            .ToList();
+
+        var trends = await ComputeSummaryTrendsAsync(dbContext, timeZone, today, cancellationToken);
+        return new LotBoardDto(date, isToday, overview, trends, ordered);
+    }
+
+    /// <summary>
+    /// The fixed-length daily series the summary table draws next to each number it can. Deliberately
+    /// independent of the analytics window: the summary is the "how are we doing lately" header and
+    /// must not change shape when someone picks a different window on the analytics tab.
+    /// </summary>
+    private static async Task<LotSummaryTrendsDto> ComputeSummaryTrendsAsync(
+        D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly today, CancellationToken cancellationToken)
+    {
+        var from = today.AddDays(-(LotBoard.SummaryTrendDays - 1));
+        var spotIds = await dbContext.ParkingSpots.AsNoTracking().Select(s => s.Id).ToListAsync(cancellationToken);
+        var occupancy = await ComputeDailyOccupancyAsync(dbContext, timeZone, from, today, spotIds, cancellationToken);
+
+        var (rangeStart, _) = SiteTime.Day(from, timeZone);
+        var (_, rangeEnd) = SiteTime.Day(today, timeZone);
+        var reportedPerDay = (await dbContext.OccupancyMismatches.AsNoTracking()
+                .Where(m => m.ReportedAtUtc >= rangeStart && m.ReportedAtUtc < rangeEnd)
+                .Select(m => m.ReportedAtUtc)
+                .ToListAsync(cancellationToken))
+            .GroupBy(at => SiteTime.Today(at, timeZone))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Shared days nobody took, per day — the same rule as CountUnusedSharedDaysAsync, just kept
+        // per day instead of summed, and only for days that have already passed.
+        var releases = await dbContext.SpotReleases.AsNoTracking()
+            .Where(r => r.Date >= from && r.Date < today)
+            .Select(r => new { r.SpotId, r.Date })
+            .ToListAsync(cancellationToken);
+        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, today, spotIds, cancellationToken);
+        var wastedPerDay = releases
+            .Where(r => !honoured.Contains((r.SpotId, r.Date)))
+            .GroupBy(r => r.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var mismatches = new List<DailyCountDto>(LotBoard.SummaryTrendDays);
+        var wasted = new List<DailyCountDto>(LotBoard.SummaryTrendDays);
+        for (var date = from; date <= today; date = date.AddDays(1))
+        {
+            mismatches.Add(new DailyCountDto(date, reportedPerDay.GetValueOrDefault(date)));
+            wasted.Add(new DailyCountDto(date, wastedPerDay.GetValueOrDefault(date)));
+        }
+
+        return new LotSummaryTrendsDto(occupancy, mismatches, wasted);
     }
 
     /// <summary>
@@ -175,18 +228,10 @@ public sealed class LotDashboardService(
         };
 
     /// <summary>
-    /// Groups tiles into sections by the leading non-digit run of the code ("P2-08" → "P2"), which is
-    /// the convention the spot generator already writes. Codes that start with a digit, or have no
-    /// separator, land in one unnamed section rather than one section each.
+    /// The section of a code: its leading non-digit run ("P2-08" → "P2"), which is the convention the
+    /// spot generator already writes. A code that starts with a digit, or has no separator, has no
+    /// section rather than being a section of its own.
     /// </summary>
-    private static List<LotSectionDto> GroupIntoSections(List<SpotTileDto> tiles) =>
-        tiles
-            .GroupBy(t => SectionOf(t.Code), StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, SpotCodeComparer.Instance)
-            .Select(g => new LotSectionDto(g.Key,
-                g.OrderBy(t => t.Code, SpotCodeComparer.Instance).ToList()))
-            .ToList();
-
     private static string SectionOf(string code)
     {
         var separator = code.IndexOfAny(['-', '_', '/', ' ', '.']);
