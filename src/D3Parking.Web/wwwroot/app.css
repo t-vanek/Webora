@@ -176,6 +176,14 @@ h1:focus {
     --neutral-stroke-focus: transparent;
 }
 
+/* Zvoneček je inline SVG, ne <FluentIcon> (balíček ikon by island stál ~22 MB při každém
+   bootu WASM). Rozměr srovnaný s ostatními ikonami Size24 ve hlavičce. */
+.bell-icon {
+    display: block;
+    width: 24px;
+    height: 24px;
+}
+
 /* Unread count on the bell: lawn green with Sherpa text (8:1), pinned to the icon's corner.
    The count itself is capped at "9+" in the component. */
 .bell-badge {

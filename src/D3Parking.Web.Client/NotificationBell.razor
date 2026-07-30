@@ -1,5 +1,4 @@
 @using System.Text.Json
-@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Localization
@@ -18,10 +17,14 @@
         <FluentButton Appearance="Appearance.Stealth" OnClick="ToggleOpen"
                       Title="@(_muted ? L["Bell_TitleMuted"] : L["Bell_Title"])"
                       Style="position:relative">
-            <FluentIcon Value="@(_muted
-                ? (Icon)new Icons.Regular.Size24.AlertOff()
-                : new Icons.Regular.Size24.Alert())"
-                Color="Color.Custom" CustomColor="currentColor" />
+            @* Inline SVG rather than <FluentIcon>: pulling in the icon package cost this island
+               ~22 MB of the ~47 MB the .NET WASM runtime reads on every page load, to draw two
+               glyphs. The path data below is the same Fluent "Alert" / "AlertOff" (Regular, 24)
+               copied out of that package, so the bell looks exactly as before. *@
+            <svg class="bell-icon" viewBox="0 0 24 24" width="24" height="24"
+                 fill="currentColor" aria-hidden="true" focusable="false">
+                @((MarkupString)(_muted ? AlertOffPath : AlertPath))
+            </svg>
             @if (_unreadCount > 0)
             {
                 @* Capped at 9+ so a pile of unread notifications can't stretch the badge out of
@@ -63,7 +66,13 @@
                         </FluentSwitch>
                     }
 
-                    @if (_items.Count == 0)
+                    @* The list arrives on first open, so "nothing here" must not be shown while it
+                       is still on its way — that would read as an empty inbox. *@
+                    @if (_itemsLoading)
+                    {
+                        <FluentProgressRing Style="width:24px;height:24px" />
+                    }
+                    else if (_items.Count == 0)
                     {
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Bell_NoNotifications"]</FluentLabel>
                     }
@@ -98,6 +107,20 @@
     private int _unreadCount;
     private List<NotificationDto> _items = [];
 
+    // The list is fetched on first open, not on page load. "Loaded" is what tells the panel apart
+    // from "genuinely empty" and tells the hub handler whether prepending is meaningful.
+    private bool _itemsLoaded;
+    private bool _itemsLoading;
+
+    // Fluent "Alert" and "AlertOff" (Regular, 24) path data, lifted from
+    // Microsoft.FluentUI.AspNetCore.Components.Icons so this island does not have to reference it.
+    // Constant markup from a trusted source, hence MarkupString rather than any escaping concern.
+    private const string AlertPath =
+        """<path d="M12 2a7.5 7.5 0 0 1 7.5 7.25v4.35l1.38 3.15a1.25 1.25 0 0 1-1.15 1.75H15a3 3 0 0 1-6 .18v-.18H4.27a1.25 1.25 0 0 1-1.14-1.75L4.5 13.6V9.5C4.5 5.35 7.85 2 12 2Zm1.5 16.5h-3a1.5 1.5 0 0 0 3 .15v-.15ZM12 3.5c-3.32 0-6 2.67-6 6v4.4L4.66 17h14.7L18 13.9V9.29a5.99 5.99 0 0 0-6-5.78Z"/>""";
+
+    private const string AlertOffPath =
+        """<path d="m5.22 6.28-3-3a.75.75 0 0 1 1.06-1.06l18.5 18.5a.75.75 0 1 1-1.06 1.06l-3.28-3.28H15a3 3 0 0 1-6 .18v-.18H4.27a1.25 1.25 0 0 1-1.14-1.75L4.5 13.6V9.5c0-1.15.26-2.24.72-3.21ZM15.94 17 6.36 7.43A6.02 6.02 0 0 0 6 9.5v4.4L4.66 17h11.28Zm-2.44 1.5h-3a1.5 1.5 0 0 0 3 .15v-.15Zm4.5-4.6.7 1.63 2.2 2.18a1.25 1.25 0 0 0-.02-.96l-1.38-3.16V9.25A7.5 7.5 0 0 0 7.04 3.86l1.07 1.06A5.99 5.99 0 0 1 18 9.28V13.91Z"/>""";
+
     private IJSObjectReference? _pushModule;
     private string? _pushPublicKey;
     private bool _pushAvailable;
@@ -114,23 +137,52 @@
             return;
         }
 
-        await RefreshAsync();
+        await RefreshHeaderAsync();
         await ConnectAsync();
     }
 
-    private async Task RefreshAsync()
+    /// <summary>
+    /// What the closed bell actually shows: the unread count and whether notifications are muted.
+    /// The two calls are independent, so they go together rather than one after the other — and the
+    /// list itself is not fetched here at all; see <see cref="ToggleOpen"/>.
+    /// </summary>
+    private async Task RefreshHeaderAsync()
     {
         try
         {
-            _unreadCount = await Api.GetUnreadCountAsync();
-            _items = [.. await Api.GetAsync(take: 20)];
-            var prefs = await Api.GetPreferencesAsync();
-            _muted = prefs?.IsCurrentlyMuted ?? false;
+            var count = Api.GetUnreadCountAsync();
+            var prefs = Api.GetPreferencesAsync();
+            await Task.WhenAll(count, prefs);
+            _unreadCount = count.Result;
+            _muted = prefs.Result?.IsCurrentlyMuted ?? false;
         }
         catch (Exception ex) when (ex is HttpRequestException or NotSupportedException or JsonException)
         {
             // Not reachable, session expired (401) or an unexpected payload — leave the bell
             // empty rather than letting a background fetch take the whole island down.
+        }
+    }
+
+    /// <summary>
+    /// Fetches the list the panel shows. Deferred until the panel is first opened: on most page
+    /// loads nobody opens the bell, and the closed bell only needs its count.
+    /// </summary>
+    private async Task LoadItemsAsync()
+    {
+        _itemsLoading = true;
+        try
+        {
+            _items = [.. await Api.GetAsync(take: 20)];
+            _itemsLoaded = true;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or NotSupportedException or JsonException)
+        {
+            // Same reasoning as above; the panel shows its empty state instead of taking the
+            // island down. Not marked loaded, so opening it again retries.
+        }
+        finally
+        {
+            _itemsLoading = false;
         }
     }
 
@@ -143,8 +195,14 @@
 
         _hub.On<NotificationDto>("ReceiveNotification", notification =>
         {
-            _items.Insert(0, notification);
             _unreadCount++;
+            // Only prepend when the list has actually been fetched. Inserting into a list nobody
+            // loaded yet would render that one notification as if it were all of them.
+            if (_itemsLoaded)
+            {
+                _items.Insert(0, notification);
+            }
+
             return InvokeAsync(StateHasChanged);
         });
 
@@ -152,7 +210,12 @@
         // refetch on reconnect so the bell doesn't silently miss them until the next page load.
         _hub.Reconnected += _ => InvokeAsync(async () =>
         {
-            await RefreshAsync();
+            await RefreshHeaderAsync();
+            if (_itemsLoaded)
+            {
+                await LoadItemsAsync();
+            }
+
             StateHasChanged();
         });
 
@@ -262,7 +325,14 @@
 
     private sealed record PushSubscriptionPayload(string Endpoint, string P256dh, string Auth);
 
-    private void ToggleOpen() => _open = !_open;
+    private async Task ToggleOpen()
+    {
+        _open = !_open;
+        if (_open && !_itemsLoaded && !_itemsLoading)
+        {
+            await LoadItemsAsync();
+        }
+    }
 
     private async Task MarkRead(Guid id)
     {

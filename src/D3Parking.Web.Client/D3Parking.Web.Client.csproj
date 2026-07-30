@@ -21,7 +21,10 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.Extensions.Localization" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
-    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
+    <!-- The icon package is deliberately NOT referenced here. It is ~22 MB of assemblies that the
+         .NET WASM runtime reads on every page load, and this project's single component needs two
+         glyphs — those are inlined as SVG in NotificationBell.razor. The server project still
+         references it; there it costs nothing to send. -->
   </ItemGroup>
 
   <ItemGroup>
