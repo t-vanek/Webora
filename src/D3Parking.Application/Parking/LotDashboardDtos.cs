@@ -76,7 +76,6 @@ public sealed record LotBoardDto(
     DateOnly Date,
     bool IsToday,
     LotOverviewDto Overview,
-    LotSummaryTrendsDto Trends,
     IReadOnlyList<SpotTileDto> Spots);
 
 /// <summary>What kind of thing occupies a slot in a spot's calendar.</summary>

@@ -48,36 +48,62 @@
     }
     else
     {
-        @* The live summary as a table: one row per metric, its number, and a sparkline for the metrics
-           that actually have a day-by-day history. The rows without one show no chart rather than a
-           flat line — a trend for "how many spots are residents'" would be invented. *@
-        <table class="lot-summary">
-            <thead>
-                <tr>
-                    <th scope="col">@L["Lot_Summary_Metric"]</th>
-                    <th scope="col" class="lot-summary__num">@L["Lot_Summary_Value"]</th>
-                    <th scope="col">@L["Lot_Summary_Trend", LotBoard.SummaryTrendDays]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @SummaryRow(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %",
-                    MeterClass(_board.Overview.OccupancyPercent), OccupancyTrend, percent: true)
-                @SummaryRow(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null, OccupiedTrend)
-                @SummaryRow(L["Lot_Stat_Mismatches"], _board.Overview.OpenMismatches.ToString(),
-                    _board.Overview.OpenMismatches > 0 ? "warn" : null, MismatchTrend)
-                @SummaryRow(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(),
-                    _board.Overview.UnusedSharedDays > 0 ? "warn" : null, WastedShareTrend)
-                @SummaryRow(L["Lot_Stat_Booked"], _board.Overview.Booked.ToString(), null, null)
-                @SummaryRow(L["Lot_Stat_Free"], _board.Overview.Free.ToString(), null, null)
-                @SummaryRow(L["Lot_Stat_Residents"], _board.Overview.ResidentSpots.ToString(), null, null)
-                @SummaryRow(L["Lot_Stat_Pool"], _board.Overview.PoolSpots.ToString(), null, null)
-                @SummaryRow(L["Lot_Stat_Visitors"], _board.Overview.VisitorBookings.ToString(), null, null)
-                @SummaryRow(L["Lot_Stat_Queue"], _board.Overview.QueueWaiting.ToString(),
-                    _board.Overview.QueueWaiting > 0 ? "warn" : null, null)
-                @SummaryRow(L["Lot_Stat_Inactive"], _board.Overview.InactiveSpots.ToString(),
-                    _board.Overview.InactiveSpots > 0 ? "off" : null, null)
-            </tbody>
-        </table>
+        @* The live summary, grouped into three short tables side by side rather than one tall one.
+           As a single 11-row table it stood 429 px high — half the viewport spent before the lot
+           itself came into view — and seven of those rows carried an empty trend cell, because a
+           trend for "how many spots are residents'" would be invented. Splitting by what the metric
+           *is* keeps the chart column only where a chart exists and drops the block to four rows. *@
+        <div class="lot-summary-grid">
+            <table class="lot-summary">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Lot_Summary_Group_Trend"]</th>
+                        <th scope="col" class="lot-summary__num">@L["Lot_Summary_Value"]</th>
+                        <th scope="col">@L["Lot_Summary_Trend", LotBoard.SummaryTrendDays]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @TrendRow(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %",
+                        MeterClass(_board.Overview.OccupancyPercent), OccupancyTrend, percent: true)
+                    @TrendRow(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null, OccupiedTrend)
+                    @TrendRow(L["Lot_Stat_Mismatches"], _board.Overview.OpenMismatches.ToString(),
+                        _board.Overview.OpenMismatches > 0 ? "warn" : null, MismatchTrend)
+                    @TrendRow(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(),
+                        _board.Overview.UnusedSharedDays > 0 ? "warn" : null, WastedShareTrend)
+                </tbody>
+            </table>
+
+            <table class="lot-summary">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Lot_Summary_Group_Today"]</th>
+                        <th scope="col" class="lot-summary__num">@L["Lot_Summary_Value"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @CountRow(L["Lot_Stat_Booked"], _board.Overview.Booked.ToString(), null)
+                    @CountRow(L["Lot_Stat_Free"], _board.Overview.Free.ToString(), null)
+                    @CountRow(L["Lot_Stat_Visitors"], _board.Overview.VisitorBookings.ToString(), null)
+                    @CountRow(L["Lot_Stat_Queue"], _board.Overview.QueueWaiting.ToString(),
+                        _board.Overview.QueueWaiting > 0 ? "warn" : null)
+                </tbody>
+            </table>
+
+            <table class="lot-summary">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Lot_Summary_Group_Lot"]</th>
+                        <th scope="col" class="lot-summary__num">@L["Lot_Summary_Value"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @CountRow(L["Lot_Stat_Residents"], _board.Overview.ResidentSpots.ToString(), null)
+                    @CountRow(L["Lot_Stat_Pool"], _board.Overview.PoolSpots.ToString(), null)
+                    @CountRow(L["Lot_Stat_Inactive"], _board.Overview.InactiveSpots.ToString(),
+                        _board.Overview.InactiveSpots > 0 ? "off" : null)
+                </tbody>
+            </table>
+        </div>
 
         @* Two tabs: the lot as a picture, and the lot as numbers over time. Everything on one page
            was a single long scroll where the board and the charts competed for the same attention.
@@ -90,7 +116,7 @@
            its children and snap the selection back to the first tab, so the page bounces to "Plocha"
            the moment you leave it. Left alone, the analytics charts pick up their real width when
            their panel is shown (measured: 975 px, not 0), so there is nothing to work around. *@
-        <FluentTabs @bind-ActiveTabId="_activeTab">
+        <FluentTabs @bind-ActiveTabId="_activeTab" OnTabChange="OnTabChangedAsync">
             <FluentTab Id="@BoardTab" Label="@L["Lot_Tab_Board"]">
         <div class="lot-tab">
         <div class="lot-toolbar">
@@ -380,11 +406,21 @@
                             <div class="lot-calendar__row lot-calendar__row--@entry.Kind">
                                 <span class="lot-calendar__when">
                                     @entry.Date.ToString("ddd d. M.")
-                                    <small>@Local(entry.StartUtc, "H:mm")–@Local(entry.EndUtc, "H:mm")</small>
+                                    <small>@WhenLabel(entry)</small>
                                 </span>
-                                @* No fallback label here: an entry without a holder is a released day,
-                                   and the status pill on the right already names it. *@
-                                <span class="lot-calendar__who">@entry.HolderName</span>
+                                @* An entry without a holder is a released day nobody booked. Saying so
+                                   here rather than in the status pill fills a column that would
+                                   otherwise be blank and keeps the pill down to two words. *@
+                                <span class="lot-calendar__who">
+                                    @if (entry.HolderName is not null)
+                                    {
+                                        @entry.HolderName
+                                    }
+                                    else if (entry.Kind == SpotCalendarKind.ResidentRelease)
+                                    {
+                                        <span class="lot-calendar__muted">@L["Lot_Calendar_NobodyTook"]</span>
+                                    }
+                                </span>
                                 <span class="lot-calendar__status">
                                     @if (entry.Status is { } status)
                                     {
@@ -487,6 +523,7 @@
     ];
 
     private LotBoardDto? _board;
+    private LotSummaryTrendsDto? _trends;
     private SpotDetailDto? _detail;
     private LotAnalyticsDto? _analytics;
 
@@ -523,8 +560,22 @@
         options.Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 };
         // Whole spots on the y-axis: half a car has never parked anywhere.
         options.Yaxis = [new YAxis { Min = 0, DecimalsInFloat = 0, ForceNiceScale = true }];
+        options.Xaxis = ThinnedDateAxis();
         return options;
     }
+
+    /// <summary>
+    /// A date axis that stays readable however long the window is. One label per day stops fitting
+    /// somewhere past a fortnight — at 90 days ApexCharts tilts them to -45° and they overlap into an
+    /// unreadable smear — so the axis carries about eight upright dates and the tooltip carries the
+    /// rest. Ticks are dropped with them: a tick under no label points at nothing.
+    /// </summary>
+    private static XAxis ThinnedDateAxis() => new()
+    {
+        TickAmount = 8,
+        Labels = new XAxisLabels { Rotate = 0, HideOverlappingLabels = true, Trim = false },
+        AxisTicks = new AxisTicks { Show = false },
+    };
 
     private static ApexChartOptions<SpotUtilizationDto> BusiestChartOptions()
     {
@@ -545,6 +596,7 @@
         var options = ChartBase<SpotDayDto>();
         // A busy/idle strip, so the axis carries no information worth the space.
         options.Yaxis = [new YAxis { Min = 0, Max = 1, Show = false }];
+        options.Xaxis = ThinnedDateAxis();
         return options;
     }
 
@@ -569,6 +621,20 @@
     /// <summary>Renders a stored UTC instant as local wall-clock at the lot.</summary>
     private string Local(DateTimeOffset utc, string format) => TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
 
+    /// <summary>
+    /// The time under a calendar entry's date. A whole-day entry — a released day, or a resident's own
+    /// day — is stored midnight to midnight and came out as "0:00–0:00", which reads like a booking of
+    /// zero length rather than one of a full day.
+    /// </summary>
+    private string WhenLabel(SpotCalendarEntryDto entry)
+    {
+        var from = TimeZoneInfo.ConvertTime(entry.StartUtc, _tz);
+        var to = TimeZoneInfo.ConvertTime(entry.EndUtc, _tz);
+        return from.TimeOfDay == TimeSpan.Zero && to.TimeOfDay == TimeSpan.Zero
+            ? L["Lot_Calendar_WholeDay"]
+            : $"{from:H\\:mm}–{to:H\\:mm}";
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
@@ -580,8 +646,10 @@
         // UTC-hosted server would preselect yesterday for a lot that is already past midnight.
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz).ToDateTime(TimeOnly.MinValue);
 
+        // The board and the summary header are what the page opens on. The analytics tab's queries
+        // scan every booking in its window, so they wait until somebody actually goes there.
         await ReloadBoardAsync();
-        await ReloadAnalyticsAsync();
+        _trends = await Dashboard.GetSummaryTrendsAsync();
     }
 
     private async Task ReloadBoardAsync()
@@ -591,6 +659,20 @@
         if (_detail is not null)
         {
             await OpenDetailAsync(_detail.SpotId);
+        }
+    }
+
+    /// <summary>
+    /// Loads the analytics the first time its tab is shown. Bound to the tab strip rather than guarding
+    /// the panel's markup: an @if around a tab body makes FluentTabs snap the selection back to the
+    /// first tab (see the note next to FluentTabs).
+    /// </summary>
+    private async Task OnTabChangedAsync(FluentTab tab)
+    {
+        _activeTab = tab?.Id;
+        if (_activeTab == AnalyticsTab && _analytics is null)
+        {
+            await ReloadAnalyticsAsync();
         }
     }
 
@@ -741,11 +823,11 @@
     };
 
     /// <summary>
-    /// One row of the summary table: the metric, its current number, and its sparkline when the metric
-    /// has a daily history. `tone` maps onto the shared state-pill palette; `percent` scales the chart
-    /// to 0–100 instead of letting it fit the data, so an occupancy line is read against the whole lot.
+    /// One row of the trend table: the metric, its current number, and its sparkline. `tone` maps onto
+    /// the shared state-pill palette; `percent` scales the chart to 0–100 instead of letting it fit the
+    /// data, so an occupancy line is read against the whole lot.
     /// </summary>
-    private RenderFragment SummaryRow(string label, string value, string? tone,
+    private RenderFragment TrendRow(string label, string value, string? tone,
         IReadOnlyList<DailyCountDto>? trend, bool percent = false) => __builder =>
     {
         <tr class="@(tone is null ? null : $"lot-summary--{tone}")">
@@ -766,23 +848,28 @@
                                          YValue="@(d => d.Count)" />
                     </ApexChart>
                 }
-                else
-                {
-                    <span class="lot-summary__nochart" title="@L["Lot_Summary_NoTrend"]">—</span>
-                }
             </td>
         </tr>
     };
 
+    /// <summary>A metric that has no daily history behind it — number only, no chart column.</summary>
+    private RenderFragment CountRow(string label, string value, string? tone) => __builder =>
+    {
+        <tr class="@(tone is null ? null : $"lot-summary--{tone}")">
+            <th scope="row">@label</th>
+            <td class="lot-summary__num">@value</td>
+        </tr>
+    };
+
     private IReadOnlyList<DailyCountDto>? OccupancyTrend =>
-        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.OccupancyPercent)).ToList();
+        _trends?.Occupancy.Select(d => new DailyCountDto(d.Date, d.OccupancyPercent)).ToList();
 
     private IReadOnlyList<DailyCountDto>? OccupiedTrend =>
-        _board?.Trends.Occupancy.Select(d => new DailyCountDto(d.Date, d.Occupied)).ToList();
+        _trends?.Occupancy.Select(d => new DailyCountDto(d.Date, d.Occupied)).ToList();
 
-    private IReadOnlyList<DailyCountDto>? MismatchTrend => _board?.Trends.Mismatches;
+    private IReadOnlyList<DailyCountDto>? MismatchTrend => _trends?.Mismatches;
 
-    private IReadOnlyList<DailyCountDto>? WastedShareTrend => _board?.Trends.WastedShares;
+    private IReadOnlyList<DailyCountDto>? WastedShareTrend => _trends?.WastedShares;
 
     /// <summary>
     /// A sparkline for a summary row: no axes or grid at 34 px tall, the shape is the whole message.
@@ -870,7 +957,14 @@
             _busy = false;
         }
 
+        // The service drops its cached aggregates on an override, so these re-read fresh numbers.
+        // Analytics is only refreshed when it has been opened — otherwise the intervention would
+        // pay for a window nobody is looking at.
         await ReloadBoardAsync();
-        await ReloadAnalyticsAsync();
+        _trends = await Dashboard.GetSummaryTrendsAsync();
+        if (_analytics is not null)
+        {
+            await ReloadAnalyticsAsync();
+        }
     }
 }

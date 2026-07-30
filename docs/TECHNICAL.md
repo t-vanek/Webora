@@ -153,6 +153,27 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   Realtime a datové endpointy (`/_blazor`, `/hubs/`, `/api/`, `/connect/`, `/culture/`) jdou mimo
   service worker. Ikony (běžné, maskable, apple-touch) jsou ve `wwwroot/icons/`; při změně strategie
   nebo precache seznamu je potřeba zvýšit verzi cache v `service-worker.js`.
+
+  **Runtime WASM (`/_framework/`) jde cache-first**, ale jen soubory s content fingerprintem
+  v názvu — ty jsou immutable, takže nemohou být podány zastaralé; nefingerprintované
+  bootstrappery (`blazor.web.js`, `dotnet.js`) chodí dál ze sítě, aby nasazení nešlo zamknout na
+  starou verzi. Bez toho pravidla se ve **vývojovém** buildu stahovalo **18,5 MB při každém
+  refreshi**: zvoneček notifikací je WASM island, takže se runtime bootuje na každém načtení
+  stránky, a tehdy ještě přibalené netrimované balíky ikon Fluent UI (10,3 a 8,6 MB) se nevešly do
+  limitu prohlížeče na velikost jedné položky HTTP cache — Cache Storage takový limit nemá.
+  Publikovaný build tímhle netrpěl (celé `_framework` má 3,2 MB v Brotli), takže šlo o problém
+  vývojové smyčky. Nová verze souboru se do cache uloží a předchozí fingerprinty téhož souboru se
+  zahodí, aby cache nerostla s každým buildem.
+
+  **Klientský projekt (`D3Parking.Web.Client`) záměrně nereferencuje balíček ikon.** Jeho jediná
+  komponenta potřebuje dva glyfy, a balíček stál island ~22 MB z ~47 MB, které runtime při každém
+  bootu přečte; path data zvonečku jsou proto inline v `NotificationBell.razor`. Po odebrání má
+  `_framework` ve vývoji **28 MB místo 47 MB**. Blokování hlavního vlákna bootem to ale nezměnilo
+  (~377 ms) — to dělá instanciace runtime, ne velikost ikon. Jediné, co ho odstraní, je nebootovat
+  WASM vůbec, tedy přesunout zvoneček na `InteractiveServer`.
+
+  Zvoneček si při načtení stránky bere jen to, co zavřený ukazuje (počet nepřečtených
+  a ztlumení, paralelně); **seznam notifikací se dotahuje až při prvním otevření panelu**.
 - **Web Push:** notifikace se vedle SignalR zvonečku doručují i do zavřené nainstalované aplikace.
   `NotificationService` publikuje přes `CompositeNotificationPublisher` (SignalR + volitelný
   `WebPushNotificationPublisher` nad `Lib.Net.Http.WebPush`), takže ztlumení a rozsah kategorií

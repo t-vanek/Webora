@@ -155,15 +155,30 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
+
+        // Five independent reads that the prerender waits for. GetUserId only reads a claim, so there
+        // is no Identity round trip to keep them behind, and every service below takes its own context
+        // from the factory — so they go together instead of one after another.
+        var policy = ParkingSettings.GetPolicyAsync();
+        var leaderboard = Incentives.GetLeaderboardAsync();
+        var teams = Incentives.GetTeamLeaderboardAsync();
+
         if (Guid.TryParse(UserManager.GetUserId(state.User), out var userId))
         {
-            _score = await Incentives.GetScoreAsync(userId);
-            _peer = await Incentives.GetPeerComparisonAsync(userId);
+            var score = Incentives.GetScoreAsync(userId);
+            var peer = Incentives.GetPeerComparisonAsync(userId);
+            await Task.WhenAll(policy, leaderboard, teams, score, peer);
+            _score = score.Result;
+            _peer = peer.Result;
+        }
+        else
+        {
+            await Task.WhenAll(policy, leaderboard, teams);
         }
 
-        _policy = await ParkingSettings.GetPolicyAsync();
-        _leaderboard = await Incentives.GetLeaderboardAsync();
-        _teams = await Incentives.GetTeamLeaderboardAsync();
+        _policy = policy.Result;
+        _leaderboard = leaderboard.Result;
+        _teams = teams.Result;
     }
 
     // Floor/ceiling reputation thresholds bounding the current tier band.

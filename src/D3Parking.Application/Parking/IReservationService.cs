@@ -18,6 +18,13 @@ public interface IReservationService
 
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One page of the caller's whole booking history, newest first. Exists because the unpaged read
+    /// above silently stops at its cap: a driver with more bookings than that had no way to reach the
+    /// older ones, and no way to tell they were being hidden. Page size is clamped server-side.
+    /// </summary>
+    Task<PagedResult<ReservationDto>> GetMyReservationsPageAsync(Guid userId, int pageIndex, int pageSize, CancellationToken cancellationToken = default);
+
     /// <summary>A single reservation of the caller (ownership enforced), e.g. for the calendar export.</summary>
     Task<ReservationDto?> GetMyReservationAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
