@@ -7,6 +7,7 @@
 @inject INotificationService NotificationService
 @inject ISiteSettingsService SiteSettings
 @inject IUserLocationService UserLocation
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
@@ -19,11 +20,6 @@
             <FluentLabel Typo="Typography.Body">
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
-
-            @if (!string.IsNullOrEmpty(_saveError))
-            {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@_saveError</FluentMessageBar>
-            }
 
             <FluentCard Class="profile-section">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
@@ -39,10 +35,6 @@
                             }
                         </FluentLabel>
                     }
-                    @if (!string.IsNullOrEmpty(_homeError))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
-                    }
                     <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
                             <FluentTextField Name="HomeInput.Address" @bind-Value="HomeInput.Address"
@@ -50,6 +42,13 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveAddress"]</FluentButton>
                         </FluentStack>
                     </EditForm>
+                    @*  FluentMessageBar renders nothing in static SSR, so form outcomes follow the
+                        Manage.razor contract instead: handlers redirect (post-redirect-get) with the
+                        message in the query string, rendered below their form as plain markup.  *@
+                    @if (!string.IsNullOrEmpty(_homeError))
+                    {
+                        <div class="auth-alert auth-alert--error" role="alert"><span>@L[_homeError]</span></div>
+                    }
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Profile_CommutePrivacy"]</small></FluentLabel>
                     @if (!string.IsNullOrWhiteSpace(_home.Address))
                     {
@@ -72,6 +71,10 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveTeam"]</FluentButton>
                         </FluentStack>
                     </EditForm>
+                    @if (!string.IsNullOrEmpty(_saveError))
+                    {
+                        <div class="auth-alert auth-alert--error" role="alert"><span>@_saveError</span></div>
+                    }
                 </FluentStack>
             </FluentCard>
 
@@ -208,8 +211,27 @@
     private string? _homeError;
     private string? _saveError;
 
+    // Form outcomes ride the query string across the post-redirect-get: the POST response only
+    // re-renders the posting form's own subtree, so the reliable render that can show the
+    // outcome is the fresh GET after a redirect (same contract as Manage.razor).
+    [SupplyParameterFromQuery(Name = "homeError")] public string? HomeErrorKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saveError")] public string? SaveErrorText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        // The error keys come from an open URL parameter, so they only pass through when they
+        // look like what our redirects actually emit (a Parking_* resource key / capped text).
+        if (HomeErrorKey is { } key && key.StartsWith("Parking_", StringComparison.Ordinal))
+        {
+            _homeError = key;
+        }
+
+        if (!string.IsNullOrWhiteSpace(SaveErrorText))
+        {
+            _saveError = SaveErrorText.Length <= 300 ? SaveErrorText : SaveErrorText[..300];
+        }
+
         _tz = await SiteSettings.GetTimeZoneAsync();
         await ReloadAsync();
         var state = await AuthState!;
@@ -229,17 +251,16 @@
         if (user is not null)
         {
             user.Department = string.IsNullOrWhiteSpace(TeamInput.Department) ? null : TeamInput.Department.Trim();
-            ReportSave(await UserManager.UpdateAsync(user));
-        }
-    }
+            // A silently discarded IdentityResult made every failed save look like a success
+            // (the page just re-rendered) — carry the errors across the redirect instead.
+            var saved = await UserManager.UpdateAsync(user);
+            if (!saved.Succeeded)
+            {
+                RedirectWith("saveError", string.Join(" ", saved.Errors.Select(e => e.Description)));
+                return;
+            }
 
-    // A silently discarded IdentityResult made every failed save look like a success (the page
-    // just re-rendered) — surface the errors through the shared status message instead.
-    private void ReportSave(IdentityResult result)
-    {
-        if (!result.Succeeded)
-        {
-            _saveError = string.Join(" ", result.Errors.Select(e => e.Description));
+            Nav.NavigateTo("account/profile");
         }
     }
 
@@ -250,29 +271,32 @@
 
     private async Task SaveHomeAsync()
     {
-        _homeError = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             var result = await UserLocation.SetHomeAddressAsync(userId, HomeInput.Address);
             if (!result.Succeeded)
             {
-                _homeError = result.Errors.FirstOrDefault();
+                RedirectWith("homeError", result.Errors.FirstOrDefault());
+                return;
             }
 
-            _home = await UserLocation.GetHomeAsync(userId);
+            Nav.NavigateTo("account/profile");
         }
     }
 
     private async Task RemoveHomeAsync()
     {
-        _homeError = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             await UserLocation.SetHomeAddressAsync(userId, null);
-            HomeInput.Address = null;
-            _home = await UserLocation.GetHomeAsync(userId);
+            Nav.NavigateTo("account/profile");
         }
     }
+
+    private void RedirectWith(string parameter, string? value) =>
+        Nav.NavigateTo(string.IsNullOrEmpty(value)
+            ? "account/profile"
+            : $"account/profile?{parameter}={Uri.EscapeDataString(value)}");
 
     private sealed class HomeFormModel
     {
