@@ -137,7 +137,8 @@ public class AdminTests : AdminTest
         }
 
         await Expect(row).ToBeVisibleAsync();
-        await Expect(row.Locator(".state-pill--on")).ToBeVisibleAsync();
+        // No driver email was filled in, so the funnel column reads "manual pairing only".
+        await Expect(row.Locator(".state-pill")).ToHaveTextAsync("Jen ruční párování");
     }
 
     [Test]
