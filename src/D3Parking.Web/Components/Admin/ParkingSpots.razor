@@ -19,7 +19,9 @@
         </div>
         <p class="admin-head__intro">
             @L["Parking_Admin_Intro"]
-            <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
+                <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+            </AuthorizeView>
         </p>
     </div>
 

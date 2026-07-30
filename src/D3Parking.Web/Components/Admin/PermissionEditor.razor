@@ -1,37 +1,199 @@
 @inject IStringLocalizer<SharedResource> L
 
-<FluentGrid Spacing="3">
-    @foreach (var group in Catalog)
+@* The permission set is the one screen where a mis-click hands someone the keys, so it is built to
+   be read rather than skimmed: every permission carries a sentence saying what it unlocks, groups
+   collapse to keep the whole catalog on one screen, dependencies are enforced instead of merely
+   documented, and anything the editor cannot grant is visibly locked rather than silently rejected
+   on save. *@
+
+<div class="perm-editor">
+    <div class="perm-editor__bar">
+        <FluentSearch @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                      Placeholder="@L["Admin_Perms_Search"]" Style="max-width:320px" />
+        <span class="perm-editor__summary">
+            @L["Admin_Perms_SelectedCount", Selected.Count, Total]
+            @if (ChangeCount > 0)
+            {
+                <span class="perm-editor__changes">@PluralText.For(L, "Admin_Perms_Changed", ChangeCount)</span>
+            }
+        </span>
+    </div>
+
+    @{ var groups = VisibleGroups; }
+
+    @if (groups.Count == 0)
     {
-        <FluentGridItem xs="12" md="4">
-            <FluentLabel Typo="Typography.Subject">@group.Name</FluentLabel>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                @foreach (var permission in group.Permissions)
-                {
-                    <FluentCheckbox Label="@permission"
-                                    Value="@Selected.Contains(permission)"
-                                    ValueChanged="@(c => Toggle(permission, c))"
-                                    Disabled="@Disabled" />
-                }
-            </FluentStack>
-        </FluentGridItem>
+        <div class="empty-state">@L["Admin_Perms_NoMatch"]</div>
     }
-</FluentGrid>
+
+    @foreach (var (area, permissions) in groups)
+    {
+        var selectedInGroup = area.Permissions.Count(Selected.Contains);
+        var expanded = IsExpanded(area.Name);
+
+        <section class="perm-group @(expanded ? "perm-group--open" : string.Empty)">
+            <div class="perm-group__head">
+                <button type="button" class="perm-group__toggle" @onclick="() => ToggleGroup(area.Name)"
+                        aria-expanded="@expanded" aria-controls="@($"perm-area-{area.Name}")">
+                    <FluentIcon Value="@(expanded
+                        ? (Icon)new Icons.Regular.Size16.ChevronDown()
+                        : new Icons.Regular.Size16.ChevronRight())"
+                                Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="perm-group__title">@AuthorizationDisplay.AreaName(L, area.Name)</span>
+                </button>
+                <span class="perm-group__count @(selectedInGroup > 0 ? "perm-group__count--on" : string.Empty)">
+                    @selectedInGroup / @area.Permissions.Count
+                </span>
+                @if (!ReadOnly)
+                {
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="() => ToggleAreaAllAsync(area)">
+                        @(selectedInGroup == area.Permissions.Count ? L["Admin_Perms_ClearGroup"] : L["Admin_Perms_SelectGroup"])
+                    </FluentButton>
+                }
+            </div>
+
+            @if (expanded)
+            {
+                <ul class="perm-list" id="@($"perm-area-{area.Name}")">
+                    @foreach (var permission in permissions)
+                    {
+                        var locked = IsLocked(permission);
+                        var requires = Permissions.RequiredBy(permission);
+
+                        <li class="perm-row @(IsChanged(permission) ? "perm-row--changed" : string.Empty)">
+                            <FluentCheckbox Value="@Selected.Contains(permission)"
+                                            ValueChanged="@(v => ToggleAsync(permission, v))"
+                                            Disabled="@(ReadOnly || locked)" />
+                            <div class="perm-row__text">
+                                <span class="perm-row__name">
+                                    @AuthorizationDisplay.PermissionName(L, permission)
+                                    @if (locked)
+                                    {
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())"
+                                                    Color="Color.Custom" CustomColor="currentColor"
+                                                    Title="@L["Admin_Perms_Locked"]" />
+                                    }
+                                </span>
+                                <span class="perm-row__desc">@AuthorizationDisplay.PermissionDescription(L, permission)</span>
+                                @if (requires is not null)
+                                {
+                                    <span class="perm-row__dep">
+                                        @L["Admin_Perms_Requires", AuthorizationDisplay.PermissionName(L, requires)]
+                                    </span>
+                                }
+                            </div>
+                            <code class="perm-row__id">@permission</code>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+</div>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<PermissionGroup> Catalog { get; set; } = [];
-    [Parameter, EditorRequired] public HashSet<string> Selected { get; set; } = new(StringComparer.Ordinal);
-    [Parameter] public bool Disabled { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<PermissionArea> Catalog { get; set; } = [];
 
-    private void Toggle(string permission, bool selected)
+    /// <summary>The live selection. Mutated in place; <see cref="SelectionChanged"/> fires after every edit.</summary>
+    [Parameter, EditorRequired] public HashSet<string> Selected { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>The role's stored permissions, so unsaved edits can be marked.</summary>
+    [Parameter] public IReadOnlyCollection<string> Baseline { get; set; } = [];
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// What the person editing holds themselves. Anything outside it is locked, because the server
+    /// refuses to grant a permission the actor does not have — showing it as available would only
+    /// produce a save that fails.
+    /// </summary>
+    [Parameter] public IReadOnlySet<string>? Grantable { get; set; }
+
+    [Parameter] public EventCallback SelectionChanged { get; set; }
+
+    private string? _filter;
+    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
+
+    private int Total => Catalog.Sum(g => g.Permissions.Count);
+
+    private int ChangeCount =>
+        Selected.Except(Baseline, StringComparer.Ordinal).Count()
+        + Baseline.Except(Selected, StringComparer.Ordinal).Count();
+
+    private List<(PermissionArea Area, IReadOnlyList<string> Permissions)> VisibleGroups => Catalog
+        .Select(a => (Area: a, Permissions: (IReadOnlyList<string>)a.Permissions.Where(Matches).ToArray()))
+        .Where(a => a.Permissions.Count > 0)
+        .ToList();
+
+    private bool Matches(string permission)
     {
+        if (string.IsNullOrWhiteSpace(_filter))
+        {
+            return true;
+        }
+
+        var term = _filter.Trim();
+        return permission.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || AuthorizationDisplay.PermissionName(L, permission).Contains(term, StringComparison.OrdinalIgnoreCase)
+            || AuthorizationDisplay.PermissionDescription(L, permission).Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // A search narrows to the rows worth reading, so it opens every surviving group; otherwise the
+    // groups the administrator collapsed stay collapsed.
+    private bool IsExpanded(string area) => !string.IsNullOrWhiteSpace(_filter) || !_collapsed.Contains(area);
+
+    private void ToggleGroup(string area)
+    {
+        if (!_collapsed.Remove(area))
+        {
+            _collapsed.Add(area);
+        }
+    }
+
+    private bool IsChanged(string permission) =>
+        Selected.Contains(permission) != Baseline.Contains(permission);
+
+    private bool IsLocked(string permission) => Grantable is not null
+        && !Grantable.Contains(permission)
+        && !Selected.Contains(permission);
+
+    private async Task ToggleAsync(string permission, bool selected)
+    {
+        if (ReadOnly || IsLocked(permission))
+        {
+            return;
+        }
+
         if (selected)
         {
-            Selected.Add(permission);
+            // Pull in what this permission is useless without, skipping anything the editor is not
+            // allowed to grant — the checkbox stays off rather than producing a rejected save.
+            foreach (var required in Permissions.Expand([permission]))
+            {
+                if (Grantable is null || Grantable.Contains(required))
+                {
+                    Selected.Add(required);
+                }
+            }
         }
         else
         {
             Selected.Remove(permission);
+            foreach (var dependent in Permissions.DependentsOf(permission))
+            {
+                Selected.Remove(dependent);
+            }
+        }
+
+        await SelectionChanged.InvokeAsync();
+    }
+
+    private async Task ToggleAreaAllAsync(PermissionArea area)
+    {
+        var selectAll = area.Permissions.Count(Selected.Contains) < area.Permissions.Count;
+        foreach (var permission in area.Permissions)
+        {
+            await ToggleAsync(permission, selectAll);
         }
     }
 }

@@ -1,5 +1,5 @@
 @page "/admin/parking/dashboard"
-@attribute [HasPermission(Permissions.Parking.ManageSpots)]
+@attribute [HasPermission(Permissions.Parking.ViewAnalytics)]
 @rendermode InteractiveServer
 @using System.Globalization
 @* ApexCharts is imported here and not in _Imports.razor on purpose: its namespace also declares
@@ -30,8 +30,12 @@
         </div>
         <p class="admin-head__intro">
             @L["Lot_Intro"]
-            <FluentAnchor Href="/admin/parking/spots" Appearance="Appearance.Hypertext">@L["Lot_LinkSpots"]</FluentAnchor>
-            <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)" Context="spotsLink">
+                <FluentAnchor Href="/admin/parking/spots" Appearance="Appearance.Hypertext">@L["Lot_LinkSpots"]</FluentAnchor>
+            </AuthorizeView>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
+                <FluentAnchor Href="/admin/parking/mismatches" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+            </AuthorizeView>
         </p>
     </div>
 

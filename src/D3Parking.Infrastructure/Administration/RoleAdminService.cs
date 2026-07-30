@@ -1,10 +1,10 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
@@ -13,29 +13,43 @@ namespace D3Parking.Infrastructure.Administration;
 
 public sealed class RoleAdminService(
     RoleManager<ApplicationRole> roleManager,
-    UserManager<ApplicationUser> userManager,
+    // The scoped context the materializer and role manager both write through, so a recomposition
+    // and the claims it derives land together.
+    D3ParkingDbContext identityDbContext,
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
+    RolePermissionMaterializer materializer,
     IStringLocalizer<AccountMessages> messages,
+    TimeProvider timeProvider,
     ILogger<RoleAdminService> logger) : IRoleAdminService
 {
-    public IReadOnlyList<PermissionGroup> PermissionCatalog { get; } = Permissions.Groups;
-
     public async Task<IReadOnlyList<RoleSummary>> ListAsync(CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
         var rows = await dbContext.Roles.AsNoTracking()
             .OrderBy(r => r.Name)
             .Select(r => new
             {
                 r.Id,
                 r.Name,
-                PermissionCount = dbContext.RoleClaims.Count(c => c.RoleId == r.Id && c.ClaimType == D3ParkingClaimTypes.Permission),
+                Permissions = dbContext.RoleClaims
+                    .Where(c => c.RoleId == r.Id && c.ClaimType == D3ParkingClaimTypes.Permission && c.ClaimValue != null)
+                    .Select(c => c.ClaimValue!)
+                    .ToList(),
                 UserCount = dbContext.UserRoles.Count(ur => ur.RoleId == r.Id),
             })
             .ToListAsync(cancellationToken);
 
+        var groups = await LoadGroupsByRoleAsync(dbContext, cancellationToken);
+
         return rows
-            .Select(r => new RoleSummary(r.Id, r.Name!, r.PermissionCount, r.UserCount, Roles.IsDefault(r.Name!)))
+            .Select(r => new RoleSummary(
+                r.Id,
+                r.Name!,
+                groups.TryGetValue(r.Id, out var held) ? held : [],
+                Permissions.All.Where(r.Permissions.Contains).ToArray(),
+                r.UserCount,
+                Roles.IsDefault(r.Name!)))
             .ToArray();
     }
 
@@ -47,16 +61,31 @@ public sealed class RoleAdminService(
             return null;
         }
 
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
         var permissions = (await roleManager.GetClaimsAsync(role))
             .Where(c => c.Type == D3ParkingClaimTypes.Permission)
             .Select(c => c.Value)
-            .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        return new RoleDetail(role.Id, role.Name!, Roles.IsDefault(role.Name!), permissions);
+        var groups = await LoadGroupsByRoleAsync(dbContext, cancellationToken);
+        var members = await (from userRole in dbContext.UserRoles
+                             join user in dbContext.Users on userRole.UserId equals user.Id
+                             where userRole.RoleId == roleId
+                             orderby user.Email
+                             select new RoleMember(user.Id, user.Email!, user.DisplayName))
+            .ToListAsync(cancellationToken);
+
+        return new RoleDetail(
+            role.Id,
+            role.Name!,
+            Roles.IsDefault(role.Name!),
+            groups.TryGetValue(roleId, out var held) ? held : [],
+            Permissions.All.Where(permissions.Contains).ToArray(),
+            members);
     }
 
-    public async Task<AccountResult> CreateAsync(string name, IReadOnlyList<string> permissions, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> CreateAsync(string name, IReadOnlyList<Guid> groupIds, Guid actorId, CancellationToken cancellationToken = default)
     {
         name = name?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(name))
@@ -64,9 +93,14 @@ public sealed class RoleAdminService(
             return AccountResult.Failure(messages["Error_RoleNameRequired"]);
         }
 
-        if (ValidatePermissions(permissions) is { } invalid)
+        if (Roles.IsDefault(name))
         {
-            return invalid;
+            return AccountResult.Failure(messages["Error_DefaultRoleProtected"]);
+        }
+
+        if (await GuardComposeAsync(groupIds, actorId, cancellationToken) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var role = new ApplicationRole(name);
@@ -76,16 +110,16 @@ public sealed class RoleAdminService(
             return ToFailure(created);
         }
 
-        foreach (var permission in permissions.Distinct(StringComparer.Ordinal))
+        foreach (var groupId in groupIds.Distinct())
         {
-            var added = await roleManager.AddClaimAsync(role, new Claim(D3ParkingClaimTypes.Permission, permission));
-            if (!added.Succeeded)
-            {
-                return ToFailure(added);
-            }
+            identityDbContext.RolePermissionGroups.Add(new RolePermissionGroup(role.Id, groupId));
         }
 
-        logger.LogInformation("Created role {Role} with {Count} permissions", name, permissions.Count);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
+        await materializer.MaterializeAsync(role.Id, cancellationToken);
+
+        await AuditAsync(actorId, $"created role {name} from groups: {await DescribeAsync(groupIds, cancellationToken)}", cancellationToken);
+        logger.LogInformation("Actor {ActorId} created role {Role} from {Count} groups", actorId, name, groupIds.Count);
         return AccountResult.Success;
     }
 
@@ -108,6 +142,13 @@ public sealed class RoleAdminService(
             return AccountResult.Failure(messages["Error_RoleNameRequired"]);
         }
 
+        // Taking a built-in name would make a custom role look system-managed and, once the seeder
+        // ran, hand it that role's whole composition.
+        if (Roles.IsDefault(name))
+        {
+            return AccountResult.Failure(messages["Error_DefaultRoleProtected"]);
+        }
+
         var renamed = await roleManager.SetRoleNameAsync(role, name);
         if (!renamed.Succeeded)
         {
@@ -118,7 +159,7 @@ public sealed class RoleAdminService(
         return updated.Succeeded ? AccountResult.Success : ToFailure(updated);
     }
 
-    public async Task<AccountResult> SetPermissionsAsync(Guid roleId, IReadOnlyList<string> permissions, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> SetGroupsAsync(Guid roleId, IReadOnlyList<Guid> groupIds, Guid actorId, CancellationToken cancellationToken = default)
     {
         var role = await roleManager.FindByIdAsync(roleId.ToString());
         if (role is null)
@@ -126,49 +167,55 @@ public sealed class RoleAdminService(
             return AccountResult.Failure(messages["Error_RoleNotFound"]);
         }
 
-        // The Administrator role is all-powerful by design and is re-granted every permission on
-        // startup, so editing its permission set is not allowed.
-        if (string.Equals(role.Name, Roles.Administrator, StringComparison.Ordinal))
+        // Built-in roles are re-asserted from the seeder's map on every start, so an edit here
+        // would silently revert. Duplicating one produces a custom role that does stick.
+        if (Roles.IsDefault(role.Name!))
         {
-            return AccountResult.Failure(messages["Error_AdministratorAllPermissions"]);
+            return AccountResult.Failure(messages["Error_BuiltInRolePermissions"]);
         }
 
-        if (ValidatePermissions(permissions) is { } invalid)
+        var target = groupIds.ToHashSet();
+        var current = await identityDbContext.RolePermissionGroups
+            .Where(l => l.RoleId == roleId)
+            .ToListAsync(cancellationToken);
+        var held = current.Select(l => l.PermissionGroupId).ToHashSet();
+
+        var added = target.Except(held).ToArray();
+        var removed = held.Except(target).ToArray();
+        if (added.Length == 0 && removed.Length == 0)
         {
-            return invalid;
+            return AccountResult.Success;
         }
 
-        var target = permissions.ToHashSet(StringComparer.Ordinal);
-        var existing = (await roleManager.GetClaimsAsync(role))
-            .Where(c => c.Type == D3ParkingClaimTypes.Permission)
-            .ToList();
-        var existingValues = existing.Select(c => c.Value).ToHashSet(StringComparer.Ordinal);
-
-        foreach (var claim in existing.Where(c => !target.Contains(c.Value)))
+        // Only additions are bounded by the actor's own permissions — taking a group away lowers
+        // privilege and stays open to anyone who may recompose the role at all.
+        if (await GuardComposeAsync(added, actorId, cancellationToken) is { } forbidden)
         {
-            var removed = await roleManager.RemoveClaimAsync(role, claim);
-            if (!removed.Succeeded)
-            {
-                return ToFailure(removed);
-            }
+            return forbidden;
         }
 
-        foreach (var permission in target.Where(p => !existingValues.Contains(p)))
+        identityDbContext.RolePermissionGroups.RemoveRange(current.Where(l => !target.Contains(l.PermissionGroupId)));
+        foreach (var groupId in added)
         {
-            var added = await roleManager.AddClaimAsync(role, new Claim(D3ParkingClaimTypes.Permission, permission));
-            if (!added.Succeeded)
-            {
-                return ToFailure(added);
-            }
+            identityDbContext.RolePermissionGroups.Add(new RolePermissionGroup(roleId, groupId));
         }
 
-        await InvalidateRoleMembersAsync(roleId, cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Set {Count} permissions on role {Role}", target.Count, role.Name);
+        if (await materializer.MaterializeAsync(roleId, cancellationToken))
+        {
+            await materializer.RefreshMembersAsync(roleId, cancellationToken);
+        }
+
+        await AuditAsync(actorId,
+            $"role {role.Name}: +[{await DescribeAsync(added, cancellationToken)}] -[{await DescribeAsync(removed, cancellationToken)}]",
+            cancellationToken);
+        logger.LogInformation("Actor {ActorId} recomposed role {Role}: +{Added} -{Removed} groups",
+            actorId, role.Name, added.Length, removed.Length);
         return AccountResult.Success;
     }
 
-    public async Task<AccountResult> DeleteAsync(Guid roleId, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> DeleteAsync(Guid roleId, Guid actorId, CancellationToken cancellationToken = default)
     {
         var role = await roleManager.FindByIdAsync(roleId.ToString());
         if (role is null)
@@ -181,57 +228,120 @@ public sealed class RoleAdminService(
             return AccountResult.Failure(messages["Error_DefaultRoleProtected"]);
         }
 
-        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
+        if (await identityDbContext.UserRoles.AnyAsync(ur => ur.RoleId == roleId, cancellationToken))
         {
-            if (await dbContext.UserRoles.AnyAsync(ur => ur.RoleId == roleId, cancellationToken))
-            {
-                return AccountResult.Failure(messages["Error_RoleHasMembers"]);
-            }
+            return AccountResult.Failure(messages["Error_RoleHasMembers"]);
         }
 
+        var name = role.Name!;
         var deleted = await roleManager.DeleteAsync(role);
         if (!deleted.Succeeded)
         {
             return ToFailure(deleted);
         }
 
-        logger.LogInformation("Deleted role {Role}", role.Name);
+        await AuditAsync(actorId, $"deleted role {name}", cancellationToken);
+        logger.LogInformation("Actor {ActorId} deleted role {Role}", actorId, name);
         return AccountResult.Success;
     }
 
-    private AccountResult? ValidatePermissions(IReadOnlyList<string> permissions)
+    private static async Task<Dictionary<Guid, IReadOnlyList<RoleGroupRef>>> LoadGroupsByRoleAsync(
+        D3ParkingDbContext dbContext,
+        CancellationToken cancellationToken)
     {
-        foreach (var permission in permissions)
+        var rows = await (from link in dbContext.RolePermissionGroups.AsNoTracking()
+                          join grp in dbContext.PermissionGroups.AsNoTracking() on link.PermissionGroupId equals grp.Id
+                          orderby grp.Name
+                          select new
+                          {
+                              link.RoleId,
+                              grp.Id,
+                              grp.Name,
+                              grp.IsBuiltIn,
+                              Permissions = grp.Entries.Select(e => e.Permission).ToList(),
+                          })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(r => r.RoleId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<RoleGroupRef>)g
+                    .Select(r => new RoleGroupRef(r.Id, r.Name, r.IsBuiltIn, Permissions.All.Where(r.Permissions.Contains).ToArray()))
+                    .ToArray());
+    }
+
+    /// <summary>
+    /// Refuses to compose a role out of a group that reaches past the actor. Without this, holding
+    /// <c>Roles.Edit</c> would be indistinguishable from holding every permission any group carries:
+    /// add the group to a role you are already in, and the member refresh issues it to you.
+    /// </summary>
+    private async Task<AccountResult?> GuardComposeAsync(
+        IReadOnlyCollection<Guid> groupIds,
+        Guid actorId,
+        CancellationToken cancellationToken)
+    {
+        if (groupIds.Count == 0)
         {
-            if (!Permissions.IsKnown(permission))
+            return null;
+        }
+
+        var groups = await identityDbContext.PermissionGroups
+            .Where(g => groupIds.Contains(g.Id))
+            .Select(g => new { g.Id, g.Name, Permissions = g.Entries.Select(e => e.Permission).ToList() })
+            .ToListAsync(cancellationToken);
+
+        var missing = groupIds.Where(id => groups.All(g => g.Id != id)).ToArray();
+        if (missing.Length > 0)
+        {
+            return AccountResult.Failure(messages["Error_PermissionGroupNotFound"]);
+        }
+
+        var held = await EffectivePermissions.ForUserAsync(identityDbContext, actorId, cancellationToken);
+        foreach (var group in groups)
+        {
+            var overreach = group.Permissions.Where(p => !held.Contains(p)).ToArray();
+            if (overreach.Length == 0)
             {
-                return AccountResult.Failure(messages["Error_UnknownPermission", permission]);
+                continue;
             }
+
+            logger.LogWarning("Actor {ActorId} attempted to compose a role from group {Group}, which grants permissions they do not hold: {Permissions}",
+                actorId, group.Name, string.Join(", ", overreach));
+            return AccountResult.Failure(messages["Error_GroupNotComposable", group.Name]);
         }
 
         return null;
     }
 
-    // Re-issue claims for everyone in the role so permission changes take effect promptly rather
-    // than only on next sign-in. Role membership is small in practice.
-    private async Task InvalidateRoleMembersAsync(Guid roleId, CancellationToken cancellationToken)
+    private async Task<string> DescribeAsync(IReadOnlyCollection<Guid> groupIds, CancellationToken cancellationToken)
     {
-        List<Guid> memberIds;
-        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
+        if (groupIds.Count == 0)
         {
-            memberIds = await dbContext.UserRoles
-                .Where(ur => ur.RoleId == roleId)
-                .Select(ur => ur.UserId)
-                .ToListAsync(cancellationToken);
+            return "—";
         }
 
-        foreach (var id in memberIds)
-        {
-            if (await userManager.FindByIdAsync(id.ToString()) is { } member)
-            {
-                await userManager.UpdateSecurityStampAsync(member);
-            }
-        }
+        var names = await identityDbContext.PermissionGroups
+            .Where(g => groupIds.Contains(g.Id))
+            .OrderBy(g => g.Name)
+            .Select(g => g.Name)
+            .ToListAsync(cancellationToken);
+
+        return string.Join(", ", names);
+    }
+
+    private async Task AuditAsync(Guid actorId, string detail, CancellationToken cancellationToken)
+    {
+        // Recorded against the actor: a role is not an account, and the question this trail has to
+        // answer is "who changed the authorization model", not "what happened to this user".
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+            actorId,
+            AccountAuditEventType.RolePermissionsChanged,
+            $"admin:{actorId}",
+            AuditDetail.Truncate(detail),
+            timeProvider.GetUtcNow()));
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static AccountResult ToFailure(IdentityResult result) =>

@@ -55,6 +55,110 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.ToTable("AccountAuditEvents", (string)null);
                 });
 
+            modelBuilder.Entity("D3Parking.Domain.Authorization.ExternalRoleAssignment", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ExternalRoleAssignments", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.ExternalRoleMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExternalRole")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("Provider", "ExternalRole")
+                        .IsUnique();
+
+                    b.ToTable("ExternalRoleMappings", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.PermissionGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsBuiltIn")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PermissionGroups", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.PermissionGroupEntry", b =>
+                {
+                    b.Property<Guid>("PermissionGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Permission")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("PermissionGroupId", "Permission");
+
+                    b.ToTable("PermissionGroupEntries", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.RolePermissionGroup", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PermissionGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("RoleId", "PermissionGroupId");
+
+                    b.HasIndex("PermissionGroupId");
+
+                    b.ToTable("RolePermissionGroups", (string)null);
+                });
+
             modelBuilder.Entity("D3Parking.Domain.Notifications.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1259,6 +1363,21 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("ExternalObjectId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ExternalProvider")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("ExternalSyncedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ExternalTenantId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("HomeAddress")
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
@@ -1332,6 +1451,10 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("ExternalProvider", "ExternalObjectId")
+                        .IsUnique()
+                        .HasFilter("[ExternalObjectId] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -1650,6 +1773,54 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.ToTable("OpenIddictTokens", (string)null);
                 });
 
+            modelBuilder.Entity("D3Parking.Domain.Authorization.ExternalRoleAssignment", b =>
+                {
+                    b.HasOne("D3Parking.Infrastructure.Identity.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("D3Parking.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.ExternalRoleMapping", b =>
+                {
+                    b.HasOne("D3Parking.Infrastructure.Identity.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.PermissionGroupEntry", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Authorization.PermissionGroup", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("PermissionGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.RolePermissionGroup", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Authorization.PermissionGroup", null)
+                        .WithMany()
+                        .HasForeignKey("PermissionGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("D3Parking.Infrastructure.Identity.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("D3Parking.Infrastructure.Identity.ApplicationRole", null)
@@ -1723,6 +1894,11 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Navigation("Application");
 
                     b.Navigation("Authorization");
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Authorization.PermissionGroup", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

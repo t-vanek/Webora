@@ -80,9 +80,13 @@ public sealed class UserAdminService(
                            orderby r.Name
                            select r.Name!).ToListAsync(cancellationToken);
 
+        var isLastAdministrator = roles.Contains(Roles.Administrator, StringComparer.Ordinal)
+            && await IsLastAdministratorAsync(dbContext, cancellationToken);
+
         return new UserDetail(
             user.Id, user.Email!, user.DisplayName, user.PhoneNumber, user.Status,
-            user.EmailConfirmed, user.StatusChangedAtUtc, user.StatusReason, roles);
+            user.EmailConfirmed, user.StatusChangedAtUtc, user.StatusReason, roles, isLastAdministrator,
+            user.ExternalProvider, user.ExternalSyncedAtUtc);
     }
 
     public async Task<AccountResult> CreateAsync(
@@ -102,6 +106,11 @@ public sealed class UserAdminService(
         if (await ValidateRolesAsync(dbContext, roles, cancellationToken) is { } invalid)
         {
             return invalid;
+        }
+
+        if (await GuardAssignableAsync(dbContext, roles, adminId, cancellationToken) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var user = new ApplicationUser
@@ -160,6 +169,11 @@ public sealed class UserAdminService(
         if (toAdd.Length == 0 && toRemove.Length == 0)
         {
             return AccountResult.Success;
+        }
+
+        if (await GuardAssignableAsync(dbContext, toAdd, adminId, cancellationToken) is { } forbidden)
+        {
+            return forbidden;
         }
 
         // One serializable transaction on the scoped context covers the guard and both role
@@ -309,16 +323,46 @@ public sealed class UserAdminService(
         return null;
     }
 
-    private static async Task<bool> IsLastAdministratorAsync(D3ParkingDbContext dbContext, CancellationToken cancellationToken)
+    /// <summary>
+    /// Refuses to hand someone a role that grants more than the actor holds themselves. This is
+    /// what keeps <see cref="Permissions.Users.AssignRoles"/> from being a synonym for
+    /// Administrator: a user manager can hand out Employee, because everything Employee grants
+    /// they already have, and cannot hand out Administrator or Lot manager, because those reach
+    /// past them. Administrators hold the whole catalog, so nothing constrains them.
+    /// </summary>
+    private async Task<AccountResult?> GuardAssignableAsync(
+        D3ParkingDbContext dbContext,
+        IReadOnlyCollection<string> rolesToAdd,
+        Guid adminId,
+        CancellationToken cancellationToken)
     {
-        var adminCount = await (from ur in dbContext.UserRoles
-                                join r in dbContext.Roles on ur.RoleId equals r.Id
-                                where r.Name == Roles.Administrator
-                                select ur.UserId).CountAsync(cancellationToken);
+        if (rolesToAdd.Count == 0)
+        {
+            return null;
+        }
 
-        // The candidate is currently an administrator; they're the last one if no one else is.
-        return adminCount <= 1;
+        var held = await EffectivePermissions.ForUserAsync(dbContext, adminId, cancellationToken);
+        var grants = await EffectivePermissions.ForRolesAsync(dbContext, rolesToAdd, cancellationToken);
+
+        foreach (var role in rolesToAdd)
+        {
+            if (!grants.TryGetValue(role, out var granted) || granted.IsSubsetOf(held))
+            {
+                continue;
+            }
+
+            logger.LogWarning("Admin {AdminId} attempted to assign role {Role}, which grants permissions they do not hold",
+                adminId, role);
+            return AccountResult.Failure(messages["Error_RoleNotAssignable", role]);
+        }
+
+        return null;
     }
+
+    // The candidate is already known to hold the role at both call sites, so only the count is
+    // needed — and it has to run on the caller's context to stay inside its serializable range locks.
+    private static Task<bool> IsLastAdministratorAsync(D3ParkingDbContext dbContext, CancellationToken cancellationToken) =>
+        AdministratorCover.IsLastAdministratorCountAsync(dbContext, cancellationToken);
 
     private async Task AuditAsync(D3ParkingDbContext dbContext, Guid userId, AccountAuditEventType type, Guid adminId, string? detail, CancellationToken cancellationToken)
     {

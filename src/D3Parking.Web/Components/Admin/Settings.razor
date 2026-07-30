@@ -188,12 +188,21 @@
                     <div style="max-width:480px">
                         <FluentSelect TOption="string"
                                       Items="@RoleOptions"
-                                      OptionText="@(r => string.IsNullOrEmpty(r) ? L["Settings_DefaultRole_None"] : r)"
+                                      OptionText="@(r => string.IsNullOrEmpty(r) ? L["Settings_DefaultRole_None"] : AuthorizationDisplay.RoleName(L, r))"
                                       OptionValue="@(r => r)"
                                       @bind-Value="_accounts.DefaultRole"
                                       Label="@L["Settings_DefaultRole"]"
                                       Style="width:100%" />
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultRoleHelp"]</FluentLabel>
+                        @if (string.IsNullOrEmpty(_accounts.DefaultRole))
+                        {
+                            @* "No role" is a legitimate choice for sites that vet every account by
+                               hand, but its consequence is invisible until someone registers and
+                               finds an empty application. State it here instead. *@
+                            <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar" AllowDismiss="false">
+                                @L["Admin_Settings_NoDefaultRoleWarning"]
+                            </FluentMessageBar>
+                        }
                     </div>
 
                     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveAccounts">

@@ -18,11 +18,24 @@ public class AdminTests : AdminTest
     }
 
     [Test]
-    public async Task Roles_list_renders_the_seeded_roles()
+    public async Task Roles_list_renders_the_seeded_roles_as_cards()
     {
         await Page.GotoAsync("/admin/roles");
         await Expect(Page.Locator(".count-chip")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".admin-panel")).ToContainTextAsync("Administrator");
+        await Expect(Page.Locator(".role-cards")).ToContainTextAsync("Administrátor");
+        // Each built-in role states what it is for, which is the point of the card view.
+        await Expect(Page.Locator(".role-cards")).ToContainTextAsync("Správce parkoviště");
+    }
+
+    [Test]
+    public async Task Roles_matrix_view_shows_a_column_per_permission_group()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/roles");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Matice$") }).ClickAsync();
+
+        await Expect(Page.Locator(".role-matrix")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".role-matrix thead")).ToContainTextAsync("Parkoviště");
+        await Expect(Page.Locator(".role-matrix thead")).ToContainTextAsync("Nastavení");
     }
 
     [Test]

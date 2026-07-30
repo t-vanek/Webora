@@ -3,8 +3,12 @@
 @using System.ComponentModel.DataAnnotations
 @using D3Parking.Infrastructure.Identity
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Microsoft.Extensions.Options
+@using D3Parking.Application.Identity
+@using D3Parking.Web.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
+@inject IOptions<EntraIdOptions> Entra
 @inject ILogger<Login> Logger
 @inject IStringLocalizer<SharedResource> L
 
@@ -80,6 +84,17 @@
     <button type="submit" class="auth-submit">@L["Login_Submit"]</button>
 </EditForm>
 
+@if (Entra.Value.IsSignInConfigured)
+{
+    @* A plain link, not a form: the challenge is a GET that hands the browser to the directory, and
+       it must work on the statically rendered page like everything else here. *@
+    <div class="auth-divider"><span>@L["Login_Or"]</span></div>
+    <a class="auth-external" href="@($"{ExternalSignInEndpoints.ChallengePath}?returnUrl={Uri.EscapeDataString(GetLocalReturnUrl())}")">
+        <FluentIcon Value="@(new Icons.Regular.Size20.Building())" Color="Color.Custom" CustomColor="currentColor" />
+        <span>@L["Login_External", Entra.Value.DisplayName]</span>
+    </a>
+}
+
 <footer class="auth-foot">
     <p>@L["Login_NoAccount"] <a href="register">@L["Login_CreateAccount"]</a></p>
     <p class="auth-foot__aux"><a href="account/forgot-reactivation">@L["Login_Reactivate"]</a></p>
@@ -95,7 +110,26 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    /// <summary>
+    /// Set by the external sign-in callback, which cannot render a message of its own — it redirects
+    /// here instead. The codes are deliberately coarse: a failed federated sign-in must not tell an
+    /// anonymous caller whether the account exists, is blocked, or was simply never provisioned.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? ExternalError { get; set; }
+
     private string? _errorMessage;
+
+    protected override void OnParametersSet()
+    {
+        _errorMessage = ExternalError switch
+        {
+            null or "" => _errorMessage,
+            "external-account" => L["Login_ExternalNoAccount"],
+            _ when ExternalError.StartsWith("status-", StringComparison.Ordinal) => L["Login_ExternalBlocked"],
+            _ => L["Login_ExternalFailed"],
+        };
+    }
 
     private async Task LoginUser()
     {

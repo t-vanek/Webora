@@ -86,10 +86,24 @@
   <data name="Error_RoleNameRequired" xml:space="preserve"><value>Role name is required.</value></data>
   <data name="Error_DefaultRoleProtected" xml:space="preserve"><value>Built-in roles cannot be renamed or deleted.</value></data>
   <data name="Error_RoleHasMembers" xml:space="preserve"><value>The role cannot be deleted while it has assigned users.</value></data>
-  <data name="Error_AdministratorAllPermissions" xml:space="preserve"><value>The Administrator role always has every permission and cannot be edited.</value></data>
+  <data name="Error_BuiltInRolePermissions" xml:space="preserve"><value>Built-in roles are managed by the system and their permissions cannot be changed. Duplicate the role to customize it.</value></data>
   <data name="Error_UnknownPermission" xml:space="preserve"><value>Permission “{0}” is not in the catalog.</value></data>
+  <data name="Error_PermissionNotHeld" xml:space="preserve"><value>You cannot grant permissions you do not hold yourself: {0}.</value></data>
+  <data name="Error_RoleNotAssignable" xml:space="preserve"><value>You cannot assign the role “{0}” — it grants permissions you do not hold yourself.</value></data>
   <data name="Error_InvalidHost" xml:space="preserve"><value>The domain name “{0}” is invalid.</value></data>
   <data name="Error_InvalidPort" xml:space="preserve"><value>The port must be between 1 and 65535.</value></data>
   <data name="Error_InvalidTimeZone" xml:space="preserve"><value>The time zone “{0}” is invalid.</value></data>
   <data name="Error_InvalidCharset" xml:space="preserve"><value>The encoding “{0}” is invalid.</value></data>
+  <data name="Error_PermissionGroupNotFound" xml:space="preserve"><value>The permission group was not found.</value></data>
+  <data name="Error_PermissionGroupNameRequired" xml:space="preserve"><value>A permission group name is required.</value></data>
+  <data name="Error_PermissionGroupNameTaken" xml:space="preserve"><value>A permission group named “{0}” already exists.</value></data>
+  <data name="Error_PermissionGroupInUse" xml:space="preserve"><value>The group cannot be deleted while a role is composed of it. Remove it from those roles first.</value></data>
+  <data name="Error_BuiltInGroupProtected" xml:space="preserve"><value>Built-in permission groups are managed by the system and cannot be changed or deleted. Duplicate the group to customize it.</value></data>
+  <data name="Error_GroupNotComposable" xml:space="preserve"><value>You cannot compose a role from the group “{0}” — it grants permissions you do not hold yourself.</value></data>
+  <data name="Error_ExternalIdentityIncomplete" xml:space="preserve"><value>The directory did not send enough to create an account (missing identifier or email).</value></data>
+  <data name="Error_ExternalTenantNotAllowed" xml:space="preserve"><value>The account comes from a different tenant than this installation accepts.</value></data>
+  <data name="Error_ExternalAccountUnknown" xml:space="preserve"><value>There is no account here for this identity, and creating one is not allowed.</value></data>
+  <data name="Error_ExternalRoleRequired" xml:space="preserve"><value>A directory role name is required.</value></data>
+  <data name="Error_ExternalRoleMapped" xml:space="preserve"><value>The role “{0}” is already mapped.</value></data>
+  <data name="Error_ExternalRoleMappingNotFound" xml:space="preserve"><value>The role mapping was not found.</value></data>
 </root>

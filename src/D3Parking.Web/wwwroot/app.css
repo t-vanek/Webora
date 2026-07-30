@@ -950,6 +950,63 @@ fluent-menu-item:has(> .account-menu-link) {
     color: var(--error-rest, #d13438);
 }
 
+.auth-alert--info {
+    background: rgba(15, 108, 189, .08);
+    border: 1px solid rgba(15, 108, 189, .30);
+    color: var(--accent-foreground-rest, #0f6cbd);
+}
+
+/* --- External sign-in ---
+   A second, visibly separate way in, below the password form rather than competing with it. */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 14px;
+    color: var(--neutral-foreground-hint, #8b8b8b);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--neutral-stroke-divider-rest, #e3e6ea);
+}
+
+.auth-external {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--neutral-stroke-rest, #d8d8d8);
+    border-radius: var(--brand-radius);
+    background: var(--neutral-layer-1, #fff);
+    color: var(--neutral-foreground-rest, #333);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.auth-external:hover,
+.auth-external:focus-visible {
+    border-color: var(--accent-fill-rest, #884DFF);
+    background: rgba(136, 77, 255, .05);
+}
+
+.directory-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .auth-alert--success {
     background: rgba(16, 124, 16, .08);
     border: 1px solid rgba(16, 124, 16, .35);
@@ -1776,6 +1833,9 @@ fluent-menu-item:has(> .account-menu-link) {
    pevný sherpa nádech na tmavé kartě mizel. */
 .home-tile__ic--users { background: var(--neutral-fill-secondary-rest, rgba(2, 52, 68, .10)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 .home-tile__ic--roles { background: var(--brand-violet-deep); color: var(--brand-on-violet); }
+.home-tile__ic--analytics { background: var(--brand-green); color: var(--brand-on-green); }
+.home-tile__ic--groups { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
+.home-tile__ic--audit { background: rgba(2, 52, 68, .10); color: var(--brand-sherpa); }
 .home-tile__ic--settings { background: var(--neutral-fill-secondary-rest, var(--brand-grey)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 
 .home-tile__title {
@@ -2079,6 +2139,479 @@ fluent-menu-item:has(> .account-menu-link) {
     font-weight: 700;
     font-size: 15px;
     margin-bottom: 10px;
+}
+
+.danger-zone__note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* --- Roles: cards, matrix, members, templates ---
+   A role is a job description, so the list leads with what each one is for and who holds it; the
+   matrix answers the cross-role question ("who can do what") that no single role page can. */
+.view-switch {
+    display: inline-flex;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.view-switch__btn {
+    border: 0;
+    background: transparent;
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.view-switch__btn--active {
+    background: var(--accent-fill-rest, #884DFF);
+    color: #fff;
+    font-weight: 600;
+}
+
+.role-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.role-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 12px;
+    background: var(--neutral-layer-1, #fff);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.role-card:hover,
+.role-card:focus-visible {
+    border-color: var(--accent-fill-rest, #884DFF);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+}
+
+.role-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.role-card__name {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.role-card__desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.role-card__caps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 6px;
+}
+
+.role-card__none {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.tag--more {
+    background: transparent;
+    border: 1px dashed var(--neutral-stroke-rest, #d1d1d1);
+}
+
+.role-card__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    border-top: 1px solid var(--neutral-stroke-divider-rest, #e3e6ea);
+    padding-top: 8px;
+}
+
+/* The matrix can outgrow narrow screens; it scrolls in its own box so the page never does. */
+.role-matrix__wrap {
+    overflow-x: auto;
+}
+
+.role-matrix {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+}
+
+.role-matrix th,
+.role-matrix td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--neutral-stroke-divider-rest, #e3e6ea);
+    white-space: nowrap;
+}
+
+.role-matrix thead th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.role-matrix__cell {
+    color: var(--neutral-foreground-hint, #9a9a9a);
+    text-align: center;
+}
+
+.role-matrix__cell--partial {
+    color: var(--neutral-foreground-rest, #333);
+    background: rgba(136, 77, 255, .08);
+    font-weight: 600;
+}
+
+.role-matrix__cell--full {
+    color: var(--accent-foreground-rest, #884DFF);
+    background: rgba(136, 77, 255, .16);
+    font-weight: 700;
+}
+
+.role-members {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 6px;
+}
+
+.role-members__item a {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--neutral-fill-secondary-rest, #f6f8fb);
+}
+
+.role-members__item a:hover {
+    background: rgba(136, 77, 255, .10);
+}
+
+.role-members__name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.role-members__mail {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.role-templates {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+}
+
+.role-template {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    padding: 12px 14px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    font: inherit;
+    cursor: pointer;
+}
+
+.role-template--active {
+    border-color: var(--accent-fill-rest, #884DFF);
+    background: rgba(136, 77, 255, .06);
+}
+
+.role-template__name {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.role-template__desc {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.role-template__count {
+    font-size: 12px;
+    color: var(--accent-foreground-rest, #884DFF);
+}
+
+/* --- Group picker (role composition) ---
+   Composing a role is picking bundles, so each card has to say what the bundle is for and exactly
+   what comes with it; the panel underneath shows the union, which is what the role really grants. */
+.group-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.group-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+}
+
+.group-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.group-pick--on {
+    border-color: var(--accent-fill-rest, #884DFF);
+    background: rgba(136, 77, 255, .06);
+}
+
+.group-pick--locked {
+    opacity: .6;
+}
+
+.group-pick__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.group-pick__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    flex: 1;
+}
+
+.group-pick__count {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    white-space: nowrap;
+}
+
+.group-pick__desc {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.group-pick__perms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.group-picker__effective {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px dashed var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 10px;
+}
+
+.group-picker__effective-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-picker__effective-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.group-picker__effective-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* --- Permission editor ---
+   Grouped, searchable and explained: 25 dotted identifiers in a flat checkbox grid was a quiz. */
+.perm-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.perm-editor__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.perm-editor__summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.perm-editor__changes {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255, 170, 68, .18);
+    color: #8a5300;
+}
+
+.perm-editor__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.perm-group {
+    border: 1px solid var(--neutral-stroke-divider-rest, #e3e6ea);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+}
+
+.perm-group__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+}
+
+.perm-group__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+    padding: 0;
+}
+
+.perm-group__title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.perm-group__count {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #9a9a9a);
+}
+
+.perm-group__count--on {
+    color: var(--accent-foreground-rest, #884DFF);
+    font-weight: 600;
+}
+
+.perm-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.perm-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 8px;
+}
+
+.perm-row:hover {
+    background: var(--neutral-fill-secondary-rest, #f6f8fb);
+}
+
+/* An unsaved edit is marked on the row itself, so a long list does not hide what changed. */
+.perm-row--changed {
+    background: rgba(255, 170, 68, .10);
+    box-shadow: inset 3px 0 0 rgba(255, 170, 68, .8);
+}
+
+.perm-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.perm-row__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.perm-row__desc {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.perm-row__dep {
+    font-size: 11px;
+    color: var(--accent-foreground-rest, #884DFF);
+}
+
+/* The canonical id stays visible: it is what appears in logs, code and the audit trail. */
+.perm-row__id {
+    font-size: 11px;
+    color: var(--neutral-foreground-hint, #9a9a9a);
+    white-space: nowrap;
+}
+
+.audit-subject--gone {
+    color: var(--neutral-foreground-hint, #9a9a9a);
+    font-style: italic;
+}
+
+@media (max-width: 640px) {
+    .perm-row {
+        grid-template-columns: auto 1fr;
+    }
+
+    .perm-row__id {
+        display: none;
+    }
 }
 
 .claims {

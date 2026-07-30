@@ -11,6 +11,11 @@ public sealed record UserSummary(
     IReadOnlyList<string> Roles);
 
 /// <summary>Full detail of a user shown on the administration detail page.</summary>
+/// <param name="IsLastAdministrator">
+/// True when this account is the only administrator who could still sign in. The service refuses
+/// to take the role away in that case; the flag lets the screen say so up front instead of letting
+/// someone uncheck the box and find out on save.
+/// </param>
 public sealed record UserDetail(
     Guid Id,
     string Email,
@@ -20,4 +25,11 @@ public sealed record UserDetail(
     bool EmailConfirmed,
     DateTimeOffset? StatusChangedAtUtc,
     string? StatusReason,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    bool IsLastAdministrator,
+    string? ExternalProvider = null,
+    DateTimeOffset? ExternalSyncedAtUtc = null)
+{
+    /// <summary>True when sign-in and role assignment are driven by an external directory.</summary>
+    public bool IsFederated => ExternalProvider is not null;
+}

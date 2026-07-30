@@ -44,7 +44,7 @@
             <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
                 @foreach (var role in _allRoles)
                 {
-                    <FluentCheckbox Label="@role"
+                    <FluentCheckbox Label="@AuthorizationDisplay.RoleName(L, role)"
                                     Value="@_selectedRoles.Contains(role)"
                                     ValueChanged="@(c => ToggleRole(role, c))" />
                 }

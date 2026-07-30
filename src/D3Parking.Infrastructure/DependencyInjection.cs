@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
+using D3Parking.Application.Identity;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
@@ -34,8 +35,13 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.Configure<AccountOptions>(configuration.GetSection(AccountOptions.SectionName));
         services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IExternalDirectoryService, EntraDirectoryService>();
+        services.AddScoped<IExternalRoleMappingService, ExternalRoleMappingService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();
+        services.AddScoped<IPermissionGroupAdminService, PermissionGroupAdminService>();
+        services.AddScoped<RolePermissionMaterializer>();
         services.AddScoped<ISiteSettingsService, SiteSettingsService>();
 
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.

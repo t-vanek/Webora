@@ -212,7 +212,9 @@
                         <FluentNumberField TValue="int" @bind-Value="_form.CollusionScanIntervalHours" Min="1" Disabled="@(!_form.AntiCollusionEnabled)"
                                            Label="@L["Parking_Settings_CollusionInterval"]" Style="width:100%" />
                     </div>
-                    <FluentAnchor Href="/admin/parking/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewCollusion)" Context="collusionLink">
+                        <FluentAnchor Href="/admin/parking/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
+                    </AuthorizeView>
 
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AvailabilitySection"]</FluentLabel>

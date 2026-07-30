@@ -84,7 +84,7 @@
             </NavLink>
         }
 
-        @if (_canAdminUsers || _canAdminRoles || _canSettings || _canManageSpots || _canManageIncentives || _canManageReservations)
+        @if (_canAnyAdmin)
         {
             <div class="side-nav__section">
                 <span class="side-nav__section-title">@L["Nav_Administration"]</span>
@@ -107,7 +107,34 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Roles"]</span>
                 </NavLink>
             }
-            @if (_canManageSpots)
+            @if (_canPermissionGroups)
+            {
+                <NavLink href="admin/permission-groups" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminPermissionGroups"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Braces())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminPermissionGroups"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_PermissionGroups"]</span>
+                </NavLink>
+            }
+            @if (_canAdminRoles)
+            {
+                <NavLink href="admin/directory" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminDirectory"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Building())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminDirectory"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Directory"]</span>
+                </NavLink>
+            }
+            @if (_canAudit)
+            {
+                <NavLink href="admin/audit" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminAudit"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.History())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminAudit"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Audit"]</span>
+                </NavLink>
+            }
+            @if (_canViewAnalytics)
             {
                 <NavLink href="admin/parking/dashboard" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminLot"]">
@@ -115,12 +142,18 @@
                     <span class="side-nav__label">@L["Nav_AdminLot"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Lot"]</span>
                 </NavLink>
+            }
+            @if (_canManageSpots)
+            {
                 <NavLink href="admin/parking/spots" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminParking"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_AdminParking"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Spots"]</span>
                 </NavLink>
+            }
+            @if (_canManageFleet)
+            {
                 <NavLink href="admin/parking/fleet" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminFleet"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
@@ -128,7 +161,18 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Fleet"]</span>
                 </NavLink>
             }
-            @if (_canManageReservations)
+            @* Mismatches and collusion review used to be reachable only by deep link from another
+               admin page — a reviewer who landed on the home screen had no way to find their queue. *@
+            @if (_canReviewMismatches)
+            {
+                <NavLink href="admin/parking/mismatches" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminMismatches"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Warning())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminMismatches"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Mismatches"]</span>
+                </NavLink>
+            }
+            @if (_canManageVisitors)
             {
                 <NavLink href="admin/parking/visitors" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminVisitors"]">
@@ -144,6 +188,15 @@
                     <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_AdminParkingSettings"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Rules"]</span>
+                </NavLink>
+            }
+            @if (_canReviewCollusion)
+            {
+                <NavLink href="admin/parking/collusion" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminCollusion"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ShieldError())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminCollusion"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Collusion"]</span>
                 </NavLink>
             }
             @if (_canSettings)
@@ -178,12 +231,20 @@
 
     private bool _canAdminUsers;
     private bool _canAdminRoles;
+    private bool _canPermissionGroups;
+    private bool _canAudit;
     private bool _canSettings;
     private bool _canReserve;
     private bool _canLeaderboard;
     private bool _canManageSpots;
-    private bool _canManageReservations;
+    private bool _canManageFleet;
+    private bool _canReviewMismatches;
+    private bool _canViewAnalytics;
+    private bool _canManageVisitors;
     private bool _canManageIncentives;
+    private bool _canReviewCollusion;
+
+    private bool _canAnyAdmin;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -205,14 +266,27 @@
         {
             var user = (await AuthState).User;
             _authenticated = user.Identity?.IsAuthenticated == true;
-            _canAdminUsers = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Users.View);
-            _canAdminRoles = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Roles.View);
-            _canSettings = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Settings.View);
-            _canReserve = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve);
-            _canLeaderboard = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewLeaderboard);
-            _canManageSpots = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots);
-            _canManageReservations = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageReservations);
-            _canManageIncentives = user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageIncentives);
+
+            bool Can(string permission) => user.HasClaim(D3ParkingClaimTypes.Permission, permission);
+
+            _canAdminUsers = Can(Permissions.Users.View);
+            _canAdminRoles = Can(Permissions.Roles.View);
+            _canPermissionGroups = Can(Permissions.PermissionGroups.View);
+            _canAudit = Can(Permissions.Audit.View);
+            _canSettings = Can(Permissions.Settings.View);
+            _canReserve = Can(Permissions.Parking.Reserve);
+            _canLeaderboard = Can(Permissions.Parking.ViewLeaderboard);
+            _canManageSpots = Can(Permissions.Parking.ManageSpots);
+            _canManageFleet = Can(Permissions.Parking.ManageFleet);
+            _canReviewMismatches = Can(Permissions.Parking.ReviewMismatches);
+            _canViewAnalytics = Can(Permissions.Parking.ViewAnalytics);
+            _canManageVisitors = Can(Permissions.Parking.ManageVisitors);
+            _canManageIncentives = Can(Permissions.Parking.ManageIncentives);
+            _canReviewCollusion = Can(Permissions.Parking.ReviewCollusion);
+
+            _canAnyAdmin = _canAdminUsers || _canAdminRoles || _canPermissionGroups || _canAudit || _canSettings
+                || _canManageSpots || _canManageFleet || _canReviewMismatches || _canViewAnalytics
+                || _canManageVisitors || _canManageIncentives || _canReviewCollusion;
         }
     }
 

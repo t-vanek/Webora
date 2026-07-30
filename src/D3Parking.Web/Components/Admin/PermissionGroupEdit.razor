@@ -1,0 +1,263 @@
+@page "/admin/permission-groups/{Id:guid}"
+@attribute [HasPermission(Permissions.PermissionGroups.View)]
+@rendermode InteractiveServer
+@inject IPermissionGroupAdminService Groups
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_Groups_EditTitle"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentAnchor Href="admin/permission-groups" Appearance="Appearance.Hypertext">&laquo; @L["Nav_AdminPermissionGroups"]</FluentAnchor>
+
+    @if (_detail is null)
+    {
+        @if (_loaded)
+        {
+            <FluentLabel Typo="Typography.Body">@L["Admin_Groups_NotFound"]</FluentLabel>
+        }
+        else
+        {
+            <div class="loading"><FluentProgressRing /></div>
+        }
+    }
+    else
+    {
+        <div class="admin-head">
+            <div class="admin-head__titles">
+                <div class="admin-head__title-row">
+                    <FluentLabel Typo="Typography.PageTitle">@AuthorizationDisplay.GroupName(L, _detail.Name)</FluentLabel>
+                    @if (_detail.IsBuiltIn)
+                    {
+                        <FluentBadge Appearance="Appearance.Neutral">@L["Admin_Roles_Default"]</FluentBadge>
+                    }
+                </div>
+                <p class="admin-head__intro">@AuthorizationDisplay.GroupDescription(L, _detail.Name, _detail.Description)</p>
+            </div>
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.PermissionGroups.Create)" Context="duplicate">
+                <FluentAnchor Href="@($"admin/permission-groups/create?from={Id}")" Appearance="Appearance.Outline">
+                    @L["Admin_RoleEdit_Duplicate"]
+                </FluentAnchor>
+            </AuthorizeView>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+        }
+
+        @if (_detail.Roles.Count > 0 && !_readOnly)
+        {
+            @* Editing a group is the one action whose effect is not the thing on screen — everyone
+               in these roles gains or loses access the moment it is saved. *@
+            <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar" AllowDismiss="false">
+                @L["Admin_Groups_BlastRadius", _detail.Roles.Count, _detail.Roles.Sum(r => r.UserCount)]
+            </FluentMessageBar>
+        }
+
+        @if (!_detail.IsBuiltIn && _canEdit)
+        {
+            <FluentCard Class="profile-section">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <FluentLabel Typo="Typography.Subject">@L["Admin_RoleEdit_Overview"]</FluentLabel>
+                    <FluentTextField @bind-Value="_name" Label="@L["Admin_Groups_Name"]" Style="max-width:480px" />
+                    <FluentTextArea @bind-Value="_description" Label="@L["Admin_Groups_Description"]" Rows="2" Style="max-width:640px" />
+                </FluentStack>
+            </FluentCard>
+        }
+
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">@L["Admin_Roles_Permissions"]</FluentLabel>
+
+                @if (_detail.IsBuiltIn)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                        @L["Admin_Groups_BuiltInNote"]
+                    </FluentMessageBar>
+                }
+                else if (!_canEdit)
+                {
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Admin_Groups_ReadOnly"]</FluentLabel>
+                }
+
+                <PermissionEditor Catalog="Groups.PermissionCatalog"
+                                  Selected="_selected"
+                                  Baseline="_detail.Permissions"
+                                  ReadOnly="_readOnly"
+                                  Grantable="_grantable"
+                                  SelectionChanged="StateHasChanged" />
+
+                @if (!_readOnly)
+                {
+                    <div class="perm-editor__actions">
+                        <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent">@L["Admin_Save"]</FluentButton>
+                        <FluentButton OnClick="ResetSelection" Appearance="Appearance.Stealth" Disabled="@(!IsDirty)">
+                            @L["Admin_Cancel"]
+                        </FluentButton>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Class="profile-section">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <FluentLabel Typo="Typography.Subject">
+                    @L["Admin_Groups_UsedBy"] <span class="count-chip">@_detail.Roles.Count</span>
+                </FluentLabel>
+                @if (_detail.Roles.Count == 0)
+                {
+                    <div class="empty-state">@L["Admin_Groups_Unused"]</div>
+                }
+                else
+                {
+                    <ul class="role-members">
+                        @foreach (var role in _detail.Roles)
+                        {
+                            <li class="role-members__item">
+                                <a href="@($"admin/roles/{role.RoleId}")">
+                                    <span class="role-members__name">@AuthorizationDisplay.RoleName(L, role.RoleName)</span>
+                                    <span class="role-members__mail">@PluralText.For(L, "Admin_Roles_MemberCount", role.UserCount)</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        @if (!_detail.IsBuiltIn)
+        {
+            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.PermissionGroups.Delete)" Context="delete">
+                <div class="danger-zone">
+                    <div class="danger-zone__title">@L["Admin_UserEdit_DangerZone"]</div>
+                    @if (_detail.Roles.Count > 0)
+                    {
+                        <p class="danger-zone__note">@PluralText.For(L, "Admin_Groups_DeleteBlocked", _detail.Roles.Count)</p>
+                    }
+                    else if (_confirmDelete)
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
+                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                                <span>@L["Admin_Groups_DeleteConfirm"]</span>
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                                    <FluentButton OnClick="DeleteAsync" Appearance="Appearance.Accent">
+                                        @L["Admin_RoleEdit_DeleteYes"]
+                                    </FluentButton>
+                                    <FluentButton OnClick="() => _confirmDelete = false" Appearance="Appearance.Outline">
+                                        @L["Admin_Cancel"]
+                                    </FluentButton>
+                                </FluentStack>
+                            </FluentStack>
+                        </FluentMessageBar>
+                    }
+                    else
+                    {
+                        <FluentButton OnClick="() => _confirmDelete = true" Appearance="Appearance.Outline">
+                            @L["Admin_Groups_Delete"]
+                        </FluentButton>
+                    }
+                </div>
+            </AuthorizeView>
+        }
+    }
+</FluentStack>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private PermissionGroupDetail? _detail;
+    private bool _loaded;
+    private string? _name;
+    private string? _description;
+    private bool _readOnly;
+    private bool _canEdit;
+    private Guid _actorId;
+    private IReadOnlySet<string>? _grantable;
+    private HashSet<string> _selected = new(StringComparer.Ordinal);
+    private bool _confirmDelete;
+    private string? _message;
+    private string? _error;
+
+    private Guid _loadedId;
+
+    private bool IsDirty => _detail is not null && !_selected.SetEquals(_detail.Permissions);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _actorId = Guid.TryParse(UserManager.GetUserId(state.User), out var id) ? id : Guid.Empty;
+        _canEdit = state.User.HasClaim(D3ParkingClaimTypes.Permission, Permissions.PermissionGroups.Edit);
+
+        _grantable = state.User.Claims
+            .Where(c => c.Type == D3ParkingClaimTypes.Permission)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId != Id)
+        {
+            _loadedId = Id;
+            _message = _error = null;
+            _confirmDelete = false;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _detail = await Groups.GetAsync(Id);
+        _loaded = true;
+        if (_detail is not null)
+        {
+            _name = _detail.Name;
+            _description = _detail.Description;
+            _selected = _detail.Permissions.ToHashSet(StringComparer.Ordinal);
+            _readOnly = _detail.IsBuiltIn || !_canEdit;
+        }
+    }
+
+    private void ResetSelection()
+    {
+        if (_detail is not null)
+        {
+            _selected = _detail.Permissions.ToHashSet(StringComparer.Ordinal);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _message = _error = null;
+        var result = await Groups.UpdateAsync(Id, _name ?? string.Empty, _description, _selected.ToArray(), _actorId);
+        if (result.Succeeded)
+        {
+            _message = L["Admin_Groups_Saved"];
+            await LoadAsync();
+        }
+        else
+        {
+            _error = string.Join(" ", result.Errors);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var result = await Groups.DeleteAsync(Id, _actorId);
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo("admin/permission-groups");
+            return;
+        }
+
+        _confirmDelete = false;
+        _error = string.Join(" ", result.Errors);
+    }
+}

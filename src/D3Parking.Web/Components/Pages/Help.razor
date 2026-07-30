@@ -282,12 +282,9 @@
     // Numbers come from the live configuration, so the unit has to inflect with them: Czech needs
     // "1 bod / 2 body / 5 bodů". The templates therefore take an already-formatted "5 bodů", never
     // a bare number followed by a fixed noun.
-    private string Points(int count) => $"{count} {L[$"Help_Plural_Points_{Form(count)}"].Value}";
+    private string Points(int count) => $"{count} {PluralText.For(L, "Help_Plural_Points", count)}";
 
-    private string Credits(int count) => $"{count} {L[$"Help_Plural_Credits_{Form(count)}"].Value}";
+    private string Credits(int count) => $"{count} {PluralText.For(L, "Help_Plural_Credits", count)}";
 
-    private string Days(int count) => $"{count} {L[$"Help_Plural_Days_{Form(count)}"].Value}";
-
-    /// <summary>Czech plural class: 1, 2–4, 5+. English resources map 2 and 5 to the same word.</summary>
-    private static int Form(int count) => count == 1 ? 1 : count is >= 2 and <= 4 ? 2 : 5;
+    private string Days(int count) => $"{count} {PluralText.For(L, "Help_Plural_Days", count)}";
 }

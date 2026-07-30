@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
@@ -13,6 +14,14 @@ namespace D3Parking.Infrastructure.Persistence;
 public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
+    public DbSet<PermissionGroup> PermissionGroups => Set<PermissionGroup>();
+
+    public DbSet<RolePermissionGroup> RolePermissionGroups => Set<RolePermissionGroup>();
+
+    public DbSet<ExternalRoleMapping> ExternalRoleMappings => Set<ExternalRoleMapping>();
+
+    public DbSet<ExternalRoleAssignment> ExternalRoleAssignments => Set<ExternalRoleAssignment>();
+
     public DbSet<AccountAuditEvent> AccountAuditEvents => Set<AccountAuditEvent>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
@@ -68,6 +77,92 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             user.Property(u => u.Department).HasMaxLength(128);
             user.Property(u => u.StatusReason).HasMaxLength(512);
             user.Property(u => u.HomeAddress).HasMaxLength(512);
+
+            user.Property(u => u.ExternalObjectId).HasMaxLength(64);
+            user.Property(u => u.ExternalProvider).HasMaxLength(64);
+            user.Property(u => u.ExternalTenantId).HasMaxLength(64);
+            user.Ignore(u => u.IsFederated);
+
+            // Filtered so the many purely local accounts (all null) do not collide with each other,
+            // while a directory object can still only ever be one account here.
+            user.HasIndex(u => new { u.ExternalProvider, u.ExternalObjectId })
+                .IsUnique()
+                .HasFilter("[ExternalObjectId] IS NOT NULL");
+        });
+
+        builder.Entity<PermissionGroup>(group =>
+        {
+            group.ToTable("PermissionGroups");
+            group.HasKey(g => g.Id);
+            group.Property(g => g.Name).HasMaxLength(128).IsRequired();
+            group.Property(g => g.Description).HasMaxLength(512);
+            group.HasIndex(g => g.Name).IsUnique();
+            // The computed union of the entries; never a column of its own.
+            group.Ignore(g => g.Permissions);
+
+            group.HasMany(g => g.Entries)
+                .WithOne()
+                .HasForeignKey(e => e.PermissionGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PermissionGroupEntry>(entry =>
+        {
+            entry.ToTable("PermissionGroupEntries");
+            entry.HasKey(e => new { e.PermissionGroupId, e.Permission });
+            entry.Property(e => e.Permission).HasMaxLength(128).IsRequired();
+        });
+
+        builder.Entity<RolePermissionGroup>(link =>
+        {
+            link.ToTable("RolePermissionGroups");
+            link.HasKey(l => new { l.RoleId, l.PermissionGroupId });
+            link.HasIndex(l => l.PermissionGroupId);
+
+            // Deleting either end drops the link, but never silently: the services refuse to delete
+            // a role that still has members or a group that is still composed into a role.
+            link.HasOne<ApplicationRole>()
+                .WithMany()
+                .HasForeignKey(l => l.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            link.HasOne<PermissionGroup>()
+                .WithMany()
+                .HasForeignKey(l => l.PermissionGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ExternalRoleMapping>(mapping =>
+        {
+            mapping.ToTable("ExternalRoleMappings");
+            mapping.HasKey(m => m.Id);
+            mapping.Property(m => m.Provider).HasMaxLength(64).IsRequired();
+            mapping.Property(m => m.ExternalRole).HasMaxLength(256).IsRequired();
+            // One directory role maps to one local role: two rows for the same claim would make
+            // "what does this app role grant" a question with two answers.
+            mapping.HasIndex(m => new { m.Provider, m.ExternalRole }).IsUnique();
+
+            mapping.HasOne<ApplicationRole>()
+                .WithMany()
+                .HasForeignKey(m => m.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ExternalRoleAssignment>(assignment =>
+        {
+            assignment.ToTable("ExternalRoleAssignments");
+            assignment.HasKey(a => new { a.UserId, a.RoleId });
+            assignment.Property(a => a.Provider).HasMaxLength(64).IsRequired();
+
+            assignment.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            assignment.HasOne<ApplicationRole>()
+                .WithMany()
+                .HasForeignKey(a => a.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<AccountAuditEvent>(audit =>
