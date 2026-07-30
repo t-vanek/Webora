@@ -8,6 +8,7 @@
 @inject ISiteSettingsService SiteSettings
 @inject IUserLocationService UserLocation
 @inject IFleetService Fleet
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Profile_Title"]</PageTitle>
@@ -21,9 +22,25 @@
                 @L["Profile_SignedInAs"] <strong>@auth.User.Identity?.Name</strong>
             </FluentLabel>
 
-            @if (!string.IsNullOrEmpty(_saveError))
+            @*  Static SSR feedback: FluentMessageBar renders nothing without an interactive
+                circuit, and state a POST handler mutates outside the submitting form never
+                reaches the response. Every handler therefore finishes with a redirect
+                (post-redirect-get) carrying its message in the query string, rendered here.
+                Values are resource keys where the source provides them; already-localised
+                identity descriptions pass through the localizer unchanged.  *@
+            @if (!string.IsNullOrEmpty(Error))
             {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@_saveError</FluentMessageBar>
+                <div class="auth-alert auth-alert--error" role="alert">
+                    <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@L[Error]</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Info))
+            {
+                <div class="auth-alert auth-alert--success" role="status">
+                    <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@L[Info]</span>
+                </div>
             }
 
             <FluentCard Class="profile-section">
@@ -39,10 +56,6 @@
                                 <FluentBadge Appearance="Appearance.Accent" Fill="warning" Style="margin-left:8px">@L["Profile_CommutePending"]</FluentBadge>
                             }
                         </FluentLabel>
-                    }
-                    @if (!string.IsNullOrEmpty(_homeError))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_homeError]</FluentMessageBar>
                     }
                     <EditForm Model="HomeInput" method="post" OnValidSubmit="SaveHomeAsync" FormName="home-address">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
@@ -87,15 +100,6 @@
                             <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Profile_SaveVehicle"]</FluentButton>
                         </FluentStack>
                     </EditForm>
-
-                    @if (!string.IsNullOrEmpty(_pairingError))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@L[_pairingError]</FluentMessageBar>
-                    }
-                    @if (!string.IsNullOrEmpty(_pairingInfo))
-                    {
-                        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="false">@L[_pairingInfo]</FluentMessageBar>
-                    }
 
                     @* Fleet pairing. NoPlate/NoMatch render nothing — a private car has no
                        business seeing fleet mechanics. NotPairable stays deliberately vague
@@ -278,12 +282,13 @@
     [SupplyParameterFromForm(FormName = "vehicle")] private VehicleFormModel VehicleInput { get; set; } = new();
     [SupplyParameterFromForm(FormName = "pairing-confirm")] private PairingCodeModel CodeInput { get; set; } = new();
 #pragma warning restore BL0008
+    // Post-redirect-get feedback (see the markup note above the alerts). The properties must
+    // be public — static SSR does not bind [SupplyParameterFromQuery] to private ones.
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "info")] public string? Info { get; set; }
+
     private UserHomeDto _home = new(null, null, false);
-    private string? _homeError;
-    private string? _saveError;
     private PairingStatusDto _pairing = new(VehiclePairingState.NoPlate, null, null, null, null);
-    private string? _pairingError;
-    private string? _pairingInfo;
 
     private string PairedVehicleLabel => _pairing.VehicleName is { Length: > 0 } name
         ? $"{_pairing.VehiclePlate} ({name})"
@@ -317,13 +322,18 @@
     }
 
     // A silently discarded IdentityResult made every failed save look like a success (the page
-    // just re-rendered) — surface the errors through the shared status message instead.
+    // just re-rendered) — finish every save with the redirect that carries the outcome instead.
     private void ReportSave(IdentityResult result)
+        => Redirect(error: result.Succeeded ? null : string.Join(" ", result.Errors.Select(e => e.Description)));
+
+    // NavigateTo does not interrupt a static SSR handler (no exception since .NET 10), so the
+    // caller keeps running to the end of its method — the redirect must stay its last real work.
+    private void Redirect(string? error = null, string? info = null)
     {
-        if (!result.Succeeded)
-        {
-            _saveError = string.Join(" ", result.Errors.Select(e => e.Description));
-        }
+        var query = !string.IsNullOrEmpty(error) ? "?error=" + Uri.EscapeDataString(error)
+            : !string.IsNullOrEmpty(info) ? "?info=" + Uri.EscapeDataString(info)
+            : string.Empty;
+        Nav.NavigateTo("account/profile" + query);
     }
 
     private sealed class TeamFormModel
@@ -342,51 +352,39 @@
                 ? null
                 : VehicleInput.Plate.Trim().ToUpperInvariant();
             var saved = await UserManager.UpdateAsync(user);
-            ReportSave(saved);
             if (saved.Succeeded)
             {
                 // A changed plate may sever an existing fleet pairing (and the residency it
-                // carried); the refreshed status below then shows where the user stands.
+                // carried); the redirected GET then shows where the user stands.
                 await Fleet.SyncUserPlateAsync(user.Id);
             }
 
-            _pairing = await Fleet.GetMyPairingStatusAsync(user.Id);
+            ReportSave(saved);
         }
     }
 
     private async Task SendPairingCodeAsync()
     {
-        _pairingError = null;
-        _pairingInfo = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             var result = await Fleet.RequestPairingCodeAsync(userId);
             if (result.Succeeded)
             {
-                _pairingInfo = "Profile_Vehicle_CodeSent";
+                Redirect(info: "Profile_Vehicle_CodeSent");
             }
             else
             {
-                _pairingError = result.Errors.FirstOrDefault();
+                Redirect(error: result.Errors.FirstOrDefault());
             }
-
-            _pairing = await Fleet.GetMyPairingStatusAsync(userId);
         }
     }
 
     private async Task ConfirmPairingAsync()
     {
-        _pairingError = null;
-        _pairingInfo = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             var result = await Fleet.ConfirmPairingAsync(userId, CodeInput.Code ?? string.Empty);
-            if (!result.Succeeded)
-            {
-                _pairingError = result.Errors.FirstOrDefault();
-            }
-
-            _pairing = await Fleet.GetMyPairingStatusAsync(userId);
+            Redirect(error: result.Succeeded ? null : result.Errors.FirstOrDefault());
         }
     }
 
@@ -402,27 +400,19 @@
 
     private async Task SaveHomeAsync()
     {
-        _homeError = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             var result = await UserLocation.SetHomeAddressAsync(userId, HomeInput.Address);
-            if (!result.Succeeded)
-            {
-                _homeError = result.Errors.FirstOrDefault();
-            }
-
-            _home = await UserLocation.GetHomeAsync(userId);
+            Redirect(error: result.Succeeded ? null : result.Errors.FirstOrDefault());
         }
     }
 
     private async Task RemoveHomeAsync()
     {
-        _homeError = null;
         if (await CurrentUserIdAsync() is { } userId)
         {
             await UserLocation.SetHomeAddressAsync(userId, null);
-            HomeInput.Address = null;
-            _home = await UserLocation.GetHomeAsync(userId);
+            Redirect();
         }
     }
 
