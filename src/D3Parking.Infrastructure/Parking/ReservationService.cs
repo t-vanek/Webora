@@ -4,6 +4,7 @@ using Microsoft.Extensions.Localization;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
@@ -34,9 +35,14 @@ public sealed class ReservationService(
     // Daily cap on "I can't park" reports per user — see ReportBlockedSpotAsync.
     private const int MaxBlockedReportsPerDay = 2;
 
-    // How long the apology voucher (one free reservation) stays redeemable. Together with the
-    // one-unredeemed-voucher-per-user rule this caps what faked mismatch reports could ever mint.
-    private static readonly TimeSpan ApologyVoucherValidity = TimeSpan.FromDays(30);
+    // How long the apology voucher (one free reservation) stays redeemable — from the grant for
+    // the pending window, restarted from the approval once the spot manager confirms. Together
+    // with the one-unredeemed-voucher-per-user rule this caps what faked reports could ever mint.
+    public static readonly TimeSpan ApologyVoucherValidity = TimeSpan.FromDays(30);
+
+    // Formats the mandatory photo proof may come in — kept to what a browser renders inline,
+    // so the spot manager's review never needs a download. Size is bounded by BlockedSpotPhoto.MaxBytes.
+    private static readonly string[] AllowedPhotoContentTypes = ["image/jpeg", "image/png", "image/webp"];
 
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
@@ -125,10 +131,15 @@ public sealed class ReservationService(
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
+
+        // An approved voucher (redeemable now) beats a pending one (informational only); the cap
+        // allows at most one of the pair to exist, so ordering by status is just belt-and-braces.
         return await dbContext.ApologyVouchers.AsNoTracking()
-            .Where(v => v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now)
-            .OrderBy(v => v.ExpiresAtUtc)
-            .Select(v => new ApologyVoucherDto(v.Id, v.ExpiresAtUtc))
+            .Where(v => v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
+                && (v.Status == ApologyVoucherStatus.Approved || v.Status == ApologyVoucherStatus.PendingApproval))
+            .OrderBy(v => v.Status == ApologyVoucherStatus.Approved ? 0 : 1)
+            .ThenBy(v => v.ExpiresAtUtc)
+            .Select(v => new ApologyVoucherDto(v.Id, v.Status, v.ExpiresAtUtc))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -251,11 +262,14 @@ public sealed class ReservationService(
         // The apology voucher absorbs the whole dynamic price — peak surcharge included — instead
         // of the wallet. It is redeemed inside this transaction; a timely cancel/release restores
         // it (see RestoreVoucherAsync), the same terms under which credits would be refunded.
+        // Only an approved voucher counts: one still pending the spot manager's review holds no
+        // value yet, and a rejected one never will.
         ApologyVoucher? voucher = null;
         if (useVoucher)
         {
             voucher = await dbContext.ApologyVouchers
-                .Where(v => v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now)
+                .Where(v => v.UserId == userId && v.Status == ApologyVoucherStatus.Approved
+                    && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now)
                 .OrderBy(v => v.ExpiresAtUtc)
                 .FirstOrDefaultAsync(cancellationToken);
             if (voucher is null)
@@ -688,11 +702,32 @@ public sealed class ReservationService(
         return ParkingResult.Success;
     }
 
-    public Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, string? blockerPlate = null, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => ReportBlockedSpotCoreAsync(userId, reservationId, relocate, blockerPlate, cancellationToken), cancellationToken);
+    public Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ReportBlockedSpotCoreAsync(userId, reservationId, relocate, photo, blockerPlate, cancellationToken), cancellationToken);
 
-    private async Task<BlockedSpotOutcome> ReportBlockedSpotCoreAsync(Guid userId, Guid reservationId, bool relocate, string? blockerPlate, CancellationToken cancellationToken)
+    private async Task<BlockedSpotOutcome> ReportBlockedSpotCoreAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate, CancellationToken cancellationToken)
     {
+        // The photo proof is not optional: without it the report voids a booking penalty-free on
+        // bare word, and the spot manager would have nothing to judge the apology voucher by.
+        if (photo is null || photo.Content.Length == 0)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_PhotoRequired");
+        }
+
+        if (photo.Content.Length > BlockedSpotPhoto.MaxBytes)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_PhotoTooLarge");
+        }
+
+        if (!AllowedPhotoContentTypes.Contains(photo.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_PhotoType");
+        }
+
+        // The SHA-256 fingerprint is the anti-reuse identity of the picture: the same file can
+        // prove exactly one mismatch, ever — no matter who resubmits it or when.
+        var photoHash = System.Security.Cryptography.SHA256.HashData(photo.Content);
+
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -734,6 +769,17 @@ public sealed class ReservationService(
             return BlockedSpotOutcome.Failure("Parking_Error_BlockedReportLimit");
         }
 
+        // A photo already backing any report — this user's or anyone else's — proves nothing
+        // twice. Checked inside the serializable transaction; the unique index on the hash is the
+        // backstop for the race two identical uploads could still win concurrently (the loser
+        // retries, re-reads, and lands here on the friendly failure).
+        var photoAlreadyUsed = await dbContext.MismatchPhotos.AnyAsync(
+            p => p.ContentHash == photoHash, cancellationToken);
+        if (photoAlreadyUsed)
+        {
+            return BlockedSpotOutcome.Failure("Parking_Error_PhotoReused");
+        }
+
         // The plate is read off a stranger's car in a hurry — keep it verbatim (trimmed, upper-
         // cased, capped to the column); the admin view does the tolerant matching.
         string? recordedPlate = null;
@@ -746,6 +792,7 @@ public sealed class ReservationService(
         var mismatch = new OccupancyMismatch(
             reservation.SpotId, reservation.Id, userId, reservation.StartUtc, reservation.EndUtc, now, recordedPlate);
         dbContext.OccupancyMismatches.Add(mismatch);
+        dbContext.MismatchPhotos.Add(new MismatchPhoto(mismatch.Id, photo.ContentType.ToLowerInvariant(), photo.Content, photoHash, now));
 
         // Void without penalty: the driver stands in front of an occupied spot through no fault
         // of their own, so the charge comes back in full no matter how close to the start. The
@@ -815,13 +862,17 @@ public sealed class ReservationService(
             await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
         }
 
-        // The apology: one reservation free of charge, peak included. At most one unredeemed
-        // voucher per user and it expires — the report is trust-based, and this is what keeps the
-        // apology from becoming a mint for faked mismatches. Evaluated after any voucher restore
-        // above, so a restored voucher counts against the cap instead of stacking with a fresh one.
+        // The apology: one reservation free of charge, peak included — granted pending the spot
+        // manager's review of the photo proof, so value only materializes from a human-confirmed
+        // report. At most one pending-or-approved unredeemed voucher per user and it expires,
+        // which caps what faked reports could ever stage. Evaluated after any voucher restore
+        // above, so a restored voucher counts against the cap instead of stacking with a fresh
+        // one. Rejected vouchers don't block: a past unfounded report must not mute a real one.
         var voucherGranted = false;
         var holdsUsableVoucher = await dbContext.ApologyVouchers.AnyAsync(v =>
-            v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
+            v.UserId == userId && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
+            && (v.Status == ApologyVoucherStatus.PendingApproval || v.Status == ApologyVoucherStatus.Approved),
+            cancellationToken);
         if (!holdsUsableVoucher)
         {
             dbContext.ApologyVouchers.Add(new ApologyVoucher(userId, mismatch.Id, now, now + ApologyVoucherValidity));
@@ -836,11 +887,39 @@ public sealed class ReservationService(
             await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
                 messages["Parking_Notify_VoucherGranted_Title"],
                 messages["Parking_Notify_VoucherGranted_Body"], cancellationToken);
+
+            // The pending voucher is a call to action for whoever manages the spots: tell every
+            // holder of the ManageSpots permission there is proof waiting to be judged.
+            var spotCode = await dbContext.ParkingSpots.AsNoTracking()
+                .Where(s => s.Id == reservation.SpotId)
+                .Select(s => s.Code)
+                .FirstAsync(cancellationToken);
+            foreach (var managerId in await GetSpotManagerIdsAsync(dbContext, cancellationToken))
+            {
+                await notifications.NotifyAsync(managerId, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_VoucherReview_Title"],
+                    messages["Parking_Notify_VoucherReview_Body", spotCode], cancellationToken);
+            }
         }
 
         return relocatedCode is null
             ? BlockedSpotOutcome.Recorded(voucherGranted)
             : BlockedSpotOutcome.Relocated(relocatedCode, voucherGranted);
+    }
+
+    // Everyone whose role carries the ManageSpots permission — the "spot manager" audience the
+    // voucher review notifications go to (same role-claim shape the authorization layer checks).
+    private static async Task<List<Guid>> GetSpotManagerIdsAsync(D3ParkingDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var managerRoleIds = dbContext.RoleClaims
+            .Where(c => c.ClaimType == D3ParkingClaimTypes.Permission
+                && c.ClaimValue == Permissions.Parking.ManageSpots)
+            .Select(c => c.RoleId);
+        return await dbContext.UserRoles
+            .Where(ur => managerRoleIds.Contains(ur.RoleId))
+            .Select(ur => ur.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)
@@ -1563,7 +1642,9 @@ public sealed class ReservationService(
 
         var holdsAnotherUsable = await dbContext.ApologyVouchers.AnyAsync(v =>
             v.UserId == voucher.UserId && v.Id != voucher.Id
-            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, cancellationToken);
+            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
+            && (v.Status == ApologyVoucherStatus.PendingApproval || v.Status == ApologyVoucherStatus.Approved),
+            cancellationToken);
         if (!holdsAnotherUsable)
         {
             voucher.Restore();

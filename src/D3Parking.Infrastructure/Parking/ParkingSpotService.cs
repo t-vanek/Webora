@@ -381,14 +381,16 @@ public sealed class ParkingSpotService(
         var limit = Math.Clamp(take, 1, 500);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        // Reporter and replacement spot are left-joined: a deleted account or spot must not hide
-        // the trend row.
+        // Reporter, replacement spot and the granted voucher are left-joined: a deleted account
+        // or spot (or a report that granted no voucher) must not hide the trend row.
         var mismatches = await (from m in dbContext.OccupancyMismatches.AsNoTracking()
                                 join s in dbContext.ParkingSpots.AsNoTracking() on m.SpotId equals s.Id
                                 join u in dbContext.Users.AsNoTracking() on m.ReporterId equals u.Id into reporters
                                 from reporter in reporters.DefaultIfEmpty()
                                 join rs in dbContext.ParkingSpots.AsNoTracking() on m.RelocatedToSpotId equals rs.Id into replacements
                                 from replacement in replacements.DefaultIfEmpty()
+                                join av in dbContext.ApologyVouchers.AsNoTracking() on m.Id equals av.SourceMismatchId into vouchers
+                                from voucher in vouchers.DefaultIfEmpty()
                                 orderby m.ReportedAtUtc descending
                                 select new
                                 {
@@ -403,6 +405,15 @@ public sealed class ParkingSpotService(
                                     ReporterName = reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
                                     ReporterEmail = reporter != null ? reporter.Email : null,
                                     ReplacementCode = replacement != null ? replacement.Code : null,
+                                    // The photo bytes stay out of the list query on purpose; the
+                                    // review fetches them lazily through GetMismatchPhotoAsync.
+                                    HasPhoto = dbContext.MismatchPhotos.Any(p => p.MismatchId == m.Id),
+                                    VoucherId = voucher != null ? (Guid?)voucher.Id : null,
+                                    VoucherStatus = voucher != null ? (ApologyVoucherStatus?)voucher.Status : null,
+                                    VoucherReviewedAtUtc = voucher != null ? voucher.ReviewedAtUtc : null,
+                                    VoucherReviewedByName = voucher != null && voucher.ReviewedById != null
+                                        ? dbContext.Users.Where(u => u.Id == voucher.ReviewedById).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()
+                                        : null,
                                 })
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -529,6 +540,10 @@ public sealed class ParkingSpotService(
                 match?.Name,
                 match?.Email,
                 matchIsVisitor,
+                m.HasPhoto,
+                m.VoucherId is { } voucherId
+                    ? new ApologyVoucherReviewDto(voucherId, m.VoucherStatus!.Value, m.VoucherReviewedAtUtc, m.VoucherReviewedByName)
+                    : null,
                 candidates
                     .Where(c => c.SpotId == m.SpotId && c.Id != m.ReservationId
                         && c.StartUtc < m.EndUtc && c.EndUtc > m.StartUtc)
@@ -543,6 +558,73 @@ public sealed class ParkingSpotService(
                     .ToList());
             })
             .ToList();
+    }
+
+    public async Task<MismatchPhotoDto?> GetMismatchPhotoAsync(Guid mismatchId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await dbContext.MismatchPhotos.AsNoTracking()
+            .Where(p => p.MismatchId == mismatchId)
+            .Select(p => new MismatchPhotoDto(p.Content, p.ContentType))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    // RetryAsync: a ruling that loses the race against the other reviewer (or the holder's
+    // redeem) re-reads and resolves through the status guard instead of erroring out.
+    public Task<ParkingResult> ApproveVoucherAsync(Guid voucherId, Guid reviewerId, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ReviewVoucherAsync(voucherId, reviewerId, approve: true, cancellationToken), cancellationToken);
+
+    public Task<ParkingResult> RejectVoucherAsync(Guid voucherId, Guid reviewerId, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ReviewVoucherAsync(voucherId, reviewerId, approve: false, cancellationToken), cancellationToken);
+
+    // Both rulings share the guards: only a pending voucher can be judged (approve/reject races
+    // resolve to a friendly "already decided"), and never by the driver who reported the mismatch
+    // — a spot manager must not sign off their own apology.
+    private async Task<ParkingResult> ReviewVoucherAsync(Guid voucherId, Guid reviewerId, bool approve, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var voucher = await dbContext.ApologyVouchers.FirstOrDefaultAsync(v => v.Id == voucherId, cancellationToken);
+        if (voucher is null)
+        {
+            return ParkingResult.Failure("Parking_Error_VoucherNotFound");
+        }
+
+        if (voucher.Status != ApologyVoucherStatus.PendingApproval)
+        {
+            return ParkingResult.Failure("Parking_Error_VoucherAlreadyReviewed");
+        }
+
+        if (voucher.UserId == reviewerId)
+        {
+            return ParkingResult.Failure("Parking_Error_VoucherOwnReview");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (approve)
+        {
+            voucher.Approve(reviewerId, now, ReservationService.ApologyVoucherValidity);
+        }
+        else
+        {
+            voucher.Reject(reviewerId, now);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (approve)
+        {
+            await notifications.NotifyAsync(voucher.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_VoucherApproved_Title"],
+                messages["Parking_Notify_VoucherApproved_Body"], cancellationToken);
+        }
+        else
+        {
+            await notifications.NotifyAsync(voucher.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                messages["Parking_Notify_VoucherRejected_Title"],
+                messages["Parking_Notify_VoucherRejected_Body"], cancellationToken);
+        }
+
+        return ParkingResult.Success;
     }
 
     /// <summary>Spacing-, dash- and case-insensitive plate form used for matching.</summary>

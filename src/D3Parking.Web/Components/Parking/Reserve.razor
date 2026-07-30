@@ -36,14 +36,22 @@
     }
 
     @* Apology voucher for a blocked spot: one reservation free, peak included. Redeemed by
-       ticking the box before booking; a timely cancel gives it back. *@
+       ticking the box before booking; a timely cancel gives it back. A voucher still awaiting
+       the spot manager's review is shown, but cannot be redeemed yet. *@
     @if (_voucher is { } voucher)
     {
         <div class="form-panel">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
-                <FluentLabel Typo="Typography.Body">@L["Parking_Voucher_Available", Local(voucher.ExpiresAtUtc, "d")]</FluentLabel>
-                <FluentCheckbox @bind-Value="_useVoucher">@L["Parking_Voucher_Use"]</FluentCheckbox>
-            </FluentStack>
+            @if (voucher.Status == ApologyVoucherStatus.Approved)
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Voucher_Available", Local(voucher.ExpiresAtUtc, "d")]</FluentLabel>
+                    <FluentCheckbox @bind-Value="_useVoucher">@L["Parking_Voucher_Use"]</FluentCheckbox>
+                </FluentStack>
+            }
+            else
+            {
+                <FluentLabel Typo="Typography.Body">@L["Parking_Voucher_Pending"]</FluentLabel>
+            }
         </div>
     }
 
@@ -217,15 +225,34 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_Blocked_Title", blocked.SpotCode]</FluentLabel>
                 <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_Text"]</FluentLabel>
+                @* Mandatory proof: a photo of the blocked spot, ideally straight from the camera
+                   (capture hint). The spot manager judges it before the apology voucher becomes
+                   redeemable, and each picture can back exactly one report. *@
+                <div>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_PhotoLabel"]</FluentLabel>
+                    <InputFile OnChange="OnBlockedPhotoSelectedAsync" accept="image/jpeg,image/png,image/webp"
+                               capture="environment" class="parking-input" />
+                    @if (_blockedPhotoError is not null)
+                    {
+                        <FluentLabel Typo="Typography.Body" Style="color:var(--error)">@L[_blockedPhotoError]</FluentLabel>
+                    }
+                    else if (_blockedPhoto is not null)
+                    {
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                            @L["Parking_Blocked_PhotoAttached", _blockedPhotoName ?? string.Empty]
+                        </FluentLabel>
+                    }
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Blocked_PhotoHint"]</FluentLabel>
+                </div>
                 @* Optional: the plate of the blocking car — the driver is standing right at it,
                    and it lets the admin tell an employee from an outsider. *@
                 <FluentTextField @bind-Value="_blockerPlate" Maxlength="16" Style="width:280px"
                                  Label="@L["Parking_Blocked_PlateLabel"]"
                                  Placeholder="@L["Parking_Blocked_PlatePlaceholder"]" />
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                    <FluentButton Appearance="Appearance.Accent" Disabled="@_blockedBusy"
+                    <FluentButton Appearance="Appearance.Accent" Disabled="@(_blockedBusy || _blockedPhoto is null)"
                                   OnClick="() => ReportBlockedAsync(relocate: true)">@L["Parking_Blocked_Relocate"]</FluentButton>
-                    <FluentButton Appearance="Appearance.Outline" Disabled="@_blockedBusy"
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_blockedBusy || _blockedPhoto is null)"
                                   OnClick="() => ReportBlockedAsync(relocate: false)">@L["Parking_Blocked_RecordOnly"]</FluentButton>
                     <FluentButton Appearance="Appearance.Stealth" Disabled="@_blockedBusy"
                                   OnClick="() => _blockedTarget = null">@L["Parking_Blocked_Back"]</FluentButton>
@@ -582,6 +609,9 @@
     private bool _blockedBusy;
     private string? _blockedMessage;
     private string? _blockerPlate;
+    private BlockedSpotPhoto? _blockedPhoto;
+    private string? _blockedPhotoName;
+    private string? _blockedPhotoError;
 
     private ApologyVoucherDto? _voucher;
     private bool _useVoucher;
@@ -600,12 +630,36 @@
     {
         _error = _info = _blockedMessage = null;
         _blockerPlate = null;
+        _blockedPhoto = null;
+        _blockedPhotoName = null;
+        _blockedPhotoError = null;
         _blockedTarget = reservation;
+    }
+
+    // Buffers the picked photo so the submit sends bytes, not a stream tied to the input's
+    // lifetime. The size cap is enforced right here — OpenReadStream throws past the limit.
+    private async Task OnBlockedPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _blockedPhoto = null;
+        _blockedPhotoName = null;
+        _blockedPhotoError = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: BlockedSpotPhoto.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _blockedPhoto = new BlockedSpotPhoto(buffer.ToArray(), e.File.ContentType);
+            _blockedPhotoName = e.File.Name;
+        }
+        catch (IOException)
+        {
+            _blockedPhotoError = "Parking_Error_PhotoTooLarge";
+        }
     }
 
     private async Task ReportBlockedAsync(bool relocate)
     {
-        if (_blockedTarget is not { } blocked)
+        if (_blockedTarget is not { } blocked || _blockedPhoto is null)
         {
             return;
         }
@@ -613,7 +667,7 @@
         _blockedBusy = true;
         try
         {
-            var outcome = await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate, _blockerPlate);
+            var outcome = await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate, _blockedPhoto, _blockerPlate);
             if (!outcome.Succeeded)
             {
                 _error = outcome.Error;

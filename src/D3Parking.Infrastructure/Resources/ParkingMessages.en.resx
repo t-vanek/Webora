@@ -29,7 +29,13 @@
   <data name="Parking_Notify_VisitorBooked_Title" xml:space="preserve"><value>Your visitor has a spot</value></data>
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Visitor spot {1} is booked for your guest {0}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are booked. Booking now is cheap, and off-peak stays earn points — pick your slot on the Reserve page.</value></data>
-  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>For the trouble with your parking spot you have a voucher for one free reservation (peak included). Valid for 30 days; redeem it by ticking the box when booking.</value></data>
+  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>For the trouble with your parking spot you're due a voucher for one free reservation (peak included). A spot manager first reviews your photo — we'll let you know once they decide.</value></data>
+  <data name="Parking_Notify_VoucherReview_Title" xml:space="preserve"><value>An apology voucher awaits approval</value></data>
+  <data name="Parking_Notify_VoucherReview_Body" xml:space="preserve"><value>A driver reported spot {0} as blocked and attached photo proof. Judge the evidence and approve or reject the voucher in administration (Occupancy mismatches).</value></data>
+  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Apology voucher approved</value></data>
+  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>The manager confirmed your blocked-spot report. Your voucher for one free reservation (peak included) is ready — valid 30 days from approval, redeemed by ticking the box when booking.</value></data>
+  <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>Apology voucher rejected</value></data>
+  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>After reviewing the photo the manager did not confirm your blocked-spot report, so the voucher was not approved. If this is a mistake, contact the lot manager.</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because you have a D3Parking account and this notice concerns your parking.</value></data>
   <data name="Email_Chrome_Settings" xml:space="preserve"><value>You can adjust notifications in your in-app profile.</value></data>
   <data name="Email_QueueOffer_Action" xml:space="preserve"><value>Claim the spot</value></data>

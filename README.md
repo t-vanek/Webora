@@ -64,10 +64,13 @@ vyhrazeného místa) a penalizují nedostavení se.
 - **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
-  (nebo plnou vratku) bez rizika no-show (max. 2 záznamy na uživatele a den). Správce u každé
-  neshody vidí i rezervace, které se s oknem na místě potkaly (typicky nedostavení), a může
-  držitele rovnou kontaktovat e-mailem. Jako omluva náleží **kupón na jednu rezervaci zdarma**
-  (i ve špičce, platnost 30 dní, max. 1 nevyčerpaný; včasné zrušení ho vrací).
+  (nebo plnou vratku) bez rizika no-show (max. 2 záznamy na uživatele a den). Záznam vyžaduje
+  **fotografii zablokovaného místa** jako důkaz; každou fotku lze použít jen jednou (SHA-256 otisk
+  s unikátním indexem). Správce u každé neshody vidí fotodůkaz i rezervace, které se s oknem na
+  místě potkaly (typicky nedostavení), a může držitele rovnou kontaktovat e-mailem. Jako omluva
+  náleží **kupón na jednu rezervaci zdarma** (i ve špičce, max. 1 nevyčerpaný; včasné zrušení ho
+  vrací) — kupón ale nejdřív podle fotky **schválí správce parkovacích míst**, platí 30 dní od
+  schválení.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -200,7 +203,8 @@ Když řidič dorazí a jeho rezervované místo je fyzicky zablokované cizím 
 nedostavením se: tlačítko **„Nemůžu zaparkovat"** (dostupné v okně check-inu) nabídne dvě cesty —
 **„Najít mi jiné místo"** zarezervuje první volné místo pro stejné okno s převodem původní platby
 (peněženka net nula), **„Jen zaznamenat stav"** rezervaci zruší s plnou vratkou bez ohledu na cutoff.
-Obojí **bez rizika no-show penalizace**.
+Obojí **bez rizika no-show penalizace**. Součástí záznamu je **povinná fotografie zablokovaného
+místa** — důkaz, který následně posuzuje správce.
 
 - Pro řidiče je tok záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega,
   eviduje se **stav místa** (neshoda obsazenosti). Správce ale na `/admin/parking/mismatches` vidí
@@ -211,10 +215,18 @@ Obojí **bez rizika no-show penalizace**.
   u auta). Správce ji vidí spárovanou s **registrovanými vozidly zaměstnanců** (SPZ v profilu,
   porovnání ignoruje mezery a velikost písmen): shoda = jméno + e-mail na jeden klik, jinak
   **potvrzený vůz mimo systém** — a tedy podklad pro ostrahu či odtah dle řádu parkoviště.
-- **Omluvný kupón:** za potíž náleží kupón na **jednu rezervaci zdarma včetně špičkové ceny**.
-  Uplatní se zaškrtnutím při rezervaci, platí 30 dní, drží se max. 1 nevyčerpaný na uživatele
-  a **včasné zrušení/uvolnění ho vrací**. Fronta je záměrně bez kupónů (odchod od vzácného
-  claimnutého místa nesmí být bezbolestný).
+- **Fotodůkaz (povinný):** k záznamu řidič přikládá fotografii zablokovaného místa pořízenou na
+  místě (na mobilu se rovnou otevře fotoaparát). Ukládá se **SHA-256 otisk** fotky s unikátním
+  indexem — **stejný soubor nelze použít ke dvěma záznamům nikdy** (ani jiným uživatelem, ani po
+  čase); opakované předložení skončí srozumitelnou chybou. Limit 8 MB, formáty JPEG/PNG/WebP.
+- **Omluvný kupón se schvalováním:** za potíž náleží kupón na **jednu rezervaci zdarma včetně
+  špičkové ceny** — vzniká ale ve stavu **„čeká na schválení"**. Správce parkovacích míst
+  (`Parking.ManageSpots`) dostane notifikaci, na stránce neshod posoudí fotodůkaz a kupón
+  **schválí, nebo zamítne** (vlastní kupón posoudit nesmí); řidič je o výsledku notifikován.
+  Schválený kupón platí **30 dní od schválení**, uplatní se zaškrtnutím při rezervaci, drží se
+  max. 1 nevyčerpaný (čekající nebo schválený) na uživatele a **včasné zrušení/uvolnění ho
+  vrací**. Zamítnutý kupón nikdy hodnotu nezíská, příští poctivé hlášení ale neblokuje. Fronta
+  je záměrně bez kupónů (odchod od vzácného claimnutého místa nesmí být bezbolestný).
 - **Pojistky:** záznam jde pořídit jen v době okna rezervace a nejvýše 2× na uživatele a den —
   z toku se tak nedá udělat úniková cesta z nechtěných rezervací po refund cutoffu.
 
@@ -322,8 +334,11 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
    notifikaci. Tvrdé akce řeší admin ručně na stránce *Podezřelé interakce* (false-positive bezpečné).
 9. **Odměny za dokončení max. 1× za den**, check-in jen kolem okna rezervace a dokončení až po jeho
    začátku — smyčka rezervuj→check-in→dokonči nefarmí ani body, ani kredity.
-10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; omluvný kupón se drží nejvýše
-    jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají co těžit.
+10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; záznam vyžaduje **fotodůkaz**,
+    jehož SHA-256 otisk je unikátní (stejná fotka nikdy nepodloží dva záznamy), a omluvný kupón
+    **odemyká až schválení správcem parkovacích míst** (vlastní kupón schválit nelze). Drží se
+    nejvýše jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají
+    co těžit.
 
 ### Údržba na pozadí
 

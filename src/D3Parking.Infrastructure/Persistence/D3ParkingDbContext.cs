@@ -41,6 +41,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<OccupancyMismatch> OccupancyMismatches => Set<OccupancyMismatch>();
 
+    public DbSet<MismatchPhoto> MismatchPhotos => Set<MismatchPhoto>();
+
     public DbSet<ApologyVoucher> ApologyVouchers => Set<ApologyVoucher>();
 
     public DbSet<AvailabilityCampaign> AvailabilityCampaigns => Set<AvailabilityCampaign>();
@@ -153,9 +155,27 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         {
             voucher.ToTable("ApologyVouchers");
             voucher.HasKey(v => v.Id);
+            voucher.Property(v => v.Status).HasConversion<string>().HasMaxLength(16);
             // Lookup shape: "the user's usable voucher" and "the voucher paid for reservation X".
             voucher.HasIndex(v => new { v.UserId, v.RedeemedAtUtc, v.ExpiresAtUtc });
             voucher.HasIndex(v => v.RedeemedReservationId);
+            // The admin review view resolves "the voucher this mismatch granted".
+            voucher.HasIndex(v => v.SourceMismatchId);
+            // Shadow rowversion: the review (approve/reject) races the holder's redeem/restore
+            // and a second reviewer — a stale ruling must fail and re-read, not win silently.
+            voucher.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<MismatchPhoto>(photo =>
+        {
+            photo.ToTable("MismatchPhotos");
+            photo.HasKey(p => p.Id);
+            photo.Property(p => p.ContentType).HasMaxLength(64).IsRequired();
+            photo.Property(p => p.ContentHash).HasMaxLength(32).IsRequired();
+            // One photo per report, and one report per photo — the unique fingerprint index is
+            // the hard backstop that the same picture can never prove two mismatches.
+            photo.HasIndex(p => p.MismatchId).IsUnique();
+            photo.HasIndex(p => p.ContentHash).IsUnique();
         });
 
         builder.Entity<SiteSettings>(settings =>

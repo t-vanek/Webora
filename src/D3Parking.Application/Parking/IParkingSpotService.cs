@@ -29,7 +29,23 @@ public interface IParkingSpotService
 
     /// <summary>
     /// Recorded "could not park at the reserved spot" events, newest first — the admin trend view
-    /// behind the driver-facing "I can't park" flow.
+    /// behind the driver-facing "I can't park" flow, including each report's photo proof flag and
+    /// the review state of the apology voucher it granted.
     /// </summary>
     Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>The reporter's photo proof for a mismatch, or null when the record has none (pre-photo era).</summary>
+    Task<MismatchPhotoDto?> GetMismatchPhotoAsync(Guid mismatchId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The spot manager confirms the blocked-spot report: the pending voucher becomes redeemable
+    /// (validity restarts from the approval) and the holder is notified.
+    /// </summary>
+    Task<ParkingResult> ApproveVoucherAsync(Guid voucherId, Guid reviewerId, CancellationToken cancellationToken = default);
+
+    /// <summary>The spot manager judges the report unfounded: the pending voucher is voided and the holder notified.</summary>
+    Task<ParkingResult> RejectVoucherAsync(Guid voucherId, Guid reviewerId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>A mismatch report's photo proof, streamed to the spot manager's review.</summary>
+public sealed record MismatchPhotoDto(byte[] Content, string ContentType);

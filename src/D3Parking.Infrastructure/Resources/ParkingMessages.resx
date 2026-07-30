@@ -29,7 +29,13 @@
   <data name="Parking_Notify_VisitorBooked_Title" xml:space="preserve"><value>Vaše návštěva má místo</value></data>
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Pro návštěvu {0} je rezervované návštěvnické místo {1}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>V období {0}–{1} je obsazeno jen ~{2} % míst. Rezervace teď vyjde levně a mimo špičku k ní sbíráte body — vyberte si termín na stránce Rezervace místa.</value></data>
-  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Za komplikaci s parkovacím místem máte kupón na jednu rezervaci zdarma (platí i ve špičce). Platnost 30 dní; uplatníte ho zaškrtnutím při rezervaci.</value></data>
+  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Za komplikaci s parkovacím místem vám náleží kupón na jednu rezervaci zdarma (platí i ve špičce). Nejdřív ho podle vaší fotografie schválí správce parkovacích míst — dáme vám vědět, jakmile rozhodne.</value></data>
+  <data name="Parking_Notify_VoucherReview_Title" xml:space="preserve"><value>Omluvný kupón čeká na schválení</value></data>
+  <data name="Parking_Notify_VoucherReview_Body" xml:space="preserve"><value>Řidič nahlásil zablokované místo {0} a doložil ho fotografií. Posuďte důkaz a kupón schvalte či zamítněte v administraci (Neshody obsazenosti).</value></data>
+  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Omluvný kupón schválen</value></data>
+  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>Správce potvrdil váš záznam o zablokovaném místě. Kupón na jednu rezervaci zdarma (i ve špičce) je připraven — platí 30 dní od schválení a uplatníte ho zaškrtnutím při rezervaci.</value></data>
+  <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>Omluvný kupón zamítnut</value></data>
+  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>Správce po posouzení fotografie váš záznam o zablokovaném místě nepotvrdil, kupón proto nebyl schválen. Pokud jde o omyl, obraťte se na správce parkoviště.</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali, protože máte účet v aplikaci D3Parking a upozornění se týká vašeho parkování.</value></data>
   <data name="Email_Chrome_Settings" xml:space="preserve"><value>Notifikace si můžete nastavit ve svém profilu v aplikaci.</value></data>
   <data name="Email_QueueOffer_Action" xml:space="preserve"><value>Převzít místo</value></data>

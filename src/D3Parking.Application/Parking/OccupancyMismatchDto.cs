@@ -16,7 +16,19 @@ public sealed record OccupancyMismatchDto(
     string? BlockerMatchName,
     string? BlockerMatchEmail,
     bool BlockerMatchIsVisitor,
+    bool HasPhoto,
+    ApologyVoucherReviewDto? Voucher,
     IReadOnlyList<MismatchRelatedReservationDto> RelatedReservations);
+
+/// <summary>
+/// The apology voucher a mismatch granted, as the spot manager's review sees it: pending ones
+/// carry the approve/reject decision, decided ones show who ruled and when.
+/// </summary>
+public sealed record ApologyVoucherReviewDto(
+    Guid Id,
+    ApologyVoucherStatus Status,
+    DateTimeOffset? ReviewedAtUtc,
+    string? ReviewedByName);
 
 /// <summary>
 /// A reservation that met the mismatch window on the same spot — for the admin, the shortlist of
