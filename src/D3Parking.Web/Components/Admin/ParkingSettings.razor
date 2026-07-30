@@ -301,6 +301,8 @@
                                            Label="@L["Parking_Settings_ResidentMaxAllowance"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
                                            Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentPlanHorizonDays" Min="1" Max="366"
+                                           Label="@L["Parking_Settings_ResidentPlanHorizon"]" Style="width:100%" />
                         <div class="settings-field settings-field--wide">
                             <span class="settings-field__label">@L["Parking_Settings_ResidentClawback"] <span class="settings-field__val">@_form.ResidentWastedShareClawbackPercent %</span></span>
                             <FluentSlider TValue="int" Min="0" Max="100" Step="5" @bind-Value="_form.ResidentWastedShareClawbackPercent" Style="width:100%" />
@@ -486,6 +488,7 @@
             ResidentMaxShareAllowance = s.ResidentMaxShareAllowance,
             ResidentSharePercentPerAllowance = s.ResidentSharePercentPerAllowance,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
+            ResidentPlanHorizonDays = s.ResidentPlanHorizonDays,
             LotLatitude = s.LotLatitude,
             LotLongitude = s.LotLongitude,
             SharedTakenBasePoints = s.SharedTakenBasePoints,
@@ -570,6 +573,7 @@
             _form.ResidentMaxShareAllowance,
             _form.ResidentSharePercentPerAllowance,
             _form.ResidentWastedShareClawbackPercent,
+            _form.ResidentPlanHorizonDays,
             _form.LotLatitude,
             _form.LotLongitude,
             _distanceOn ? _form.SharedTakenBasePoints : 0,
@@ -653,6 +657,7 @@
         public int ResidentMaxShareAllowance { get; set; }
         public int ResidentSharePercentPerAllowance { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
+        public int ResidentPlanHorizonDays { get; set; }
         public double? LotLatitude { get; set; }
         public double? LotLongitude { get; set; }
         public int SharedTakenBasePoints { get; set; }

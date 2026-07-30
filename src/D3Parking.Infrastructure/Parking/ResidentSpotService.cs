@@ -93,7 +93,9 @@ public sealed class ResidentSpotService(
         }
 
         return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, spot.MonthlyShareAllowance,
-            policy.ResidentMaxShareAllowance, state, releasedToday, potential, upcoming);
+            policy.ResidentMaxShareAllowance, state, releasedToday, potential, upcoming,
+            spot.PlannedUseDays, spot.AutoReleaseUnplannedDays,
+            policy.ResidentPlanHorizonEnd(today).DayNumber - today.DayNumber);
     }
 
     // RetryAsync re-runs a serializable-transaction loser (deadlock victim) from scratch, so the
@@ -231,18 +233,7 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_NothingToRelease");
         }
 
-        ParkerScore? score = null;
-        foreach (var (date, points) in plan)
-        {
-            dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
-            if (points > 0)
-            {
-                score ??= await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-                score.RewardSharing(points, now);
-                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                    userId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
-            }
-        }
+        await AwardReleasePlanAsync(dbContext, spot, userId, plan, now, cancellationToken);
 
         try
         {
@@ -288,13 +279,40 @@ public sealed class ResidentSpotService(
     }
 
     /// <summary>
+    /// Writes a planned release: one <see cref="SpotRelease"/> per day, plus the reward and its ledger
+    /// entry for the days that earn one. Shared by the manual release and the usage planner so a
+    /// planned day is credited exactly like a hand-picked one.
+    /// </summary>
+    private static async Task AwardReleasePlanAsync(
+        D3ParkingDbContext dbContext, ParkingSpot spot, Guid ownerId,
+        List<(DateOnly Date, int Points)> plan, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        ParkerScore? score = null;
+        foreach (var (date, points) in plan)
+        {
+            dbContext.SpotReleases.Add(new SpotRelease(spot.Id, ownerId, date, now, points));
+            if (points > 0)
+            {
+                score ??= await GetOrCreateScoreAsync(dbContext, ownerId, cancellationToken);
+                score.RewardSharing(points, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    ownerId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
+            }
+        }
+    }
+
+    /// <summary>
     /// The days in [fromDate, toDate] a release would newly share, each with the points it would
     /// earn. The single home of the reward maths — the actual release, its UI preview and the
     /// owned-spot card all consume this plan, so the promise and the payout cannot drift apart.
+    /// <paramref name="include"/> narrows the range to a subset of its days (the usage planner passes
+    /// "not a planned-use weekday"); it is applied inside the loop so the monthly quota is spent on
+    /// the days actually released, not on the ones filtered out afterwards.
     /// </summary>
     private static async Task<List<(DateOnly Date, int Points)>> PlanReleaseRewardsAsync(
         D3ParkingDbContext dbContext, ParkingSpot spot, Guid userId, DateOnly fromDate, DateOnly toDate,
-        IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset now, CancellationToken cancellationToken)
+        IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset now, CancellationToken cancellationToken,
+        Func<DateOnly, bool>? include = null)
     {
         var alreadyReleased = (await dbContext.SpotReleases
             .Where(r => r.SpotId == spot.Id && r.Date >= fromDate && r.Date <= toDate)
@@ -340,7 +358,7 @@ public sealed class ResidentSpotService(
         var plan = new List<(DateOnly Date, int Points)>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            if (alreadyReleased.Contains(date) || claimedDays.Contains(date))
+            if (alreadyReleased.Contains(date) || claimedDays.Contains(date) || include?.Invoke(date) == false)
             {
                 continue;
             }
@@ -494,6 +512,112 @@ public sealed class ResidentSpotService(
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }
+
+    public async Task<ParkingResult> SetUsagePlanAsync(Guid userId, Weekday plannedUseDays,
+        bool autoReleaseUnplannedDays, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
+        if (spot is null)
+        {
+            return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
+        }
+
+        spot.SetUsagePlan(plannedUseDays, autoReleaseUnplannedDays);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<int> ApplyDuePlanReleasesAsync(CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var today = SiteTime.Today(now, timeZone);
+        var horizonEnd = policy.ResidentPlanHorizonEnd(today);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Inactive spots never reach the pool, so planning them would only produce release rows
+        // nobody can book — the same reason the hold reminders and auto-share notices skip them.
+        var candidates = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => s.IsActive && s.OwnerId != null && s.AutoReleaseUnplannedDays)
+            .Select(s => new { s.Id, s.PlanAppliedThrough })
+            .ToListAsync(cancellationToken);
+
+        var released = 0;
+        foreach (var candidate in candidates)
+        {
+            // The watermark already covers the whole horizon: nothing new came into view since the
+            // last run. This is what keeps a five-minute sweep from re-deciding the same days.
+            if (candidate.PlanAppliedThrough >= horizonEnd)
+            {
+                continue;
+            }
+
+            // Per spot, so one resident losing a race (or hitting the unique (SpotId, Date) index
+            // against a manual release) cannot roll back or skip the others.
+            released += await OptimisticConcurrency.RetryAsync(
+                () => ApplyPlanForSpotAsync(candidate.Id, today, horizonEnd, policy, timeZone, now, cancellationToken),
+                cancellationToken);
+        }
+
+        return released;
+    }
+
+    private async Task<int> ApplyPlanForSpotAsync(Guid spotId, DateOnly today, DateOnly horizonEnd,
+        IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Same protection as ReleaseCoreAsync, for the same reason: the monthly-cap read inside
+        // PlanReleaseRewardsAsync and the reward inserts have to be one atomic step, or the planner
+        // and a manual release running together would each award up to the full allowance.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == spotId, cancellationToken);
+        // Re-checked inside the transaction: the scan is a separate read, and between the two the
+        // admin may have deactivated or reassigned the spot, or the resident switched the plan off.
+        if (spot is null || !spot.IsActive || spot.OwnerId is not { } ownerId || !spot.AutoReleaseUnplannedDays)
+        {
+            return 0;
+        }
+
+        // Today is deliberately left out: it belongs to the hold / confirm-arrival flow, where the
+        // resident can still take the spot back. A plan release would close that door.
+        var fromDate = spot.PlanAppliedThrough is { } appliedThrough
+            ? Max(today.AddDays(1), appliedThrough.AddDays(1))
+            : today.AddDays(1);
+        if (fromDate > horizonEnd)
+        {
+            return 0;
+        }
+
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, ownerId, fromDate, horizonEnd,
+            policy, timeZone, now, cancellationToken, date => !spot.PlannedUseDays.Includes(date));
+
+        await AwardReleasePlanAsync(dbContext, spot, ownerId, plan, now, cancellationToken);
+        // Advanced even when the plan released nothing (every new day is a planned-use one), so the
+        // horizon is not rescanned until it moves on again.
+        spot.MarkPlanApplied(horizonEnd);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        if (plan.Count == 0)
+        {
+            return 0;
+        }
+
+        await notifications.NotifyAsync(ownerId, NotificationCategory.SelfService, NotificationLevel.Info,
+            messages["Parking_Notify_PlanReleased_Title"],
+            messages["Parking_Notify_PlanReleased_Body", spot.Code, plan.Count, plan.Sum(day => day.Points)],
+            cancellationToken);
+
+        return plan.Count;
+    }
+
+    private static DateOnly Max(DateOnly left, DateOnly right) => left > right ? left : right;
 
     public async Task<int> SendDueHoldRemindersAsync(CancellationToken cancellationToken = default)
     {

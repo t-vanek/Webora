@@ -73,7 +73,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
-| **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky |
+| **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky, horizont plánu využití (dní) |
 | **Faktor vzdálenosti** | souřadnice parkoviště, základní body, referenční km, max. násobič |
 | **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
 

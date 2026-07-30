@@ -1,6 +1,7 @@
 @page "/parking"
 @attribute [HasPermission(Permissions.Parking.Reserve)]
 @rendermode InteractiveServer
+@using System.Globalization
 @inject IReservationService Reservations
 @inject IParkingSettingsService ParkingSettings
 @inject IResidentSpotService ResidentSpots
@@ -122,6 +123,27 @@
                     <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
                                        Label="@L["Parking_Owned_Allowance"]" />
                     <FluentButton Disabled="@_actionBusy" OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
+                </FluentStack>
+
+                @* Standing usage plan: the days kept are the resident's, the rest are released ahead
+                   of time by the maintenance loop — which is what earns the full advance-notice
+                   reward instead of the same-day auto-share paying nothing. *@
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Owned_PlanDays"]</FluentLabel>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+                        @foreach (var (flag, label) in PlanWeekdays)
+                        {
+                            <FluentButton Appearance="@(_planDays.HasFlag(flag) ? Appearance.Accent : Appearance.Outline)"
+                                          Disabled="@_actionBusy" OnClick="() => TogglePlanDay(flag)">@label</FluentButton>
+                        }
+                    </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentSwitch @bind-Value="_planAutoRelease" Label="@L["Parking_Owned_PlanAutoRelease"]" />
+                        <FluentButton Disabled="@_actionBusy" OnClick="SaveUsagePlanAsync">@L["Parking_Owned_SavePlan"]</FluentButton>
+                    </FluentStack>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                        @L["Parking_Owned_PlanHint", _ownedSpot.PlanHorizonDays]
+                    </FluentLabel>
                 </FluentStack>
             </FluentStack>
         </FluentCard>
@@ -370,6 +392,25 @@
     private DateTime _reclaimTo = DateTime.Today;
     private int _allowance;
     private int _releasePreview;
+    private Weekday _planDays = Weekday.Workdays;
+    private bool _planAutoRelease;
+
+    // Monday-first, labelled from the request culture's own abbreviations — a plan editor needs no
+    // resource string per weekday.
+    private static readonly (Weekday Flag, DayOfWeek Day)[] PlanWeekdayOrder =
+    [
+        (Weekday.Monday, DayOfWeek.Monday), (Weekday.Tuesday, DayOfWeek.Tuesday),
+        (Weekday.Wednesday, DayOfWeek.Wednesday), (Weekday.Thursday, DayOfWeek.Thursday),
+        (Weekday.Friday, DayOfWeek.Friday), (Weekday.Saturday, DayOfWeek.Saturday),
+        (Weekday.Sunday, DayOfWeek.Sunday),
+    ];
+
+    private static IEnumerable<(Weekday Flag, string Label)> PlanWeekdays =>
+        PlanWeekdayOrder.Select(entry => (entry.Flag,
+            CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedDayName(entry.Day)));
+
+    private void TogglePlanDay(Weekday flag) =>
+        _planDays = _planDays.HasFlag(flag) ? _planDays & ~flag : _planDays | flag;
 
     // Past the cutoff the spot auto-shares, but until a guest books it the resident can still
     // confirm it back — their right of first refusal (a released day goes through Reclaim instead).
@@ -543,6 +584,8 @@
     {
         _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
         _allowance = _ownedSpot?.MonthlyShareAllowance ?? 0;
+        _planDays = _ownedSpot?.PlannedUseDays ?? Weekday.Workdays;
+        _planAutoRelease = _ownedSpot?.AutoReleaseUnplannedDays ?? false;
         // Every resident action (release, reclaim, allowance change) can move the promised reward.
         await RefreshReleasePreviewAsync();
     }
@@ -569,6 +612,13 @@
     private async Task SaveAllowanceAsync()
     {
         await RunResidentAsync(() => ResidentSpots.SetShareAllowanceAsync(_userId, _allowance), "Parking_Owned_AllowanceSaved");
+    }
+
+    private async Task SaveUsagePlanAsync()
+    {
+        await RunResidentAsync(
+            () => ResidentSpots.SetUsagePlanAsync(_userId, _planDays, _planAutoRelease),
+            "Parking_Owned_PlanSaved");
     }
 
     private async Task RunResidentAsync(Func<Task<ParkingResult>> action, string successKey)

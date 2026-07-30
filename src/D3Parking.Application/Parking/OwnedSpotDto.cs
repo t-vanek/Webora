@@ -33,4 +33,9 @@ public sealed record OwnedSpotDto(
     int PotentialReleasePointsToday,
     // Today-or-later released days; the ones no guest booked yet are reclaimable — the resident's
     // right of first refusal on their own spot.
-    IReadOnlyList<ReleasedDayDto> UpcomingReleases);
+    IReadOnlyList<ReleasedDayDto> UpcomingReleases,
+    // The standing usage plan: the weekdays the resident needs the spot, whether the rest are
+    // released ahead of time, and how far ahead that reaches.
+    Weekday PlannedUseDays,
+    bool AutoReleaseUnplannedDays,
+    int PlanHorizonDays);

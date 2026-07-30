@@ -41,6 +41,8 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
 
+    public int ResidentPlanHorizonDays { get; private set; } = 14;
+
     public double? LotLatitude { get; private set; }
 
     public double? LotLongitude { get; private set; }
@@ -193,6 +195,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         int residentMaxShareAllowance,
         int residentSharePercentPerAllowance,
         int residentWastedShareClawbackPercent,
+        int residentPlanHorizonDays,
         double? lotLatitude,
         double? lotLongitude,
         int sharedTakenBasePoints,
@@ -263,6 +266,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentMaxShareAllowance = Math.Max(0, residentMaxShareAllowance);
         ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
         ResidentWastedShareClawbackPercent = Math.Clamp(residentWastedShareClawbackPercent, 0, 100);
+        ResidentPlanHorizonDays = Math.Clamp(residentPlanHorizonDays, 1, 366);
         LotLatitude = lotLatitude;
         LotLongitude = lotLongitude;
         SharedTakenBasePoints = Math.Max(0, sharedTakenBasePoints);
@@ -347,6 +351,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentMaxShareAllowance = ResidentMaxShareAllowance,
         ResidentSharePercentPerAllowance = ResidentSharePercentPerAllowance,
         ResidentWastedShareClawbackPercent = ResidentWastedShareClawbackPercent,
+        ResidentPlanHorizonDays = ResidentPlanHorizonDays,
         SharedTakenBasePoints = SharedTakenBasePoints,
         SharedTakenReferenceKm = SharedTakenReferenceKm,
         SharedTakenMaxMultiplier = SharedTakenMaxMultiplier,

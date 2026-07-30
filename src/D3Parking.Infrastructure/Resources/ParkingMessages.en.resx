@@ -63,6 +63,8 @@
   <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Spot {0} was deactivated by an administrator and your reservation for it may be affected. Please review your reservations and pick another spot if needed.</value></data>
   <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Your spot is shared today</value></data>
   <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>You didn't confirm arrival on your spot {0} before today's cutoff, so it's now in the shared pool for others. Next time you can release it in advance and earn points for it.</value></data>
+  <data name="Parking_Notify_PlanReleased_Title" xml:space="preserve"><value>Your plan released your spot in advance</value></data>
+  <data name="Parking_Notify_PlanReleased_Body" xml:space="preserve"><value>Following your usage plan, spot {0} was released to others for {1} upcoming day(s) and you earned {2} points. You can take any of those days back until someone books it.</value></data>
   <data name="Parking_Notify_ShareUsed_Title" xml:space="preserve"><value>A colleague used your shared spot</value></data>
   <data name="Parking_Notify_ShareUsed_Body" xml:space="preserve"><value>Your shared spot {0} was used by someone else today – thanks for sharing it.</value></data>
   <data name="Parking_Notify_ResidentAssigned_Title" xml:space="preserve"><value>You have a new reserved spot</value></data>

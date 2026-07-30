@@ -17,6 +17,7 @@ public sealed record ParkingSettingsDto(
     int ResidentMaxShareAllowance,
     int ResidentSharePercentPerAllowance,
     int ResidentWastedShareClawbackPercent,
+    int ResidentPlanHorizonDays,
     double? LotLatitude,
     double? LotLongitude,
     int SharedTakenBasePoints,
