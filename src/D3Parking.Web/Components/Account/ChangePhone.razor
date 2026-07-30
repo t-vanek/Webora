@@ -16,11 +16,11 @@
             circuit. The two-step flow round-trips the pending phone number through the
             form post (never the URL), so in-flow feedback renders in the same request as
             plain auth-alert divs; only the terminal outcome redirects (post-redirect-get). *@
-        @if (!string.IsNullOrEmpty(Info))
+        @if (!string.IsNullOrEmpty(_info))
         {
             <div class="auth-alert auth-alert--success" role="status">
                 <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
-                <span>@L[Info]</span>
+                <span>@L[_info]</span>
             </div>
         }
         else
@@ -93,6 +93,18 @@
     // the alerts). The property must be public — static SSR does not bind
     // [SupplyParameterFromQuery] to private ones.
     [SupplyParameterFromQuery(Name = "info")] public string? Info { get; set; }
+
+    private string? _info;
+
+    // The value arrives on an open URL parameter, so it only passes through as the one
+    // success key the confirm redirect actually emits.
+    protected override void OnInitialized()
+    {
+        if (Info == "ChangePhone_Success")
+        {
+            _info = Info;
+        }
+    }
 
     private async Task<ApplicationUser?> CurrentUserAsync()
     {
