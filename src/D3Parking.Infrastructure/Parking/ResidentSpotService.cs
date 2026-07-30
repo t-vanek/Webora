@@ -61,17 +61,11 @@ public sealed class ResidentSpotService(
             state = OwnedSpotDayState.Held;
         }
 
-        // The shown potential must pass the same monthly-allowance gate ReleaseAsync applies when
-        // actually awarding — otherwise a fresh owner (allowance 0) or an exhausted month is
-        // promised points that the release then pays out as zero.
-        var monthFloor = new DateOnly(today.Year, today.Month, 1);
-        var monthCeil = monthFloor.AddMonths(1);
-        var rewardedThisMonth = await dbContext.SpotReleases.CountAsync(
-            r => r.OwnerId == userId && r.AwardedPoints > 0 && r.Date >= monthFloor && r.Date < monthCeil,
-            cancellationToken);
-        var potential = rewardedThisMonth < spot.MonthlyShareAllowance
-            ? policy.ComputeShareReward(policy.ResidentShareCutoff(today, timeZone), now, spot.MonthlyShareAllowance)
-            : 0;
+        // The shown potential is exactly what ReleaseAsync(today, today) would award — the same
+        // skipped days and the same monthly-allowance gate — otherwise a fresh owner (allowance 0)
+        // or an exhausted month is promised points that the release then pays out as zero.
+        var potential = (await PlanReleaseRewardsAsync(dbContext, spot, userId, today, today, policy, timeZone, now, cancellationToken))
+            .Sum(day => day.Points);
 
         // Today-or-later released days, each marked with whether a guest already booked it — the
         // free ones are what the resident's right of first refusal can still take back.
@@ -217,11 +211,11 @@ public sealed class ResidentSpotService(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        // The monthly-cap read (rewardedPerMonth below) and the reward inserts must be one atomic
-        // step: at read-committed two parallel releases of disjoint ranges both count zero rewarded
-        // days and both award up to the full allowance — the unique (SpotId, Date) index cannot
-        // catch that because the dates differ. Serializable range-locks the owner's release rows,
-        // the same pattern the daily caps in ReservationService use.
+        // The monthly-cap read (inside PlanReleaseRewardsAsync) and the reward inserts must be one
+        // atomic step: at read-committed two parallel releases of disjoint ranges both count zero
+        // rewarded days and both award up to the full allowance — the unique (SpotId, Date) index
+        // cannot catch that because the dates differ. Serializable range-locks the owner's release
+        // rows, the same pattern the daily caps in ReservationService use.
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
@@ -231,6 +225,77 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
         }
 
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken);
+        if (plan.Count == 0)
+        {
+            return ParkingResult.Failure("Parking_Error_NothingToRelease");
+        }
+
+        ParkerScore? score = null;
+        foreach (var (date, points) in plan)
+        {
+            dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
+            if (points > 0)
+            {
+                score ??= await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
+                score.RewardSharing(points, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    userId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
+            }
+        }
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // A concurrent release landed the same day between our check and our save; the unique
+            // (SpotId, Date) index is the last line of defence. The days are released either way.
+            // Anything else (a lost deadlock) propagates to the retry wrapper for a fresh attempt.
+            return ParkingResult.Failure("Parking_Error_AlreadyReleased");
+        }
+
+        return ParkingResult.Success;
+    }
+
+    public async Task<int> PreviewReleaseRewardAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var today = SiteTime.Today(now, timeZone);
+
+        // A range ReleaseAsync would reject outright awards nothing, so it previews as nothing —
+        // the same checks in the same order.
+        if (toDate < fromDate || fromDate < today || toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays)
+        {
+            return 0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var spot = await dbContext.ParkingSpots.AsNoTracking().FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
+        if (spot is null)
+        {
+            return 0;
+        }
+
+        // No serializable transaction here: the preview is advisory, and the actual award is
+        // re-derived (and cap-enforced) inside ReleaseCoreAsync's transaction anyway.
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken);
+        return plan.Sum(day => day.Points);
+    }
+
+    /// <summary>
+    /// The days in [fromDate, toDate] a release would newly share, each with the points it would
+    /// earn. The single home of the reward maths — the actual release, its UI preview and the
+    /// owned-spot card all consume this plan, so the promise and the payout cannot drift apart.
+    /// </summary>
+    private static async Task<List<(DateOnly Date, int Points)>> PlanReleaseRewardsAsync(
+        D3ParkingDbContext dbContext, ParkingSpot spot, Guid userId, DateOnly fromDate, DateOnly toDate,
+        IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset now, CancellationToken cancellationToken)
+    {
         var alreadyReleased = (await dbContext.SpotReleases
             .Where(r => r.SpotId == spot.Id && r.Date >= fromDate && r.Date <= toDate)
             .Select(r => r.Date)
@@ -272,8 +337,7 @@ public sealed class ResidentSpotService(
             .GroupBy(d => (d.Year, d.Month))
             .ToDictionary(g => g.Key, g => g.Count());
 
-        ParkerScore? score = null;
-        var releasedCount = 0;
+        var plan = new List<(DateOnly Date, int Points)>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
             if (alreadyReleased.Contains(date) || claimedDays.Contains(date))
@@ -285,38 +349,17 @@ public sealed class ResidentSpotService(
             var points = rewardedPerMonth.GetValueOrDefault(monthKey) < allowance
                 ? policy.ComputeShareReward(policy.ResidentShareCutoff(date, timeZone), now, allowance)
                 : 0;
-            dbContext.SpotReleases.Add(new SpotRelease(spot.Id, userId, date, now, points));
-            releasedCount++;
-
+            // A day computed to zero (e.g. released past the cutoff) must not consume quota,
+            // exactly as the award path never wrote a ledger entry for it.
             if (points > 0)
             {
                 rewardedPerMonth[monthKey] = rewardedPerMonth.GetValueOrDefault(monthKey) + 1;
-                score ??= await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-                score.RewardSharing(points, now);
-                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                    userId, IncentiveReason.ResidentSpotShared, points, null, now, $"{spot.Code} {date:yyyy-MM-dd}"));
             }
+
+            plan.Add((date, points));
         }
 
-        if (releasedCount == 0)
-        {
-            return ParkingResult.Failure("Parking_Error_NothingToRelease");
-        }
-
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
-        {
-            // A concurrent release landed the same day between our check and our save; the unique
-            // (SpotId, Date) index is the last line of defence. The days are released either way.
-            // Anything else (a lost deadlock) propagates to the retry wrapper for a fresh attempt.
-            return ParkingResult.Failure("Parking_Error_AlreadyReleased");
-        }
-
-        return ParkingResult.Success;
+        return plan;
     }
 
     public Task<ParkingResult> ReclaimAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default) =>

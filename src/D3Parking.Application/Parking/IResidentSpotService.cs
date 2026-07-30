@@ -21,6 +21,13 @@ public interface IResidentSpotService
     Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The points <see cref="ReleaseAsync"/> would award right now for the same range — the same
+    /// skipped days and the same monthly share-allowance cap — without changing anything. A range
+    /// the release would reject outright (inverted, past, too long) previews as 0.
+    /// </summary>
+    Task<int> PreviewReleaseRewardAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Takes released days in [fromDate, toDate] back out of the shared pool — the resident's
     /// right of first refusal. Days a guest already booked stay shared (a firm booking is never
     /// evicted); a day merely held for a waitlist offer is reclaimed and the offer withdrawn.

@@ -75,11 +75,11 @@
                     }
                     <div>
                         <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseFrom"]</FluentLabel>
-                        <input type="date" @bind="_releaseFrom" class="parking-input" />
+                        <input type="date" @bind="_releaseFrom" @bind:after="RefreshReleasePreviewAsync" class="parking-input" />
                     </div>
                     <div>
                         <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseTo"]</FluentLabel>
-                        <input type="date" @bind="_releaseTo" class="parking-input" />
+                        <input type="date" @bind="_releaseTo" @bind:after="RefreshReleasePreviewAsync" class="parking-input" />
                     </div>
                     <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
                 </FluentStack>
@@ -88,7 +88,7 @@
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Owned_AutoShareReclaimHint"]</FluentLabel>
                 }
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                    @L["Parking_Owned_ReleaseHint"] +@ReleaseRangePoints() @L["Parking_Points"]
+                    @L["Parking_Owned_ReleaseHint"] +@_releasePreview @L["Parking_Points"]
                 </FluentLabel>
 
                 @if (_ownedSpot.UpcomingReleases.Count > 0)
@@ -369,6 +369,7 @@
     private DateTime _reclaimFrom = DateTime.Today;
     private DateTime _reclaimTo = DateTime.Today;
     private int _allowance;
+    private int _releasePreview;
 
     // Past the cutoff the spot auto-shares, but until a guest books it the resident can still
     // confirm it back — their right of first refusal (a released day goes through Reclaim instead).
@@ -527,33 +528,23 @@
         return offPeak + shared;
     }
 
-    // Total reward for proactively releasing the owned spot across the selected day range.
-    private int ReleaseRangePoints()
+    // The promised range reward comes from the service — the same skips and the same monthly
+    // share-allowance cap as the actual award. A client-side estimate here already drifted from
+    // what the release then credited (it ignored the cap and promised points to allowance-0 owners).
+    private async Task RefreshReleasePreviewAsync()
     {
-        if (_policy is null || _ownedSpot is null)
-        {
-            return 0;
-        }
-
-        var from = DateOnly.FromDateTime(_releaseFrom);
-        var to = DateOnly.FromDateTime(_releaseTo);
-        // UtcNow so this client-side estimate matches the server's reward maths; the cutoff itself
-        // is resolved in the site's time zone, exactly as the server does it.
-        var now = DateTimeOffset.UtcNow;
-        var total = 0;
-        var days = 0;
-        for (var date = from; date <= to && days < 92; date = date.AddDays(1), days++)
-        {
-            total += _policy.ComputeShareReward(_policy.ResidentShareCutoff(date, _tz), now, _ownedSpot.MonthlyShareAllowance);
-        }
-
-        return total;
+        _releasePreview = _ownedSpot is null
+            ? 0
+            : await ResidentSpots.PreviewReleaseRewardAsync(_userId,
+                DateOnly.FromDateTime(_releaseFrom), DateOnly.FromDateTime(_releaseTo));
     }
 
     private async Task ReloadOwnedSpotAsync()
     {
         _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
         _allowance = _ownedSpot?.MonthlyShareAllowance ?? 0;
+        // Every resident action (release, reclaim, allowance change) can move the promised reward.
+        await RefreshReleasePreviewAsync();
     }
 
     private async Task ConfirmArrivalAsync()
