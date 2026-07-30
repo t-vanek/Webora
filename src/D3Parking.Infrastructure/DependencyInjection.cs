@@ -44,6 +44,13 @@ public static class DependencyInjection
         services.AddScoped<RolePermissionMaterializer>();
         services.AddScoped<ISiteSettingsService, SiteSettingsService>();
 
+        // Entra ID settings are read from the OpenID Connect options callback, which the options
+        // infrastructure resolves from the root provider — so this one is a singleton rather than
+        // scoped, and takes its database contexts from the factory like every other cached reader.
+        // The web host replaces the reloader with one that reconfigures the authentication scheme.
+        services.AddSingleton<IEntraSettingsService, EntraSettingsService>();
+        services.TryAddSingleton<IEntraRuntimeReloader, NullEntraRuntimeReloader>();
+
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.
         services.AddScoped<INotificationService, NotificationService>();
         services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();

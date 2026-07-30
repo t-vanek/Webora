@@ -1,11 +1,14 @@
 @page "/admin/settings"
 @attribute [HasPermission(Permissions.Settings.View)]
 @rendermode InteractiveServer
+@using D3Parking.Application.Identity
 @using D3Parking.Application.Settings
 @using D3Parking.Domain.Settings
 @inject ISiteSettingsService SiteSettings
+@inject IEntraSettingsService EntraSettings
 @inject IRoleAdminService RoleAdmin
 @inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Settings_Title"]</PageTitle>
@@ -211,6 +214,171 @@
                 </FluentStack>
             </FluentTab>
 
+            <FluentTab Id="entra" Label="@L["Settings_EntraSection"]">
+                @* Two independent halves, because they are two independent decisions: a tenant may
+                   push accounts in over SCIM long before anyone is asked to sign in with them.
+                   Secrets are write-only — the page can say one exists, never what it is. *@
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraIntro"]</FluentLabel>
+
+                    @if (_entra.LockedFields.Count > 0)
+                    {
+                        @* An edit the merge would discard is worse than a field that says why it is
+                           disabled, so the page names exactly what configuration has taken over. *@
+                        <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                            @L["Settings_EntraLocked", string.Join(", ", _entra.LockedFields)]
+                        </FluentMessageBar>
+                    }
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Settings_EntraSignInSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_entraForm.Enabled" Disabled="@Locked(EntraFields.Enabled)"
+                                      Label="@L["Settings_EntraEnabled"]" />
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraSignInHelp"]</FluentLabel>
+
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.TenantId" Label="@L["Settings_EntraTenantId"]"
+                                             Placeholder="00000000-0000-0000-0000-000000000000"
+                                             Disabled="@Locked(EntraFields.TenantId)" Style="width:100%" />
+                            @LockNote(EntraFields.TenantId)
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.ClientId" Label="@L["Settings_EntraClientId"]"
+                                             Placeholder="00000000-0000-0000-0000-000000000000"
+                                             Disabled="@Locked(EntraFields.ClientId)" Style="width:100%" />
+                            @LockNote(EntraFields.ClientId)
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <div>
+                        <FluentTextField @bind-Value="_entraForm.ClientSecret" TextFieldType="TextFieldType.Password"
+                                         Label="@L["Settings_EntraClientSecret"]"
+                                         Placeholder="@L["Settings_EntraSecretKeep"]"
+                                         Disabled="@Locked(EntraFields.ClientSecret)" Style="width:100%" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                            @L[_entra.ClientSecretSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
+                        </FluentLabel>
+                        @LockNote(EntraFields.ClientSecret)
+                        @if (_entra.ClientSecretSet && !Locked(EntraFields.ClientSecret))
+                        {
+                            <FluentCheckbox @bind-Value="_clearClientSecret" Label="@L["Settings_EntraSecretClear"]" />
+                        }
+                    </div>
+
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.DisplayName" Label="@L["Settings_EntraDisplayName"]"
+                                             Maxlength="64" Disabled="@Locked(EntraFields.DisplayName)" Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraDisplayNameHelp"]</FluentLabel>
+                            @LockNote(EntraFields.DisplayName)
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.Authority" Label="@L["Settings_EntraAuthority"]"
+                                             Placeholder="@_authorityPlaceholder"
+                                             Disabled="@Locked(EntraFields.Authority)" Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraAuthorityHelp"]</FluentLabel>
+                            @LockNote(EntraFields.Authority)
+                        </FluentGridItem>
+                    </FluentGrid>
+
+                    <FluentGrid Spacing="3">
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.CallbackPath" Label="@L["Settings_EntraCallbackPath"]"
+                                             Disabled="@Locked(EntraFields.CallbackPath)" Style="width:100%" />
+                            @LockNote(EntraFields.CallbackPath)
+                        </FluentGridItem>
+                        <FluentGridItem xs="12" md="6">
+                            <FluentTextField @bind-Value="_entraForm.SignedOutCallbackPath" Label="@L["Settings_EntraSignedOutPath"]"
+                                             Disabled="@Locked(EntraFields.SignedOutCallbackPath)" Style="width:100%" />
+                            @LockNote(EntraFields.SignedOutCallbackPath)
+                        </FluentGridItem>
+                    </FluentGrid>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                        @L["Settings_EntraRedirectHelp"] <code>@_redirectUri</code>
+                    </FluentLabel>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Settings_EntraAccountsSection"]</FluentLabel>
+                    </div>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                        <FluentSwitch @bind-Value="_entraForm.LinkByVerifiedEmail"
+                                      Disabled="@Locked(EntraFields.LinkByVerifiedEmail)"
+                                      Label="@L["Settings_EntraLinkByEmail"]" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraLinkByEmailHelp"]</FluentLabel>
+                        @LockNote(EntraFields.LinkByVerifiedEmail)
+                        <FluentSwitch @bind-Value="_entraForm.AllowJustInTimeProvisioning"
+                                      Disabled="@Locked(EntraFields.AllowJustInTimeProvisioning)"
+                                      Label="@L["Settings_EntraJit"]" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraJitHelp"]</FluentLabel>
+                        @LockNote(EntraFields.AllowJustInTimeProvisioning)
+                    </FluentStack>
+
+                    <div>
+                        <FluentLabel Typo="Typography.Body">@L["Settings_EntraDefaultRoles"]</FluentLabel>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraDefaultRolesHelp"]</FluentLabel>
+                        @LockNote(EntraFields.DefaultRoles)
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                            @* Administrator is absent by design: a default role is granted to every
+                               account the directory creates on first sign-in, so offering it here
+                               would make "anyone in the tenant" an administrator of this site. *@
+                            @foreach (var role in _roles.Where(r => !string.Equals(r, D3Parking.Domain.Authorization.Roles.Administrator, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                <FluentCheckbox Label="@AuthorizationDisplay.RoleName(L, role)"
+                                                Value="@_entraForm.DefaultRoles.Contains(role)"
+                                                ValueChanged="@(c => ToggleDefaultRole(role, c))"
+                                                Disabled="@Locked(EntraFields.DefaultRoles)" />
+                            }
+                        </FluentStack>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Settings_EntraScimSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_entraForm.ScimEnabled" Disabled="@Locked(EntraFields.ScimEnabled)"
+                                      Label="@L["Settings_EntraEnabled"]" />
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimHelp"]</FluentLabel>
+                    @LockNote(EntraFields.ScimEnabled)
+
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimUrl"]</FluentLabel>
+                        <code>@_scimUrl</code>
+                    </FluentStack>
+
+                    <div>
+                        <FluentTextField @bind-Value="_entraForm.ScimBearerToken" TextFieldType="TextFieldType.Password"
+                                         Label="@L["Settings_EntraScimToken"]"
+                                         Placeholder="@L["Settings_EntraSecretKeep"]"
+                                         Disabled="@Locked(EntraFields.ScimBearerToken)" Style="width:100%" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                            @L[_entra.ScimBearerTokenSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
+                        </FluentLabel>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimTokenHelp"]</FluentLabel>
+                        @LockNote(EntraFields.ScimBearerToken)
+                        @if (_entra.ScimBearerTokenSet && !Locked(EntraFields.ScimBearerToken))
+                        {
+                            <FluentCheckbox @bind-Value="_clearScimToken" Label="@L["Settings_EntraSecretClear"]" />
+                        }
+                    </div>
+
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                        <FluentSwitch @bind-Value="_entraForm.ScimBlockOnDeprovision"
+                                      Disabled="@Locked(EntraFields.ScimBlockOnDeprovision)"
+                                      Label="@L["Settings_EntraScimBlock"]" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimBlockHelp"]</FluentLabel>
+                        @LockNote(EntraFields.ScimBlockOnDeprovision)
+                    </FluentStack>
+
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="saveEntra">
+                        <FluentButton OnClick="SaveEntraAsync" Appearance="Appearance.Accent"
+                                      Disabled="@_entra.IsFullyLocked">@L["Settings_SaveEntra"]</FluentButton>
+                    </AuthorizeView>
+
+                    <FluentAnchor Href="/admin/directory" Appearance="Appearance.Hypertext">@L["Settings_EntraRoleMappingLink"]</FluentAnchor>
+                </FluentStack>
+            </FluentTab>
+
             <FluentTab Id="general" Label="@L["Settings_GeneralSection"]">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
                     <FluentGrid Spacing="3">
@@ -265,17 +433,36 @@
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
+    /// <summary>Lets other pages deep-link to a section instead of describing where to click.</summary>
+    [SupplyParameterFromQuery(Name = "tab")]
+    private string? Tab { get; set; }
+
     private DomainForm? _form;
     private RegionalForm _regional = new();
     private EncodingForm _encoding = new();
     private AccountsForm _accounts = new();
     private GeneralForm _general = new();
+    private EntraSettingsView _entra = EmptyEntraView;
+    private EntraForm _entraForm = new();
+    private bool _clearClientSecret;
+    private bool _clearScimToken;
+    private string _scimUrl = string.Empty;
+    private string _redirectUri = string.Empty;
+    private string _authorityPlaceholder = string.Empty;
     private IReadOnlyList<string> _roles = [];
     private string? _baseUrl;
     private string? _message;
     private string? _error;
     private Guid _adminId;
     private string _activeTab = "domain";
+
+    /// <summary>Stands in until the first load, so the markup never dereferences a null view.</summary>
+    private static readonly EntraSettingsView EmptyEntraView = new(
+        new EntraSettingsDto(false, null, null, null, "/signin-entra", "/signout-entra", "Microsoft",
+            true, true, [], false, true),
+        ClientSecretSet: false,
+        ScimBearerTokenSet: false,
+        LockedFields: new HashSet<string>());
 
     // Build option lists once; the empty leading entry stands for "automatic / default" in the UI.
     private IEnumerable<string> LanguageOptions => new[] { string.Empty }.Concat(SupportedCultures.All);
@@ -293,6 +480,15 @@
         var admin = await UserManager.GetUserAsync(state.User);
         _adminId = admin?.Id ?? Guid.Empty;
         _roles = (await RoleAdmin.ListAsync()).Select(r => r.Name).ToArray();
+
+        // Shown so whoever fills in the Entra app registration can copy them rather than guess.
+        _scimUrl = new Uri(new Uri(Nav.BaseUri), "scim/v2").ToString();
+
+        if (Tab is { Length: > 0 } requested)
+        {
+            _activeTab = requested;
+        }
+
         await LoadAsync();
     }
 
@@ -335,6 +531,32 @@
             LowercaseUrls = dto.General.LowercaseUrls,
             TrailingSlash = dto.General.TrailingSlash,
         };
+
+        _entra = await EntraSettings.GetForAdminAsync();
+        var e = _entra.Settings;
+        _entraForm = new EntraForm
+        {
+            Enabled = e.Enabled,
+            TenantId = e.TenantId,
+            ClientId = e.ClientId,
+            Authority = e.Authority,
+            CallbackPath = e.CallbackPath,
+            SignedOutCallbackPath = e.SignedOutCallbackPath,
+            DisplayName = e.DisplayName,
+            LinkByVerifiedEmail = e.LinkByVerifiedEmail,
+            AllowJustInTimeProvisioning = e.AllowJustInTimeProvisioning,
+            DefaultRoles = new HashSet<string>(e.DefaultRoles, StringComparer.OrdinalIgnoreCase),
+            ScimEnabled = e.ScimEnabled,
+            ScimBlockOnDeprovision = e.ScimBlockOnDeprovision,
+        };
+
+        // Typed secrets are never carried across a reload; a stale value in a password box would be
+        // saved again on the next unrelated edit.
+        _clearClientSecret = _clearScimToken = false;
+        _entraForm.ClientSecret = _entraForm.ScimBearerToken = null;
+
+        _authorityPlaceholder = $"https://login.microsoftonline.com/{(string.IsNullOrWhiteSpace(e.TenantId) ? "{tenant}" : e.TenantId)}/v2.0";
+        _redirectUri = new Uri(new Uri(Nav.BaseUri), e.CallbackPath.TrimStart('/')).ToString();
     }
 
     private async Task SaveDomainAsync()
@@ -363,6 +585,59 @@
     private Task SaveGeneralAsync() =>
         ApplyAsync(() => SiteSettings.UpdateGeneralAsync(
             new GeneralSettingsDto(_general.SiteName, _general.SiteDescription, _general.LowercaseUrls, _general.TrailingSlash), _adminId));
+
+    private Task SaveEntraAsync() =>
+        ApplyAsync(() => EntraSettings.UpdateAsync(
+            new EntraSettingsUpdate(
+                new EntraSettingsDto(
+                    _entraForm.Enabled,
+                    _entraForm.TenantId,
+                    _entraForm.ClientId,
+                    _entraForm.Authority,
+                    _entraForm.CallbackPath,
+                    _entraForm.SignedOutCallbackPath,
+                    _entraForm.DisplayName,
+                    _entraForm.LinkByVerifiedEmail,
+                    _entraForm.AllowJustInTimeProvisioning,
+                    [.. _entraForm.DefaultRoles],
+                    _entraForm.ScimEnabled,
+                    _entraForm.ScimBlockOnDeprovision),
+                Secret(_entraForm.ClientSecret, _clearClientSecret),
+                Secret(_entraForm.ScimBearerToken, _clearScimToken)),
+            _adminId));
+
+    /// <summary>
+    /// A blank box means "leave it alone", because the page never showed what is there to begin
+    /// with. Removing a secret therefore has to be asked for explicitly.
+    /// </summary>
+    private static EntraSecretUpdate Secret(string? typed, bool clear) =>
+        !string.IsNullOrWhiteSpace(typed) ? EntraSecretUpdate.Set(typed.Trim())
+        : clear ? EntraSecretUpdate.Clear
+        : EntraSecretUpdate.Keep;
+
+    private bool Locked(string field) => _entra.IsLocked(field);
+
+    private void ToggleDefaultRole(string role, bool selected)
+    {
+        if (selected)
+        {
+            _entraForm.DefaultRoles.Add(role);
+        }
+        else
+        {
+            _entraForm.DefaultRoles.Remove(role);
+        }
+    }
+
+    private RenderFragment? LockNote(string field)
+    {
+        if (!Locked(field))
+        {
+            return null;
+        }
+
+        return @<span class="settings-lock">@L["Settings_EntraFieldLocked"]</span>;
+    }
 
     private async Task ApplyAsync(Func<Task<AccountResult>> action)
     {
@@ -447,6 +722,30 @@
     private sealed class AccountsForm
     {
         public string? DefaultRole { get; set; }
+    }
+
+    private sealed class EntraForm
+    {
+        public bool Enabled { get; set; }
+        public string? TenantId { get; set; }
+        public string? ClientId { get; set; }
+
+        /// <summary>Write-only: holds what was typed now, never what is stored.</summary>
+        public string? ClientSecret { get; set; }
+
+        public string? Authority { get; set; }
+        public string CallbackPath { get; set; } = "/signin-entra";
+        public string SignedOutCallbackPath { get; set; } = "/signout-entra";
+        public string DisplayName { get; set; } = "Microsoft";
+        public bool LinkByVerifiedEmail { get; set; } = true;
+        public bool AllowJustInTimeProvisioning { get; set; } = true;
+        public HashSet<string> DefaultRoles { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool ScimEnabled { get; set; }
+
+        /// <summary>Write-only, as <see cref="ClientSecret"/>.</summary>
+        public string? ScimBearerToken { get; set; }
+
+        public bool ScimBlockOnDeprovision { get; set; } = true;
     }
 
     private sealed class GeneralForm

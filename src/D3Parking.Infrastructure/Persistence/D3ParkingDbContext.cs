@@ -32,6 +32,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 
+    public DbSet<EntraSettings> EntraSettings => Set<EntraSettings>();
+
     public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
 
     public DbSet<Reservation> Reservations => Set<Reservation>();
@@ -290,6 +292,34 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.SiteName).HasMaxLength(128);
             settings.Property(s => s.SiteDescription).HasMaxLength(512);
             settings.Property(s => s.Aliases)
+                .HasColumnType("nvarchar(max)")
+                .HasConversion(
+                    list => string.Join('\n', list),
+                    value => value.Length == 0
+                        ? Array.Empty<string>()
+                        : value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    new ValueComparer<IReadOnlyList<string>>(
+                        (a, b) => a!.SequenceEqual(b!),
+                        v => v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                        v => v.ToArray()));
+        });
+
+        builder.Entity<EntraSettings>(entra =>
+        {
+            entra.ToTable("EntraSettings");
+            entra.HasKey(s => s.Id);
+            entra.Property(s => s.Id).ValueGeneratedNever();
+            entra.Property(s => s.TenantId).HasMaxLength(64);
+            entra.Property(s => s.ClientId).HasMaxLength(64);
+            entra.Property(s => s.Authority).HasMaxLength(512);
+            entra.Property(s => s.CallbackPath).HasMaxLength(256).IsRequired();
+            entra.Property(s => s.SignedOutCallbackPath).HasMaxLength(256).IsRequired();
+            entra.Property(s => s.DisplayName).HasMaxLength(64).IsRequired();
+            // Ciphertext, not the secret: data protection payloads are base64 and grow with the key
+            // ring's metadata, so they get room rather than a length that would truncate one.
+            entra.Property(s => s.ClientSecretProtected).HasColumnType("nvarchar(max)");
+            entra.Property(s => s.ScimBearerTokenProtected).HasColumnType("nvarchar(max)");
+            entra.Property(s => s.DefaultRoles)
                 .HasColumnType("nvarchar(max)")
                 .HasConversion(
                     list => string.Join('\n', list),

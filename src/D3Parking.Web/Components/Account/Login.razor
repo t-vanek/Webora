@@ -3,12 +3,11 @@
 @using System.ComponentModel.DataAnnotations
 @using D3Parking.Infrastructure.Identity
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
-@using Microsoft.Extensions.Options
 @using D3Parking.Application.Identity
 @using D3Parking.Web.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
-@inject IOptions<EntraIdOptions> Entra
+@inject IEntraSettingsService EntraSettings
 @inject ILogger<Login> Logger
 @inject IStringLocalizer<SharedResource> L
 
@@ -84,14 +83,14 @@
     <button type="submit" class="auth-submit">@L["Login_Submit"]</button>
 </EditForm>
 
-@if (Entra.Value.IsSignInConfigured)
+@if (_entra.IsSignInConfigured)
 {
     @* A plain link, not a form: the challenge is a GET that hands the browser to the directory, and
        it must work on the statically rendered page like everything else here. *@
     <div class="auth-divider"><span>@L["Login_Or"]</span></div>
     <a class="auth-external" href="@($"{ExternalSignInEndpoints.ChallengePath}?returnUrl={Uri.EscapeDataString(GetLocalReturnUrl())}")">
         <FluentIcon Value="@(new Icons.Regular.Size20.Building())" Color="Color.Custom" CustomColor="currentColor" />
-        <span>@L["Login_External", Entra.Value.DisplayName]</span>
+        <span>@L["Login_External", _entra.DisplayName]</span>
     </a>
 }
 
@@ -119,6 +118,15 @@
     private string? ExternalError { get; set; }
 
     private string? _errorMessage;
+
+    /// <summary>
+    /// The effective Entra settings decide whether the button is offered at all, and what it is
+    /// called. Read here rather than from configuration so a tenant wired up on the settings page
+    /// shows up on the next page load instead of the next deployment.
+    /// </summary>
+    private EntraIdOptions _entra = new();
+
+    protected override async Task OnInitializedAsync() => _entra = await EntraSettings.GetEffectiveAsync();
 
     protected override void OnParametersSet()
     {

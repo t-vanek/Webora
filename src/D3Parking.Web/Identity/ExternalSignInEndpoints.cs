@@ -27,10 +27,10 @@ public static class ExternalSignInEndpoints
         app.MapGet(ChallengePath, async (
             string? returnUrl,
             HttpContext context,
-            IOptions<EntraIdOptions> options,
+            IEntraSettingsService entra,
             ILoggerFactory loggerFactory) =>
         {
-            if (!options.Value.IsSignInConfigured)
+            if (!(await entra.GetEffectiveAsync(context.RequestAborted)).IsSignInConfigured)
             {
                 return Results.NotFound();
             }

@@ -39,6 +39,25 @@ public class AdminTests : AdminTest
     }
 
     [Test]
+    public async Task Settings_entra_tab_renders_the_sign_in_and_provisioning_sections()
+    {
+        // Deep-linked, which is the same route the directory page offers when nothing is configured.
+        await Pages.GotoInteractiveAsync(Page, "/admin/settings?tab=entra");
+
+        await Expect(Page.GetByText("Přihlašování přes Entra ID")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Provisioning (SCIM)").First).ToBeVisibleAsync();
+
+        // The secret is write-only: the page may say one is missing, never show one.
+        await Expect(Page.GetByText("Zatím není uloženo.").First).ToBeVisibleAsync();
+
+        // The two values whoever fills in the app registration has to copy out of here.
+        await Expect(Page.Locator("code").Filter(new() { HasTextRegex = new Regex("/signin-entra$") })).ToBeVisibleAsync();
+        await Expect(Page.Locator("code").Filter(new() { HasTextRegex = new Regex("/scim/v2$") })).ToBeVisibleAsync();
+
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit Entra ID") })).ToBeVisibleAsync();
+    }
+
+    [Test]
     public async Task Parking_spots_list_shows_type_and_state_pills()
     {
         await Page.GotoAsync("/admin/parking/spots");

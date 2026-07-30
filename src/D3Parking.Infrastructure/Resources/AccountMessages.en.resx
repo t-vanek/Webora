@@ -94,6 +94,12 @@
   <data name="Error_InvalidPort" xml:space="preserve"><value>The port must be between 1 and 65535.</value></data>
   <data name="Error_InvalidTimeZone" xml:space="preserve"><value>The time zone “{0}” is invalid.</value></data>
   <data name="Error_InvalidCharset" xml:space="preserve"><value>The encoding “{0}” is invalid.</value></data>
+  <data name="Error_EntraIncomplete" xml:space="preserve"><value>Entra ID sign-in needs both a directory (tenant) id and an application (client) id.</value></data>
+  <data name="Error_EntraSecretRequired" xml:space="preserve"><value>Entra ID sign-in needs the app registration's client secret.</value></data>
+  <data name="Error_EntraAuthority" xml:space="preserve"><value>The authority must be a full address starting with https://.</value></data>
+  <data name="Error_EntraCallbackClash" xml:space="preserve"><value>The sign-in and sign-out callback paths must differ.</value></data>
+  <data name="Error_EntraScimTokenRequired" xml:space="preserve"><value>Provisioning (SCIM) needs a bearer token — it is the only protection those endpoints have.</value></data>
+  <data name="Error_EntraScimTokenWeak" xml:space="preserve"><value>The SCIM bearer token must be at least {0} characters long.</value></data>
   <data name="Error_PermissionGroupNotFound" xml:space="preserve"><value>The permission group was not found.</value></data>
   <data name="Error_PermissionGroupNameRequired" xml:space="preserve"><value>A permission group name is required.</value></data>
   <data name="Error_PermissionGroupNameTaken" xml:space="preserve"><value>A permission group named “{0}” already exists.</value></data>

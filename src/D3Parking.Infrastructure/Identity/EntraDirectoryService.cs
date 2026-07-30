@@ -19,12 +19,13 @@ public sealed class EntraDirectoryService(
     // The scoped context the user manager writes through, so the account, its role changes and the
     // provenance records commit together.
     D3ParkingDbContext dbContext,
-    IOptions<EntraIdOptions> options,
+    // Read per call rather than captured: the settings page can change what links, provisions and
+    // which tenant is accepted while this service's scope is alive.
+    IEntraSettingsService entraSettings,
     IStringLocalizer<AccountMessages> messages,
     TimeProvider timeProvider,
     ILogger<EntraDirectoryService> logger) : IExternalDirectoryService
 {
-    private readonly EntraIdOptions _options = options.Value;
 
     public async Task<Guid?> FindAsync(string provider, string externalObjectId, CancellationToken cancellationToken = default)
     {
@@ -43,17 +44,19 @@ public sealed class EntraDirectoryService(
             return ExternalSyncResult.Failure(messages["Error_ExternalIdentityIncomplete"]);
         }
 
+        var options = await entraSettings.GetEffectiveAsync(cancellationToken);
+
         // A token from another directory must never reach an account here, whatever else it claims.
-        if (!string.IsNullOrWhiteSpace(_options.TenantId)
+        if (!string.IsNullOrWhiteSpace(options.TenantId)
             && !string.IsNullOrWhiteSpace(identity.TenantId)
-            && !string.Equals(_options.TenantId, identity.TenantId, StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(options.TenantId, identity.TenantId, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Rejected an identity from tenant {Tenant}; this installation accepts {Expected}",
-                identity.TenantId, _options.TenantId);
+                identity.TenantId, options.TenantId);
             return ExternalSyncResult.Failure(messages["Error_ExternalTenantNotAllowed"]);
         }
 
-        var (user, created, linked) = await ResolveAsync(identity, cancellationToken);
+        var (user, created, linked) = await ResolveAsync(identity, options, cancellationToken);
         if (user is null)
         {
             return ExternalSyncResult.Failure(messages["Error_ExternalAccountUnknown"]);
@@ -67,9 +70,9 @@ public sealed class EntraDirectoryService(
         {
             await ApplyRolesAsync(user, identity.Provider, identity.Roles, cancellationToken);
         }
-        else if (created && _options.DefaultRoles.Count > 0)
+        else if (created && options.DefaultRoles.Count > 0)
         {
-            await ApplyRolesAsync(user, identity.Provider, _options.DefaultRoles.ToArray(), cancellationToken);
+            await ApplyRolesAsync(user, identity.Provider, options.DefaultRoles.ToArray(), cancellationToken);
         }
 
         if (created || linked)
@@ -132,6 +135,7 @@ public sealed class EntraDirectoryService(
     /// <summary>Finds the account this identity belongs to, adopting or creating one if allowed.</summary>
     private async Task<(ApplicationUser? User, bool Created, bool Linked)> ResolveAsync(
         ExternalIdentity identity,
+        EntraIdOptions options,
         CancellationToken cancellationToken)
     {
         var byObjectId = await dbContext.Users.FirstOrDefaultAsync(
@@ -142,7 +146,7 @@ public sealed class EntraDirectoryService(
             return (byObjectId, false, false);
         }
 
-        if (_options.LinkByVerifiedEmail && await userManager.FindByEmailAsync(identity.Email) is { } byEmail)
+        if (options.LinkByVerifiedEmail && await userManager.FindByEmailAsync(identity.Email) is { } byEmail)
         {
             // Only an account whose owner already proved the address, and which is not already tied
             // to some other directory object. Without the confirmation check, anyone who could get
@@ -168,7 +172,7 @@ public sealed class EntraDirectoryService(
             return (byEmail, false, true);
         }
 
-        if (!_options.AllowJustInTimeProvisioning)
+        if (!options.AllowJustInTimeProvisioning)
         {
             logger.LogWarning("Refused an unprovisioned {Provider} identity {ObjectId}; just-in-time creation is off",
                 identity.Provider, identity.ObjectId);

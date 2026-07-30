@@ -52,8 +52,9 @@ builder.Services.AddIdentityServer(builder.Configuration);
 builder.Services.AddPermissionAuthorization();
 
 // Microsoft Entra ID as an additional sign-in provider and as an inbound provisioning source. Both
-// halves are opt-in; with no EntraId section configured this registers nothing and changes nothing.
-builder.Services.AddEntraIdAuthentication(builder.Configuration);
+// halves are opt-in and administered from the settings page; the scheme itself is published below,
+// once the stored settings have been read, so an installation without a tenant is untouched.
+builder.Services.AddEntraIdAuthentication();
 
 // Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
 // and WebAssembly components — the WASM client also registers AddFluentUIComponents() in its host.
@@ -154,6 +155,10 @@ builder.Host.UseWolverine(opts =>
 });
 
 var app = builder.Build();
+
+// Publishes the Entra sign-in scheme if the stored settings ask for it. Done before the first
+// request so the pipeline is settled, and repeated by the settings page on every save.
+await app.UseEntraIdAuthenticationAsync();
 
 // Development certificates regenerate with the machine/container, so in production every issued
 // token would die on redeploy. Keep working, but warn loudly until real ones are configured.
