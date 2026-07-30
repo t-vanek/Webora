@@ -51,6 +51,12 @@ public sealed record IncentivePolicy
     /// <summary>Percent of a share's reward the resident gives back when the guest no-shows on it.</summary>
     public int ResidentWastedShareClawbackPercent { get; init; } = 25;
 
+    /// <summary>
+    /// How many days ahead a resident's usage plan releases the days they do not need. Bounded by
+    /// <see cref="MaxReleaseRangeDays"/> — the planner may never reach further than a manual release.
+    /// </summary>
+    public int ResidentPlanHorizonDays { get; init; } = 14;
+
     /// <summary>Base points for taking a shared reserved spot, before the distance multiplier.</summary>
     public int SharedTakenBasePoints { get; init; } = 5;
 
@@ -350,4 +356,12 @@ public sealed record IncentivePolicy
     /// <summary>Whether a reserved spot for the requested day has auto-shared: today and past cutoff.</summary>
     public bool IsResidentAutoShareActive(DateOnly requestDate, DateTimeOffset now, TimeZoneInfo timeZone) =>
         requestDate == SiteTime.Today(now, timeZone) && now >= ResidentShareCutoff(requestDate, timeZone);
+
+    /// <summary>
+    /// The last day a usage plan reaches: the configured horizon, never past what a single manual
+    /// release may span. Today is excluded on purpose — the current day belongs to the hold /
+    /// confirm-arrival flow, which is where the resident's right of first refusal lives.
+    /// </summary>
+    public DateOnly ResidentPlanHorizonEnd(DateOnly today) =>
+        today.AddDays(Math.Clamp(ResidentPlanHorizonDays, 1, Math.Max(1, MaxReleaseRangeDays)));
 }

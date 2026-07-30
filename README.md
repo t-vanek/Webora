@@ -300,6 +300,13 @@ lhůta no-show):
 - Rezident **potvrdí příjezd**, aby si místo na den udržel, nebo ho **uvolní** (jeden den, či rozsah dnů)
   do sdíleného fondu.
 - Pokud do cutoffu nepotvrdí ani neuvolní, místo se na ten den **automaticky sdílí**.
+- **Plán využití:** rezident zaškrtne dny v týdnu, kdy místo potřebuje; ostatní dny se pak uvolňují
+  **automaticky dopředu** až na `ResidentPlanHorizonDays` dní (výchozí 14) a odměňují se úplně stejně
+  jako ruční uvolnění — tedy plným bonusem za předstih, na rozdíl od automatického sdílení po
+  uzávěrce, které nedává nic. Každý den se rozhoduje **jen jednou** (značka „aplikováno do"), takže
+  pětiminutová smyčka údržby nemůže znovu sdílet den, který si rezident vzal zpět; dnešní den plán
+  nikdy nesahá — ten patří držení a potvrzení příjezdu. Uložení plánu značku zahodí, takže se nový
+  plán použije na celý horizont (a den vzatý zpět před změnou tím může být uvolněn znovu).
 - **Pravidlo konfliktu:** jakmile si host sdílené místo zarezervuje, je pevné; rezident, jehož místo
   už host drží, soutěží o jiné volné místo jako každý jiný (žádné vyhazování).
 - **Přednostní právo rezidenta:** dokud si sdílený den jeho místa nikdo nezarezervoval, má na něm
@@ -354,7 +361,8 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 ### Údržba na pozadí
 
 Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
-připomínky rezervací a držení rezidentům, řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
+připomínky rezervací a držení rezidentům, **uvolňuje dopředu dny podle plánů využití rezidentů**,
+řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
 nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
 a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny**,
 **přepočítává graf důvěry** a **skenuje podezřelé kruhy (anti-collusion)**. Lze ji spustit i ručně

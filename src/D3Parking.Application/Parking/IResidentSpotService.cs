@@ -1,9 +1,12 @@
+using D3Parking.Domain.Parking;
+
 namespace D3Parking.Application.Parking;
 
 /// <summary>
 /// Resident-facing operations on a reserved ("owned") spot: confirming arrival to keep it for the
-/// day, proactively releasing it into the shared pool (rewarded by how early), and setting the
-/// monthly share allowance that scales the reward.
+/// day, proactively releasing it into the shared pool (rewarded by how early), setting the monthly
+/// share allowance that scales the reward, and the standing usage plan that releases the days the
+/// resident does not need without them having to ask.
 /// </summary>
 public interface IResidentSpotService
 {
@@ -37,6 +40,22 @@ public interface IResidentSpotService
 
     /// <summary>Set how many times a month the resident is willing to share their spot.</summary>
     Task<ParkingResult> SetShareAllowanceAsync(Guid userId, int allowance, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets the standing usage plan: the weekdays the resident needs their spot, and whether the
+    /// remaining days are released into the pool ahead of time. Saving the plan re-applies it over
+    /// the whole horizon, so a day taken back by hand before the change may be released again.
+    /// </summary>
+    Task<ParkingResult> SetUsagePlanAsync(Guid userId, Weekday plannedUseDays, bool autoReleaseUnplannedDays,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Releases the upcoming days that residents' usage plans mark as not needed, as far ahead as the
+    /// configured horizon and rewarded exactly like a manual release — the advance notice is what the
+    /// plan is for. Each day is decided once, so a day the resident took back stays theirs. For the
+    /// maintenance loop. Returns the number of days released.
+    /// </summary>
+    Task<int> ApplyDuePlanReleasesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reminds residents who have not confirmed arrival or released as the hold cutoff approaches.

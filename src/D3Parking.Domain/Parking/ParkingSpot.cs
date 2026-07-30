@@ -27,6 +27,20 @@ public class ParkingSpot : Entity
     /// <summary>The day the resident was last told their spot auto-shared, so it is sent once a day.</summary>
     public DateOnly? LastAutoShareNoticeDate { get; private set; }
 
+    /// <summary>Weekdays the resident needs the spot; the rest are candidates for advance release.</summary>
+    public Weekday PlannedUseDays { get; private set; } = Weekday.Workdays;
+
+    /// <summary>Whether the days outside <see cref="PlannedUseDays"/> are released ahead of time.</summary>
+    public bool AutoReleaseUnplannedDays { get; private set; }
+
+    /// <summary>
+    /// The last day the planner has already decided about. It only ever looks past this watermark, so
+    /// a day the resident took back by hand is never re-released and each day is released once —
+    /// however often the maintenance loop runs. Cleared whenever the plan changes, which is what
+    /// re-applies the new plan across the whole horizon.
+    /// </summary>
+    public DateOnly? PlanAppliedThrough { get; private set; }
+
     public bool HasOwner => OwnerId is not null;
 
     private ParkingSpot() { }
@@ -63,10 +77,33 @@ public class ParkingSpot : Entity
             MonthlyShareAllowance = 0;
             LastResidentReminderDate = null;
             LastAutoShareNoticeDate = null;
+            PlannedUseDays = Weekday.Workdays;
+            AutoReleaseUnplannedDays = false;
+            PlanAppliedThrough = null;
         }
     }
 
     public void SetShareAllowance(int allowance) => MonthlyShareAllowance = allowance < 0 ? 0 : allowance;
+
+    /// <summary>
+    /// Sets the standing usage plan. The applied-through watermark is dropped so the new plan takes
+    /// effect across the whole horizon rather than only from wherever the old one had got to.
+    /// </summary>
+    public void SetUsagePlan(Weekday plannedUseDays, bool autoReleaseUnplannedDays)
+    {
+        PlannedUseDays = plannedUseDays.Sanitize();
+        AutoReleaseUnplannedDays = autoReleaseUnplannedDays;
+        PlanAppliedThrough = null;
+    }
+
+    /// <summary>Records that the planner has decided about every day up to and including <paramref name="date"/>.</summary>
+    public void MarkPlanApplied(DateOnly date)
+    {
+        if (PlanAppliedThrough is null || date > PlanAppliedThrough)
+        {
+            PlanAppliedThrough = date;
+        }
+    }
 
     public void MarkResidentReminded(DateOnly date) => LastResidentReminderDate = date;
 

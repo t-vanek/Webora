@@ -214,6 +214,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             spot.Property(s => s.Code).HasMaxLength(32).IsRequired();
             spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
             spot.Property(s => s.Notes).HasMaxLength(512);
+            spot.Property(s => s.PlannedUseDays).HasConversion<int>();
             spot.HasIndex(s => s.Code).IsUnique();
             // One spot per resident: every resident flow resolves "the user's spot" with a single
             // FirstOrDefault, so duplicate ownership would make those flows nondeterministic.

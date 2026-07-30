@@ -52,6 +52,7 @@ public sealed class ParkingMaintenanceService(
             var reminded = await StepAsync("reservation reminders", () => reservations.SendDueRemindersAsync(cancellationToken), 0, cancellationToken);
             var residentReminders = await StepAsync("resident hold reminders", () => residentSpots.SendDueHoldRemindersAsync(cancellationToken), 0, cancellationToken);
             var autoShared = await StepAsync("auto-share notices", () => residentSpots.NotifyDueAutoSharesAsync(cancellationToken), 0, cancellationToken);
+            var planReleased = await StepAsync("usage-plan releases", () => residentSpots.ApplyDuePlanReleasesAsync(cancellationToken), 0, cancellationToken);
             var resolved = await StepAsync("no-show sweep", () => reservations.SweepNoShowsAsync(cancellationToken), 0, cancellationToken);
             var reconciled = await StepAsync("unused share reconciliation", () => residentSpots.ReconcileUnusedSharesAsync(cancellationToken), 0, cancellationToken);
             var credited = await StepAsync("monthly credit grants", () => reservations.GrantDueMonthlyCreditsAsync(cancellationToken), 0, cancellationToken);
@@ -66,11 +67,11 @@ public sealed class ParkingMaintenanceService(
             var collusionFlagged = await StepAsync("collusion scan", () => collusion.ScanAsync(cancellationToken), 0, cancellationToken);
             var campaignRecipients = await StepAsync("availability campaigns", () => availability.RunDueCampaignsAsync(cancellationToken), 0, cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || planReleased > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients.",
-                    reminded, residentReminders, autoShared, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {PlanReleased} usage-plan releases, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients.",
+                    reminded, residentReminders, autoShared, planReleased, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

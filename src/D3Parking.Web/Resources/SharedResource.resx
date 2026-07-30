@@ -494,6 +494,7 @@
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou) — dostanete {0} za každou hodinu předstihu, nejvýše {1} za den. Odměna platí do měsíčního limitu, který si nastavíte sami.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou), ať ho může využít někdo jiný.</value></data>
   <data name="Help_Resident_A3" xml:space="preserve"><value>Na svém místě máte vždy přednost: uvolněný den si vezmete zpět tlačítkem Vzít zpět a po uzávěrce stačí potvrdit příjezd — dokud si místo nikdo nezarezervoval. Přednost platí i před nabídkami drženými pro frontu (čekatel o pořadí nepřijde); hotová rezervace kolegy ale zůstává v platnosti. Odměna za vrácený den se odečte.</value></data>
+  <data name="Help_Resident_A4" xml:space="preserve"><value>Nemusíte na to myslet každý týden: v plánu využití zaškrtněte dny, kdy místo potřebujete, a zapněte automatické uvolňování. Ostatní dny se pak samy uvolní až {0} dní dopředu — a právě za ten předstih dostanete plnou odměnu (do měsíčního limitu). Vybrané dny se pro vás drží dál a kterýkoli uvolněný den si můžete vzít zpět, dokud si ho nikdo nezarezervoval.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifikace, e-maily a kalendář</value></data>
   <data name="Help_Notifications_A1" xml:space="preserve"><value>Upozornění chodí do zvonečku v hlavičce. Aplikaci si můžete nainstalovat na plochu telefonu i počítače a zapnout push notifikace — pak se o nabídce z fronty nebo připomínce dozvíte, i když ji máte zavřenou. E-mailem posíláme jen to podstatné: nabídky z fronty s termínem, penalizace a bezpečnostní změny účtu.</value></data>
   <data name="Help_Notifications_A2" xml:space="preserve"><value>U každé rezervace je tlačítko Do kalendáře — stáhne událost pro Outlook, Google i Apple kalendář, včetně připomínky 30 minut předem. V profilu si můžete notifikace dočasně ztlumit nebo vypnout tipy na volnou kapacitu.</value></data>
@@ -682,7 +683,13 @@
   <data name="Parking_Owned_Reclaimed" xml:space="preserve"><value>Dny jsou zpět u tebe — místo se pro tebe zase drží.</value></data>
   <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>Na svém místě máš vždy přednost: uvolněný den si můžeš vzít zpět, dokud si ho nikdo nezarezervoval — platí to i pro místa přidržená frontě. Odměna za vrácený den se odečte.</value></data>
   <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Po uzávěrce se místo nabízí ostatním, ale dokud si ho nikdo nevzal, potvrzením příjezdu si ho vezmeš zpět.</value></data>
+  <data name="Parking_Owned_PlanDays" xml:space="preserve"><value>Dny, kdy místo potřebuji</value></data>
+  <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Ostatní dny uvolňovat předem automaticky</value></data>
+  <data name="Parking_Owned_SavePlan" xml:space="preserve"><value>Uložit plán</value></data>
+  <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Dny, které tu nenecháš vybrané, se uvolní ostatním až {0} dní dopředu — a právě za ten předstih dostaneš plnou odměnu (do měsíční kvóty), zatímco automatické sdílení po uzávěrce nedává nic. Vybrané dny se pro tebe drží jako dosud. Kterýkoli uvolněný den si můžeš vzít zpět, dokud si ho nikdo nezarezervoval; po uložení plánu se ale plán použije na celý horizont znovu.</value></data>
+  <data name="Parking_Owned_PlanSaved" xml:space="preserve"><value>Plán využití uložen.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Vratka odměny při nedostavení náhradníka (%)</value></data>
+  <data name="Parking_Settings_ResidentPlanHorizon" xml:space="preserve"><value>Horizont plánu využití (dní dopředu)</value></data>
   <data name="Profile_CommuteTitle" xml:space="preserve"><value>Dojezd do práce</value></data>
   <data name="Profile_CommuteHelp" xml:space="preserve"><value>Zadej domácí adresu – z ní spočítáme vzdálenost k parkovišti. Čím dál bydlíš, tím víc bodů dostaneš za zabrání uvolněného místa.</value></data>
   <data name="Profile_CommuteDistance" xml:space="preserve"><value>Vzdálenost k parkovišti</value></data>
