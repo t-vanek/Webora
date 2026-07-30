@@ -57,6 +57,8 @@ public class LotDashboardTests
         await using var dbContext = new D3ParkingDbContext(_options);
         dbContext.PointsLedgerEntries.RemoveRange(dbContext.PointsLedgerEntries);
         dbContext.AccountAuditEvents.RemoveRange(dbContext.AccountAuditEvents);
+        dbContext.OccupancyMismatches.RemoveRange(dbContext.OccupancyMismatches);
+        dbContext.QueueEntries.RemoveRange(dbContext.QueueEntries);
         dbContext.Reservations.RemoveRange(dbContext.Reservations);
         dbContext.SpotReleases.RemoveRange(dbContext.SpotReleases);
         dbContext.VisitorBookings.RemoveRange(dbContext.VisitorBookings);
@@ -420,6 +422,262 @@ public class LotDashboardTests
     public async Task A_missing_spot_has_no_detail()
     {
         Assert.That(await CreateDashboard().GetSpotDetailAsync(Guid.NewGuid(), Today, 7), Is.Null);
+    }
+
+    [Test]
+    public async Task The_headline_use_figure_is_the_mean_of_the_curve_drawn_under_it()
+    {
+        // A visitor spot and a retired one: the two populations that used to sit on opposite sides of
+        // the fraction, so the tile and the chart answered the same question differently.
+        var a = await CreateSpotAsync("N-1");
+        var b = await CreateSpotAsync("N-2");
+        await CreateVisitorSpotAsync("N-3");
+        await CreateSpotAsync("N-4", active: false);
+        var user = Guid.NewGuid();
+        await BookAsync(a, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await BookAsync(b, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await BookAsync(a, user, day: Today.AddDays(-1), status: ReservationStatus.Completed);
+
+        var analytics = await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-2), Today);
+
+        var curveMean = analytics.Daily.Average(d => d.OccupancyPercent);
+        Assert.That(analytics.Capacity.UsePercent, Is.EqualTo((int)Math.Round(curveMean)),
+            "The tile has to be the aggregate of the very chart it sits above.");
+        Assert.That(analytics.Daily[0].Capacity, Is.EqualTo(3),
+            "Capacity counts every active spot, visitor spots included — their bookings are in the numerator.");
+    }
+
+    [Test]
+    public async Task Occupancy_cannot_read_past_a_full_lot_when_visitors_are_parked()
+    {
+        var pool = await CreateSpotAsync("O-1");
+        var visitor = await CreateVisitorSpotAsync("O-2");
+        await BookAsync(pool, Guid.NewGuid(), day: Today.AddDays(-1), status: ReservationStatus.Completed);
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            dbContext.VisitorBookings.Add(new VisitorBooking(visitor, "Host", null, null, null,
+                new DateTimeOffset(Today.AddDays(-1).ToDateTime(new TimeOnly(9, 0)), TimeSpan.Zero),
+                new DateTimeOffset(Today.AddDays(-1).ToDateTime(new TimeOnly(17, 0)), TimeSpan.Zero),
+                Guid.NewGuid(), Noon));
+            await dbContext.SaveChangesAsync();
+        }
+
+        var analytics = await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-1), Today.AddDays(-1));
+
+        Assert.That(analytics.Daily.Single().OccupancyPercent, Is.EqualTo(100),
+            "Both spots carried a car, so the lot was exactly full — never more than full.");
+    }
+
+    [Test]
+    public async Task The_capacity_split_accounts_for_every_spot_day()
+    {
+        var owner = Guid.NewGuid();
+        var resident = await CreateSpotAsync("Q-1", ownerId: owner);
+        var pool = await CreateSpotAsync("Q-2");
+        await BookAsync(pool, Guid.NewGuid(), day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            // Released and nobody came; the resident's other days stayed theirs.
+            dbContext.SpotReleases.Add(new SpotRelease(resident, owner, Today.AddDays(-1), Noon, 0));
+            await dbContext.SaveChangesAsync();
+        }
+
+        var capacity = (await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-2), Today)).Capacity;
+
+        Assert.That(capacity.CapacityDays, Is.EqualTo(6), "Two active spots over three days.");
+        Assert.That(capacity.UsedDays + capacity.OfferedUnusedDays + capacity.ResidentHeldDays + capacity.IdleDays,
+            Is.EqualTo(capacity.CapacityDays),
+            "Every spot-day lands in exactly one bucket, or the split is not a split.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(capacity.UsedDays, Is.EqualTo(1));
+            Assert.That(capacity.OfferedUnusedDays, Is.EqualTo(1), "The released day nobody took.");
+            Assert.That(capacity.ResidentHeldDays, Is.EqualTo(2), "The resident's other two days.");
+            Assert.That(capacity.IdleDays, Is.EqualTo(2), "The pool spot on the two days nobody booked it.");
+            Assert.That(capacity.DeadSpots, Is.EqualTo(1), "The resident spot carried nothing at all.");
+        });
+    }
+
+    [Test]
+    public async Task A_shared_day_the_taker_no_showed_on_is_wasted_everywhere_it_is_reported()
+    {
+        var owner = Guid.NewGuid();
+        var spot = await CreateSpotAsync("R-1", ownerId: owner);
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            dbContext.SpotReleases.Add(new SpotRelease(spot, owner, Today.AddDays(-1), Noon, 0));
+            await dbContext.SaveChangesAsync();
+        }
+
+        // Somebody took the offer and then never turned up: the spot stood empty all day.
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-1), status: ReservationStatus.NoShow);
+        var dashboard = CreateDashboard();
+
+        var board = await dashboard.GetBoardAsync(Today);
+        var perSpot = (await dashboard.GetAnalyticsAsync(Today.AddDays(-1), Today)).Spots.Single(s => s.Code == "R-1");
+
+        Assert.That(perSpot.UnusedSharedDays, Is.EqualTo(1));
+        Assert.That(board.Overview.UnusedSharedDays, Is.EqualTo(1),
+            "The header and the per-spot table must not disagree about what 'nobody took it' means.");
+    }
+
+    [Test]
+    public async Task The_spot_counts_partition_the_active_spots_and_a_promised_spot_is_not_free()
+    {
+        var free = await CreateSpotAsync("S-1");
+        var promised = await CreateSpotAsync("S-2");
+        var taken = await CreateSpotAsync("S-3");
+        await CreateSpotAsync("S-4", active: false);
+        await BookAsync(taken, Guid.NewGuid(), checkedIn: true);
+
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            var entry = new QueueEntry(Guid.NewGuid(),
+                new DateTimeOffset(Today.ToDateTime(new TimeOnly(8, 0)), TimeSpan.Zero),
+                new DateTimeOffset(Today.ToDateTime(new TimeOnly(17, 0)), TimeSpan.Zero), Noon);
+            entry.Offer(promised, Noon.AddMinutes(15));
+            dbContext.QueueEntries.Add(entry);
+            await dbContext.SaveChangesAsync();
+        }
+
+        var board = await CreateDashboard().GetBoardAsync(Today);
+        var overview = board.Overview;
+
+        Assert.That(board.Spots.Single(s => s.Code == "S-2").State,
+            Is.EqualTo(SpotBoardState.OfferedFromQueue),
+            "The booking path already refuses to hand this spot out; the board must not offer it either.");
+        Assert.That(overview.Occupied + overview.Booked + overview.OfferedFromQueue + overview.Free + overview.ResidentHeld,
+            Is.EqualTo(overview.ActiveSpots),
+            "Every active spot is in exactly one of the five, or the summary cannot be checked.");
+        Assert.That(overview.ResidentSpots + overview.PoolSpots + overview.VisitorSpots,
+            Is.EqualTo(overview.TotalSpots),
+            "The kind counts are the other complete partition — inactive is a different cut entirely.");
+        Assert.That(overview.Free, Is.EqualTo(1), "Only S-1 is genuinely on offer.");
+        _ = free;
+    }
+
+    [Test]
+    public async Task The_no_show_rate_is_measured_against_bookings_that_actually_ran_out()
+    {
+        var spot = await CreateSpotAsync("T-1");
+        var user = Guid.NewGuid();
+        await BookAsync(spot, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
+        await BookAsync(spot, user, day: Today.AddDays(-1), status: ReservationStatus.NoShow);
+        // Still ahead of us, and one that never occupied anything.
+        await BookAsync(spot, user, day: Today.AddDays(4));
+        await BookAsync(spot, user, day: Today.AddDays(-3), status: ReservationStatus.Cancelled);
+
+        var reliability = (await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-3), Today)).Reliability;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reliability.Resolved, Is.EqualTo(2), "One completed and one no-show ran out inside the window.");
+            Assert.That(reliability.NoShowPercent, Is.EqualTo(50),
+                "A booking still ahead of us has not had the chance to fail, so it cannot dilute the rate.");
+            Assert.That(reliability.Cancelled, Is.EqualTo(1), "Reported beside the three, not inside them.");
+        });
+    }
+
+    [Test]
+    public async Task A_booking_the_day_after_the_window_is_outside_it()
+    {
+        var spot = await CreateSpotAsync("U-1");
+        await BookAsync(spot, Guid.NewGuid(), day: Today, status: ReservationStatus.Completed);
+
+        // The window ends yesterday; today's booking belongs to no part of it.
+        var analytics = await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-3), Today.AddDays(-1));
+
+        Assert.That(analytics.Reliability.Resolved, Is.Zero,
+            "Containment on the end, not overlap — and certainly not a whole extra day past the window.");
+        Assert.That(analytics.Demand, Is.Empty);
+    }
+
+    [Test]
+    public async Task The_waitlist_counts_as_demand_the_lot_turned_away()
+    {
+        await CreateSpotAsync("W-1");
+        var start = new DateTimeOffset(Today.AddDays(-1).ToDateTime(new TimeOnly(8, 0)), TimeSpan.Zero);
+        var end = new DateTimeOffset(Today.AddDays(-1).ToDateTime(new TimeOnly(11, 0)), TimeSpan.Zero);
+
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            var claimed = new QueueEntry(Guid.NewGuid(), start, end, Noon.AddDays(-2));
+            claimed.Claim();
+            var expired = new QueueEntry(Guid.NewGuid(), start, end, Noon.AddDays(-2));
+            expired.Expire();
+            var waiting = new QueueEntry(Guid.NewGuid(), start, end, Noon.AddDays(-2));
+            // Joined before the window, so it is somebody else's refusal, not this window's.
+            var older = new QueueEntry(Guid.NewGuid(), start, end, Noon.AddDays(-40));
+            older.Expire();
+            dbContext.QueueEntries.AddRange(claimed, expired, waiting, older);
+            await dbContext.SaveChangesAsync();
+        }
+
+        var queue = (await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-3), Today)).Queue;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.Entries, Is.EqualTo(3), "Counted by when somebody was refused.");
+            Assert.That(queue.Claimed, Is.EqualTo(1));
+            Assert.That(queue.Expired, Is.EqualTo(1));
+            Assert.That(queue.Open, Is.EqualTo(1));
+            Assert.That(queue.ConversionPercent, Is.EqualTo(50),
+                "Against the entries that reached an outcome; one still waiting has not failed yet.");
+        });
+        Assert.That(queue.Refused.Where(c => c.DayOfWeek == Today.AddDays(-1).DayOfWeek).Select(c => c.Hour),
+            Is.EqualTo(new[] { 8, 9, 10 }),
+            "Each refusal presses on the hours it asked for, so it can be read against the demand that got in.");
+    }
+
+    [Test]
+    public async Task The_suggested_peak_is_the_busiest_stretch_the_length_of_the_configured_one()
+    {
+        var spot = await CreateSpotAsync("X-1");
+        // The fake policy's peak is 07:30–10:00, so the suggestion is a three-hour stretch. Put all
+        // the pressure on the afternoon and it must not come back saying the morning.
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            for (var back = 1; back <= 3; back++)
+            {
+                var day = Today.AddDays(-back);
+                dbContext.Reservations.Add(new Reservation(spot, Guid.NewGuid(),
+                    new DateTimeOffset(day.ToDateTime(new TimeOnly(14, 0)), TimeSpan.Zero),
+                    new DateTimeOffset(day.ToDateTime(new TimeOnly(17, 0)), TimeSpan.Zero), false, Noon));
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        var peak = (await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-3), Today)).Peak;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(peak.SuggestedStartHour, Is.EqualTo(14));
+            Assert.That(peak.SuggestedEndHour, Is.EqualTo(17), "Cut to the length of the configured window.");
+            Assert.That(peak.Matches, Is.False, "Pricing charges for the morning while the lot fills after lunch.");
+        });
+    }
+
+    [Test]
+    public async Task The_window_economics_count_charges_once_and_refunds_from_the_ledger()
+    {
+        var spot = await CreateSpotAsync("Y-1");
+        var user = Guid.NewGuid();
+        await BookAsync(spot, user, day: Today.AddDays(-2), status: ReservationStatus.Completed, credits: 12);
+        // Cancelled and refunded: the charge is not income and the refund is its own event.
+        await BookAsync(spot, user, day: Today.AddDays(-1), status: ReservationStatus.Cancelled, credits: 8);
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                user, IncentiveReason.ReservationRefund, 8, null, Noon.AddDays(-1)));
+            await dbContext.SaveChangesAsync();
+        }
+
+        var economy = (await CreateDashboard().GetAnalyticsAsync(Today.AddDays(-3), Today)).Economy;
+
+        Assert.That(economy.CreditsCharged, Is.EqualTo(12),
+            "A cancelled booking was handed back; counting it as a charge would book the money twice.");
+        Assert.That(economy.CreditsRefunded, Is.EqualTo(8));
     }
 
     // A fresh cache per instance, so one test's cached aggregate can never answer another's question.

@@ -955,91 +955,143 @@
   <data name="Nav_AdminLot" xml:space="preserve"><value>Plocha parkoviště</value></data>
   <data name="Nav_Short_Lot" xml:space="preserve"><value>Plocha</value></data>
   <data name="Lot_Title" xml:space="preserve"><value>Plocha parkoviště</value></data>
-  <data name="Lot_Intro" xml:space="preserve"><value>Živý přehled celé plochy: co dělá které místo, kdo na něm stojí, jeho kalendář a nástroje pro řešení neshod.</value></data>
+  <data name="Lot_Intro" xml:space="preserve"><value>Přehled stavu plochy v reálném čase: obsazení jednotlivých míst, jejich kalendář a nástroje pro řešení neshod obsazenosti.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Správa míst</value></data>
   <data name="Lot_Day" xml:space="preserve"><value>Den</value></data>
   <data name="Lot_PrevDay" xml:space="preserve"><value>← Předchozí</value></data>
   <data name="Lot_NextDay" xml:space="preserve"><value>Další →</value></data>
   <data name="Lot_Today" xml:space="preserve"><value>Dnes</value></data>
-  <data name="Lot_NotToday" xml:space="preserve"><value>Jiný den — dlaždice ukazují, co je na ten den zarezervováno, ne aktuální stav</value></data>
+  <data name="Lot_NotToday" xml:space="preserve"><value>Zvolen jiný než dnešní den — dlaždice zobrazují rezervace pro daný den, nikoli aktuální stav.</value></data>
   <data name="Lot_SectionUnnamed" xml:space="preserve"><value>Bez sekce</value></data>
   <data name="Lot_Tab_Board" xml:space="preserve"><value>Plocha</value></data>
   <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytika</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Zavřít</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Volné</value></data>
   <data name="Lot_State_Booked" xml:space="preserve"><value>Zarezervováno</value></data>
-  <data name="Lot_State_Occupied" xml:space="preserve"><value>Obsazeno (na místě)</value></data>
-  <data name="Lot_State_ResidentHeld" xml:space="preserve"><value>Drženo rezidentovi</value></data>
-  <data name="Lot_State_ResidentShared" xml:space="preserve"><value>Rezidentní, sdíleno</value></data>
-  <data name="Lot_State_VisitorBooked" xml:space="preserve"><value>Návštěva</value></data>
+  <data name="Lot_State_Occupied" xml:space="preserve"><value>Obsazeno (vozidlo na místě)</value></data>
+  <data name="Lot_State_ResidentHeld" xml:space="preserve"><value>Rezervováno rezidentovi</value></data>
+  <data name="Lot_State_ResidentShared" xml:space="preserve"><value>Rezidentní, uvolněno do fondu</value></data>
+  <data name="Lot_State_VisitorBooked" xml:space="preserve"><value>Rezervováno návštěvě</value></data>
   <data name="Lot_State_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
   <data name="Lot_Stat_Occupancy" xml:space="preserve"><value>Obsazenost</value></data>
-  <data name="Lot_Stat_Occupied" xml:space="preserve"><value>Stojí na místě</value></data>
-  <data name="Lot_Stat_Booked" xml:space="preserve"><value>Zarezervováno</value></data>
-  <data name="Lot_Stat_Free" xml:space="preserve"><value>K dispozici</value></data>
+  <data name="Lot_Stat_Occupied" xml:space="preserve"><value>Obsazených míst</value></data>
   <data name="Lot_Stat_Residents" xml:space="preserve"><value>Rezidentních míst</value></data>
   <data name="Lot_Stat_Pool" xml:space="preserve"><value>Ve sdíleném fondu</value></data>
-  <data name="Lot_Stat_Visitors" xml:space="preserve"><value>Návštěvy dnes</value></data>
-  <data name="Lot_Stat_Queue" xml:space="preserve"><value>Ve frontě</value></data>
+  <data name="Lot_Stat_Visitors" xml:space="preserve"><value>Rezervací návštěv</value></data>
+  <data name="Lot_Stat_Queue" xml:space="preserve"><value>Čekajících ve frontě</value></data>
   <data name="Lot_Stat_Mismatches" xml:space="preserve"><value>Neshody (30 dní)</value></data>
-  <data name="Lot_Stat_WastedShares" xml:space="preserve"><value>Promarněná sdílení (30 dní)</value></data>
-  <data name="Lot_Stat_Inactive" xml:space="preserve"><value>Neaktivních míst</value></data>
+  <data name="Lot_Stat_WastedShares" xml:space="preserve"><value>Nevyužitá uvolnění (30 dní)</value></data>
   <data name="Lot_Tile_Resident" xml:space="preserve"><value>Rezident místa</value></data>
   <data name="Lot_Tile_Mismatches" xml:space="preserve"><value>Nahlášené neshody za 30 dní</value></data>
+  <data name="Lot_Detail_Panel" xml:space="preserve"><value>Vybrané místo</value></data>
+  <data name="Lot_Detail_PickSpot" xml:space="preserve"><value>Zvolte místo v ploše vlevo; jeho detail — kalendář, využití a nahlášené neshody — se zobrazí zde.</value></data>
   <data name="Lot_Detail_State" xml:space="preserve"><value>Stav dnes</value></data>
   <data name="Lot_Detail_NoResident" xml:space="preserve"><value>bez rezidenta (sdílený fond)</value></data>
   <data name="Lot_Detail_Plan" xml:space="preserve"><value>Plán využití</value></data>
   <data name="Lot_Detail_PlanOff" xml:space="preserve"><value>automatické uvolňování vypnuto</value></data>
-  <data name="Lot_Detail_PlanNone" xml:space="preserve"><value>žádný den nepotřebuje</value></data>
-  <data name="Lot_Detail_Utilization" xml:space="preserve"><value>Vytíženost</value></data>
+  <data name="Lot_Detail_PlanNone" xml:space="preserve"><value>žádný den není plánován</value></data>
+  <data name="Lot_Detail_Utilization" xml:space="preserve"><value>Využití</value></data>
   <data name="Lot_Detail_Days" xml:space="preserve"><value>dní</value></data>
   <data name="Lot_Detail_NoShows" xml:space="preserve"><value>Nedostavení</value></data>
   <data name="Lot_Detail_Mismatches" xml:space="preserve"><value>Neshody</value></data>
   <data name="Lot_Detail_Shared" xml:space="preserve"><value>Sdílené dny</value></data>
-  <data name="Lot_Detail_Wasted" xml:space="preserve"><value>promarněno</value></data>
+  <data name="Lot_Detail_Wasted" xml:space="preserve"><value>nevyužito</value></data>
   <data name="Lot_Detail_MismatchLog" xml:space="preserve"><value>Nahlášené neshody na tomto místě</value></data>
-  <data name="Lot_Detail_Relocated" xml:space="preserve"><value>přeložen jinam</value></data>
-  <data name="Lot_Deactivate" xml:space="preserve"><value>Odstavit místo (údržba)</value></data>
+  <data name="Lot_Detail_Relocated" xml:space="preserve"><value>přesunuto</value></data>
+  <data name="Lot_Deactivate" xml:space="preserve"><value>Vyřadit z provozu (údržba)</value></data>
   <data name="Lot_Calendar" xml:space="preserve"><value>Kalendář místa</value></data>
-  <data name="Lot_Calendar_Empty" xml:space="preserve"><value>Na sledovaných dnech není na tomto místě nic.</value></data>
+  <data name="Lot_Calendar_Empty" xml:space="preserve"><value>Ve sledovaném období nemá toto místo žádný záznam.</value></data>
   <data name="Lot_CalendarKind_Reservation" xml:space="preserve"><value>Rezervace</value></data>
   <data name="Lot_CalendarKind_VisitorBooking" xml:space="preserve"><value>Návštěva</value></data>
   <data name="Lot_CalendarKind_ResidentRelease" xml:space="preserve"><value>Uvolněno rezidentem</value></data>
-  <data name="Lot_Calendar_NobodyTook" xml:space="preserve"><value>nikdo nezabral</value></data>
+  <data name="Lot_Calendar_NobodyTook" xml:space="preserve"><value>nevyužito</value></data>
   <data name="Lot_Calendar_WholeDay" xml:space="preserve"><value>celý den</value></data>
-  <data name="Lot_CancelBooking" xml:space="preserve"><value>Zrušit s vrácením</value></data>
+  <data name="Lot_CancelBooking" xml:space="preserve"><value>Zrušit s vrácením kreditů</value></data>
   <data name="Lot_MoveBooking" xml:space="preserve"><value>Přesunout</value></data>
   <data name="Lot_MoveTo" xml:space="preserve"><value>Přesunout na</value></data>
   <data name="Lot_MoveConfirm" xml:space="preserve"><value>Přesunout</value></data>
   <data name="Lot_MoveAbort" xml:space="preserve"><value>Zpět</value></data>
-  <data name="Lot_MoveNoTargets" xml:space="preserve"><value>V tom čase není volné žádné jiné místo.</value></data>
-  <data name="Lot_Window" xml:space="preserve"><value>Okno</value></data>
+  <data name="Lot_MoveNoTargets" xml:space="preserve"><value>Pro daný termín není volné žádné jiné místo.</value></data>
+  <data name="Lot_Window" xml:space="preserve"><value>Období</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Posledních {0} dní</value></data>
-  <data name="Lot_Stat_AvgUtilization" xml:space="preserve"><value>Průměrná vytíženost</value></data>
-  <data name="Lot_Stat_Bookings" xml:space="preserve"><value>Rezervací v okně</value></data>
-  <data name="Lot_Stat_NoShowRate" xml:space="preserve"><value>Nedostavení</value></data>
-  <data name="Lot_Stat_Peak" xml:space="preserve"><value>Špička</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Neshody</value></data>
   <data name="Lot_Summary_Group_Trend" xml:space="preserve"><value>Vývoj</value></data>
-  <data name="Lot_Summary_Group_Today" xml:space="preserve"><value>Dnes na ploše</value></data>
   <data name="Lot_Summary_Group_Lot" xml:space="preserve"><value>Skladba plochy</value></data>
-  <data name="Lot_Summary_Value" xml:space="preserve"><value>Teď</value></data>
+  <data name="Lot_Summary_Value" xml:space="preserve"><value>Aktuálně</value></data>
   <data name="Lot_Summary_Trend" xml:space="preserve"><value>Trend {0} dní</value></data>
-  <data name="Lot_Trend" xml:space="preserve"><value>Zatížení v čase</value></data>
-  <data name="Lot_Trend_Hint" xml:space="preserve"><value>Kolik míst každý den skutečně někdo obsadil. Škála jde k dnešní kapacitě ({0} míst) — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní jmenovatel by byl vymyšlený.</value></data>
-  <data name="Lot_Trend_Series" xml:space="preserve"><value>Obsazených míst</value></data>
-  <data name="Lot_Busiest" xml:space="preserve"><value>Nejvytíženější místa</value></data>
-  <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Top {0} míst podle podílu dnů, kdy je někdo skutečně obsadil. Škála je 0–100 % celého okna, ne vůči nejlepšímu místu.</value></data>
-  <data name="Lot_Analytics_Table" xml:space="preserve"><value>Podrobná tabulka všech míst (nedostavení, neshody, sdílené dny)</value></data>
-  <data name="Lot_Detail_Trend" xml:space="preserve"><value>Zatížení tohoto místa</value></data>
-  <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Obsazeno</value></data>
-  <data name="Lot_Demand" xml:space="preserve"><value>Kdy poptávka dopadá</value></data>
-  <data name="Lot_Demand_Hint" xml:space="preserve"><value>Obsazené hodiny míst podle dne v týdnu a hodiny; odstín je vůči nejvytíženější buňce okna.</value></data>
+  <data name="Lot_Trend" xml:space="preserve"><value>Vývoj využití v čase</value></data>
+  <data name="Lot_Trend_Hint" xml:space="preserve"><value>Počet míst využitých v jednotlivých dnech. Měřítko odpovídá dnešní kapacitě ({0} míst); systém nevede historii počtu provozovaných míst, denní jmenovatel by proto nebyl doložitelný.</value></data>
+  <data name="Lot_Trend_Series" xml:space="preserve"><value>Využitých míst</value></data>
+  <data name="Lot_Busiest" xml:space="preserve"><value>Místa s nejvyšším využitím</value></data>
+  <data name="Lot_Busiest_Hint" xml:space="preserve"><value>Prvních {0} míst podle podílu dnů, ve kterých byla využita. Měřítko je 0–100 % období, nikoli relativně k nejvyužívanějšímu místu.</value></data>
+  <data name="Lot_Analytics_Table" xml:space="preserve"><value>Podrobný přehled všech míst (nedostavení, neshody, uvolněné dny)</value></data>
+  <data name="Lot_Analytics_Now" xml:space="preserve"><value>Aktuální stav plochy</value></data>
+  <data name="Lot_Analytics_Window" xml:space="preserve"><value>Ukazatele za období</value></data>
+  <data name="Lot_Detail_Trend" xml:space="preserve"><value>Využití tohoto místa</value></data>
+  <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Využito</value></data>
+  <data name="Lot_Demand" xml:space="preserve"><value>Rozložení poptávky v čase</value></data>
+  <data name="Lot_Demand_Hint" xml:space="preserve"><value>Obsazené místo-hodiny podle dne v týdnu a hodiny. Odstín je relativní k nejvytíženější buňce období.</value></data>
   <data name="Lot_Info_Cancelled" xml:space="preserve"><value>Rezervace zrušena, kredit vrácen a držitel informován.</value></data>
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Rezervace přesunuta, držitel informován.</value></data>
-  <data name="Lot_Info_Deactivated" xml:space="preserve"><value>Místo je odstavené.</value></data>
-  <data name="Lot_Info_Activated" xml:space="preserve"><value>Místo je zpět v provozu.</value></data>
+  <data name="Lot_Info_Deactivated" xml:space="preserve"><value>Místo bylo vyřazeno z provozu.</value></data>
+  <data name="Lot_Info_Activated" xml:space="preserve"><value>Místo bylo vráceno do provozu.</value></data>
   <data name="Parking_PrevPage" xml:space="preserve"><value>← Předchozí</value></data>
   <data name="Parking_NextPage" xml:space="preserve"><value>Další →</value></data>
   <data name="Parking_PageOf" xml:space="preserve"><value>Stránka {0} z {1}</value></data>
+  <data name="Lot_State_OfferedFromQueue" xml:space="preserve"><value>Nabídnuto z fronty</value></data>
+  <data name="Lot_Stat_ResidentHeld" xml:space="preserve"><value>Rezervováno rezidentům</value></data>
+  <data name="Lot_Stat_ActiveSpots" xml:space="preserve"><value>Aktivních míst</value></data>
+  <data name="Lot_Stat_TotalSpots" xml:space="preserve"><value>Míst celkem</value></data>
+  <data name="Lot_Stat_VisitorSpots" xml:space="preserve"><value>Návštěvnických míst</value></data>
+  <data name="Lot_Stat_InactiveNote" xml:space="preserve"><value>z toho {0} neaktivních</value></data>
+  <data name="Lot_Stat_QueueOffered" xml:space="preserve"><value>S přidělenou nabídkou</value></data>
+  <data name="Lot_Stat_Relocated" xml:space="preserve"><value>Neshody řešené přesunem</value></data>
+  <data name="Lot_Summary_Group_Spots" xml:space="preserve"><value>Stav míst</value></data>
+  <data name="Lot_Unit_People" xml:space="preserve"><value>osob</value></data>
+  <data name="Lot_Unit_Bookings" xml:space="preserve"><value>rezervací</value></data>
+  <data name="Lot_Unit_Reports" xml:space="preserve"><value>hlášení</value></data>
+  <data name="Lot_Unit_Spots" xml:space="preserve"><value>míst</value></data>
+  <data name="Lot_Cap_Head" xml:space="preserve"><value>Struktura využití kapacity</value></data>
+  <data name="Lot_Cap_Hint" xml:space="preserve"><value>Základ tvoří {0} aktivních míst × {1} dní. Každý místo-den je zařazen právě do jedné kategorie; součet kategorií odpovídá celkové kapacitě.</value></data>
+  <data name="Lot_Cap_Group" xml:space="preserve"><value>Kategorie</value></data>
+  <data name="Lot_Cap_Unit" xml:space="preserve"><value>místo-dnů</value></data>
+  <data name="Lot_Cap_Share" xml:space="preserve"><value>Podíl</value></data>
+  <data name="Lot_Cap_Used" xml:space="preserve"><value>Využito</value></data>
+  <data name="Lot_Cap_OfferedUnused" xml:space="preserve"><value>Uvolněno, nevyužito</value></data>
+  <data name="Lot_Cap_Held" xml:space="preserve"><value>Rezervováno rezidentům</value></data>
+  <data name="Lot_Cap_Idle" xml:space="preserve"><value>Volné, nepoptáno</value></data>
+  <data name="Lot_Cap_Total" xml:space="preserve"><value>Kapacita celkem</value></data>
+  <data name="Lot_Cap_HeldNote" xml:space="preserve"><value>Kategorie „Rezervováno rezidentům“ představuje horní odhad. Po uplynutí ranního limitu se nevyužité rezidentní místo uvolňuje do sdíleného fondu automaticky, bez samostatného záznamu; takový den je proto vykázán jako rezervovaný, ačkoli byl nabídnut.</value></data>
+  <data name="Lot_Stat_Use" xml:space="preserve"><value>Průměrné využití</value></data>
+  <data name="Lot_Stat_DeadSpots" xml:space="preserve"><value>Bez využití</value></data>
+  <data name="Lot_Stat_BestDay" xml:space="preserve"><value>Nejvyšší denní využití</value></data>
+  <data name="Lot_Stat_WorstDay" xml:space="preserve"><value>Nejnižší denní využití</value></data>
+  <data name="Lot_Queue_Head" xml:space="preserve"><value>Odmítnutá poptávka</value></data>
+  <data name="Lot_Queue_Hint" xml:space="preserve"><value>Zařazení do fronty je možné pouze pro termín bez volné kapacity. Každý záznam proto představuje doložené odmítnutí poptávky, nikoli pouze projevený zájem.</value></data>
+  <data name="Lot_Stat_QueueEntries" xml:space="preserve"><value>Zařazení do fronty</value></data>
+  <data name="Lot_Stat_QueueClaimed" xml:space="preserve"><value>Následně uspokojeno</value></data>
+  <data name="Lot_Stat_QueueExpired" xml:space="preserve"><value>Neuspokojeno</value></data>
+  <data name="Lot_Stat_QueueConversion" xml:space="preserve"><value>Konverze fronty</value></data>
+  <data name="Lot_Queue_Refused_Hint" xml:space="preserve"><value>Termíny, na které mířila odmítnutá poptávka. Odchylka od mapy poptávky níže označuje období nedostatečné kapacity, nikoli období s nejvyšším počtem rezervací.</value></data>
+  <data name="Lot_Rel_Head" xml:space="preserve"><value>Spolehlivost rezervací</value></data>
+  <data name="Lot_Rel_Hint" xml:space="preserve"><value>Zahrnuty jsou pouze rezervace, jejichž termín v daném období skončil; rezervace s budoucím termínem nemohly být dosud vyhodnoceny. Tři podíly téhož základu.</value></data>
+  <data name="Lot_Rel_Completed" xml:space="preserve"><value>Využito dle rezervace</value></data>
+  <data name="Lot_Rel_Released" xml:space="preserve"><value>Uvolněno v termínu</value></data>
+  <data name="Lot_Rel_NoShow" xml:space="preserve"><value>Nedostavení</value></data>
+  <data name="Lot_Rel_Counts" xml:space="preserve"><value>Vyhodnocených rezervací: {0}. Zrušených, mimo uvedený základ: {1} — zrušená rezervace kapacitu neblokovala.</value></data>
+  <data name="Lot_Stat_LeadTime" xml:space="preserve"><value>Medián předstihu</value></data>
+  <data name="Lot_Stat_LeadTime_Value" xml:space="preserve"><value>{0} h</value></data>
+  <data name="Lot_Peak_Suggested" xml:space="preserve"><value>Odvozeno z dat</value></data>
+  <data name="Lot_Peak_Configured" xml:space="preserve"><value>Konfigurovaná špička</value></data>
+  <data name="Lot_Peak_Matches" xml:space="preserve"><value>shoda</value></data>
+  <data name="Lot_Peak_Differs" xml:space="preserve"><value>odchylka</value></data>
+  <data name="Lot_Econ_Head" xml:space="preserve"><value>Ekonomické ukazatele období</value></data>
+  <data name="Lot_Econ_Hint" xml:space="preserve"><value>Počítáno nad stejným základem vyhodnocených rezervací jako struktura výše; podíly proto sdílejí týž jmenovatel.</value></data>
+  <data name="Lot_Stat_Charged" xml:space="preserve"><value>Účtováno</value></data>
+  <data name="Lot_Stat_Refunded" xml:space="preserve"><value>Vráceno</value></data>
+  <data name="Lot_Stat_OffPeak" xml:space="preserve"><value>Podíl mimo špičku</value></data>
+  <data name="Lot_Stat_FromQueue" xml:space="preserve"><value>Podíl z fronty</value></data>
+  <data name="Lot_Peak_Hottest" xml:space="preserve"><value>Hodina s nejvyšší poptávkou</value></data>
+  <data name="Lot_Hint_Aria" xml:space="preserve"><value>Metodická poznámka k části {0}</value></data>
+  <data name="Lot_Queue_Refused" xml:space="preserve"><value>Rozložení odmítnuté poptávky</value></data>
 </root>

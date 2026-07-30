@@ -27,11 +27,26 @@ public enum SpotBoardState
     /// <summary>A visitor spot with a reception booking on the day.</summary>
     VisitorBooked,
 
+    /// <summary>
+    /// Held for a waitlist claim: free of bookings, but promised to whoever is holding the offer, so
+    /// it is not capacity anybody else can be given.
+    /// </summary>
+    OfferedFromQueue,
+
     /// <summary>Deactivated — out of the lot entirely.</summary>
     Inactive,
 }
 
-/// <summary>Lot-level counts for the chosen day, plus what is happening right now.</summary>
+/// <summary>
+/// Lot-level counts for the chosen day, plus what is happening right now.
+///
+/// The spot counts are one partition of the lot and nothing else, so the manager can add them up and
+/// check them: <c>TotalSpots = ActiveSpots + InactiveSpots</c>, and every active spot lands in exactly
+/// one of <see cref="Occupied"/>, <see cref="Booked"/>, <see cref="OfferedFromQueue"/>,
+/// <see cref="Free"/> and <see cref="ResidentHeld"/>. The kind counts (resident / pool / visitor) are
+/// a second, independent partition of the whole lot. Anything that is not a count of spots — bookings,
+/// queue entries, reports — is named for what it counts.
+/// </summary>
 public sealed record LotOverviewDto(
     int TotalSpots,
     int ActiveSpots,
@@ -41,12 +56,23 @@ public sealed record LotOverviewDto(
     int VisitorSpots,
     // "Now" figures are only meaningful for today; for another day they describe that day's bookings.
     int Occupied,
+    /// <summary>Spots with a booking nobody has arrived on — employee bookings and visitor bookings alike.</summary>
     int Booked,
+    /// <summary>Spots held for a waitlist offer: not taken, but not on offer to anyone else either.</summary>
+    int OfferedFromQueue,
     int Free,
+    /// <summary>A resident's spot, still theirs for the day — neither taken nor offerable.</summary>
+    int ResidentHeld,
+    /// <summary>Taken or spoken for, against the spots that could be offered at all (active minus held).</summary>
     int OccupancyPercent,
     int QueueWaiting,
+    int QueueOffered,
+    /// <summary>Visitor <em>bookings</em> touching the day — rows, not spots; a spot can carry several.</summary>
     int VisitorBookings,
-    int OpenMismatches,
+    /// <summary>Blocked-spot reports filed in the recent window. There is no triage state to be "open".</summary>
+    int ReportedMismatches,
+    /// <summary>Of those, the ones resolved by putting the driver on another spot.</summary>
+    int RelocatedMismatches,
     /// <summary>Shared days in the recent window that nobody booked — capacity given away for nothing.</summary>
     int UnusedSharedDays);
 
@@ -151,9 +177,13 @@ public sealed record DemandCellDto(DayOfWeek DayOfWeek, int Hour, int Count);
 
 /// <summary>
 /// How many spots one day of the window actually carried. <paramref name="Capacity"/> is the lot's
-/// bookable capacity <em>today</em>, not on that day: spots get created, retired and reassigned, and
+/// active spot count <em>today</em>, not on that day: spots get created, retired and reassigned, and
 /// there is no history of that, so a per-day denominator would be invented. The count is the honest
 /// figure; the percentage is against today's capacity and is only meant for the recent past.
+///
+/// Both sides count the same population — every active spot, visitor spots included, because a
+/// visitor booking occupies asphalt exactly like an employee one. Leaving visitor spots out of the
+/// denominator while their bookings stayed in the numerator was how this could read past 100 %.
 /// </summary>
 public sealed record DailyOccupancyDto(DateOnly Date, int Occupied, int Capacity, int OccupancyPercent);
 
@@ -179,6 +209,96 @@ public static class LotBoard
     public const int SummaryTrendDays = 14;
 }
 
+/// <summary>
+/// Where the lot's capacity went over the window, as a partition of spot-days that adds up:
+/// <c>CapacityDays = UsedDays + OfferedUnusedDays + ResidentHeldDays + IdleDays</c>. Each spot-day of
+/// an active spot falls in exactly one bucket, and the four answer four different questions — the lot
+/// worked, a resident offered it and nobody came, a resident sat on it, or nobody wanted it at all.
+/// </summary>
+/// <remarks>
+/// <see cref="ResidentHeldDays"/> reads high wherever auto-share has been doing the work: past the
+/// hold cutoff an unclaimed resident spot becomes pool capacity without leaving a record, so those
+/// days look held here when they were in fact on offer. Recording auto-shares would need a write in
+/// the resident sweep; until then this bucket is an upper bound.
+/// </remarks>
+public sealed record CapacityUseDto(
+    int ActiveSpots,
+    int WindowDays,
+    int CapacityDays,
+    /// <summary>Spot-days that carried a booking somebody stood by.</summary>
+    int UsedDays,
+    /// <summary>Days a resident released that no booking ever took (days already past).</summary>
+    int OfferedUnusedDays,
+    /// <summary>Days a resident's spot stayed theirs — not released, not booked by anyone.</summary>
+    int ResidentHeldDays,
+    /// <summary>Bookable spot-days nobody asked for.</summary>
+    int IdleDays,
+    /// <summary>UsedDays against CapacityDays — the same figure the daily curve averages to.</summary>
+    int UsePercent,
+    /// <summary>Active spots that carried nothing at all in the window.</summary>
+    int DeadSpots);
+
+/// <summary>
+/// Demand the lot turned away. A waitlist entry is only ever created for a window with nothing free
+/// in it, so each one is a recorded refusal — the single hard measurement that capacity ran out. The
+/// counts are of entries <em>created</em> in the window; <see cref="Refused"/> spreads each entry
+/// over the hours it asked for, so it overlays the demand map.
+/// </summary>
+public sealed record QueueDemandDto(
+    int Entries,
+    /// <summary>Entries that ended up on a spot.</summary>
+    int Claimed,
+    /// <summary>Entries whose window passed without one.</summary>
+    int Expired,
+    int Cancelled,
+    /// <summary>Still waiting or holding an offer — no outcome yet, so outside the conversion.</summary>
+    int Open,
+    /// <summary>Claimed against the entries that reached an outcome.</summary>
+    int ConversionPercent,
+    IReadOnlyList<DemandCellDto> Refused);
+
+/// <summary>
+/// What became of the bookings that ran out in the window, as shares of one whole. Only bookings whose
+/// window has ended are here: a booking still ahead of us has not had the chance to be honoured, and
+/// counting it would quietly dilute every rate. Cancellations are reported beside the three rather
+/// than inside them — a booking called off in time occupied nothing and failed nobody.
+/// </summary>
+public sealed record ReliabilityDto(
+    int Resolved,
+    int Completed,
+    /// <summary>Given up early enough for somebody else to take the spot.</summary>
+    int Released,
+    int NoShows,
+    int Cancelled,
+    int NoShowPercent,
+    /// <summary>Median hours between booking and arrival — how far ahead the lot is planned.</summary>
+    int? MedianLeadHours);
+
+/// <summary>
+/// The busiest stretch the window actually shows, against the peak window the pricing is configured
+/// with. Same length as the configured one so the two are comparable; null when the window holds no
+/// demand at all.
+/// </summary>
+public sealed record PeakWindowDto(
+    int? SuggestedStartHour,
+    int? SuggestedEndHour,
+    TimeOnly ConfiguredStart,
+    TimeOnly ConfiguredEnd,
+    bool Matches);
+
+/// <summary>
+/// What the window cost and how the price levers were hit. Over the same resolved bookings as
+/// <see cref="ReliabilityDto"/>, so the shares below and the funnel above have one denominator.
+/// </summary>
+public sealed record LotEconomyDto(
+    int CreditsCharged,
+    /// <summary>Credits handed back — late-cancel refunds and manager overrides.</summary>
+    int CreditsRefunded,
+    /// <summary>Share of bookings that arrived outside the peak window, where the discount lives.</summary>
+    int OffPeakPercent,
+    /// <summary>Share of bookings that came from the waitlist rather than straight off the board.</summary>
+    int FromQueuePercent);
+
 /// <summary>The lot's analytics over a window: which spots work hardest, and when demand lands.</summary>
 public sealed record LotAnalyticsDto(
     DateOnly From,
@@ -192,9 +312,11 @@ public sealed record LotAnalyticsDto(
     /// <summary>The busiest hour and weekday overall, or null when the window holds no bookings.</summary>
     int? PeakHour,
     DayOfWeek? PeakDayOfWeek,
-    int TotalReservations,
-    int NoShowPercent,
-    int AverageOccupancyPercent);
+    CapacityUseDto Capacity,
+    QueueDemandDto Queue,
+    ReliabilityDto Reliability,
+    PeakWindowDto Peak,
+    LotEconomyDto Economy);
 
 /// <summary>A spot a booking could be moved to (free for the same window).</summary>
 public sealed record MoveTargetDto(Guid SpotId, string Code, ParkingSpotType Type);

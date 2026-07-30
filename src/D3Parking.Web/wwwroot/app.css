@@ -2589,10 +2589,19 @@ fluent-menu-item:has(> .account-menu-link) {
 
 /* --- Dashboard parkovací plochy (správce míst) --- */
 
-/* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. */
+/* fluent-tabs se přizpůsobuje šířce obsahu aktivního tabu, protože FluentStack zarovnává děti
+   doleva, ne roztažením — stejná past jako v nastavení parkování. Bez toho vyšel hostitel na 794 px
+   z 1370 dostupných: detail vedle plochy si vzal svých 400 a na dlaždice zbyly dva sloupce. */
+.lot-tabs {
+    width: 100%;
+}
+
+/* Souhrnný pásek: dlaždice se počtem a popiskem, samy se přelévají do řádků. Minimum drží na jeden
+   řádek i nejdelší hodnoty, které se sem dostanou — datum s procentem („30.7. · 35 %") a medián
+   předstihu („55 h předem"); pod 130 px se lámaly na dvě řádky a pásek se rozjel do schodů. */
 .lot-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
     gap: 10px;
     width: 100%;
 }
@@ -2616,6 +2625,15 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-stat__label {
     font-size: 11.5px;
     color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Jednotka u čísla, ne v popisku: dlaždice s lidmi ve frontě stojí vedle tabulky s počty míst a
+   holá „3" se v tom sousedství čte jako tři místa. */
+.lot-stat__unit {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    margin-left: 3px;
 }
 
 /* Barví se jen vybočující stavy — normální hodnota si nechává výchozí popředí. Značkové
@@ -2697,6 +2715,9 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-tile--ResidentShared { border-left-color: var(--brand-green-deep); }
 .lot-tile--ResidentHeld { border-left-color: var(--brand-sherpa-soft); }
 .lot-tile--VisitorBooked { border-left-color: var(--brand-violet-deep); }
+/* Slíbeno někomu z fronty: prázdné, ale nedá se nabídnout — proto barva ze skupiny „zadáno",
+   ne ze skupiny „volno". */
+.lot-tile--OfferedFromQueue { border-left-color: var(--accent-fill-rest, #0f6cbd); }
 .lot-tile--Inactive {
     border-left-color: var(--neutral-foreground-hint, #9a9a9a);
     background: var(--neutral-fill-secondary-rest, #f5f5f5);
@@ -2729,6 +2750,7 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-tile__dot--ResidentShared { background: var(--brand-green-deep); }
 .lot-tile__dot--ResidentHeld { background: var(--brand-sherpa-soft); }
 .lot-tile__dot--VisitorBooked { background: var(--brand-violet-deep); }
+.lot-tile__dot--OfferedFromQueue { background: var(--accent-fill-rest, #0f6cbd); }
 .lot-tile__dot--Inactive { background: var(--neutral-foreground-hint, #9a9a9a); }
 
 .lot-tile__meta { font-size: 11px; }
@@ -2764,21 +2786,80 @@ fluent-menu-item:has(> .account-menu-link) {
 
 
 
-/* Detail místa: fakta ve dvou sloupcích, pak kalendář a zásahy.
+/* Plocha vlevo, kliknuté místo vpravo. Detail býval modální dialog: clona překryla přesně tu
+   plochu, proti které se detail čte, a před kliknutím na další místo se musel zavřít. Vedle sebe je
+   proklikání míst jedno kliknutí na místo a plocha zůstává vidět. */
+.lot-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 18px;
+    width: 100%;
+    align-items: start;
+}
 
-   Šířku dialogu nese tenhle obsah, ne fluent-dialog. Zvenčí se ovládací prvek dialogu rozšířit
-   nedá — ověřeno v prohlížeči: ani `::part(control) { width }`, ani `--dialog-width` s ním nehnuly
-   (zůstal na min-content obsahu) a zabralo až inline `!important`. Panel se tak smrskával podle
-   toho, co v něm zrovna bylo: kalendářní řádky se lámaly do tří řádek a osa grafu do mazanice.
-   Roztažení podle obsahu ale funguje spolehlivě, takže šířku určuje .lot-detail a přes ::part se
-   řeší jen výška a vlastní scroll. */
+.lot-split__board {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Container query, ne media query: řádky kalendáře se skládají podle šířky panelu, a ta je úzká
+   i na širokém monitoru. */
+.lot-split__side {
+    container-type: inline-size;
+}
+
+/* Obě strany mají vlastní scroll a stejný strop, aby plocha i detail zůstaly vedle sebe i na
+   parkovišti o dvou stech místech. Kdyby rostly se stránkou, kliknutí na dlaždici dole by detail
+   vykreslilo kus nad viewportem a vypadalo by, že se nic nestalo. Sticky panel by to řešil
+   elegantněji, ale v tomhle layoutu nefunguje: .main má overflow:hidden a .body-content
+   overflow:auto (obojí z MainLayoutu), přitom scrolluje až stránka — nejbližší scrollport nad
+   panelem se tedy nikdy neposune a sticky nemá vůči čemu držet. Ověřeno v prohlížeči: panel
+   odjel s obsahem na y = -65. Strop je `max()`, aby na nízkém okně nesplaskl na pár řádků; malé
+   parkoviště zůstává vysoké podle obsahu. */
+.lot-split__board,
+.lot-split__side {
+    min-width: 0;
+    max-height: max(420px, calc(100vh - 360px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 1100px) {
+    /* Pod sebou: dva scrollující bloky nad sebou uvnitř scrollující stránky jsou past, a plocha
+       s detailem se stejně nevidí naráz. Obojí platí jen pro sloupce vedle sebe. */
+    .lot-split { grid-template-columns: minmax(0, 1fr); }
+
+    .lot-split__board,
+    .lot-split__side {
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* Vedle plochy je prázdný panel pozvánkou ke kliknutí; pod ní by to byla jen obrazovka
+       navíc, kterou musí každý přerolovat, než na místo vůbec klikne. */
+    .lot-detail--empty { display: none; }
+}
+
+/* Detail místa: fakta pod sebou, pak kalendář a zásahy. Šířku bere ze sloupce, ve kterém stojí. */
 .lot-detail {
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    width: min(1000px, 92vw);
+    width: 100%;
     box-sizing: border-box;
+}
+
+/* Než se na něco klikne. Přerušovaný rámeček říká "sem to přijde", ne "tady něco je". */
+.lot-detail--empty {
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 180px;
+    padding: 28px 20px;
+    border-style: dashed;
+    text-align: center;
 }
 
 .lot-detail__facts {
@@ -2799,15 +2880,29 @@ fluent-menu-item:has(> .account-menu-link) {
     width: 100%;
 }
 
+/* Ve výchozím stavu dvouřádkově — v úzkém panelu vedle plochy by čtyři sloupce vedle sebe daly
+   každému kolem 90 px a jméno i stav by se lámaly po slabikách. Do jednoho řádku se rozloží až
+   tam, kde na to panel má šířku (viz container query níž). */
 .lot-calendar__row {
     display: grid;
-    grid-template-columns: 1.1fr 1.4fr 1.3fr auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "when status"
+        "who  actions";
+    gap: 2px 10px;
     align-items: center;
     padding: 7px 8px;
     border-bottom: 1px solid var(--brand-hairline, #ececec);
     border-left: 3px solid transparent;
     font-size: 13px;
+}
+
+@container (min-width: 620px) {
+    .lot-calendar__row {
+        grid-template-columns: 1.1fr 1.4fr 1.3fr auto;
+        grid-template-areas: "when who status actions";
+        gap: 10px;
+    }
 }
 
 .lot-calendar__row--Reservation { border-left-color: var(--accent-fill-rest, #0f6cbd); }
@@ -2816,15 +2911,19 @@ fluent-menu-item:has(> .account-menu-link) {
 .lot-calendar__row--Mismatch { border-left-color: var(--warning-rest, #f7a900); }
 
 .lot-calendar__when {
+    grid-area: when;
     display: flex;
     flex-direction: column;
 }
+
+.lot-calendar__who { grid-area: who; }
 
     .lot-calendar__when small { color: var(--neutral-foreground-hint, #6b6b6b); }
 
 .lot-calendar__muted { color: var(--neutral-foreground-hint, #6b6b6b); }
 
 .lot-calendar__status {
+    grid-area: status;
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
@@ -2832,6 +2931,7 @@ fluent-menu-item:has(> .account-menu-link) {
 }
 
 .lot-calendar__actions {
+    grid-area: actions;
     display: flex;
     gap: 4px;
     justify-content: flex-end;
@@ -2919,6 +3019,108 @@ fluent-menu-item:has(> .account-menu-link) {
     width: 1%;
 }
 
+/* Součtový řádek. Bez něj čtenář neví, jestli řádky nad ním jsou celý příběh, nebo výběr —
+   a přesně na tom se dřív dalo splést dvě různá dělení plochy. */
+.lot-summary__total th,
+.lot-summary__total td {
+    border-top: 2px solid var(--neutral-stroke-rest, #d8d8d8);
+    border-bottom: none;
+    padding-top: 6px;
+}
+
+.lot-summary__total th {
+    font-weight: 600 !important;
+}
+
+.lot-summary__note {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Podíl vedle absolutního čísla: samotné „místo-dny" nikdo neumí zvážit, procento ano. */
+.lot-summary__share {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+/* Rozpad kapacity stojí sám, ne ve trojmřížce souhrnu — má tři sloupce a delší popisky. */
+.lot-summary--wide {
+    max-width: 560px;
+}
+
+/* Nadpis sekce s otazníkem, pod kterým je metodická poznámka. Devět poznámek jako odstavců stálo
+   ~330 px a hlavně stavělo mezi každý nadpis a jeho čísla odstavec textu. */
+.lot-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Spouštěč je tlačítko, ne jen ikona: hover se z klávesnice ani z dotyku nedá vyvolat, fokus ano.
+   Vizuálně splývá s textem, dokud na něj nedojde řada. */
+.lot-head__info {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: help;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    line-height: 0;
+}
+
+    .lot-head__info:hover {
+        color: var(--accent-fill-rest, #0f6cbd);
+    }
+
+    .lot-head__info:focus-visible {
+        outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+        outline-offset: 1px;
+        color: var(--accent-fill-rest, #0f6cbd);
+    }
+
+    /* Fluent kreslí ikonu 20 px; vedle textu nadpisu a v řádku tabulky je to o třetinu moc. */
+    .lot-head__info svg {
+        width: 15px;
+        height: 15px;
+    }
+
+/* V řádku tabulky sedí otazník hned za popiskem, ne na konci buňky. */
+.lot-summary th .lot-head__info {
+    vertical-align: middle;
+    margin-left: 2px;
+}
+
+/* Odvozená špička proti nastavené. Účel bloku je porovnání, takže obě hodnoty stojí vedle sebe
+   a odkaz vede rovnou tam, kde se to dá změnit. */
+.lot-peak {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 10px;
+    background: var(--neutral-layer-1, #fff);
+    font-size: 14px;
+}
+
+.lot-peak__item {
+    display: flex;
+    flex-direction: column;
+}
+
+.lot-peak__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
 .lot-summary__chart {
     width: 190px;
     padding-top: 0;
@@ -2936,20 +3138,6 @@ fluent-menu-item:has(> .account-menu-link) {
 
 @media (max-width: 640px) {
     .lot-summary__chart { display: none; }
-
-    .lot-calendar__row {
-        grid-template-columns: 1fr 1fr;
-        row-gap: 4px;
-    }
-
-    .lot-calendar__actions { justify-content: flex-start; }
-}
-
-/* Dialog s detailem místa. Šířku určuje .lot-detail (viz komentář tam); tady zbývá jen výška
-   a vlastní scroll — kalendář na 14 dní se do výšky viewportu nevejde. */
-.lot-dialog::part(control) {
-    max-height: 88vh;
-    overflow: auto;
 }
 
 /* Serverový pager pod tabulkou: dvě tlačítka a pozice. FluentPaginator se tu nepoužívá —
