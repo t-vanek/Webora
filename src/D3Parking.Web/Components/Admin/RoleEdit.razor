@@ -65,83 +65,121 @@
             </FluentCard>
         }
 
-        <FluentCard Class="profile-section">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                <FluentLabel Typo="Typography.Subject">@L["Admin_RoleEdit_Composition"]</FluentLabel>
-                <p class="admin-head__intro">@L["Admin_RoleEdit_CompositionIntro"]</p>
+        @* Composition on the left, the people it applies to on the right. Stacked, the members sat
+           below a picker as tall as the group catalog, so "who does this change hit" was off screen
+           at exactly the moment the composition was being edited. Side by side both stay in view;
+           under 1100px the columns fall back into one, composition first. *@
+        <div class="role-split">
+            <div class="role-split__main">
+                <FluentCard Class="profile-section role-split__card">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                        <FluentLabel Typo="Typography.Subject">@L["Admin_RoleEdit_Composition"]</FluentLabel>
+                        <p class="admin-head__intro">@L["Admin_RoleEdit_CompositionIntro"]</p>
 
-                @if (_detail.IsDefault)
-                {
-                    @* Built-in compositions are re-asserted by the seeder on every start, so an edit
-                       here would quietly revert. Say that, and point at the way that does stick. *@
-                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
-                        @L["Admin_RoleEdit_BuiltInNote"]
-                    </FluentMessageBar>
-                }
-                else if (!_canEdit)
-                {
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Admin_RoleEdit_ReadOnly"]</FluentLabel>
-                }
-
-                <GroupPicker Groups="_groups"
-                             Selected="_selected"
-                             ReadOnly="_readOnly"
-                             Grantable="_grantable"
-                             SelectionChanged="StateHasChanged" />
-
-                @if (!_readOnly)
-                {
-                    <div class="perm-editor__actions">
-                        <FluentButton OnClick="SaveGroupsAsync" Appearance="Appearance.Accent" Disabled="@(!IsDirty)">
-                            @L["Admin_Save"]
-                        </FluentButton>
-                        <FluentButton OnClick="ResetSelection" Appearance="Appearance.Stealth" Disabled="@(!IsDirty)">
-                            @L["Admin_Cancel"]
-                        </FluentButton>
-                    </div>
-                }
-            </FluentStack>
-        </FluentCard>
-
-        <FluentCard Class="profile-section">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                <FluentLabel Typo="Typography.Subject">
-                    @L["Admin_RoleEdit_Members"] <span class="count-chip">@_detail.Members.Count</span>
-                </FluentLabel>
-                @if (_detail.Members.Count == 0)
-                {
-                    <div class="empty-state">@L["Admin_RoleEdit_NoMembers"]</div>
-                }
-                else
-                {
-                    @* A member count alone cannot answer "who blocks this deletion" or "who is about
-                       to gain this permission" — the names have to be one click from the role. *@
-                    <ul class="role-members">
-                        @foreach (var member in _detail.Members)
+                        @if (_detail.IsDefault)
                         {
-                            <li class="role-members__item">
-                                <a href="@($"admin/users/{member.Id}")">
-                                    <span class="role-members__name">@(member.DisplayName ?? member.Email)</span>
-                                    @if (member.DisplayName is not null)
-                                    {
-                                        <span class="role-members__mail">@member.Email</span>
-                                    }
-                                </a>
-                            </li>
+                            @* Built-in compositions are re-asserted by the seeder on every start, so an edit
+                               here would quietly revert. Say that, and point at the way that does stick. *@
+                            <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar" AllowDismiss="false">
+                                @L["Admin_RoleEdit_BuiltInNote"]
+                            </FluentMessageBar>
                         }
-                    </ul>
-                }
-            </FluentStack>
-        </FluentCard>
+                        else if (!_canEdit)
+                        {
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Admin_RoleEdit_ReadOnly"]</FluentLabel>
+                        }
+
+                        <GroupPicker Groups="_groups"
+                                     Selected="_selected"
+                                     ReadOnly="_readOnly"
+                                     Grantable="_grantable"
+                                     SelectionChanged="StateHasChanged" />
+
+                        @if (!_readOnly)
+                        {
+                            <div class="perm-editor__actions">
+                                <FluentButton OnClick="SaveGroupsAsync" Appearance="Appearance.Accent" Disabled="@(!IsDirty)">
+                                    @L["Admin_Save"]
+                                </FluentButton>
+                                <FluentButton OnClick="ResetSelection" Appearance="Appearance.Stealth" Disabled="@(!IsDirty)">
+                                    @L["Admin_Cancel"]
+                                </FluentButton>
+                            </div>
+                        }
+                    </FluentStack>
+                </FluentCard>
+            </div>
+
+            <aside class="role-split__side">
+                <FluentCard Class="profile-section role-split__card">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                        <FluentLabel Typo="Typography.Subject">
+                            @* What the search matched, not what this page draws — with a term typed in,
+                               the role's own member count is the one number that would be a lie here. *@
+                            @L["Admin_RoleEdit_Members"] <span class="count-chip">@_memberTotal</span>
+                        </FluentLabel>
+
+                        @if (_detail.MemberCount == 0)
+                        {
+                            <div class="empty-state">@L["Admin_RoleEdit_NoMembers"]</div>
+                        }
+                        else
+                        {
+                            @* A member count alone cannot answer "who blocks this deletion" or "who is
+                               about to gain this permission" — the names have to be one click from the
+                               role, and searchable once there are more of them than fit a screen. *@
+                            <FluentSearch Id="role-member-search" @bind-Value="_memberSearch" @bind-Value:after="SearchMembersAsync"
+                                          Immediate="true" ImmediateDelay="300"
+                                          Placeholder="@L["Admin_Users_SearchPlaceholder"]" />
+
+                            @if (_members is null)
+                            {
+                                <div class="loading"><FluentProgressRing /></div>
+                            }
+                            else if (_members.Count == 0)
+                            {
+                                <div class="empty-state">@L["Admin_RoleEdit_NoMemberMatch"]</div>
+                            }
+                            else
+                            {
+                                <div class="admin-panel role-split__table">
+                                    <FluentDataGrid Items="@_members.AsQueryable()" TGridItem="RoleMember"
+                                                    GridTemplateColumns="minmax(0, 1fr) minmax(0, 1fr)">
+                                        <TemplateColumn Title="@L["Admin_Users_Name"]">
+                                            <a href="@($"admin/users/{context.Id}")">
+                                                @(string.IsNullOrWhiteSpace(context.DisplayName) ? context.Email : context.DisplayName)
+                                            </a>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(m => m.Email)" Title="@L["Admin_Users_Email"]" />
+                                    </FluentDataGrid>
+                                </div>
+                                @if (_memberTotal > MemberPageSize)
+                                {
+                                    <div class="pager">
+                                        <FluentButton Appearance="Appearance.Outline" Disabled="@(_memberPage == 0)"
+                                                      OnClick="() => GoToMemberPageAsync(_memberPage - 1)">@L["Common_PrevPage"]</FluentButton>
+                                        <span>@L["Common_PageOf", _memberPage + 1, MemberPageCount]</span>
+                                        <FluentButton Appearance="Appearance.Outline" Disabled="@(_memberPage >= MemberPageCount - 1)"
+                                                      OnClick="() => GoToMemberPageAsync(_memberPage + 1)">@L["Common_NextPage"]</FluentButton>
+                                    </div>
+                                }
+                            }
+                        }
+                    </FluentStack>
+                </FluentCard>
+            </aside>
+        </div>
 
         @if (!_detail.IsDefault)
         {
             <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Delete)" Context="delete">
                 <div class="danger-zone">
                     <div class="danger-zone__title">@L["Admin_UserEdit_DangerZone"]</div>
-                    @if (_detail.Members.Count > 0)
+                    @* The role's own count, not the page's: a search that hides the last holder must
+                       not make a role that cannot be deleted look deletable. *@
+                    @if (_detail.MemberCount > 0)
                     {
-                        <p class="danger-zone__note">@PluralText.For(L, "Admin_RoleEdit_DeleteBlocked", _detail.Members.Count)</p>
+                        <p class="danger-zone__note">@PluralText.For(L, "Admin_RoleEdit_DeleteBlocked", _detail.MemberCount)</p>
                     }
                     else if (_confirmDelete)
                     {
@@ -172,12 +210,25 @@
 </FluentStack>
 
 @code {
+    /// <summary>
+    /// How many holders the side panel shows at once. Smaller than the account directory's page on
+    /// purpose: this is a column beside the composition, not a screen of its own, and a table taller
+    /// than the picker beside it would push the save buttons out of view.
+    /// </summary>
+    private const int MemberPageSize = 10;
+
     [Parameter] public Guid Id { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private RoleDetail? _detail;
     private IReadOnlyList<PermissionGroupSummary> _groups = [];
     private bool _loaded;
+
+    private IReadOnlyList<RoleMember>? _members;
+    private int _memberTotal;
+    private int _memberPage;
+    private string? _memberSearch;
+
     private string? _name;
     private bool _readOnly;
     private bool _canEdit;
@@ -192,6 +243,8 @@
 
     private bool IsDirty => _detail is not null
         && !_selected.SetEquals(_detail.Groups.Select(g => g.Id));
+
+    private int MemberPageCount => _memberTotal == 0 ? 1 : (_memberTotal + MemberPageSize - 1) / MemberPageSize;
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,6 +271,9 @@
             _loadedId = Id;
             _message = _error = null;
             _confirmDelete = false;
+            // A term and a page number belong to the role they were typed on, not to the component.
+            _memberSearch = null;
+            _memberPage = 0;
             await LoadAsync();
         }
     }
@@ -231,7 +287,31 @@
             _name = _detail.Name;
             _selected = _detail.Groups.Select(g => g.Id).ToHashSet();
             _readOnly = _detail.IsDefault || !_canEdit;
+            await LoadMembersAsync();
         }
+    }
+
+    private async Task LoadMembersAsync()
+    {
+        var page = await RoleAdmin.ListMembersPageAsync(Id, _memberSearch, _memberPage, MemberPageSize);
+        _members = page.Items;
+        _memberTotal = page.TotalCount;
+        // Taken back from the result: the service walks the index back when the page that was asked
+        // for no longer exists.
+        _memberPage = page.PageIndex;
+    }
+
+    private async Task SearchMembersAsync()
+    {
+        // A new search starts at the front; page 3 of the old result set means nothing in the new one.
+        _memberPage = 0;
+        await LoadMembersAsync();
+    }
+
+    private async Task GoToMemberPageAsync(int pageIndex)
+    {
+        _memberPage = Math.Clamp(pageIndex, 0, MemberPageCount - 1);
+        await LoadMembersAsync();
     }
 
     private void ResetSelection()

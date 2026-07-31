@@ -43,6 +43,35 @@ public class AdminDetailTests : AdminTest
     }
 
     [Test]
+    public async Task The_members_of_a_role_sit_beside_its_composition_and_can_be_searched()
+    {
+        // The members used to be a bare list stacked under a picker as tall as the group catalog.
+        // Beside it now, as a searchable, paged table — "who does this change hit" is the question
+        // asked while the composition is being edited, not after scrolling past it.
+        // The catalog is read for the role's address, then the detail is opened with the circuit
+        // attached rather than clicked through: the search box is an island, and a term typed
+        // before the circuit is up goes nowhere at all. (Clicking through to a role is what the
+        // spec above covers.) The seeded administrator holds this role, so it always has a member.
+        await Page.GotoAsync("/admin/roles");
+        var href = await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Administrátor") })
+            .First.GetAttributeAsync("href");
+        await Pages.GotoInteractiveAsync(Page, "/" + href!.TrimStart('/'));
+
+        var side = Page.Locator(".role-split__side");
+        await Expect(side).ToBeVisibleAsync();
+        await Expect(side).ToContainTextAsync("admin@d3parking.local");
+
+        // The search reaches the server, so a term that matches nobody empties the table rather
+        // than leaving the first page sitting there.
+        var search = Page.Locator("fluent-search#role-member-search input");
+        await search.FillAsync("nikdo-takový");
+        await Expect(side.Locator(".empty-state")).ToBeVisibleAsync();
+
+        await search.FillAsync("admin@");
+        await Expect(side).ToContainTextAsync("admin@d3parking.local");
+    }
+
+    [Test]
     public async Task A_built_in_permission_group_lists_its_permissions_and_the_roles_using_it()
     {
         await Page.GotoAsync("/admin/permission-groups");

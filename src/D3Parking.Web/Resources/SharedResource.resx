@@ -1421,6 +1421,7 @@
   <data name="Admin_RoleEdit_Overview" xml:space="preserve"><value>Přehled</value></data>
   <data name="Admin_RoleEdit_Members" xml:space="preserve"><value>Členové</value></data>
   <data name="Admin_RoleEdit_NoMembers" xml:space="preserve"><value>Roli zatím nikdo nemá.</value></data>
+  <data name="Admin_RoleEdit_NoMemberMatch" xml:space="preserve"><value>Hledání mezi členy role nikoho nenašlo.</value></data>
   <data name="Admin_RoleEdit_BuiltInNote" xml:space="preserve"><value>Vestavěnou roli spravuje systém — její oprávnění se při každém startu obnoví. Pro vlastní nastavení ji duplikujte.</value></data>
   <data name="Admin_RoleEdit_ReadOnly" xml:space="preserve"><value>Nemáte oprávnění tuto roli měnit.</value></data>
   <data name="Admin_RoleEdit_Duplicate" xml:space="preserve"><value>Duplikovat</value></data>
