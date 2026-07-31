@@ -276,6 +276,77 @@ public class EntraDirectoryTests
         Assert.That(await RolesOfAsync(scope, created.UserId), Does.Not.Contain(Roles.LotManager));
     }
 
+    /// <remarks>
+    /// The four cases below pin what "the directory said nothing about roles" means, which differs
+    /// by caller and by whether the account is being created. Getting it wrong is quiet in both
+    /// directions: too eager and a revoked assignment comes back on the next sign-in, too shy and
+    /// the default-roles setting does nothing while promising otherwise, leaving a first-time
+    /// account signed in to an empty application.
+    /// </remarks>
+    [Test]
+    public async Task A_first_sign_in_with_no_app_role_falls_back_to_the_default_roles()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+
+        // A sign-in by someone the directory assigned no app role: an empty array, never null.
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default", "default@example.test", roles: []));
+
+        Assert.That(result.Created, Is.True);
+        Assert.That(await RolesOfAsync(scope, result.UserId), Does.Contain(Roles.Employee));
+    }
+
+    [Test]
+    public async Task An_app_role_the_directory_did_send_wins_over_the_default_roles()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default-override", "override@example.test", roles: ["Parking.LotManager"]));
+
+        var roles = await RolesOfAsync(scope, result.UserId);
+        Assert.That(roles, Does.Contain(Roles.LotManager));
+        Assert.That(roles, Does.Not.Contain(Roles.Employee),
+            "The baseline is for accounts the directory does not classify, not an addition to those it does.");
+    }
+
+    [Test]
+    public async Task The_default_roles_do_not_come_back_when_an_app_role_is_later_revoked()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var service = CreateService(scope);
+
+        var created = await service.SyncAsync(Identity("oid-default-revoke", "revoke-default@example.test", roles: []));
+        Assert.That(await RolesOfAsync(scope, created.UserId), Does.Contain(Roles.Employee));
+
+        // Not a first sign-in any more: an empty array is now the directory revoking what it granted.
+        await service.SyncAsync(Identity("oid-default-revoke", "revoke-default@example.test", roles: []));
+
+        Assert.That(await RolesOfAsync(scope, created.UserId), Is.Empty,
+            "After the account exists, an empty role set means exactly that.");
+    }
+
+    [Test]
+    public async Task Administrator_is_never_handed_out_as_a_default_role()
+    {
+        // The settings page refuses this, but a value pinned in configuration never passes through
+        // that validation — and it would make everyone in the tenant an administrator here.
+        _entra.DefaultRoles = [Roles.Administrator, Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default-admin", "admin-default@example.test", roles: []));
+
+        var roles = await RolesOfAsync(scope, result.UserId);
+        Assert.That(roles, Does.Not.Contain(Roles.Administrator));
+        Assert.That(roles, Does.Contain(Roles.Employee));
+    }
+
     [Test]
     public async Task A_hand_granted_role_survives_a_directory_sync()
     {

@@ -110,6 +110,14 @@ poznámkou proč. Prázdný řetězec se nepočítá jako nastavený. Proto v `a
 
 Mapování rolí z adresáře na role aplikace zůstává na `/admin/directory`.
 
+**Role při zakládání účtu.** Když adresář o rolích mlčí — přihlášení bez přiřazené app role, nebo
+SCIM push, který role nenese — dostane *nově zakládaný* účet **výchozí role** z nastavení. Ty se
+zadávají jako role aplikace, ne jako app role adresáře, takže neprocházejí mapovací tabulkou;
+evidují se ale jako udělené za adresář, aby je první sync, který o rolích mluví, mohl zase odebrat.
+U už existujícího účtu znamená prázdná sada rolí přesně to — odeber, co adresář dřív udělil.
+`Administrator` se jako výchozí role neudělí nikdy, ani když ji někdo napíše do konfigurace, kam
+validace stránky nedosáhne.
+
 #### Souběh místního přihlášení a adresáře
 
 Obě cesty žijí vedle sebe a uživatel si na `/login` vybere. Na úrovni **účtu** platí, že o tom, co
