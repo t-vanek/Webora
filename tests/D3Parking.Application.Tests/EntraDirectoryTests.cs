@@ -168,6 +168,65 @@ public class EntraDirectoryTests
     }
 
     [Test]
+    public async Task An_adopted_account_keeps_the_password_it_registered_with()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var local = await CreateLocalUserAsync(scope, "keeps-password@example.test", emailConfirmed: true);
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var result = await CreateService(scope).SyncAsync(Identity("oid-keeps", "keeps-password@example.test"));
+
+        Assert.That(result.Linked, Is.True);
+
+        // The two ways in coexist on one account: adoption adds the directory as a way to sign in,
+        // it does not take away the one the person chose. The self-service rules downstream key on
+        // "has a password" precisely so this account can still change and recover it.
+        var reloaded = await userManager.FindByIdAsync(local.Id.ToString());
+        Assert.That(await userManager.HasPasswordAsync(reloaded!), Is.True);
+        Assert.That(await userManager.CheckPasswordAsync(reloaded!, "Str0ng-Passw0rd!"), Is.True,
+            "Linking must not silently disable the password the account already signs in with.");
+    }
+
+    [Test]
+    public async Task A_rename_onto_an_address_another_account_holds_leaves_the_account_findable()
+    {
+        Guid userId;
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            var created = await CreateService(scope).SyncAsync(Identity("oid-rename", "original@example.test"));
+            Assert.That(created.Succeeded, Is.True);
+            userId = created.UserId;
+
+            await CreateLocalUserAsync(scope, "taken@example.test", emailConfirmed: true);
+        }
+
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            // The directory now asserts, for this account, an address somebody else already holds
+            // here. Identity refuses the update — and the refusal must not be discarded, or the
+            // account is written with the new Email and the old NormalizedEmail and stops being
+            // findable under either.
+            var renamed = await CreateService(scope).SyncAsync(Identity("oid-rename", "taken@example.test"));
+
+            Assert.That(renamed.Succeeded, Is.True,
+                "A refused rename is not a reason to refuse the sign-in itself.");
+        }
+
+        await using (var verify = _provider.CreateAsyncScope())
+        {
+            var userManager = verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            var reloaded = await userManager.FindByIdAsync(userId.ToString());
+            Assert.That(reloaded!.Email, Is.EqualTo("original@example.test"),
+                "The rename must be rolled back whole, not half-applied.");
+
+            var found = await userManager.FindByEmailAsync("original@example.test");
+            Assert.That(found?.Id, Is.EqualTo(userId),
+                "Email and NormalizedEmail must not drift apart — the account has to stay findable.");
+        }
+    }
+
+    [Test]
     public async Task An_account_whose_email_was_never_confirmed_is_not_adopted()
     {
         await using var scope = _provider.CreateAsyncScope();
@@ -215,6 +274,77 @@ public class EntraDirectoryTests
         await service.SyncAsync(Identity("oid-revoke", "revoke@example.test", roles: []));
 
         Assert.That(await RolesOfAsync(scope, created.UserId), Does.Not.Contain(Roles.LotManager));
+    }
+
+    /// <remarks>
+    /// The four cases below pin what "the directory said nothing about roles" means, which differs
+    /// by caller and by whether the account is being created. Getting it wrong is quiet in both
+    /// directions: too eager and a revoked assignment comes back on the next sign-in, too shy and
+    /// the default-roles setting does nothing while promising otherwise, leaving a first-time
+    /// account signed in to an empty application.
+    /// </remarks>
+    [Test]
+    public async Task A_first_sign_in_with_no_app_role_falls_back_to_the_default_roles()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+
+        // A sign-in by someone the directory assigned no app role: an empty array, never null.
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default", "default@example.test", roles: []));
+
+        Assert.That(result.Created, Is.True);
+        Assert.That(await RolesOfAsync(scope, result.UserId), Does.Contain(Roles.Employee));
+    }
+
+    [Test]
+    public async Task An_app_role_the_directory_did_send_wins_over_the_default_roles()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default-override", "override@example.test", roles: ["Parking.LotManager"]));
+
+        var roles = await RolesOfAsync(scope, result.UserId);
+        Assert.That(roles, Does.Contain(Roles.LotManager));
+        Assert.That(roles, Does.Not.Contain(Roles.Employee),
+            "The baseline is for accounts the directory does not classify, not an addition to those it does.");
+    }
+
+    [Test]
+    public async Task The_default_roles_do_not_come_back_when_an_app_role_is_later_revoked()
+    {
+        _entra.DefaultRoles = [Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var service = CreateService(scope);
+
+        var created = await service.SyncAsync(Identity("oid-default-revoke", "revoke-default@example.test", roles: []));
+        Assert.That(await RolesOfAsync(scope, created.UserId), Does.Contain(Roles.Employee));
+
+        // Not a first sign-in any more: an empty array is now the directory revoking what it granted.
+        await service.SyncAsync(Identity("oid-default-revoke", "revoke-default@example.test", roles: []));
+
+        Assert.That(await RolesOfAsync(scope, created.UserId), Is.Empty,
+            "After the account exists, an empty role set means exactly that.");
+    }
+
+    [Test]
+    public async Task Administrator_is_never_handed_out_as_a_default_role()
+    {
+        // The settings page refuses this, but a value pinned in configuration never passes through
+        // that validation — and it would make everyone in the tenant an administrator here.
+        _entra.DefaultRoles = [Roles.Administrator, Roles.Employee];
+
+        await using var scope = _provider.CreateAsyncScope();
+        var result = await CreateService(scope).SyncAsync(
+            Identity("oid-default-admin", "admin-default@example.test", roles: []));
+
+        var roles = await RolesOfAsync(scope, result.UserId);
+        Assert.That(roles, Does.Not.Contain(Roles.Administrator));
+        Assert.That(roles, Does.Contain(Roles.Employee));
     }
 
     [Test]

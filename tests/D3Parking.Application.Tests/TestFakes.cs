@@ -89,6 +89,21 @@ internal sealed class NullEmailSender : IEmailSender
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
+/// <summary>
+/// Keeps what was sent, for the flows whose whole answer is deliberately uninformative — a password
+/// reset request reports success either way, so the mailbox is the only place to see what happened.
+/// </summary>
+internal sealed class RecordingEmailSender : IEmailSender
+{
+    public List<EmailMessage> Sent { get; } = [];
+
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        Sent.Add(message);
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>No fleet involvement: every status is NoPlate and every mutation trivially succeeds.</summary>
 internal sealed class NullFleetService : IFleetService
 {

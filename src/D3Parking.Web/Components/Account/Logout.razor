@@ -1,6 +1,10 @@
 @page "/logout"
 @using D3Parking.Infrastructure.Identity
+@using D3Parking.Application.Identity
+@using D3Parking.Web.Identity
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IEntraSettingsService EntraSettings
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -14,14 +18,31 @@
 
     <AuthorizeView Context="auth">
         <Authorized>
-            @* data-push-unsubscribe: app.js před odesláním zruší push subscription tohoto
-               prohlížeče, aby sdílený počítač nezobrazoval notifikace odhlášeného uživatele. *@
-            <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout" data-push-unsubscribe>
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                    <FluentLabel Typo="Typography.Body">@L["Logout_Confirm"]</FluentLabel>
-                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Logout_Submit"]</FluentButton>
-                </FluentStack>
-            </EditForm>
+            @*  data-push-unsubscribe: app.js před odesláním zruší push subscription tohoto
+                prohlížeče, aby sdílený počítač nezobrazoval notifikace odhlášeného uživatele.
+
+                Federovaný účet posílá stejný POST na endpoint, který ukončí i session v adresáři
+                — obyčejný <form> s antiforgery tokenem, protože EditForm umí odeslat jen na
+                vlastní stránku. Místní účet zůstává na EditFormu: nemá co dalšího ukončovat.  *@
+            @if (_federated)
+            {
+                <form method="post" action="@ExternalSignInEndpoints.SignOutPath" data-push-unsubscribe>
+                    <AntiforgeryToken />
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                        <FluentLabel Typo="Typography.Body">@L["Logout_Confirm"]</FluentLabel>
+                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Logout_Submit"]</FluentButton>
+                    </FluentStack>
+                </form>
+            }
+            else
+            {
+                <EditForm Model="this" method="post" OnValidSubmit="LogoutUser" FormName="logout" data-push-unsubscribe>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                        <FluentLabel Typo="Typography.Body">@L["Logout_Confirm"]</FluentLabel>
+                        <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Logout_Submit"]</FluentButton>
+                    </FluentStack>
+                </EditForm>
+            }
         </Authorized>
         <NotAuthorized>
             <FluentLabel Typo="Typography.Body">@L["Logout_NotSignedIn"]</FluentLabel>
@@ -30,6 +51,27 @@
 </FluentStack>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    /// <summary>
+    /// Whether this session has a second half to end. Decided while rendering rather than in the
+    /// handler, because it picks which form the page shows.
+    /// </summary>
+    private bool _federated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        if (state.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var user = await UserManager.GetUserAsync(state.User);
+        _federated = user is not null && user.IsFederated
+            && (await EntraSettings.GetEffectiveAsync()).IsSignInConfigured;
+    }
+
     private async Task LogoutUser()
     {
         await SignInManager.SignOutAsync();

@@ -1358,6 +1358,14 @@
   <data name="Login_ExternalNoAccount" xml:space="preserve"><value>K tomuto firemnímu účtu tu není přístup. Obraťte se na správce.</value></data>
   <data name="Login_ExternalBlocked" xml:space="preserve"><value>Účet není aktivní. Obraťte se na správce.</value></data>
   <data name="Account_FederatedNoPassword" xml:space="preserve"><value>Tento účet se přihlašuje přes firemní adresář, vlastní heslo tady nemá. Heslo se mění v účtu Microsoft.</value></data>
+  <data name="Account_FederatedEmailFromDirectory" xml:space="preserve"><value>E-mail tohoto účtu spravuje firemní adresář a při dalším přihlášení by se změna vrátila zpět. Změňte adresu v adresáři.</value></data>
+  <data name="Register_External" xml:space="preserve"><value>Máte firemní účet? Registrovat se nemusíte — přihlaste se přes {0}</value></data>
+  <data name="Welcome_Title" xml:space="preserve"><value>Vítejte, ještě jedna věc</value></data>
+  <data name="Welcome_Intro" xml:space="preserve"><value>Účet je připravený. Firemní adresář o vás ví jméno i e-mail, ale ne to, čím jezdíte — a právě podle SPZ se pozná, jestli vám patří místo ve vozovém parku.</value></data>
+  <data name="Welcome_Plate" xml:space="preserve"><value>SPZ vozidla</value></data>
+  <data name="Welcome_PlateHint" xml:space="preserve"><value>Nepovinné a kdykoli změnitelné v nastavení účtu.</value></data>
+  <data name="Welcome_Save" xml:space="preserve"><value>Uložit a pokračovat</value></data>
+  <data name="Welcome_Skip" xml:space="preserve"><value>Přeskočit</value></data>
   <data name="Nav_AdminDirectory" xml:space="preserve"><value>Firemní adresář</value></data>
   <data name="Nav_Short_Directory" xml:space="preserve"><value>Adresář</value></data>
   <data name="Home_Card_Directory" xml:space="preserve"><value>Napojení na Entra ID a mapování rolí</value></data>

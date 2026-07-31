@@ -64,15 +64,26 @@ public sealed class EntraDirectoryService(
 
         await UpdateProfileAsync(user, identity, cancellationToken);
 
-        // Null roles means "this caller has nothing to say about roles" — SCIM pushes accounts
-        // without them. Treating that as an empty set would revoke everything on every push.
-        if (identity.Roles is not null)
+        // Null roles mean the caller holds no opinion — SCIM pushes accounts without them, and
+        // reading that as an empty set would revoke everything on every push. An empty array is an
+        // opinion: a sign-in speaks with authority, so an assignment revoked in the directory has
+        // to be taken back here too.
+        //
+        // The account created by this very call is the exception. "The directory granted you
+        // nothing" and "this installation has a baseline for people it does not classify" do not
+        // conflict on a first sign-in — and a sign-in always sends an array, so without this branch
+        // the configured default roles would never reach anybody.
+        if (identity.Roles is { Count: > 0 })
         {
             await ApplyRolesAsync(user, identity.Provider, identity.Roles, cancellationToken);
         }
-        else if (created && options.DefaultRoles.Count > 0)
+        else if (created && Baseline(options) is { Count: > 0 } baseline)
         {
-            await ApplyRolesAsync(user, identity.Provider, options.DefaultRoles.ToArray(), cancellationToken);
+            await ApplyDefaultRolesAsync(user, identity.Provider, baseline, cancellationToken);
+        }
+        else if (identity.Roles is not null)
+        {
+            await ApplyRolesAsync(user, identity.Provider, identity.Roles, cancellationToken);
         }
 
         if (created || linked)
@@ -130,6 +141,27 @@ public sealed class EntraDirectoryService(
             $"{(active ? "reactivated" : "deprovisioned")} by {provider}", cancellationToken);
         logger.LogInformation("{Provider} set {UserId} to {Status}", provider, user.Id, target);
         return AccountResult.Success;
+    }
+
+    /// <summary>The configured baseline, minus anything it must never be able to hand out.</summary>
+    /// <remarks>
+    /// The administrator guard is enforced here and not only when the settings are saved, because a
+    /// value pinned in configuration (<c>EntraId__DefaultRoles__0</c>) never passes through that
+    /// validation — and this one would make everyone in the tenant an administrator on first sign-in.
+    /// </remarks>
+    private IReadOnlyList<string> Baseline(EntraIdOptions options)
+    {
+        var baseline = options.DefaultRoles
+            .Where(role => !string.Equals(role, Roles.Administrator, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (baseline.Length != options.DefaultRoles.Count)
+        {
+            logger.LogError("Ignored {Role} among the configured default roles: it would make everyone "
+                + "in the directory an administrator here", Roles.Administrator);
+        }
+
+        return baseline;
     }
 
     /// <summary>Finds the account this identity belongs to, adopting or creating one if allowed.</summary>
@@ -227,13 +259,43 @@ public sealed class EntraDirectoryService(
 
         // A rename in the directory follows through, but a blocked account is not quietly revived:
         // that decision belongs to SetActiveAsync, where the administrator guard lives.
-        if (!string.Equals(user.Email, identity.Email, StringComparison.OrdinalIgnoreCase))
+        var previousEmail = user.Email;
+        var previousUserName = user.UserName;
+        var renamed = !string.Equals(user.Email, identity.Email, StringComparison.OrdinalIgnoreCase);
+        if (renamed)
         {
             user.Email = identity.Email;
             user.UserName = identity.Email;
         }
 
-        await userManager.UpdateAsync(user);
+        var updated = await userManager.UpdateAsync(user);
+
+        // The result cannot be discarded. On a validation failure — most plausibly the address the
+        // directory now asserts already belonging to another account here — UpdateUserAsync returns
+        // before it writes the normalized columns, while the entity this context tracks is already
+        // carrying the new address. The SaveChangesAsync below would then persist Email without
+        // NormalizedEmail, leaving the account displaying one address and being found under the
+        // other, for good. There is no unique index on NormalizedEmail to catch it either.
+        if (!updated.Succeeded && renamed)
+        {
+            logger.LogError("Refusing the rename of {UserId} to the address {Provider} now asserts: {Errors}. "
+                + "The account keeps its current address; resolve the conflict in the directory or here.",
+                user.Id, identity.Provider, string.Join("; ", updated.Errors.Select(e => e.Description)));
+
+            user.Email = previousEmail;
+            user.UserName = previousUserName;
+
+            // The provenance still has to land — this sign-in did happen, and the object id, tenant
+            // and sync timestamp are what later lookups run on.
+            updated = await userManager.UpdateAsync(user);
+        }
+
+        if (!updated.Succeeded)
+        {
+            logger.LogError("Could not update {UserId} from {Provider}: {Errors}",
+                user.Id, identity.Provider, string.Join("; ", updated.Errors.Select(e => e.Description)));
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -271,7 +333,48 @@ public sealed class EntraDirectoryService(
                 provider, string.Join(", ", unmapped));
         }
 
-        var granted = mapped.ToDictionary(m => m.Id, m => m.Name);
+        await ApplyResolvedRolesAsync(user, provider, mapped.ToDictionary(m => m.Id, m => m.Name), cancellationToken);
+    }
+
+    /// <summary>
+    /// Grants the configured baseline to an account the directory just produced without any app role.
+    /// </summary>
+    /// <remarks>
+    /// These are this application's own role names, not directory app roles, so they do not go
+    /// through the mapping table — running them through it is what made the setting silently do
+    /// nothing. They are still recorded as granted on the directory's behalf, so the first sync
+    /// that does speak about roles can take them back.
+    /// </remarks>
+    private async Task ApplyDefaultRolesAsync(
+        ApplicationUser user,
+        string provider,
+        IReadOnlyList<string> roleNames,
+        CancellationToken cancellationToken)
+    {
+        var resolved = await dbContext.Roles
+            .Where(r => roleNames.Contains(r.Name!))
+            .Select(r => new { r.Id, Name = r.Name! })
+            .ToListAsync(cancellationToken);
+
+        var unknown = roleNames.Except(resolved.Select(r => r.Name), StringComparer.OrdinalIgnoreCase).ToArray();
+        if (unknown.Length > 0)
+        {
+            // The settings page checks this on save, but a value pinned in configuration never
+            // passes through it — and a baseline that names nothing leaves the account with nothing.
+            logger.LogError("Configured default roles do not exist and were ignored: {Roles}",
+                string.Join(", ", unknown));
+        }
+
+        await ApplyResolvedRolesAsync(user, provider, resolved.ToDictionary(r => r.Id, r => r.Name), cancellationToken);
+    }
+
+    /// <summary>Makes the roles held on <paramref name="provider"/>'s behalf equal <paramref name="granted"/>.</summary>
+    private async Task ApplyResolvedRolesAsync(
+        ApplicationUser user,
+        string provider,
+        Dictionary<Guid, string> granted,
+        CancellationToken cancellationToken)
+    {
         var managed = await dbContext.ExternalRoleAssignments
             .Where(a => a.UserId == user.Id && a.Provider == provider)
             .ToListAsync(cancellationToken);
@@ -306,14 +409,31 @@ public sealed class EntraDirectoryService(
             return;
         }
 
+        // Both results are checked: a refused role change that is written to the provenance below
+        // anyway would leave this application believing it holds a grant on the directory's behalf
+        // that the account never got — and the audit entry would say so too.
         if (revoked.Count > 0)
         {
-            await userManager.RemoveFromRolesAsync(user, revoked.Select(r => r.Name));
+            var removed = await userManager.RemoveFromRolesAsync(user, revoked.Select(r => r.Name));
+            if (!removed.Succeeded)
+            {
+                logger.LogError("Could not revoke {Roles} from {UserId} on behalf of {Provider}: {Errors}",
+                    Join(revoked.Select(r => r.Name)), user.Id, provider,
+                    string.Join("; ", removed.Errors.Select(e => e.Description)));
+                return;
+            }
         }
 
         if (addNames.Count > 0)
         {
-            await userManager.AddToRolesAsync(user, addNames);
+            var added = await userManager.AddToRolesAsync(user, addNames);
+            if (!added.Succeeded)
+            {
+                logger.LogError("Could not grant {Roles} to {UserId} on behalf of {Provider}: {Errors}",
+                    Join(addNames), user.Id, provider,
+                    string.Join("; ", added.Errors.Select(e => e.Description)));
+                return;
+            }
         }
 
         // Rewrite the provenance so it always equals what this application currently holds on the

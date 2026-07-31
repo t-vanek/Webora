@@ -17,7 +17,17 @@
             (post-redirect-get) rendered through the global auth-alert styles. Values are
             resource keys where the source provides them; already-localised identity
             descriptions pass through the localizer unchanged.  *@
-        @if (!string.IsNullOrEmpty(_info))
+        @if (_federated)
+        {
+            @* Unlike the password, the address is the directory's to set whatever else this account
+               can do here — the next sign-in writes it back from the token. A form here would send
+               a confirmation email for a change that silently reverts. *@
+            <div class="auth-alert auth-alert--info" role="status">
+                <FluentIcon Value="@(new Icons.Filled.Size20.Info())" Color="Color.Custom" CustomColor="currentColor" />
+                <span>@L["Account_FederatedEmailFromDirectory"]</span>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(_info))
         {
             <div class="auth-alert auth-alert--success" role="status">
                 <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
@@ -65,6 +75,16 @@
 
     private string? _error;
     private string? _info;
+    private bool _federated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        if (await UserManager.GetUserAsync(state.User) is { } user)
+        {
+            _federated = user.IsFederated;
+        }
+    }
 
     // The values arrive on an open URL parameter, so they only pass through when they look
     // like what the redirects here actually emit: this page's one success key, and error
@@ -89,6 +109,14 @@
         if (user is null)
         {
             Redirect(error: "Common_AccountNotFound");
+            return;
+        }
+
+        // Belt and braces, as on the password page: the service refuses this too, but a hidden
+        // control is not a closed one.
+        if (user.IsFederated)
+        {
+            Redirect(error: "Account_FederatedEmailFromDirectory");
             return;
         }
 

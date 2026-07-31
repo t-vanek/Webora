@@ -28,4 +28,10 @@
     <ProjectReference Include="..\D3Parking.Application\D3Parking.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The sign-in flow's two pure decisions — which return URL is local, and what a directory
+         token actually asserts — are guards worth testing directly rather than through a browser. -->
+    <InternalsVisibleTo Include="D3Parking.Application.Tests" />
+  </ItemGroup>
+
 </Project>

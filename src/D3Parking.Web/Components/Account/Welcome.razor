@@ -1,0 +1,129 @@
+@page "/account/welcome"
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@using D3Parking.Web.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject IFleetService Fleet
+@inject NavigationManager Nav
+@inject ILogger<Welcome> Logger
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Welcome_Title"]</PageTitle>
+
+@*  Kam skončí první přihlášení účtu, který založil adresář. Token nese jméno a adresu, ale ne SPZ,
+    a na SPZ stojí párování s vozovým parkem — bez ní federovaný uživatel z fleet funkcí tiše
+    vypadne a nedozví se proč.
+
+    Krok se dá přeskočit a už se nezopakuje: ptá se jen callback po `Created`, takže kdo sem přijde
+    znovu, přišel sám. Static SSR, takže úspěch odchází přesměrováním (post-redirect-get).  *@
+<FluentCard Style="max-width:520px">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentLabel Typo="Typography.H3">@L["Welcome_Title"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Welcome_Intro"]</FluentLabel>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="SaveAsync" FormName="welcome">
+            <DataAnnotationsValidator />
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="auth-alert auth-alert--error" role="alert">
+                        <FluentIcon Value="@(new Icons.Filled.Size20.ErrorCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                        <span>@L[_error]</span>
+                    </div>
+                }
+                <FluentTextField Name="Input.Plate"
+                                 @bind-Value="Input.Plate"
+                                 Maxlength="16"
+                                 Label="@L["Welcome_Plate"]"
+                                 Style="width:240px" />
+                <ValidationMessage For="() => Input.Plate" />
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                    <small>@L["Welcome_PlateHint"]</small>
+                </FluentLabel>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center">
+                    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Welcome_Save"]</FluentButton>
+                    <a href="@Destination">@L["Welcome_Skip"]</a>
+                </FluentStack>
+            </FluentStack>
+        </EditForm>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+#pragma warning disable BL0008
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+#pragma warning restore BL0008
+
+    // Must be public — static SSR does not bind [SupplyParameterFromQuery] to private properties.
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Error))
+        {
+            _error = Error.Length <= 300 ? Error : Error[..300];
+        }
+    }
+
+    /// <summary>
+    /// Where both buttons lead. Only relative, non-protocol-relative paths are honoured — this
+    /// value arrives on the query string, and an absolute one would turn the skip link into an
+    /// open redirect on a freshly signed-in session. Same rule as the sign-in callback, backslash
+    /// included.
+    /// </summary>
+    private string Destination => ExternalSignInEndpoints.Safe(ReturnUrl);
+
+    private async Task SaveAsync()
+    {
+        var state = await AuthState!;
+        var user = await UserManager.GetUserAsync(state.User);
+        if (user is null)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        // Stored upper-cased as typed and clamped to the column, exactly as the profile page and
+        // registration do — the admin matching ignores spacing and dashes anyway.
+        var plate = Input.Plate?.Trim().ToUpperInvariant();
+        user.LicensePlate = string.IsNullOrWhiteSpace(plate) ? null : plate;
+
+        var saved = await UserManager.UpdateAsync(user);
+        if (!saved.Succeeded)
+        {
+            Nav.NavigateTo($"{ExternalSignInEndpoints.WelcomePath}?returnUrl={Uri.EscapeDataString(Destination)}"
+                + $"&error={Uri.EscapeDataString(string.Join(" ", saved.Errors.Select(e => e.Description)))}");
+            return;
+        }
+
+        // Saving the plate is not the point — pairing is. The profile page follows its own save with
+        // SyncUserPlateAsync, and the activation path nudges a matching plate towards the pairing
+        // code; a directory-created account passes through neither, so both belong here or the step
+        // collects an answer and does nothing with it. Advisory, exactly as on the activation path:
+        // a fleet hiccup must not strand someone on their first screen.
+        try
+        {
+            await Fleet.SyncUserPlateAsync(user.Id);
+            await Fleet.NotifyPairableAsync(user.Id);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Fleet pairing after the welcome step of {UserId} failed", user.Id);
+        }
+
+        Nav.NavigateTo(Destination);
+    }
+
+    private sealed class InputModel
+    {
+        [StringLength(16, ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.Plate_Length))]
+        public string? Plate { get; set; }
+    }
+}

@@ -231,12 +231,16 @@ public sealed class AccountService(
     {
         var user = await userManager.FindByEmailAsync(email);
 
-        // A federated account has no local password, so a reset link would set up a second way in
-        // that the directory neither knows about nor can revoke. Skipped silently, like a missing
-        // address: the response must not reveal how an account signs in either.
-        if (user is not null && user.IsFederated)
+        // What decides here is whether the account has a local password at all — not whether it is
+        // federated. The two ways in coexist: an account provisioned by the directory has no
+        // password, and a reset link would mint a credential nobody watches; an account that
+        // registered here first and later linked keeps the password it chose, and must be able to
+        // recover it like anyone else — otherwise linking silently strands it with a password it
+        // can neither change nor reset. Skipped silently, like a missing address: the response
+        // must not reveal how an account signs in either.
+        if (user is not null && !await userManager.HasPasswordAsync(user))
         {
-            logger.LogInformation("Ignored a password reset request for the federated account {UserId}", user.Id);
+            logger.LogInformation("Ignored a password reset request for {UserId}, which has no local password", user.Id);
         }
         else if (user is not null)
         {
@@ -253,7 +257,11 @@ public sealed class AccountService(
     public async Task<AccountResult> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
-        if (user is null || user.IsFederated)
+
+        // The same rule as the request above, enforced again: no local password means no reset,
+        // whoever holds the token. Without this, a token minted before the account was linked
+        // could still set the first password on an account the directory alone was meant to open.
+        if (user is null || !await userManager.HasPasswordAsync(user))
         {
             return AccountResult.Failure(messages["Error_InvalidPasswordReset"]);
         }
@@ -275,6 +283,14 @@ public sealed class AccountService(
         if (user is null)
         {
             return NotFound();
+        }
+
+        // Unlike the password, the address of a federated account belongs to the directory whatever
+        // else the account can do here: the next sign-in writes it back from the token. Allowing the
+        // change would send a confirmation email for something that silently reverts.
+        if (user.IsFederated)
+        {
+            return AccountResult.Failure(messages["Error_FederatedEmailFromDirectory"]);
         }
 
         var token = await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
