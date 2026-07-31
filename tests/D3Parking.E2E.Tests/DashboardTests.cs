@@ -43,6 +43,28 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
+    public async Task Sidebar_lights_only_the_parking_screen_you_are_actually_on()
+    {
+        // /parking is the parent path of both child screens, so NavLink's default prefix matching
+        // lit the reservation entry on top of them — two items filled violet, neither one an
+        // honest answer to "where am I".
+        var children = new[]
+        {
+            ("/parking/leaderboard", "Žebříček"),
+            ("/parking/reports", "Moje hlášení"),
+        };
+
+        foreach (var (url, label) in children)
+        {
+            await Pages.GotoInteractiveAsync(Page, url);
+
+            var active = Page.Locator(".side-nav .side-nav__item--active");
+            await Expect(active).ToHaveCountAsync(1);
+            await Expect(active).ToContainTextAsync(label);
+        }
+    }
+
+    [Test]
     public async Task Sidebar_collapses_to_the_rail_and_expands_back()
     {
         // The nav is an interactive island; wait for the circuit before clicking.

@@ -56,9 +56,14 @@
             <div class="side-nav__section">
                 <span class="side-nav__section-title">@L["Nav_Parking"]</span>
             </div>
+            @* Exact match, unlike everywhere else: /parking is the parent path of the leaderboard
+               and the reports, so NavLink's default prefix matching lit the reservation entry on
+               those pages too — two items filled violet at once, and neither one telling the truth
+               about where you are. Nothing lives below /parking that lacks its own entry, so there
+               is no child page left needing the parent lit for it. *@
             @if (_canReserve)
             {
-                <NavLink href="parking" class="side-nav__item" ActiveClass="side-nav__item--active"
+                <NavLink href="parking" Match="NavLinkMatch.All" class="side-nav__item" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_ParkingReserve"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_ParkingReserve"]</span>
