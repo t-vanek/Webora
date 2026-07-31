@@ -187,6 +187,113 @@ public class AccountSecurityTests
         }
     }
 
+    /// <remarks>
+    /// The four tests below pin the rule that lets local sign-in and the directory coexist on one
+    /// account: what a password operation is allowed to do depends on whether a local password
+    /// exists, not on whether the account is federated. Getting this wrong in either direction is
+    /// a real failure — key it on federation and a linked account is stranded with a password it
+    /// can neither change nor recover; drop the check and a reset link mints the first password on
+    /// an account the directory alone was meant to open.
+    /// </remarks>
+    [Test]
+    public async Task A_linked_account_can_still_reset_the_password_it_registered_with()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var accounts = CreateAccountService(scope);
+
+        // Registered here first, then adopted by the directory — it keeps its password.
+        var user = await CreateUserAsync(userManager, "linked-reset");
+        user.ExternalProvider = ExternalProviders.EntraId;
+        user.ExternalObjectId = Guid.NewGuid().ToString();
+        await userManager.UpdateAsync(user);
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await accounts.ResetPasswordAsync(user.Email!, token, "An0ther!Password", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True,
+            "Linking to the directory must not strand an account with a password it cannot recover.");
+        Assert.That(await userManager.CheckPasswordAsync(
+            (await userManager.FindByIdAsync(user.Id.ToString()))!, "An0ther!Password"), Is.True);
+    }
+
+    [Test]
+    public async Task An_account_the_directory_created_cannot_be_given_a_password_by_reset()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var accounts = CreateAccountService(scope);
+
+        var user = new ApplicationUser
+        {
+            UserName = $"jit-{Guid.NewGuid():N}@test.local",
+            Email = $"jit-{Guid.NewGuid():N}@test.local",
+            EmailConfirmed = true,
+            Status = AccountStatus.Active,
+            ExternalProvider = ExternalProviders.EntraId,
+            ExternalObjectId = Guid.NewGuid().ToString(),
+        };
+        // No password, exactly as the directory service creates it.
+        Assert.That((await userManager.CreateAsync(user)).Succeeded, Is.True);
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await accounts.ResetPasswordAsync(user.Email!, token, "Sneaky!Password1", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False,
+            "A reset must not mint the first password on an account only the directory opens.");
+        Assert.That(await userManager.HasPasswordAsync(
+            (await userManager.FindByIdAsync(user.Id.ToString()))!), Is.False);
+    }
+
+    [Test]
+    public async Task A_reset_request_for_a_passwordless_account_sends_nothing_and_still_reports_success()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var mailbox = new RecordingEmailSender();
+        var accounts = CreateAccountService(scope, mailbox);
+
+        var user = new ApplicationUser
+        {
+            UserName = $"jit-mail-{Guid.NewGuid():N}@test.local",
+            Email = $"jit-mail-{Guid.NewGuid():N}@test.local",
+            EmailConfirmed = true,
+            Status = AccountStatus.Active,
+            ExternalProvider = ExternalProviders.EntraId,
+            ExternalObjectId = Guid.NewGuid().ToString(),
+        };
+        Assert.That((await userManager.CreateAsync(user)).Succeeded, Is.True);
+
+        var result = await accounts.RequestPasswordResetAsync(user.Email!, CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True,
+            "The answer must not reveal how an account signs in.");
+        Assert.That(mailbox.Sent, Is.Empty,
+            "No reset link may be issued for an account with no local password.");
+    }
+
+    [Test]
+    public async Task A_federated_account_cannot_change_the_email_the_directory_owns()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var mailbox = new RecordingEmailSender();
+        var accounts = CreateAccountService(scope, mailbox);
+
+        // Unlike the password, the address stays the directory's whatever else the account can do
+        // here: the next sign-in writes it back from the token.
+        var user = await CreateUserAsync(userManager, "linked-email");
+        user.ExternalProvider = ExternalProviders.EntraId;
+        user.ExternalObjectId = Guid.NewGuid().ToString();
+        await userManager.UpdateAsync(user);
+
+        var result = await accounts.RequestEmailChangeAsync(user.Id, "elsewhere@test.local", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(mailbox.Sent, Is.Empty,
+            "A confirmation email must not be sent for a change that silently reverts.");
+    }
+
     private static async Task<ApplicationUser> CreateUserAsync(UserManager<ApplicationUser> userManager, string prefix)
     {
         var user = new ApplicationUser
@@ -201,12 +308,12 @@ public class AccountSecurityTests
         return user;
     }
 
-    private AccountService CreateAccountService(AsyncServiceScope scope) => new(
+    private AccountService CreateAccountService(AsyncServiceScope scope, IEmailSender? mailbox = null) => new(
         scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
         scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>(),
         scope.ServiceProvider.GetRequiredService<D3ParkingDbContext>(),
         new TestDbContextFactory(_options),
-        new NullEmailSender(),
+        mailbox ?? new NullEmailSender(),
         new AccountAuditMapper(),
         new NullNotificationService(),
         new NullFleetService(),

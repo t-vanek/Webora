@@ -168,6 +168,26 @@ public class EntraDirectoryTests
     }
 
     [Test]
+    public async Task An_adopted_account_keeps_the_password_it_registered_with()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var local = await CreateLocalUserAsync(scope, "keeps-password@example.test", emailConfirmed: true);
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var result = await CreateService(scope).SyncAsync(Identity("oid-keeps", "keeps-password@example.test"));
+
+        Assert.That(result.Linked, Is.True);
+
+        // The two ways in coexist on one account: adoption adds the directory as a way to sign in,
+        // it does not take away the one the person chose. The self-service rules downstream key on
+        // "has a password" precisely so this account can still change and recover it.
+        var reloaded = await userManager.FindByIdAsync(local.Id.ToString());
+        Assert.That(await userManager.HasPasswordAsync(reloaded!), Is.True);
+        Assert.That(await userManager.CheckPasswordAsync(reloaded!, "Str0ng-Passw0rd!"), Is.True,
+            "Linking must not silently disable the password the account already signs in with.");
+    }
+
+    [Test]
     public async Task An_account_whose_email_was_never_confirmed_is_not_adopted()
     {
         await using var scope = _provider.CreateAsyncScope();

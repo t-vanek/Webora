@@ -37,6 +37,7 @@
   <data name="Error_AccountNotFound" xml:space="preserve"><value>Account not found.</value></data>
   <data name="Error_EmailExists" xml:space="preserve"><value>An account with this email already exists.</value></data>
   <data name="Error_InvalidPasswordReset" xml:space="preserve"><value>Invalid password reset request.</value></data>
+  <data name="Error_FederatedEmailFromDirectory" xml:space="preserve"><value>This account's email is managed by the company directory and the change would be reverted on the next sign-in. Change the address in the directory.</value></data>
   <data name="Error_SuspendOnlyActive" xml:space="preserve"><value>Only an active account can be suspended.</value></data>
   <data name="Error_InvalidSuspendToken" xml:space="preserve"><value>Invalid or expired confirmation token.</value></data>
   <data name="Error_InvalidReactivationToken" xml:space="preserve"><value>Invalid or expired account restore link.</value></data>

@@ -37,6 +37,7 @@
   <data name="Error_AccountNotFound" xml:space="preserve"><value>Účet nenalezen.</value></data>
   <data name="Error_EmailExists" xml:space="preserve"><value>Účet s tímto e-mailem již existuje.</value></data>
   <data name="Error_InvalidPasswordReset" xml:space="preserve"><value>Neplatný požadavek na obnovení hesla.</value></data>
+  <data name="Error_FederatedEmailFromDirectory" xml:space="preserve"><value>E-mail tohoto účtu spravuje firemní adresář a při dalším přihlášení by se změna vrátila zpět. Změňte adresu v adresáři.</value></data>
   <data name="Error_SuspendOnlyActive" xml:space="preserve"><value>Uspat lze jen aktivní účet.</value></data>
   <data name="Error_InvalidSuspendToken" xml:space="preserve"><value>Neplatný nebo prošlý potvrzovací token.</value></data>
   <data name="Error_InvalidReactivationToken" xml:space="preserve"><value>Neplatný nebo prošlý odkaz pro obnovení účtu.</value></data>

@@ -132,6 +132,12 @@ else
         <button type="submit" class="auth-submit">@L["Register_Submit"]</button>
     </EditForm>
 
+    @*  Bez tohohle je registrace pro člověka z firemního adresáře slepá ulička: vyplní e-mail
+        a heslo, založí si lokální účet s heslem, o kterém adresář neneví — a přihlášení přes
+        Microsoft ho pak odmítne, protože e-mail ještě nepotvrdil. Míří na stejný endpoint jako
+        tlačítko na přihlášení, jen to říká jinak. *@
+    <ExternalSignInButton LabelKey="Register_External" ReturnUrl="/" />
+
     <footer class="auth-foot">
         <p>@L["Register_HaveAccount"] <a href="login">@L["Register_SignIn"]</a></p>
     </footer>

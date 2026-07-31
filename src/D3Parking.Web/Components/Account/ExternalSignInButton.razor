@@ -1,0 +1,41 @@
+@using D3Parking.Application.Identity
+@using D3Parking.Web.Identity
+@inject IEntraSettingsService EntraSettings
+@inject IStringLocalizer<SharedResource> L
+
+@*  Sdílené oběma sesterskými stránkami. Registrace ho potřebuje stejně jako přihlášení: kdo má
+    firemní účet, ten se neregistruje — a záložka Registrace je vidět pořád, takže se tam dostane.
+
+    Obyčejná kotva, ne formulář: challenge je GET, který prohlížeč předá adresáři, a musí fungovat
+    na staticky vykreslené stránce jako všechno ostatní tady.  *@
+@if (_entra.IsSignInConfigured)
+{
+    <div class="auth-divider"><span>@L["Login_Or"]</span></div>
+    <a class="auth-external" href="@Href">
+        <FluentIcon Value="@(new Icons.Regular.Size20.Building())" Color="Color.Custom" CustomColor="currentColor" />
+        <span>@L[LabelKey, _entra.DisplayName]</span>
+    </a>
+}
+
+@code {
+    /// <summary>
+    /// Resource key for the label, formatted with the tenant's own name for the button. Differs
+    /// between the two pages: one offers a way in, the other says a way in already exists.
+    /// </summary>
+    [Parameter] public string LabelKey { get; set; } = "Login_External";
+
+    /// <summary>Where to land after the sign-in. Callers pass an already-sanitised local path.</summary>
+    [Parameter] public string ReturnUrl { get; set; } = "/";
+
+    /// <summary>
+    /// The effective settings decide whether the button is offered at all, and what it is called.
+    /// Read here rather than from configuration so a tenant wired up on the settings page shows up
+    /// on the next page load instead of the next deployment.
+    /// </summary>
+    private EntraIdOptions _entra = new();
+
+    private string Href =>
+        $"{ExternalSignInEndpoints.ChallengePath}?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+
+    protected override async Task OnInitializedAsync() => _entra = await EntraSettings.GetEffectiveAsync();
+}

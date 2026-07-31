@@ -21,6 +21,10 @@ public static class ExternalSignInEndpoints
 {
     public const string ChallengePath = "/account/external/challenge";
     public const string CallbackPath = "/account/external/callback";
+    public const string SignOutPath = "/account/external/signout";
+
+    /// <summary>Where a first-time federated account is sent to be asked for what the token cannot carry.</summary>
+    public const string WelcomePath = "/account/welcome";
 
     public static IEndpointRouteBuilder MapExternalSignInApi(this IEndpointRouteBuilder app)
     {
@@ -118,10 +122,58 @@ public static class ExternalSignInEndpoints
                     EntraAuthenticationExtensions.Scheme, identity.ObjectId, EntraAuthenticationExtensions.Scheme));
             }
 
-            await signInManager.SignInAsync(user, isPersistent: false, EntraAuthenticationExtensions.Scheme);
+            // The id token moves from the external cookie, which is already gone, into the
+            // application cookie — the only place signing out can still reach it.
+            var properties = new AuthenticationProperties();
+            if (result.Properties?.GetTokenValue(EntraAuthenticationExtensions.IdTokenName) is { } idToken)
+            {
+                properties.StoreTokens(
+                    [new AuthenticationToken { Name = EntraAuthenticationExtensions.IdTokenName, Value = idToken }]);
+            }
+
+            await signInManager.SignInAsync(user, properties, EntraAuthenticationExtensions.Scheme);
             logger.LogInformation("{UserId} signed in through {Provider}", user.Id, EntraAuthenticationExtensions.Scheme);
 
-            return Results.Redirect(Safe(returnUrl));
+            var destination = Safe(returnUrl);
+            if (synced.Created)
+            {
+                // The directory carries a name and an address but not a licence plate, and the
+                // fleet pairing is built on the plate. Asked once, on the way in, and skippable —
+                // an account created for someone must not open onto a form they cannot get past.
+                destination = $"{WelcomePath}?returnUrl={Uri.EscapeDataString(destination)}";
+            }
+
+            return Results.Redirect(destination);
+        });
+
+        // Ending the local session is only half the job: the directory session outlives it, and the
+        // next click on "sign in with Microsoft" would sign the same person straight back in with
+        // nothing asked — on a shared computer, as whoever used it last.
+        app.MapGet(SignOutPath, async (
+            HttpContext context,
+            SignInManager<ApplicationUser> signInManager,
+            IEntraSettingsService entra) =>
+        {
+            // Read before the sign-out below deletes the cookie carrying it.
+            var idToken = await context.GetTokenAsync(
+                IdentityConstants.ApplicationScheme, EntraAuthenticationExtensions.IdTokenName);
+
+            await signInManager.SignOutAsync();
+
+            // Sign-in switched off between issuing the cookie and this click: there is no scheme to
+            // redirect to, and the local session is already ended, which is the part that matters.
+            if (!(await entra.GetEffectiveAsync(context.RequestAborted)).IsSignInConfigured)
+            {
+                return Results.LocalRedirect("/");
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            if (!string.IsNullOrEmpty(idToken))
+            {
+                properties.Items[EntraAuthenticationExtensions.IdTokenHintItem] = idToken;
+            }
+
+            return Results.SignOut(properties, [EntraAuthenticationExtensions.Scheme]);
         });
 
         return app;
@@ -131,10 +183,15 @@ public static class ExternalSignInEndpoints
     /// Only same-site relative paths are followed back. An absolute URL here would turn the sign-in
     /// into an open redirect — and one that arrives carrying a freshly minted session cookie.
     /// </summary>
-    private static string Safe(string? returnUrl) =>
+    /// <remarks>
+    /// The backslash matters as much as the second slash: browsers normalise <c>/\evil.example</c>
+    /// to <c>//evil.example</c> and follow it off-site, which is why the framework's own
+    /// <c>IsLocalUrl</c> rejects both. Checking only for <c>//</c> leaves the same door open.
+    /// </remarks>
+    internal static string Safe(string? returnUrl) =>
         !string.IsNullOrWhiteSpace(returnUrl)
         && returnUrl.StartsWith('/')
-        && !returnUrl.StartsWith("//", StringComparison.Ordinal)
+        && (returnUrl.Length == 1 || (returnUrl[1] != '/' && returnUrl[1] != '\\'))
             ? returnUrl
             : "/";
 }

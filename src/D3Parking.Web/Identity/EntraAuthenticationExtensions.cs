@@ -20,6 +20,20 @@ public static class EntraAuthenticationExtensions
     public const string Scheme = ExternalProviders.EntraId;
 
     /// <summary>
+    /// Where the sign-out endpoint parks the id token for <see cref="Configure"/> to put on the
+    /// end-session request.
+    /// </summary>
+    /// <remarks>
+    /// The handler looks the hint up itself, but in <c>SignOutScheme</c> — which defaults to the
+    /// external cookie, and that one is deleted the moment the sign-in callback is done with it.
+    /// Passing the token through the properties is the only place it survives.
+    /// </remarks>
+    internal const string IdTokenHintItem = ".entra.id_token_hint";
+
+    /// <summary>The token name under which the id token rides in the application cookie.</summary>
+    internal const string IdTokenName = "id_token";
+
+    /// <summary>
     /// Registers the OpenID Connect handler and its options without publishing the scheme.
     /// </summary>
     /// <remarks>
@@ -125,6 +139,35 @@ public static class EntraAuthenticationExtensions
                 // person back to the sign-in page with a message they can act on.
                 context.Response.Redirect("/login?error=external");
                 context.HandleResponse();
+                return Task.CompletedTask;
+            },
+
+            OnTokenValidated = context =>
+            {
+                // Kept where the sign-in callback can move it into the application cookie, so
+                // signing out can name the session to end. Only the id token: SaveTokens above
+                // stays off because the access and refresh tokens are of no use here and would
+                // ride around in a cookie for nothing.
+                if (!string.IsNullOrEmpty(context.ProtocolMessage?.IdToken) && context.Properties is not null)
+                {
+                    context.Properties.StoreTokens(
+                        [new AuthenticationToken { Name = IdTokenName, Value = context.ProtocolMessage.IdToken }]);
+                }
+
+                return Task.CompletedTask;
+            },
+
+            OnRedirectToIdentityProviderForSignOut = context =>
+            {
+                // Without the hint Entra cannot tell which session the request means and asks the
+                // person to pick an account — on the way out, from a button that already said what
+                // it would do.
+                if (context.Properties.Items.TryGetValue(IdTokenHintItem, out var hint)
+                    && !string.IsNullOrEmpty(hint))
+                {
+                    context.ProtocolMessage.IdTokenHint = hint;
+                }
+
                 return Task.CompletedTask;
             },
         };

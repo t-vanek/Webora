@@ -104,6 +104,39 @@ poznámkou proč. Prázdný řetězec se nepočítá jako nastavený. Proto v `a
 
 Mapování rolí z adresáře na role aplikace zůstává na `/admin/directory`.
 
+#### Souběh místního přihlášení a adresáře
+
+Obě cesty žijí vedle sebe a uživatel si na `/login` vybere. Na úrovni **účtu** platí, že o tom, co
+smí samoobsluha, nerozhoduje federace, ale **jestli účet má místní heslo**:
+
+| Účet | Heslo | Přes adresář | Změna hesla | Reset hesla | Změna e-mailu |
+| --- | --- | --- | --- | --- | --- |
+| Místní | ✅ | — | ✅ | ✅ | ✅ |
+| Založený adresářem (JIT/SCIM) | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Propojený (registroval se sám, pak se přihlásil přes adresář) | ✅ | ✅ | ✅ | ✅ | ❌ |
+
+Propojení účet o heslo nepřipraví — kdyby ho směl mít, ale nesměl ho změnit ani obnovit, uvízl by
+s přihlašovacím údajem, se kterým nejde nic dělat. **E-mail** je výjimka: ten adresáři patří vždy,
+protože se při každém přihlášení přepíše z tokenu, takže jeho změna se federovanému účtu odepře na
+stránce i ve službě.
+
+> Souběh počítá s tím, že odchod ze společnosti dojde až sem — přes SCIM, který účet zablokuje a
+> zavře obě cesty naráz. **Bez zapnutého provisioningu** se offboarding v adresáři do aplikace
+> nedostane a propojenému účtu zůstane funkční místní heslo.
+
+Na `/register` se firemní přihlášení nabízí taky. Bez toho je registrace pro člověka z adresáře
+slepá ulička: založí si místní účet s heslem, o kterém adresář neví, a přihlášení přes adresář ho
+pak odmítne, dokud e-mail nepotvrdí.
+
+**Odhlášení** federovaného účtu jde přes `/account/external/signout`, který ukončí místní session
+i tu v adresáři (RP-initiated logout s `id_token_hint`; ten se proto z přihlašovacího callbacku
+přenáší do aplikační cookie). Bez toho by další klik na „Přihlásit se přes…" tiše přihlásil téhož
+člověka zpět — na sdíleném počítači toho předchozího. Cesta zpět je `SignedOutCallbackPath` a musí
+sedět s registrací aplikace v Entře.
+
+Účet, který adresář právě založil, skončí na `/account/welcome` — jeden přeskočitelný krok na SPZ.
+Token ji nenese a bez ní účet vypadne z párování s vozovým parkem.
+
 Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 
 ```jsonc

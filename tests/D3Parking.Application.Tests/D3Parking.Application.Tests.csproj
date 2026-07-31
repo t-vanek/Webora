@@ -23,6 +23,9 @@
     <!-- The concurrency tests exercise the real services against SQL Server (see
          ReservationConcurrencyTests); unit tests keep depending on Application/Domain only. -->
     <ProjectReference Include="..\..\src\D3Parking.Infrastructure\D3Parking.Infrastructure.csproj" />
+    <!-- The external sign-in guards live with the endpoints that use them, in the web layer.
+         Reached here through InternalsVisibleTo (see D3Parking.Web.csproj). -->
+    <ProjectReference Include="..\..\src\D3Parking.Web\D3Parking.Web.csproj" />
   </ItemGroup>
 
 </Project>

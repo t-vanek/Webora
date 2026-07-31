@@ -1358,6 +1358,14 @@
   <data name="Login_ExternalNoAccount" xml:space="preserve"><value>This company account has no access here. Please contact your administrator.</value></data>
   <data name="Login_ExternalBlocked" xml:space="preserve"><value>The account is not active. Please contact your administrator.</value></data>
   <data name="Account_FederatedNoPassword" xml:space="preserve"><value>This account signs in through the company directory and has no password here. Change it in your Microsoft account.</value></data>
+  <data name="Account_FederatedEmailFromDirectory" xml:space="preserve"><value>This account's email is managed by the company directory and the change would be reverted on the next sign-in. Change the address in the directory.</value></data>
+  <data name="Register_External" xml:space="preserve"><value>Have a company account? No need to register — sign in with {0}</value></data>
+  <data name="Welcome_Title" xml:space="preserve"><value>Welcome — one more thing</value></data>
+  <data name="Welcome_Intro" xml:space="preserve"><value>Your account is ready. The company directory knows your name and email, but not what you drive — and the licence plate is what says whether a fleet spot is yours.</value></data>
+  <data name="Welcome_Plate" xml:space="preserve"><value>Licence plate</value></data>
+  <data name="Welcome_PlateHint" xml:space="preserve"><value>Optional, and changeable any time in your account settings.</value></data>
+  <data name="Welcome_Save" xml:space="preserve"><value>Save and continue</value></data>
+  <data name="Welcome_Skip" xml:space="preserve"><value>Skip</value></data>
   <data name="Nav_AdminDirectory" xml:space="preserve"><value>Company directory</value></data>
   <data name="Nav_Short_Directory" xml:space="preserve"><value>Directory</value></data>
   <data name="Home_Card_Directory" xml:space="preserve"><value>Entra ID connection and role mapping</value></data>
