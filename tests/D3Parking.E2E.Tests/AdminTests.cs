@@ -76,6 +76,26 @@ public class AdminTests : AdminTest
     }
 
     [Test]
+    public async Task The_directory_role_menu_opens_clear_of_its_panel()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/directory");
+
+        // A Fluent label is a sibling of its input, not its parent, so a wrapping flex row used to
+        // strand "Role v aplikaci" at the end of the line above — where it read as a label for the
+        // app-role text field, with its own menu alone underneath.
+        var field = Page.Locator(".directory-add__field")
+            .Filter(new() { Has = Page.Locator("fluent-select") });
+        await Expect(field).ToContainTextAsync("Role v aplikaci");
+
+        // The panel is not a FluentCard, because fluent-card's contain:content clipped the opened
+        // listbox to the card edge and left the options underneath unclickable. Picking one is the
+        // assertion — a clipped menu cannot be clicked through.
+        await Page.Locator("fluent-select").First.ClickAsync();
+        await Page.GetByRole(AriaRole.Option, new() { NameRegex = new Regex("^Zaměstnanec$") }).ClickAsync();
+        await Expect(Page.Locator("fluent-select").First).ToContainTextAsync("Zaměstnanec");
+    }
+
+    [Test]
     public async Task Parking_spots_list_shows_type_and_state_pills()
     {
         await Page.GotoAsync("/admin/parking/spots");
