@@ -9,6 +9,7 @@ using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
 using D3Parking.Application.Identity;
 using D3Parking.Application.Notifications;
+using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Infrastructure.Accounts;
@@ -18,6 +19,7 @@ using D3Parking.Infrastructure.Settings;
 using D3Parking.Infrastructure.Email;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Notifications;
+using D3Parking.Infrastructure.Oversight;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure;
@@ -91,6 +93,10 @@ public static class DependencyInjection
         services.AddScoped<IVisitorBookingService, VisitorBookingService>();
         services.AddScoped<ILotDashboardService, LotDashboardService>();
         services.AddScoped<IFleetService, FleetService>();
+
+        // The review desk over everything the lot flags for a human. It reads the signals through
+        // their own services, so it is registered after them.
+        services.AddScoped<IOversightService, OversightService>();
 
         // Distance scaling for the shared-spot reward. Haversine works offline; switch to the OSRM
         // driving-distance provider via config ("Distance:Provider": "Osrm") — it falls back to

@@ -1,0 +1,132 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* The evidence behind a "could not park here" report, as the reviewer rules on it: the photograph
+   the driver took, who was on the spot at the time, and who to ask. It used to be a row of columns
+   in a grid; on a case's own page it can be read rather than scanned, so the photo gets room and
+   each fact gets a name.
+
+   Every mail link is a prefilled mailto and also tells the case it was opened — the follow-up
+   happens in a mail client the lot cannot see, so the only record that anyone has already asked is
+   the one made here. *@
+<dl class="case-facts">
+    <dt>@L["Parking_Spot"]</dt>
+    <dd>@Report.SpotCode</dd>
+
+    <dt>@L["Parking_Mismatch_Window"]</dt>
+    <dd>@Local(Report.StartUtc, "g") – @Local(Report.EndUtc, "t")</dd>
+
+    <dt>@L["Parking_Mismatch_ReportedAt"]</dt>
+    <dd>@Local(Report.ReportedAtUtc, "g")</dd>
+
+    <dt>@L["Parking_Mismatch_Reporter"]</dt>
+    <dd>
+        @if (Report.ReporterEmail is { } reporterEmail)
+        {
+            <a href="@MailTo(reporterEmail)" target="_blank" rel="noopener"
+               title="@reporterEmail" @onclick="() => OnContact.InvokeAsync(reporterEmail)">@Report.ReporterName</a>
+        }
+        else
+        {
+            @Report.ReporterName
+        }
+    </dd>
+
+    <dt>@L["Parking_Mismatch_RelocatedTo"]</dt>
+    <dd>@(Report.RelocatedToSpotCode ?? "—")</dd>
+
+    <dt>@L["Parking_Mismatch_Photo"]</dt>
+    <dd>
+        @if (Report.HasPhoto)
+        {
+            @* target=_blank keeps Blazor's router out; the endpoint checks ReviewMismatches. *@
+            <a href="@PhotoUrl" target="_blank" rel="noopener" title="@L["Parking_Mismatch_PhotoOpen"]">
+                <img src="@PhotoUrl" alt="@L["Parking_Mismatch_Photo"]" loading="lazy" class="case-facts__photo" />
+            </a>
+        }
+        else
+        {
+            <span title="@L["Parking_Mismatch_PhotoMissing"]">—</span>
+        }
+    </dd>
+
+    <dt>@L["Parking_Mismatch_Related"]</dt>
+    <dd>
+        @if (Report.BlockerPlate is null && Report.RelatedReservations.Count == 0)
+        {
+            <span>—</span>
+        }
+        else
+        {
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                @if (Report.BlockerPlate is { } plate)
+                {
+                    @* The recorded plate, resolved against registered vehicles: an employee gets a
+                       name + mailto, anything else is an outsider. *@
+                    <span>
+                        <strong>@plate</strong> — @(Report.BlockerMatchName ?? L["Parking_Mismatch_PlateUnknown"].Value)
+                        @if (Report.BlockerMatchIsVisitor)
+                        {
+                            <text> (@L["Parking_Mismatch_PlateVisitor"])</text>
+                        }
+                        @if (Report.BlockerMatchEmail is { } matchEmail)
+                        {
+                            <a href="@MailTo(matchEmail)" target="_blank" rel="noopener" title="@matchEmail"
+                               @onclick="() => OnContact.InvokeAsync(matchEmail)">&#9993;</a>
+                        }
+                    </span>
+                }
+                @foreach (var related in Report.RelatedReservations)
+                {
+                    <span>
+                        @related.Name — @L[$"Parking_State_{related.Status}"]
+                        @if (related.Email is { } relatedEmail)
+                        {
+                            <a href="@MailTo(relatedEmail)" target="_blank" rel="noopener" title="@relatedEmail"
+                               @onclick="() => OnContact.InvokeAsync(relatedEmail)">&#9993;</a>
+                        }
+                    </span>
+                }
+            </FluentStack>
+        }
+    </dd>
+
+    <dt>@L["Parking_Mismatch_Voucher"]</dt>
+    <dd>
+        @if (Report.Voucher is not { } voucher)
+        {
+            <span>—</span>
+        }
+        else
+        {
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="2">
+                <FluentBadge Appearance="@(voucher.Status == ApologyVoucherStatus.Approved ? Appearance.Accent : Appearance.Neutral)">
+                    @L[$"Parking_VoucherState_{voucher.Status}"]
+                </FluentBadge>
+                @if (voucher.ReviewedAtUtc is { } reviewedAt)
+                {
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                        @Local(reviewedAt, "g")@(voucher.ReviewedByName is { } reviewer ? $" — {reviewer}" : string.Empty)
+                    </FluentLabel>
+                }
+            </FluentStack>
+        }
+    </dd>
+</dl>
+
+@code {
+    [Parameter, EditorRequired] public OccupancyMismatchDto Report { get; set; } = null!;
+
+    [Parameter, EditorRequired] public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
+
+    /// <summary>Raised with the address when the reviewer opens a prefilled mail, so the case can record it.</summary>
+    [Parameter] public EventCallback<string> OnContact { get; set; }
+
+    private string PhotoUrl => $"api/parking/mismatches/{Report.Id}/photo";
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, TimeZone).ToString(format);
+
+    // Prefilled mailto so the admin's follow-up is one click: subject carries the spot and day.
+    private string MailTo(string email) =>
+        $"mailto:{email}?subject={Uri.EscapeDataString(L["Parking_Mismatch_MailSubject", Report.SpotCode, Local(Report.StartUtc, "d")])}";
+}

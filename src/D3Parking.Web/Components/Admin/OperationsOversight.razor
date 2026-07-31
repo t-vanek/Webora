@@ -1,13 +1,12 @@
 @page "/admin/parking/oversight"
 @page "/admin/parking/oversight/{Tab}"
-@* The two queues used to be pages of their own. Their routes stay as aliases so bookmarks and
-   older deep links land on the matching tab instead of a 404. *@
+@* The two queues used to be pages of their own, and later two tabs. Their routes stay as aliases
+   so bookmarks and older deep links land on the matching filter instead of a 404. *@
 @page "/admin/parking/mismatches"
 @page "/admin/parking/collusion"
 @attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion)]
 @rendermode InteractiveServer
-@inject IParkingSpotService Spots
-@inject ICollusionService Collusion
+@inject IOversightService Oversight
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Nav
@@ -15,24 +14,23 @@
 
 <PageTitle>@L["Parking_Oversight_Title"]</PageTitle>
 
-@* One screen for everything the lot flags for a human decision. Two queues that read alike —
-   a signal, its evidence, and a ruling — but never overlap: occupancy mismatches are reported by
-   drivers about the physical lot, collusion flags are raised by the nightly scan about the
-   incentive scheme. They share the shell (loading, messages, busy state, counts) and keep their
-   own columns, because "photo proof and a mailto" and "two names and a concentration" have
-   nothing to say to each other in a common grid.
+@* One queue over everything the lot flags for a human decision. What used to be two grids of
+   signals is one list of cases: a case knows who owns it, what was decided and what has already
+   been tried, which a row of raw evidence never could.
+
+   The kinds stay apart where it matters — a case is only ever visible to the permission that may
+   see its evidence, and the columns here are the ones both kinds share. Anything specific to a
+   report or to a flagged pair lives in the case detail, where there is room for it.
 
    The page-level gate is any-of: a reviewer who holds one permission gets in and sees only their
-   queue, which is also what decides the landing tab. *@
+   kind of case, which is also what the counts are of. *@
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    @* Reload sits on the title line, not opposite it: the intro runs the full width, so a
-       space-between head would wrap the button onto a line of its own. *@
     <div class="admin-head__titles">
         <div class="admin-head__title-row">
             <FluentLabel Typo="Typography.PageTitle">@L["Parking_Oversight_Title"]</FluentLabel>
-            @if (_openCases > 0)
+            @if (_queue is { OpenCount: > 0 })
             {
-                <span class="count-chip" title="@L["Parking_Oversight_OpenCases"]">@_openCases</span>
+                <span class="count-chip" title="@L["Parking_Oversight_OpenCases"]">@_queue.OpenCount</span>
             }
             <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="RefreshAsync"
                           IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">@L["Parking_Oversight_Refresh"]</FluentButton>
@@ -53,223 +51,140 @@
         </FluentMessageBar>
     }
 
-    @if (!_loaded)
+    @if (_queue is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
     else
     {
-        @* Tab labels stay constant. Counts belong in the panel heads instead: a label that changes
-           after a ruling would swap the tab element's own children, which is what makes FluentTabs
-           re-read its children and snap the selection back to the first tab (see LotDashboard).
-
-           Which tabs exist is decided before the first render — permissions cannot change
-           mid-circuit — so the conditionals below never swap children either. *@
-        <FluentTabs @bind-ActiveTabId="_activeTab" OnTabChange="OnTabChange">
-            @if (_canReviewMismatches)
+        @* Buttons, not FluentTabs: every one of these labels carries a count that changes the
+           moment a case is ruled on, and swapping a tab element's children is exactly what makes
+           FluentTabs re-read them and snap the selection back to the first tab (see LotDashboard). *@
+        @* A group of toggles, not a tablist: they narrow one list rather than swap panels, and
+           aria-pressed is what says which one is on. *@
+        <div class="oversight-views" role="group" aria-label="@L["Parking_Oversight_Views"]">
+            @foreach (var view in Views)
             {
-                <FluentTab Id="@OccupancyTab" Label="@L["Parking_Mismatch_Title"]">
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                        @* No heading here: it would repeat the tab label verbatim. The count rides
-                           above the grid instead, where it reads as the table's caption. *@
-                        <p class="admin-head__intro">@L["Parking_Mismatch_Intro"]</p>
-
-                        @if (_mismatches.Count == 0)
-                        {
-                            <div class="empty-state">@L["Parking_Mismatch_Empty"]</div>
-                        }
-                        else
-                        {
-                            <div class="admin-head__title-row">
-                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Oversight_Records"]</FluentLabel>
-                                <span class="count-chip">@_mismatches.Count</span>
-                            </div>
-                            <div class="admin-panel">
-                                <FluentDataGrid Items="@_mismatches.AsQueryable()" TGridItem="OccupancyMismatchDto"
-                                                GridTemplateColumns="0.7fr 1.5fr 1.1fr 0.8fr 0.8fr 1.8fr 1.2fr 1.4fr">
-                                    <PropertyColumn Property="@(m => m.SpotCode)" Title="@L["Parking_Spot"]" />
-                                    <TemplateColumn Title="@L["Parking_Mismatch_Window"]">
-                                        @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_ReportedAt"]">
-                                        @Local(context.ReportedAtUtc, "g")
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_RelocatedTo"]">
-                                        @(context.RelocatedToSpotCode ?? "—")
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_Photo"]">
-                                        @if (context.HasPhoto)
-                                        {
-                                            @* target=_blank keeps Blazor's router out; the endpoint checks ManageSpots. *@
-                                            <a href="@($"api/parking/mismatches/{context.Id}/photo")" target="_blank" rel="noopener"
-                                               title="@L["Parking_Mismatch_PhotoOpen"]">
-                                                <img src="@($"api/parking/mismatches/{context.Id}/photo")" alt="@L["Parking_Mismatch_Photo"]"
-                                                     loading="lazy" style="max-width:96px;max-height:64px;border-radius:6px;object-fit:cover" />
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <span title="@L["Parking_Mismatch_PhotoMissing"]">—</span>
-                                        }
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_Related"]">
-                                        @if (context.BlockerPlate is null && context.RelatedReservations.Count == 0)
-                                        {
-                                            <span>—</span>
-                                        }
-                                        else
-                                        {
-                                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="2">
-                                                @if (context.BlockerPlate is { } plate)
-                                                {
-                                                    @* The recorded plate, resolved against registered vehicles: an
-                                                       employee gets a name + mailto, anything else is an outsider. *@
-                                                    <span>
-                                                        <strong>@plate</strong> — @(context.BlockerMatchName ?? L["Parking_Mismatch_PlateUnknown"].Value)
-                                                        @if (context.BlockerMatchIsVisitor)
-                                                        {
-                                                            <text> (@L["Parking_Mismatch_PlateVisitor"])</text>
-                                                        }
-                                                        @if (context.BlockerMatchEmail is { } matchEmail)
-                                                        {
-                                                            <a href="@MailTo(matchEmail, context)" title="@matchEmail">&#9993;</a>
-                                                        }
-                                                    </span>
-                                                }
-                                                @foreach (var related in context.RelatedReservations)
-                                                {
-                                                    <span>
-                                                        @related.Name — @L[$"Parking_State_{related.Status}"]
-                                                        @if (related.Email is not null)
-                                                        {
-                                                            <a href="@MailTo(related.Email, context)" title="@related.Email">&#9993;</a>
-                                                        }
-                                                    </span>
-                                                }
-                                            </FluentStack>
-                                        }
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_Reporter"]">
-                                        @if (context.ReporterEmail is { } reporterEmail)
-                                        {
-                                            <a href="@MailTo(reporterEmail, context)" title="@reporterEmail">@context.ReporterName</a>
-                                        }
-                                        else
-                                        {
-                                            @context.ReporterName
-                                        }
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Mismatch_Voucher"]">
-                                        @if (context.Voucher is not { } voucher)
-                                        {
-                                            <span>—</span>
-                                        }
-                                        else if (voucher.Status == ApologyVoucherStatus.PendingApproval)
-                                        {
-                                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
-                                                <FluentBadge Appearance="Appearance.Accent">@L["Parking_VoucherState_PendingApproval"]</FluentBadge>
-                                                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
-                                                              OnClick="() => ApproveAsync(voucher.Id)">@L["Parking_Mismatch_Approve"]</FluentButton>
-                                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
-                                                              OnClick="() => RejectAsync(voucher.Id)">@L["Parking_Mismatch_Reject"]</FluentButton>
-                                            </FluentStack>
-                                        }
-                                        else
-                                        {
-                                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="2">
-                                                <FluentBadge Appearance="@(voucher.Status == ApologyVoucherStatus.Approved ? Appearance.Accent : Appearance.Neutral)">
-                                                    @L[$"Parking_VoucherState_{voucher.Status}"]
-                                                </FluentBadge>
-                                                @if (voucher.ReviewedAtUtc is { } reviewedAt)
-                                                {
-                                                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                                                        @Local(reviewedAt, "g")@(voucher.ReviewedByName is { } reviewer ? $" — {reviewer}" : string.Empty)
-                                                    </FluentLabel>
-                                                }
-                                            </FluentStack>
-                                        }
-                                    </TemplateColumn>
-                                </FluentDataGrid>
-                            </div>
-                        }
-                    </FluentStack>
-                </FluentTab>
+                <FluentButton aria-pressed="@((_view == view).ToString().ToLowerInvariant())"
+                              Appearance="@(_view == view ? Appearance.Accent : Appearance.Outline)"
+                              Disabled="@_busy" OnClick="() => SwitchViewAsync(view)">
+                    @L[$"Parking_Oversight_View_{view}"]
+                    <span class="count-chip oversight-views__count">@CountFor(view)</span>
+                </FluentButton>
             }
+        </div>
 
-            @if (_canReviewCollusion)
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+            @* The kind filter only appears for a reviewer who can see more than one — with a
+               single permission there is nothing to filter between. *@
+            @if (_scopeKinds.Count > 1)
             {
-                <FluentTab Id="@CollusionTab" Label="@L["Parking_Collusion_Title"]">
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                        <p class="admin-head__intro">@L["Parking_Collusion_Intro"]</p>
-
-                        @if (_flags.Count == 0)
-                        {
-                            <div class="empty-state">@L["Parking_Collusion_Empty"]</div>
-                        }
-                        else
-                        {
-                            <div class="admin-head__title-row">
-                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Oversight_Records"]</FluentLabel>
-                                <span class="count-chip">@_flags.Count</span>
-                            </div>
-                            <div class="admin-panel">
-                                <FluentDataGrid Items="@_flags.AsQueryable()" TGridItem="CollusionFlagDto"
-                                                GridTemplateColumns="2fr 1fr 1fr 1.1fr 1fr auto">
-                                    <TemplateColumn Title="@L["Parking_Collusion_Pair"]">
-                                        @context.UserAName ↔ @context.UserBName
-                                    </TemplateColumn>
-                                    <PropertyColumn Property="@(f => f.MutualInteractions)" Title="@L["Parking_Collusion_Mutual"]" />
-                                    <TemplateColumn Title="@L["Parking_Collusion_Concentration"]">
-                                        @context.ConcentrationAPercent % / @context.ConcentrationBPercent %
-                                    </TemplateColumn>
-                                    @* When the scan raised it: without it a reviewer cannot tell a flag
-                                       from last night from one that has sat unresolved for weeks. *@
-                                    <TemplateColumn Title="@L["Parking_Collusion_DetectedAt"]">
-                                        @Local(context.DetectedAtUtc, "g")
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@L["Parking_Status"]">
-                                        <span class="state-pill state-pill--@StatusClass(context.Status)">@L[$"Parking_CollusionState_{context.Status}"]</span>
-                                    </TemplateColumn>
-                                    <TemplateColumn Align="Align.End">
-                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true"
-                                                     HorizontalAlignment="HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Center">
-                                            @if (context.Status == CollusionFlagStatus.New)
-                                            {
-                                                <FluentButton OnClick="() => ReviewFlagAsync(context.Id)" Disabled="@_busy"
-                                                              Appearance="Appearance.Outline">@L["Parking_Collusion_Review"]</FluentButton>
-                                            }
-                                            <FluentButton OnClick="() => DismissFlagAsync(context.Id)" Disabled="@_busy"
-                                                          Appearance="Appearance.Stealth">@L["Parking_Collusion_Dismiss"]</FluentButton>
-                                        </FluentStack>
-                                    </TemplateColumn>
-                                </FluentDataGrid>
-                            </div>
-                        }
-                    </FluentStack>
-                </FluentTab>
+                <FluentSelect TOption="string"
+                              Items="@_kindOptions"
+                              OptionValue="@(k => k)"
+                              OptionText="@(k => k.Length == 0 ? L["Parking_Oversight_AllKinds"] : L[$"Parking_OversightKind_{k}"])"
+                              @bind-Value="_kindFilter"
+                              @bind-Value:after="ReloadAsync"
+                              Style="min-width:220px" />
             }
-        </FluentTabs>
+            <FluentSelect TOption="string"
+                          Items="@_priorityOptions"
+                          OptionValue="@(p => p)"
+                          OptionText="@(p => p.Length == 0 ? L["Parking_Oversight_AllPriorities"] : L[$"Parking_OversightPriority_{p}"])"
+                          @bind-Value="_priorityFilter"
+                          @bind-Value:after="ReloadAsync"
+                          Style="min-width:200px" />
+            <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
+                          Placeholder="@L["Parking_Oversight_SearchHint"]" Style="max-width:320px" />
+        </FluentStack>
+
+        @if (_queue.Cases.Count == 0)
+        {
+            <div class="empty-state">@L["Parking_Oversight_Empty"]</div>
+        }
+        else
+        {
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Oversight_Records"]</FluentLabel>
+                <span class="count-chip">@_queue.Cases.Count</span>
+            </div>
+            <div class="admin-panel">
+                <FluentDataGrid Items="@_queue.Cases.AsQueryable()" TGridItem="OversightCaseListItemDto"
+                                GridTemplateColumns="0.5fr 1.1fr 1.6fr 0.9fr 0.8fr 1.1fr 1fr auto">
+                    <TemplateColumn Title="@L["Parking_Oversight_Number"]">
+                        <a href="@CaseLink(context.Id)">#@context.Number</a>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Oversight_Kind"]">
+                        @L[$"Parking_OversightKind_{context.Kind}"]
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Oversight_Subject"]">
+                        @(string.IsNullOrEmpty(context.Subject) ? "—" : context.Subject)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Status"]">
+                        <span class="state-pill state-pill--@StatusClass(context.Status)">
+                            @L[$"Parking_OversightStatus_{context.Status}"]
+                        </span>
+                        @if (context.Resolution is { } resolution)
+                        {
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                @L[$"Parking_OversightResolution_{resolution}"]
+                            </FluentLabel>
+                        }
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Oversight_Priority"]">
+                        <span class="state-pill state-pill--@PriorityClass(context.Priority)">
+                            @L[$"Parking_OversightPriority_{context.Priority}"]
+                        </span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Oversight_Assignee"]">
+                        @(context.AssigneeName ?? L["Parking_Oversight_Unassigned"].Value)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Parking_Oversight_Opened"]">
+                        @Local(context.OpenedAtUtc, "g")
+                    </TemplateColumn>
+                    <TemplateColumn Align="Align.End">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true"
+                                     HorizontalAlignment="HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Center">
+                            @if (context.AssigneeId is null && context.Status != OversightCaseStatus.Resolved)
+                            {
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="() => ClaimAsync(context.Id)">@L["Parking_Oversight_Claim"]</FluentButton>
+                            }
+                            <FluentButton Appearance="Appearance.Stealth"
+                                          OnClick="() => Nav.NavigateTo(CaseLink(context.Id))">@L["Parking_Oversight_Open"]</FluentButton>
+                        </FluentStack>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </div>
+        }
     }
 </FluentStack>
 
 @code {
-    private const string OccupancyTab = "occupancy";
-    private const string CollusionTab = "collusion";
+    private static readonly OversightView[] Views =
+        [OversightView.Open, OversightView.Mine, OversightView.Unassigned, OversightView.All];
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
-    /// <summary>Which queue to open, so a tab is linkable: /admin/parking/oversight/collusion.</summary>
+    /// <summary>
+    /// The trailing route segment. Accepts a saved view (<c>mine</c>) so a view is linkable, and
+    /// the names the per-queue pages used to have (<c>collusion</c>, <c>occupancy</c>) so an old
+    /// bookmark opens the queue narrowed to that kind.
+    /// </summary>
     [Parameter] public string? Tab { get; set; }
 
     private Guid _reviewerId;
-    private IReadOnlyList<OccupancyMismatchDto> _mismatches = [];
-    private IReadOnlyList<CollusionFlagDto> _flags = [];
+    private OversightQueueDto? _queue;
+    private IReadOnlyList<OversightCaseKind> _scopeKinds = [];
+    private OversightScope _scope = OversightScope.None;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
-    private bool _canReviewMismatches;
-    private bool _canReviewCollusion;
-    private string _activeTab = OccupancyTab;
-    private int _openCases;
-    private bool _loaded;
+    private OversightView _view = OversightView.Open;
+    private string _kindFilter = string.Empty;
+    private string _priorityFilter = string.Empty;
+    private string _search = string.Empty;
+    private string[] _kindOptions = [];
+    private readonly string[] _priorityOptions =
+        [string.Empty, .. Enum.GetNames<OversightCasePriority>()];
     private bool _busy;
     private string? _error;
     private string? _info;
@@ -277,71 +192,94 @@
     protected override async Task OnInitializedAsync()
     {
         var principal = (await AuthState!).User;
-        _canReviewMismatches = principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches);
-        _canReviewCollusion = principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion);
+        _scope = OversightScope.From(
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion));
+        _scopeKinds = _scope.Kinds;
+        _kindOptions = [string.Empty, .. _scopeKinds.Select(k => k.ToString())];
 
         var user = await UserManager.GetUserAsync(principal);
         _reviewerId = user?.Id ?? Guid.Empty;
         _tz = await SiteSettings.GetTimeZoneAsync();
 
-        _activeTab = ResolveInitialTab();
+        ApplyRoute();
         await LoadAsync();
-        _loaded = true;
     }
 
     /// <summary>
-    /// Route parameter first, then the legacy per-queue routes, and finally the reviewer's
-    /// permissions — landing on a tab that isn't rendered would show an empty page.
+    /// Reads the route segment as either a view or a kind. A kind the reviewer cannot see is
+    /// ignored rather than honoured — an old collusion bookmark opened by a mismatch reviewer
+    /// should land on their queue, not on an empty one.
     /// </summary>
-    private string ResolveInitialTab()
+    private void ApplyRoute()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].TrimEnd('/');
-        var requested = Tab ?? (path.EndsWith("collusion", StringComparison.OrdinalIgnoreCase) ? CollusionTab : OccupancyTab);
-        var wanted = string.Equals(requested, CollusionTab, StringComparison.OrdinalIgnoreCase) ? CollusionTab : OccupancyTab;
-
-        return wanted switch
+        var segment = Tab
+            ?? (path.EndsWith("collusion", StringComparison.OrdinalIgnoreCase) ? nameof(OversightCaseKind.CollusionRing)
+                : path.EndsWith("mismatches", StringComparison.OrdinalIgnoreCase) ? nameof(OversightCaseKind.OccupancyMismatch)
+                : null);
+        if (segment is null)
         {
-            CollusionTab when !_canReviewCollusion => OccupancyTab,
-            OccupancyTab when !_canReviewMismatches => CollusionTab,
-            _ => wanted,
+            return;
+        }
+
+        if (Enum.TryParse<OversightView>(segment, ignoreCase: true, out var view))
+        {
+            _view = view;
+            return;
+        }
+
+        // "collusion" and "occupancy" are what the old routes called the kinds.
+        var kind = segment.ToLowerInvariant() switch
+        {
+            "collusion" or "collusionring" => (OversightCaseKind?)OversightCaseKind.CollusionRing,
+            "occupancy" or "occupancymismatch" or "mismatches" => OversightCaseKind.OccupancyMismatch,
+            _ => null,
         };
+
+        if (kind is { } wanted && _scope.Allows(wanted))
+        {
+            _kindFilter = wanted.ToString();
+        }
     }
 
-    // Only what the reviewer is allowed to see is fetched: the page-level gate is any-of, so a
-    // mismatch reviewer without the collusion permission must not have flags loaded on their behalf.
     private async Task LoadAsync()
     {
-        _mismatches = _canReviewMismatches
-            ? [.. (await Spots.GetOccupancyMismatchesAsync())
-                // Pending vouchers first: they are the part of this queue that is actually waiting
-                // on the reviewer, the rest is the trend record behind it.
-                .OrderByDescending(m => m.Voucher?.Status == ApologyVoucherStatus.PendingApproval)
-                .ThenByDescending(m => m.ReportedAtUtc)]
-            : [];
+        // Signals become cases here rather than where they are raised, so a report filed a second
+        // ago is already on the desk when the reviewer opens it — no waiting for a sweep.
+        await Oversight.EnsureCasesAsync();
 
-        _flags = _canReviewCollusion ? await Collusion.GetFlagsAsync() : [];
-
-        _openCases = _mismatches.Count(m => m.Voucher?.Status == ApologyVoucherStatus.PendingApproval)
-            + _flags.Count(f => f.Status == CollusionFlagStatus.New);
+        _queue = await Oversight.GetQueueAsync(
+            new OversightQuery(
+                _reviewerId,
+                _view,
+                _kindFilter.Length == 0 ? null : Enum.Parse<OversightCaseKind>(_kindFilter),
+                _priorityFilter.Length == 0 ? null : Enum.Parse<OversightCasePriority>(_priorityFilter),
+                _search),
+            _scope);
     }
 
-    private void OnTabChange(FluentTab tab)
+    private int CountFor(OversightView view) => _queue is null ? 0 : view switch
     {
-        _activeTab = tab.Id ?? OccupancyTab;
-
-        // Keep the address bar on the open queue so the tab can be linked and reloaded.
-        // replace: the two tabs are one screen, not two steps of the reviewer's history.
-        Nav.NavigateTo($"admin/parking/oversight/{_activeTab}", replace: true);
-    }
-
-    private static string StatusClass(CollusionFlagStatus status) => status switch
-    {
-        CollusionFlagStatus.New => "warn",
-        CollusionFlagStatus.Reviewed => "info",
-        _ => "off",
+        OversightView.Open => _queue.OpenCount,
+        OversightView.Mine => _queue.MineCount,
+        OversightView.Unassigned => _queue.UnassignedCount,
+        _ => _queue.TotalCount,
     };
 
-    private async Task RefreshAsync()
+    private async Task SwitchViewAsync(OversightView view)
+    {
+        _view = view;
+
+        // Keep the address bar on the open view so it can be linked and reloaded. replace: the
+        // views are one screen, not steps of the reviewer's history.
+        Nav.NavigateTo($"admin/parking/oversight/{view.ToString().ToLowerInvariant()}", replace: true);
+        await ReloadAsync();
+    }
+
+    private Task RefreshAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
     {
         if (_busy)
         {
@@ -360,31 +298,7 @@
         }
     }
 
-    private Task ApproveAsync(Guid voucherId) => RunAsync(async () =>
-        (await Spots.ApproveVoucherAsync(voucherId, _reviewerId), "Parking_Mismatch_Approved"));
-
-    private Task RejectAsync(Guid voucherId) => RunAsync(async () =>
-        (await Spots.RejectVoucherAsync(voucherId, _reviewerId), "Parking_Mismatch_Rejected"));
-
-    // The collusion service reports failure by throwing, not by a result — a ruling that returns
-    // has landed, so these lift into the shared path as an unconditional success.
-    private Task ReviewFlagAsync(Guid flagId) => RunAsync(async () =>
-    {
-        await Collusion.ReviewAsync(flagId);
-        return (ParkingResult.Success, "Parking_Collusion_ReviewedInfo");
-    });
-
-    private Task DismissFlagAsync(Guid flagId) => RunAsync(async () =>
-    {
-        await Collusion.DismissAsync(flagId);
-        return (ParkingResult.Success, "Parking_Collusion_DismissedInfo");
-    });
-
-    /// <summary>
-    /// One decision path for both queues: run the action, report it, reload either way — a
-    /// friendly "already decided" failure means the list the reviewer acted on was stale.
-    /// </summary>
-    private async Task RunAsync(Func<Task<(ParkingResult Result, string? SuccessKey)>> action)
+    private async Task ClaimAsync(Guid caseId)
     {
         if (_busy)
         {
@@ -395,16 +309,17 @@
         try
         {
             _error = _info = null;
-            var (result, successKey) = await action();
+            var result = await Oversight.ClaimAsync(caseId, _reviewerId, _scope);
             if (result.Succeeded)
             {
-                _info = successKey;
+                _info = "Parking_Oversight_Claimed";
             }
             else
             {
                 _error = result.Errors.FirstOrDefault();
             }
 
+            // Reload either way: a friendly "someone else has it" means the list is stale.
             await LoadAsync();
         }
         finally
@@ -413,10 +328,23 @@
         }
     }
 
+    private static string CaseLink(Guid caseId) => $"admin/parking/oversight/case/{caseId}";
+
+    private static string StatusClass(OversightCaseStatus status) => status switch
+    {
+        OversightCaseStatus.New => "warn",
+        OversightCaseStatus.InProgress => "info",
+        _ => "off",
+    };
+
+    private static string PriorityClass(OversightCasePriority priority) => priority switch
+    {
+        OversightCasePriority.Critical => "alert",
+        OversightCasePriority.High => "warn",
+        OversightCasePriority.Low => "off",
+        _ => "info",
+    };
+
     private string Local(DateTimeOffset utc, string format) =>
         TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
-
-    // Prefilled mailto so the admin's follow-up is one click: subject carries the spot and day.
-    private string MailTo(string email, OccupancyMismatchDto mismatch) =>
-        $"mailto:{email}?subject={Uri.EscapeDataString(L["Parking_Mismatch_MailSubject", mismatch.SpotCode, Local(mismatch.StartUtc, "d")])}";
 }

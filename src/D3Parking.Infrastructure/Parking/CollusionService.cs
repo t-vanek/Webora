@@ -4,6 +4,7 @@ using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
+using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure.Persistence;
 
@@ -11,7 +12,7 @@ namespace D3Parking.Infrastructure.Parking;
 
 /// <summary>
 /// Flags reciprocal sharing rings: pairs whose shared-spot transactions are heavily concentrated on
-/// each other. Detection only — hard action is left to an administrator via the review page.
+/// each other. Detection only — every flag becomes an oversight case, and that is where it is ruled on.
 /// </summary>
 public sealed class CollusionService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
@@ -64,6 +65,15 @@ public sealed class CollusionService(
         var existing = (await dbContext.CollusionFlags.ToListAsync(cancellationToken))
             .ToDictionary(f => (f.UserA, f.UserB));
 
+        // Pairs a reviewer has already dismissed. The verdict lives on the oversight case, so this
+        // is where the scan reads it: re-measuring a pair that was ruled a false positive would put
+        // it back on the desk every night with the same numbers and the same answer.
+        var dismissed = await dbContext.OversightCases.AsNoTracking()
+            .Where(c => c.Kind == OversightCaseKind.CollusionRing && c.Resolution == OversightResolution.Unfounded)
+            .Select(c => c.SubjectId)
+            .ToListAsync(cancellationToken);
+        var dismissedFlags = dismissed.ToHashSet();
+
         var newPairs = new List<(Guid A, Guid B)>();
         foreach (var ((a, b), m) in mutual)
         {
@@ -81,7 +91,7 @@ public sealed class CollusionService(
 
             if (existing.TryGetValue((a, b), out var flag))
             {
-                if (flag.Status == CollusionFlagStatus.Dismissed)
+                if (dismissedFlags.Contains(flag.Id))
                 {
                     continue;
                 }
@@ -119,52 +129,26 @@ public sealed class CollusionService(
         return newPairs.Count;
     }
 
-    public async Task<IReadOnlyList<CollusionFlagDto>> GetFlagsAsync(CancellationToken cancellationToken = default)
+    public async Task<CollusionFlagDto?> GetFlagAsync(Guid flagId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var flags = await dbContext.CollusionFlags.AsNoTracking()
-            .Where(f => f.Status != CollusionFlagStatus.Dismissed)
-            .OrderByDescending(f => f.DetectedAtUtc)
-            .ToListAsync(cancellationToken);
-
-        if (flags.Count == 0)
+        var flag = await dbContext.CollusionFlags.AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == flagId, cancellationToken);
+        if (flag is null)
         {
-            return [];
+            return null;
         }
 
-        var ids = flags.SelectMany(f => new[] { f.UserA, f.UserB }).Distinct().ToList();
         var names = await dbContext.Users.AsNoTracking()
-            .Where(u => ids.Contains(u.Id))
+            .Where(u => u.Id == flag.UserA || u.Id == flag.UserB)
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.Email ?? string.Empty, cancellationToken);
 
-        return flags.Select(f => new CollusionFlagDto(
-            f.Id,
-            names.GetValueOrDefault(f.UserA, string.Empty),
-            names.GetValueOrDefault(f.UserB, string.Empty),
-            f.MutualInteractions, f.ConcentrationAPercent, f.ConcentrationBPercent,
-            f.Status, f.DetectedAtUtc)).ToList();
-    }
-
-    public async Task ReviewAsync(Guid flagId, CancellationToken cancellationToken = default)
-    {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var flag = await dbContext.CollusionFlags.FirstOrDefaultAsync(f => f.Id == flagId, cancellationToken);
-        if (flag is not null)
-        {
-            flag.MarkReviewed(timeProvider.GetUtcNow());
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-    }
-
-    public async Task DismissAsync(Guid flagId, CancellationToken cancellationToken = default)
-    {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var flag = await dbContext.CollusionFlags.FirstOrDefaultAsync(f => f.Id == flagId, cancellationToken);
-        if (flag is not null)
-        {
-            flag.Dismiss(timeProvider.GetUtcNow());
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
+        return new CollusionFlagDto(
+            flag.Id,
+            names.GetValueOrDefault(flag.UserA, string.Empty),
+            names.GetValueOrDefault(flag.UserB, string.Empty),
+            flag.MutualInteractions, flag.ConcentrationAPercent, flag.ConcentrationBPercent,
+            flag.DetectedAtUtc, flag.UpdatedAtUtc);
     }
 }

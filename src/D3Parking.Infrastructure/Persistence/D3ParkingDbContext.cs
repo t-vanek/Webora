@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
+using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Domain.Settings;
@@ -14,6 +15,12 @@ namespace D3Parking.Infrastructure.Persistence;
 public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
+    /// <summary>Backs <see cref="OversightCase.Number"/>; named here so the mapping and the migration agree.</summary>
+    public const string OversightCaseNumberSequence = "OversightCaseNumbers";
+
+    /// <summary>Shadow insertion ordinal on <see cref="OversightCaseEvent"/>: the timeline's tiebreaker.</summary>
+    public const string OversightEventOrdinal = "Ordinal";
+
     public DbSet<PermissionGroup> PermissionGroups => Set<PermissionGroup>();
 
     public DbSet<RolePermissionGroup> RolePermissionGroups => Set<RolePermissionGroup>();
@@ -63,6 +70,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     public DbSet<CompanyVehicle> CompanyVehicles => Set<CompanyVehicle>();
+
+    public DbSet<OversightCase> OversightCases => Set<OversightCase>();
+
+    public DbSet<OversightCaseEvent> OversightCaseEvents => Set<OversightCaseEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -396,10 +407,65 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         {
             flag.ToTable("CollusionFlags");
             flag.HasKey(f => f.Id);
-            flag.Property(f => f.Status).HasConversion<string>().HasMaxLength(16);
             flag.HasIndex(f => new { f.UserA, f.UserB }).IsUnique();
-            flag.HasIndex(f => f.Status);
         });
+
+        builder.Entity<OversightCase>(oversight =>
+        {
+            oversight.ToTable("OversightCases");
+            oversight.HasKey(c => c.Id);
+            oversight.Property(c => c.Kind).HasConversion<string>().HasMaxLength(32);
+            oversight.Property(c => c.Status).HasConversion<string>().HasMaxLength(16);
+            oversight.Property(c => c.Priority).HasConversion<string>().HasMaxLength(16);
+            oversight.Property(c => c.Resolution).HasConversion<string>().HasMaxLength(24);
+            oversight.Property(c => c.ResolutionNote).HasMaxLength(2048);
+
+            // The short handle reviewers quote to each other, from a sequence rather than a count:
+            // two cases opened in the same sweep must not race to the same number, and a number
+            // must never be reused after a case is gone.
+            oversight.Property(c => c.Number)
+                .HasDefaultValueSql($"NEXT VALUE FOR [{OversightCaseNumberSequence}]")
+                .ValueGeneratedOnAdd();
+            oversight.HasIndex(c => c.Number).IsUnique();
+
+            // One case per signal — the ingest is idempotent because of this index, not because it
+            // remembers what it has already seen.
+            oversight.HasIndex(c => new { c.Kind, c.SubjectId }).IsUnique();
+            // The queue's shapes: the open list newest-activity-first, and "mine".
+            oversight.HasIndex(c => new { c.Status, c.UpdatedAtUtc });
+            oversight.HasIndex(c => new { c.AssigneeId, c.Status });
+            oversight.HasIndex(c => c.SpotId);
+
+            // Shadow rowversion: two reviewers land on the same fresh case and both press a
+            // button. The loser must re-read and meet the guard ("already decided"), not overwrite
+            // the ruling that got there first.
+            oversight.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<OversightCaseEvent>(entry =>
+        {
+            entry.ToTable("OversightCaseEvents");
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Type).HasConversion<string>().HasMaxLength(32);
+            entry.Property(e => e.Actor).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.Visibility).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.Body).HasMaxLength(4000);
+            entry.HasIndex(e => new { e.CaseId, e.OccurredAtUtc });
+
+            // Two entries can share a timestamp — ruling on a voucher writes its own line and the
+            // case's close-out in one act — and then a timestamp alone cannot order them. The
+            // insertion ordinal is what keeps the history in the order it happened; it is a shadow
+            // property because insertion order is the storage's business, not the domain's.
+            entry.Property<long>(OversightEventOrdinal).ValueGeneratedOnAdd().UseIdentityColumn();
+
+            // The history dies with the case it belongs to and with nothing else.
+            entry.HasOne<OversightCase>()
+                .WithMany()
+                .HasForeignKey(e => e.CaseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.HasSequence<int>(OversightCaseNumberSequence).StartsAt(1).IncrementsBy(1);
 
         builder.Entity<Reservation>(reservation =>
         {

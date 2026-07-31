@@ -1998,6 +1998,114 @@ fluent-menu-item:has(> .account-menu-link) {
 .state-pill--off { background: var(--neutral-fill-secondary-rest, #ececec); color: var(--neutral-foreground-hint, #6b6b6b); }
 .state-pill--warn { background: rgba(247, 169, 0, .18); color: var(--warning-rest, #b86e00); }
 .state-pill--info { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
+.state-pill--alert { background: rgba(196, 49, 75, .16); color: var(--error-rest, #b1233c); }
+
+/* --- Provozní dohled: fronta případů a detail případu --- */
+
+/* Uložené pohledy jsou tlačítka, ne FluentTabs: každý nese počet, který se po rozhodnutí mění,
+   a výměna dětí tabu je přesně to, co FluentTabs vrací výběr na první záložku. */
+.oversight-views {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.oversight-views__count {
+    margin-left: 8px;
+}
+
+/* Fakta a historie vlevo, akce vpravo. Pod 1100 px se sloupce skládají pod sebe — akce zůstávají
+   na dosah palce až za obsahem, protože se rozhoduje po přečtení důkazů, ne před ním. */
+.case-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    width: 100%;
+}
+
+.case-grid__main,
+.case-grid__side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+@media (max-width: 1100px) {
+    .case-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.case-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.case-facts {
+    display: grid;
+    grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+    gap: 6px 16px;
+    margin: 0;
+}
+
+    .case-facts dt {
+        color: var(--neutral-foreground-hint, #6b6b6b);
+        font-size: 13px;
+    }
+
+    .case-facts dd {
+        margin: 0;
+        min-width: 0;
+    }
+
+.case-facts__photo {
+    max-width: 320px;
+    max-height: 240px;
+    width: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.case-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.case-timeline__item {
+    border-left: 3px solid var(--neutral-stroke-rest, #e6e6e6);
+    padding: 2px 0 2px 12px;
+}
+
+/* Barva pruhu odděluje, co napsalo parkoviště samo, od toho, co udělal člověk — časová osa se
+   čte jako příběh a tohle je v ní ta nejrychlejší otázka. */
+.case-timeline__item--system { border-left-color: var(--neutral-stroke-strong-rest, #b3b3b3); }
+.case-timeline__item--reviewer { border-left-color: var(--brand-violet, #884dff); }
+.case-timeline__item--participant { border-left-color: var(--brand-green, #89e103); }
+
+.case-timeline__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.case-timeline__meta {
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-size: 12px;
+}
+
+.case-timeline__body {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+}
 
 /* Živý náhled dávky v generátoru míst: počet, ukázka kódů, kolize. */
 .batch-preview {

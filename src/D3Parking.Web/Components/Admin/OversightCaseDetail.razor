@@ -1,0 +1,363 @@
+@page "/admin/parking/oversight/case/{Id:guid}"
+@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion)]
+@rendermode InteractiveServer
+@inject IOversightService Oversight
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@(_case is null ? L["Parking_Oversight_Title"].Value : $"#{_case.Number} — {L["Parking_Oversight_Title"].Value}")</PageTitle>
+
+@* A case on its own page rather than in a dialog: the first thing a reviewer does with a hard one
+   is send the link to a colleague.
+
+   Three parts, in the order the work happens — the facts the lot collected, what has been done so
+   far, and what can be done next. The facts panel is per kind and reads from the signal's own
+   service; the timeline and the actions are the same for every kind, which is the whole point of
+   having cases at all. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentAnchor Href="admin/parking/oversight" Appearance="Appearance.Stealth"
+                          IconStart="@(new Icons.Regular.Size20.ArrowLeft())">@L["Parking_Oversight_Back"]</FluentAnchor>
+        </div>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">
+            @L[_error]
+        </FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">
+            @L[_info]
+        </FluentMessageBar>
+    }
+
+    @if (!_loaded)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_case is null)
+    {
+        @* Also what a reviewer sees for a case of the other kind: telling them it exists but is
+           not theirs to read would already leak what the other queue holds. *@
+        <div class="empty-state">@L["Parking_Oversight_NotFound"]</div>
+    }
+    else
+    {
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">
+                    #@_case.Number — @L[$"Parking_OversightKind_{_case.Kind}"]
+                </FluentLabel>
+                <span class="state-pill state-pill--@StatusClass(_case.Status)">
+                    @L[$"Parking_OversightStatus_{_case.Status}"]
+                </span>
+                <span class="state-pill state-pill--@PriorityClass(_case.Priority)">
+                    @L[$"Parking_OversightPriority_{_case.Priority}"]
+                </span>
+            </div>
+            <p class="admin-head__intro">
+                @if (!string.IsNullOrEmpty(_case.Subject))
+                {
+                    <strong>@_case.Subject</strong><text> · </text>
+                }
+                @L["Parking_Oversight_Opened"]: @Local(_case.OpenedAtUtc, "g")
+                <text> · </text>
+                @L["Parking_Oversight_Assignee"]: @(_case.AssigneeName ?? L["Parking_Oversight_Unassigned"].Value)
+            </p>
+        </div>
+
+        <div class="case-grid">
+            <div class="case-grid__main">
+                <div class="admin-panel case-section">
+                    <FluentLabel Typo="Typography.H5">@L["Parking_Oversight_Facts"]</FluentLabel>
+                    @if (_case.Mismatch is { } mismatch)
+                    {
+                        <MismatchFacts Report="mismatch" TimeZone="_tz"
+                                       OnContact="RecordContactAsync" />
+                    }
+                    else if (_case.Flag is { } flag)
+                    {
+                        <dl class="case-facts">
+                            <dt>@L["Parking_Collusion_Pair"]</dt>
+                            <dd>@flag.UserAName ↔ @flag.UserBName</dd>
+                            <dt>@L["Parking_Collusion_Mutual"]</dt>
+                            <dd>@flag.MutualInteractions</dd>
+                            <dt>@L["Parking_Collusion_Concentration"]</dt>
+                            <dd>@flag.ConcentrationAPercent % / @flag.ConcentrationBPercent %</dd>
+                            <dt>@L["Parking_Collusion_DetectedAt"]</dt>
+                            <dd>@Local(flag.DetectedAtUtc, "g")</dd>
+                            @* The scan re-measures a live pair every night; without this a reviewer
+                               cannot tell fresh numbers from the ones the flag was raised with. *@
+                            <dt>@L["Parking_Collusion_UpdatedAt"]</dt>
+                            <dd>@Local(flag.UpdatedAtUtc, "g")</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        @* The case outlives its evidence: a report or a flag can be cleaned up
+                           while the ruling on it stays on the record. *@
+                        <div class="empty-state">@L["Parking_Oversight_EvidenceGone"]</div>
+                    }
+                </div>
+
+                <div class="admin-panel case-section">
+                    <FluentLabel Typo="Typography.H5">@L["Parking_Oversight_Timeline"]</FluentLabel>
+                    <ol class="case-timeline">
+                        @foreach (var entry in _case.Timeline)
+                        {
+                            <li class="case-timeline__item case-timeline__item--@entry.Actor.ToString().ToLowerInvariant()">
+                                <div class="case-timeline__head">
+                                    <strong>@L[$"Parking_OversightEvent_{entry.Type}"]</strong>
+                                    <span class="case-timeline__meta">
+                                        @(entry.ActorName ?? L[$"Parking_OversightActor_{entry.Actor}"].Value)
+                                        <text> · </text>
+                                        @Local(entry.OccurredAtUtc, "g")
+                                    </span>
+                                    @if (entry.Visibility == OversightVisibility.Participants)
+                                    {
+                                        <span class="state-pill state-pill--info">@L["Parking_Oversight_Visible"]</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(entry.Body))
+                                {
+                                    <p class="case-timeline__body">@entry.Body</p>
+                                }
+                            </li>
+                        }
+                    </ol>
+
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentTextArea @bind-Value="_comment" Rows="3" Style="width:100%"
+                                        Placeholder="@L["Parking_Oversight_CommentPlaceholder"]" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                            @* Off by default: a note reaches nobody unless the reviewer says so. *@
+                            <FluentSwitch @bind-Value="_commentVisible" Label="@L["Parking_Oversight_CommentVisible"]" />
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                          OnClick="CommentAsync">@L["Parking_Oversight_AddComment"]</FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                </div>
+            </div>
+
+            <div class="case-grid__side">
+                <div class="admin-panel case-section">
+                    <FluentLabel Typo="Typography.H5">@L["Parking_Oversight_Actions"]</FluentLabel>
+
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                        @if (_case.Status != OversightCaseStatus.Resolved)
+                        {
+                            @if (_case.AssigneeId is null)
+                            {
+                                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                              OnClick="ClaimAsync">@L["Parking_Oversight_Claim"]</FluentButton>
+                            }
+                            else if (_case.AssigneeId == _reviewerId)
+                            {
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="ReleaseAsync">@L["Parking_Oversight_Release"]</FluentButton>
+                            }
+
+                            <FluentSelect TOption="string"
+                                          Label="@L["Parking_Oversight_Priority"]"
+                                          Items="@PriorityOptions"
+                                          OptionValue="@(p => p)"
+                                          OptionText="@(p => L[$"Parking_OversightPriority_{p}"])"
+                                          @bind-Value="_priority"
+                                          @bind-Value:after="SetPriorityAsync"
+                                          Disabled="@_busy" />
+
+                            @* Ruling on the voucher is the verdict on the report, so it sits above
+                               the general close-out and does the closing itself. *@
+                            @if (_case.Mismatch?.Voucher is { Status: ApologyVoucherStatus.PendingApproval })
+                            {
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+                                    <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                                  OnClick="() => ReviewVoucherAsync(true)">@L["Parking_Mismatch_Approve"]</FluentButton>
+                                    <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                                  OnClick="() => ReviewVoucherAsync(false)">@L["Parking_Mismatch_Reject"]</FluentButton>
+                                </FluentStack>
+                            }
+
+                            <FluentDivider />
+
+                            <FluentSelect TOption="string"
+                                          Label="@L["Parking_Oversight_Resolution"]"
+                                          Items="@ResolutionOptions"
+                                          OptionValue="@(r => r)"
+                                          OptionText="@(r => L[$"Parking_OversightResolution_{r}"])"
+                                          @bind-Value="_resolution"
+                                          Disabled="@_busy" />
+                            <FluentTextArea @bind-Value="_resolutionNote" Rows="2" Style="width:100%"
+                                            Label="@L["Parking_Oversight_ResolutionNote"]" />
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                          OnClick="ResolveAsync">@L["Parking_Oversight_Resolve"]</FluentButton>
+                        }
+                        else
+                        {
+                            <dl class="case-facts">
+                                <dt>@L["Parking_Oversight_Resolution"]</dt>
+                                <dd>@L[$"Parking_OversightResolution_{_case.Resolution}"]</dd>
+                                @if (_case.ResolvedAtUtc is { } resolvedAt)
+                                {
+                                    <dt>@L["Parking_Oversight_ResolvedAt"]</dt>
+                                    <dd>@Local(resolvedAt, "g")@(_case.AssigneeName is { } by ? $" — {by}" : string.Empty)</dd>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(_case.ResolutionNote))
+                                {
+                                    <dt>@L["Parking_Oversight_ResolutionNote"]</dt>
+                                    <dd>@_case.ResolutionNote</dd>
+                                }
+                            </dl>
+
+                            <FluentTextArea @bind-Value="_reopenReason" Rows="2" Style="width:100%"
+                                            Label="@L["Parking_Oversight_ReopenReason"]" />
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                          OnClick="ReopenAsync">@L["Parking_Oversight_Reopen"]</FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            </div>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    private static readonly string[] PriorityOptions = Enum.GetNames<OversightCasePriority>();
+    private static readonly string[] ResolutionOptions = Enum.GetNames<OversightResolution>();
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    [Parameter] public Guid Id { get; set; }
+
+    private Guid _reviewerId;
+    private OversightScope _scope = OversightScope.None;
+    private OversightCaseDetailDto? _case;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+    private string _comment = string.Empty;
+    private bool _commentVisible;
+    private string _priority = nameof(OversightCasePriority.Normal);
+    private string _resolution = nameof(OversightResolution.Founded);
+    private string _resolutionNote = string.Empty;
+    private string _reopenReason = string.Empty;
+    private bool _loaded;
+    private bool _busy;
+    private string? _error;
+    private string? _info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var principal = (await AuthState!).User;
+        _scope = OversightScope.From(
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion));
+
+        var user = await UserManager.GetUserAsync(principal);
+        _reviewerId = user?.Id ?? Guid.Empty;
+        _tz = await SiteSettings.GetTimeZoneAsync();
+
+        await LoadAsync();
+        _loaded = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        _case = await Oversight.GetCaseAsync(Id, _scope);
+        if (_case is not null)
+        {
+            _priority = _case.Priority.ToString();
+        }
+    }
+
+    private Task ClaimAsync() => RunAsync(() => Oversight.ClaimAsync(Id, _reviewerId, _scope), "Parking_Oversight_Claimed");
+
+    private Task ReleaseAsync() => RunAsync(() => Oversight.ReleaseAsync(Id, _reviewerId, _scope), "Parking_Oversight_Released");
+
+    private Task SetPriorityAsync() => RunAsync(
+        () => Oversight.SetPriorityAsync(Id, Enum.Parse<OversightCasePriority>(_priority), _reviewerId, _scope),
+        "Parking_Oversight_PriorityChanged");
+
+    private Task CommentAsync() => RunAsync(
+        () => Oversight.CommentAsync(Id, _comment, _commentVisible, _reviewerId, _scope),
+        "Parking_Oversight_Commented",
+        onSuccess: () =>
+        {
+            _comment = string.Empty;
+            _commentVisible = false;
+        });
+
+    private Task RecordContactAsync(string recipient) =>
+        RunAsync(() => Oversight.RecordEmailContactAsync(Id, recipient, _reviewerId, _scope), successKey: null);
+
+    private Task ReviewVoucherAsync(bool approve) => RunAsync(
+        () => Oversight.ReviewVoucherAsync(Id, approve, _reviewerId, _scope),
+        approve ? "Parking_Mismatch_Approved" : "Parking_Mismatch_Rejected");
+
+    private Task ResolveAsync() => RunAsync(
+        () => Oversight.ResolveAsync(Id, Enum.Parse<OversightResolution>(_resolution), _resolutionNote, _reviewerId, _scope),
+        "Parking_Oversight_ResolvedInfo",
+        onSuccess: () => _resolutionNote = string.Empty);
+
+    private Task ReopenAsync() => RunAsync(
+        () => Oversight.ReopenAsync(Id, _reopenReason, _reviewerId, _scope),
+        "Parking_Oversight_ReopenedInfo",
+        onSuccess: () => _reopenReason = string.Empty);
+
+    /// <summary>
+    /// One path for every action: run it, report it, reload either way — a friendly "already
+    /// decided" failure means the case the reviewer acted on was stale, and the reload is what
+    /// shows them what actually happened.
+    /// </summary>
+    private async Task RunAsync(Func<Task<ParkingResult>> action, string? successKey, Action? onSuccess = null)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _error = _info = null;
+            var result = await action();
+            if (result.Succeeded)
+            {
+                _info = successKey;
+                onSuccess?.Invoke();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string StatusClass(OversightCaseStatus status) => status switch
+    {
+        OversightCaseStatus.New => "warn",
+        OversightCaseStatus.InProgress => "info",
+        _ => "off",
+    };
+
+    private static string PriorityClass(OversightCasePriority priority) => priority switch
+    {
+        OversightCasePriority.Critical => "alert",
+        OversightCasePriority.High => "warn",
+        OversightCasePriority.Low => "off",
+        _ => "info",
+    };
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+}

@@ -376,7 +376,16 @@ public sealed class ParkingSpotService(
         return ParkingResult.Success;
     }
 
-    public async Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default) =>
+        QueryMismatchesAsync(take, onlyId: null, cancellationToken);
+
+    public async Task<OccupancyMismatchDto?> GetOccupancyMismatchAsync(Guid mismatchId, CancellationToken cancellationToken = default) =>
+        (await QueryMismatchesAsync(take: 1, onlyId: mismatchId, cancellationToken)).FirstOrDefault();
+
+    // One query behind the trend list and the single report a case opens: the evidence a reviewer
+    // rules on — the plate match, the meeting reservations — must be assembled the same way in
+    // both, or the two views of the same report can disagree.
+    private async Task<IReadOnlyList<OccupancyMismatchDto>> QueryMismatchesAsync(int take, Guid? onlyId, CancellationToken cancellationToken)
     {
         var limit = Math.Clamp(take, 1, 500);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -391,6 +400,7 @@ public sealed class ParkingSpotService(
                                 from replacement in replacements.DefaultIfEmpty()
                                 join av in dbContext.ApologyVouchers.AsNoTracking() on m.Id equals av.SourceMismatchId into vouchers
                                 from voucher in vouchers.DefaultIfEmpty()
+                                where onlyId == null || m.Id == onlyId
                                 orderby m.ReportedAtUtc descending
                                 select new
                                 {
