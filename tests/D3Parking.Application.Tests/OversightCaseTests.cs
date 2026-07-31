@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
@@ -35,6 +37,8 @@ public class OversightCaseTests
     private OversightService _oversight = null!;
     private ReservationService _reservations = null!;
     private CollusionService _collusion = null!;
+    private RecordingNotificationService _notifications = null!;
+    private AdvancingTimeProvider _clock = null!;
 
     [OneTimeSetUp]
     public async Task SetUpAsync()
@@ -59,16 +63,26 @@ public class OversightCaseTests
         await dbContext.Database.EnsureCreatedAsync();
 
         var factory = new TestDbContextFactory(_options);
-        var time = new FixedTimeProvider(Now);
+        // Advanceable rather than fixed: deadlines are the point of half of these specs, and a
+        // clock that cannot move cannot show one passing.
+        _clock = new AdvancingTimeProvider(Now);
         var notifications = new RecordingNotificationService();
         var messages = new PassthroughLocalizer<ParkingMessages>();
         var siteSettings = new FakeSiteSettings();
 
-        var spots = new ParkingSpotService(factory, notifications, siteSettings, time, messages);
-        _collusion = new CollusionService(factory, time, notifications, messages);
+        _notifications = notifications;
+        var spots = new ParkingSpotService(factory, notifications, siteSettings, _clock, messages);
+        _collusion = new CollusionService(factory, _clock);
         _reservations = new ReservationService(
-            factory, new FakeParkingSettings(IncentivePolicy.Default), siteSettings, time, notifications, messages);
-        _oversight = new OversightService(factory, spots, _collusion, time);
+            factory, new FakeParkingSettings(IncentivePolicy.Default), siteSettings, _clock, notifications, messages);
+        _oversight = new OversightService(factory, spots, _collusion, siteSettings, notifications, messages, _clock);
+    }
+
+    [SetUp]
+    public void ResetClockAndNotifications()
+    {
+        _clock.UtcNow = Now;
+        _notifications.Sent.Clear();
     }
 
     [OneTimeTearDown]
@@ -286,6 +300,188 @@ public class OversightCaseTests
         Assert.That(change.Body, Is.EqualTo("Normal → High"));
     }
 
+    // --- deadlines, triage and the lot's own turn at the desk --------------------------------
+
+    [Test]
+    public async Task A_case_opens_with_the_deadline_its_priority_earns()
+    {
+        await SeedSettingsAsync();
+        var mismatch = await SeedMismatchAsync("C-10");
+        await _oversight.EnsureCasesAsync();
+
+        var detail = await _oversight.GetCaseAsync(
+            await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id), Both);
+
+        Assert.That(detail!.Priority, Is.EqualTo(OversightCasePriority.Normal));
+        Assert.That(detail.DueAtUtc, Is.EqualTo(mismatch.ReportedAtUtc.AddHours(72)),
+            "The clock starts when the signal was raised, not when the ingest noticed it.");
+        Assert.That(detail.IsOverdue, Is.False);
+    }
+
+    [Test]
+    public async Task Repeated_reports_on_one_spot_open_high_and_say_so_on_the_ones_already_open()
+    {
+        await SeedSettingsAsync();
+        var spot = await SeedSpotAsync("C-11");
+        var first = await SeedMismatchOnAsync(spot, Now.AddDays(-3));
+        var second = await SeedMismatchOnAsync(spot, Now.AddDays(-2));
+        await _oversight.EnsureCasesAsync();
+
+        // The third inside the window is what turns three incidents into a pattern.
+        var third = await SeedMismatchOnAsync(spot, Now.AddHours(-1));
+        await _oversight.EnsureCasesAsync();
+
+        var latest = await _oversight.GetCaseAsync(
+            await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, third.Id), Both);
+        Assert.That(latest!.Priority, Is.EqualTo(OversightCasePriority.High));
+        Assert.That(latest.DueAtUtc, Is.EqualTo(third.ReportedAtUtc.AddHours(24)),
+            "A higher priority is a shorter deadline; that is what raising it is for.");
+        Assert.That(latest.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.Escalated));
+
+        foreach (var earlier in new[] { first, second })
+        {
+            var open = await _oversight.GetCaseAsync(
+                await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, earlier.Id), Both);
+            Assert.That(open!.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.SignalUpdated),
+                "Whoever is holding an open case on this spot has to learn it happened again.");
+        }
+    }
+
+    [Test]
+    public async Task A_passed_deadline_is_announced_once()
+    {
+        await SeedSettingsAsync();
+        var reviewer = await SeedReviewerAsync(Permissions.Parking.ReviewMismatches);
+        var mismatch = await SeedMismatchAsync("C-12");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+
+        await _oversight.RunDueCaseWorkAsync();
+        Assert.That((await _oversight.GetCaseAsync(caseId, Both))!.IsOverdue, Is.False, "Nothing is overdue yet.");
+
+        _clock.UtcNow = Now.AddDays(5);
+        _notifications.Sent.Clear();
+        await _oversight.RunDueCaseWorkAsync();
+
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.IsOverdue, Is.True);
+        Assert.That(detail.Timeline.Count(e => e.Type == OversightEventType.SlaBreached), Is.EqualTo(1));
+        Assert.That(_notifications.Sent, Does.Contain((reviewer, "Parking_Notify_OversightOverdue_Title")),
+            "An unclaimed case is everyone's to pick up, so everyone who could is told.");
+
+        // A sweep runs every few minutes; the breach must not be re-announced on each one. The
+        // count is of this case's own timeline — the fixture shares a database, so a global tally
+        // would be measuring the other specs' cases too.
+        await _oversight.RunDueCaseWorkAsync();
+        var again = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(again!.Timeline.Count(e => e.Type == OversightEventType.SlaBreached), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Raising_the_priority_re_dates_the_deadline_from_now()
+    {
+        await SeedSettingsAsync();
+        var mismatch = await SeedMismatchAsync("C-13");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+
+        // Let it go overdue first, so the re-dating has something to clear.
+        _clock.UtcNow = Now.AddDays(5);
+        await _oversight.RunDueCaseWorkAsync();
+        Assert.That((await _oversight.GetCaseAsync(caseId, Both))!.IsOverdue, Is.True);
+
+        var raised = await _oversight.SetPriorityAsync(caseId, OversightCasePriority.Critical, Guid.NewGuid(), Both);
+        Assert.That(raised.Succeeded, Is.True, raised.Errors.FirstOrDefault());
+
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.DueAtUtc, Is.EqualTo(_clock.UtcNow.AddHours(4)),
+            "Raising an old case to critical means deal with it now, not four hours ago.");
+        Assert.That(detail.IsOverdue, Is.False);
+
+        // And it can breach again on the new terms.
+        _clock.UtcNow = _clock.UtcNow.AddHours(5);
+        await _oversight.RunDueCaseWorkAsync();
+        var breached = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(breached!.IsOverdue, Is.True);
+        Assert.That(breached.Timeline.Count(e => e.Type == OversightEventType.SlaBreached), Is.EqualTo(2),
+            "The second deadline is a second breach, not a repeat of the first.");
+    }
+
+    [Test]
+    public async Task A_rescan_of_a_flagged_pair_lands_on_its_timeline_once()
+    {
+        await SeedSettingsAsync();
+        var flagId = await SeedFlagAsync();
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.CollusionRing, flagId);
+
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            var flag = await db.CollusionFlags.SingleAsync(f => f.Id == flagId);
+            flag.Update(11, 95, 93, Now.AddHours(2));
+            await db.SaveChangesAsync();
+        }
+
+        await _oversight.RunDueCaseWorkAsync();
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.Timeline.Count(e => e.Type == OversightEventType.SignalUpdated), Is.EqualTo(1),
+            "The numbers on the evidence panel changed under the reviewer; the timeline has to say so.");
+
+        // Nothing moved since, so nothing more to say.
+        await _oversight.RunDueCaseWorkAsync();
+        var again = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(again!.Timeline.Count(e => e.Type == OversightEventType.SignalUpdated), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task An_urgent_case_reaches_only_the_reviewers_of_its_kind()
+    {
+        await SeedSettingsAsync();
+        var mismatchReviewer = await SeedReviewerAsync(Permissions.Parking.ReviewMismatches);
+        var collusionReviewer = await SeedReviewerAsync(Permissions.Parking.ReviewCollusion);
+        var spot = await SeedSpotAsync("C-14");
+        await SeedMismatchOnAsync(spot, Now.AddDays(-2));
+        await SeedMismatchOnAsync(spot, Now.AddDays(-1));
+        await SeedMismatchOnAsync(spot, Now.AddHours(-1));
+
+        await _oversight.EnsureCasesAsync();
+
+        var urgent = _notifications.Sent.Where(s => s.Title == "Parking_Notify_OversightNew_Title").ToList();
+        Assert.That(urgent.Select(s => s.UserId), Does.Not.Contain(collusionReviewer),
+            "The evidence is a photograph of someone's car; only the permission that may see it hears about it.");
+        Assert.That(urgent.Count(s => s.UserId == mismatchReviewer), Is.EqualTo(1),
+            "Three reports, one of them escalated: only that one is worth interrupting anyone for — "
+            + "the other two wait for the digest.");
+    }
+
+    [Test]
+    public async Task The_daily_digest_is_one_message_per_reviewer_per_day()
+    {
+        await SeedSettingsAsync();
+        // Holds both permissions, so both queues are one pile of work to them.
+        var reviewer = await SeedReviewerAsync(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion);
+        await SeedMismatchAsync("C-15");
+        await SeedFlagAsync();
+        await _oversight.EnsureCasesAsync();
+
+        await ClearDigestMarkerAsync();
+        // Built with an explicit zero offset: the site time zone here is UTC, and going through
+        // DateTimeOffset.Date would hand back a DateTime that picks up the machine's offset.
+        _clock.UtcNow = new DateTimeOffset(2026, 7, 16, 9, 0, 0, TimeSpan.Zero);
+        _notifications.Sent.Clear();
+        await _oversight.RunDueCaseWorkAsync();
+
+        Assert.That(_notifications.Sent.Count(s => s.UserId == reviewer && s.Title == "Parking_Notify_OversightDigest_Title"),
+            Is.EqualTo(1),
+            "Two kinds of case are still one pile of work; telling them twice is the noise the digest exists to end.");
+
+        // Later the same day the sweep runs again — and stays quiet.
+        _clock.UtcNow = _clock.UtcNow.AddHours(6);
+        _notifications.Sent.Clear();
+        await _oversight.RunDueCaseWorkAsync();
+        Assert.That(_notifications.Sent.Where(s => s.Title == "Parking_Notify_OversightDigest_Title"), Is.Empty);
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)
@@ -300,6 +496,58 @@ public class OversightCaseTests
             db.OccupancyMismatches.Add(mismatch);
         });
         return mismatch;
+    }
+
+    private async Task<Guid> SeedSpotAsync(string spotCode)
+    {
+        var spot = new ParkingSpot(spotCode, ParkingSpotType.Standard);
+        await SeedAsync(db => db.ParkingSpots.Add(spot));
+        return spot.Id;
+    }
+
+    /// <summary>Another report on an existing spot — how a run of them becomes a pattern.</summary>
+    private async Task<OccupancyMismatch> SeedMismatchOnAsync(Guid spotId, DateTimeOffset reportedAt)
+    {
+        var reporter = await SeedUserAsync();
+        var mismatch = new OccupancyMismatch(
+            spotId, Guid.NewGuid(), reporter, reportedAt.AddHours(-1), reportedAt.AddHours(1), reportedAt);
+        await SeedAsync(db => db.OccupancyMismatches.Add(mismatch));
+        return mismatch;
+    }
+
+    /// <summary>A user whose role carries the given review permissions — a notification audience of one.</summary>
+    private async Task<Guid> SeedReviewerAsync(params string[] permissions)
+    {
+        var reviewer = new ApplicationUser
+        {
+            UserName = $"rev-{Guid.NewGuid():N}",
+            Email = $"rev-{Guid.NewGuid():N}@test.local",
+        };
+        var role = new ApplicationRole($"Reviewers-{Guid.NewGuid():N}");
+        await SeedAsync(db =>
+        {
+            db.Users.Add(reviewer);
+            db.Roles.Add(role);
+            foreach (var permission in permissions)
+            {
+                db.RoleClaims.Add(new IdentityRoleClaim<Guid>
+                {
+                    RoleId = role.Id,
+                    ClaimType = D3ParkingClaimTypes.Permission,
+                    ClaimValue = permission,
+                });
+            }
+
+            db.UserRoles.Add(new IdentityUserRole<Guid> { RoleId = role.Id, UserId = reviewer.Id });
+        });
+        return reviewer.Id;
+    }
+
+    /// <summary>Lets the next sweep send a digest instead of finding today's already gone out.</summary>
+    private async Task ClearDigestMarkerAsync()
+    {
+        await using var db = new D3ParkingDbContext(_options);
+        await db.Database.ExecuteSqlRawAsync("UPDATE ParkingSettings SET LastOversightDigestUtc = NULL");
     }
 
     private async Task<Guid> SeedFlagAsync()
@@ -420,5 +668,13 @@ public class OversightCaseTests
         }
 
         return new BlockedSpotPhoto(content, "image/jpeg");
+    }
+
+    /// <summary>A clock the spec moves by hand, so a deadline can be watched passing.</summary>
+    private sealed class AdvancingTimeProvider(DateTimeOffset start) : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; } = start;
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 }

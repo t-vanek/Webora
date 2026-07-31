@@ -827,7 +827,22 @@
   <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Reload</value></data>
   <data name="Parking_Oversight_Records" xml:space="preserve"><value>Records</value></data>
   <data name="Parking_Oversight_Empty" xml:space="preserve"><value>No cases to show.</value></data>
+  <data name="Parking_Settings_OversightSection" xml:space="preserve"><value>Operations oversight</value></data>
+  <data name="Parking_Settings_OversightHelp" xml:space="preserve"><value>How long a case of each priority may stay open. Past the deadline it is marked overdue and whoever holds it is told. Repeated reports on one spot open their case at a higher priority straight away.</value></data>
+  <data name="Parking_Settings_OversightSlaCritical" xml:space="preserve"><value>Deadline for critical (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaHigh" xml:space="preserve"><value>Deadline for high (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaNormal" xml:space="preserve"><value>Deadline for normal (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaLow" xml:space="preserve"><value>Deadline for low (hours)</value></data>
+  <data name="Parking_Settings_OversightRecurrenceThreshold" xml:space="preserve"><value>Reports on a spot before it is a pattern</value></data>
+  <data name="Parking_Settings_OversightRecurrenceWindow" xml:space="preserve"><value>Recurrence window (days)</value></data>
+  <data name="Parking_Settings_OversightDigestHour" xml:space="preserve"><value>Hour of the daily digest</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Queue views</value></data>
+  <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="Parking_Oversight_Due" xml:space="preserve"><value>Due</value></data>
+  <data name="Parking_Oversight_Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="Parking_OversightEvent_Escalated" xml:space="preserve"><value>Priority raised by the system</value></data>
+  <data name="Parking_OversightEvent_SlaBreached" xml:space="preserve"><value>Deadline passed</value></data>
+  <data name="Parking_OversightEvent_SignalUpdated" xml:space="preserve"><value>New finding on this case</value></data>
   <data name="Parking_Oversight_View_Open" xml:space="preserve"><value>Open</value></data>
   <data name="Parking_Oversight_View_Mine" xml:space="preserve"><value>Mine</value></data>
   <data name="Parking_Oversight_View_Unassigned" xml:space="preserve"><value>Unassigned</value></data>

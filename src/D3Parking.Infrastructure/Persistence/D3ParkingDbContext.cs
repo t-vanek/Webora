@@ -434,7 +434,11 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // The queue's shapes: the open list newest-activity-first, and "mine".
             oversight.HasIndex(c => new { c.Status, c.UpdatedAtUtc });
             oversight.HasIndex(c => new { c.AssigneeId, c.Status });
-            oversight.HasIndex(c => c.SpotId);
+            // Two sweeps read by this one: the overdue view, and the breach detection that has to
+            // find the handful of open cases past their deadline without walking the archive.
+            oversight.HasIndex(c => new { c.Status, c.DueAtUtc });
+            // Recurrence counts reports per spot within a window.
+            oversight.HasIndex(c => new { c.SpotId, c.OpenedAtUtc });
 
             // Shadow rowversion: two reviewers land on the same fresh case and both press a
             // button. The loser must re-read and meet the guard ("already decided"), not overwrite
@@ -556,6 +560,13 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.CollusionMinInteractions).HasDefaultValue(4);
             settings.Property(s => s.CollusionConcentrationPercent).HasDefaultValue(70);
             settings.Property(s => s.CollusionScanIntervalHours).HasDefaultValue(24);
+            settings.Property(s => s.OversightSlaCriticalHours).HasDefaultValue(4);
+            settings.Property(s => s.OversightSlaHighHours).HasDefaultValue(24);
+            settings.Property(s => s.OversightSlaNormalHours).HasDefaultValue(72);
+            settings.Property(s => s.OversightSlaLowHours).HasDefaultValue(168);
+            settings.Property(s => s.OversightRecurrenceWindowDays).HasDefaultValue(30);
+            settings.Property(s => s.OversightRecurrenceThreshold).HasDefaultValue(3);
+            settings.Property(s => s.OversightDigestHourLocal).HasDefaultValue(8);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

@@ -41,6 +41,19 @@ public class OversightCase : Entity
 
     public DateTimeOffset OpenedAtUtc { get; private set; }
 
+    /// <summary>
+    /// When the case should have been dealt with, from its priority. Recomputed from the moment the
+    /// priority changes rather than from when the case opened: raising an old case to critical is a
+    /// reviewer saying "deal with this now", and a deadline already in the past would say nothing.
+    /// </summary>
+    public DateTimeOffset? DueAtUtc { get; private set; }
+
+    /// <summary>
+    /// When the lot noticed the deadline had passed. Stored so the breach is announced once — a
+    /// sweep that re-announced it every five minutes would train reviewers to ignore it.
+    /// </summary>
+    public DateTimeOffset? SlaBreachedAtUtc { get; private set; }
+
     /// <summary>Last activity of any kind — what the queue sorts a stale case to the top by.</summary>
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
@@ -65,6 +78,20 @@ public class OversightCase : Entity
 
     /// <summary>True while the case still wants a human — what "open" means in the queue and the counts.</summary>
     public bool IsOpen => Status != OversightCaseStatus.Resolved;
+
+    /// <summary>Open and past its deadline.</summary>
+    public bool IsOverdue(DateTimeOffset now) => IsOpen && DueAtUtc is { } due && due <= now;
+
+    /// <summary>
+    /// Sets the priority the lot itself judged the case to deserve, at the moment it is opened.
+    /// Separate from <see cref="SetPriority"/> because there is no previous value to report and
+    /// nothing to refuse: this is part of opening, not a change to an open case.
+    /// </summary>
+    public void OpenAt(OversightCasePriority priority, TimeSpan sla)
+    {
+        Priority = priority;
+        DueAtUtc = OpenedAtUtc + sla;
+    }
 
     /// <summary>A reviewer takes the case. Taking one that someone else holds is the caller's call to refuse.</summary>
     public bool Claim(Guid reviewerId, DateTimeOffset at)
@@ -94,7 +121,12 @@ public class OversightCase : Entity
         return true;
     }
 
-    public bool SetPriority(OversightCasePriority priority, DateTimeOffset at)
+    /// <summary>
+    /// Changes the priority and re-dates the deadline with it. A breach already announced is
+    /// cleared, so a case pulled up to a longer deadline can be breached again on the new terms
+    /// rather than staying permanently marked.
+    /// </summary>
+    public bool SetPriority(OversightCasePriority priority, TimeSpan sla, DateTimeOffset at)
     {
         if (Priority == priority)
         {
@@ -102,6 +134,21 @@ public class OversightCase : Entity
         }
 
         Priority = priority;
+        DueAtUtc = at + sla;
+        SlaBreachedAtUtc = null;
+        Touch(at);
+        return true;
+    }
+
+    /// <summary>Records that the deadline passed. Returns false when it was already announced.</summary>
+    public bool MarkSlaBreached(DateTimeOffset at)
+    {
+        if (SlaBreachedAtUtc is not null || !IsOverdue(at))
+        {
+            return false;
+        }
+
+        SlaBreachedAtUtc = at;
         Touch(at);
         return true;
     }
@@ -130,7 +177,7 @@ public class OversightCase : Entity
     /// The verdict was wrong or new evidence arrived. The previous resolution is cleared from the
     /// case — the timeline keeps it, which is where a superseded ruling belongs.
     /// </summary>
-    public bool Reopen(Guid reviewerId, DateTimeOffset at)
+    public bool Reopen(Guid reviewerId, TimeSpan sla, DateTimeOffset at)
     {
         if (!OversightCaseStatusTransitions.IsAllowed(Status, OversightCaseStatus.InProgress))
         {
@@ -142,6 +189,11 @@ public class OversightCase : Entity
         ResolutionNote = null;
         ResolvedAtUtc = null;
         AssigneeId = reviewerId;
+
+        // A reopened case is work starting now, so it gets its full deadline again — carrying the
+        // original one over would open it already overdue for a delay nobody caused.
+        DueAtUtc = at + sla;
+        SlaBreachedAtUtc = null;
         Touch(at);
         return true;
     }

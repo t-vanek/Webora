@@ -15,6 +15,9 @@ public enum OversightView
     /// <summary>Open and nobody has taken it.</summary>
     Unassigned,
 
+    /// <summary>Open and past the deadline its priority set.</summary>
+    Overdue,
+
     /// <summary>Including resolved ones — the record, not the workload.</summary>
     All,
 }
@@ -45,6 +48,8 @@ public sealed record OversightCaseListItemDto(
     string? AssigneeName,
     DateTimeOffset OpenedAtUtc,
     DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? DueAtUtc,
+    bool IsOverdue,
     OversightResolution? Resolution);
 
 /// <summary>The queue plus the numbers the tabs show, counted once for all of them.</summary>
@@ -53,6 +58,7 @@ public sealed record OversightQueueDto(
     int OpenCount,
     int MineCount,
     int UnassignedCount,
+    int OverdueCount,
     int TotalCount);
 
 /// <summary>One line of a case's history, resolved for display.</summary>
@@ -81,6 +87,8 @@ public sealed record OversightCaseDetailDto(
     string? AssigneeName,
     DateTimeOffset OpenedAtUtc,
     DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? DueAtUtc,
+    bool IsOverdue,
     DateTimeOffset? ResolvedAtUtc,
     OversightResolution? Resolution,
     string? ResolutionNote,

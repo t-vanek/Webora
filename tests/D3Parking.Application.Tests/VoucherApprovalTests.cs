@@ -100,7 +100,6 @@ public class VoucherApprovalTests
     [Test]
     public async Task Report_stores_photo_and_grants_pending_voucher()
     {
-        var managerId = await SeedSpotManagerAsync();
         var (userId, reservation) = await SeedBlockedReservationAsync("V-02");
         var photo = Photo(2);
 
@@ -122,8 +121,9 @@ public class VoucherApprovalTests
 
         Assert.That(_notifications.Sent, Does.Contain((userId, "Parking_Notify_VoucherGranted_Title")),
             "The reporter learns the voucher awaits approval.");
-        Assert.That(_notifications.Sent, Does.Contain((managerId, "Parking_Notify_VoucherReview_Title")),
-            "Every ManageSpots holder gets the review call to action.");
+        Assert.That(_notifications.Sent.Select(s => s.Item1), Has.All.EqualTo(userId),
+            "Calling the reviewers belongs to the oversight desk, which gates it on the permission "
+            + "that may actually see the photograph — reporting must not notify anyone else from here.");
     }
 
     [Test]

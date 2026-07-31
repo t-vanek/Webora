@@ -60,6 +60,10 @@
                 <span class="state-pill state-pill--@PriorityClass(_case.Priority)">
                     @L[$"Parking_OversightPriority_{_case.Priority}"]
                 </span>
+                @if (_case.IsOverdue)
+                {
+                    <span class="state-pill state-pill--alert">@L["Parking_Oversight_Overdue"]</span>
+                }
             </div>
             <p class="admin-head__intro">
                 @if (!string.IsNullOrEmpty(_case.Subject))
@@ -67,6 +71,13 @@
                     <strong>@_case.Subject</strong><text> · </text>
                 }
                 @L["Parking_Oversight_Opened"]: @Local(_case.OpenedAtUtc, "g")
+                @if (_case.DueAtUtc is { } due)
+                {
+                    <text> · </text>
+                    @L["Parking_Oversight_Due"]
+                    <text>: </text>
+                    @Local(due, "g")
+                }
                 <text> · </text>
                 @L["Parking_Oversight_Assignee"]: @(_case.AssigneeName ?? L["Parking_Oversight_Unassigned"].Value)
             </p>

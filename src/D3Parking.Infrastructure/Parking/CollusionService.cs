@@ -1,9 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
-using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
-using D3Parking.Domain.Authorization;
-using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure.Persistence;
@@ -16,9 +12,7 @@ namespace D3Parking.Infrastructure.Parking;
 /// </summary>
 public sealed class CollusionService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
-    TimeProvider timeProvider,
-    INotificationService notifications,
-    IStringLocalizer<ParkingMessages> messages) : ICollusionService
+    TimeProvider timeProvider) : ICollusionService
 {
     public async Task<int> ScanAsync(CancellationToken cancellationToken = default)
     {
@@ -107,25 +101,9 @@ public sealed class CollusionService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        if (newPairs.Count > 0)
-        {
-            var adminRoleId = await dbContext.Roles
-                .Where(r => r.Name == Roles.Administrator)
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-            var adminIds = await dbContext.UserRoles
-                .Where(ur => ur.RoleId == adminRoleId)
-                .Select(ur => ur.UserId)
-                .ToListAsync(cancellationToken);
-
-            foreach (var adminId in adminIds)
-            {
-                await notifications.NotifyAsync(adminId, NotificationCategory.Administrative, NotificationLevel.Warning,
-                    messages["Parking_Notify_Collusion_Title"],
-                    messages["Parking_Notify_Collusion_Body", newPairs.Count], cancellationToken);
-            }
-        }
-
+        // Raising the flag is the whole job. Who hears about it is the oversight desk's decision:
+        // it opens a case per flag and tells the reviewers who may actually see one — this used to
+        // mail every administrator whether or not they held the permission to open the page.
         return newPairs.Count;
     }
 

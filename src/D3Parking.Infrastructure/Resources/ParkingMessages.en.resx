@@ -30,8 +30,6 @@
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Visitor spot {1} is booked for your guest {0}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are booked. Booking now is cheap, and off-peak stays earn points — pick your slot on the Reserve page.</value></data>
   <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>We've received your blocked-spot report and are checking the situation right now. As an apology, a voucher for one free reservation (peak included) awaits you once the check completes — we'll let you know as soon as it's ready to use.</value></data>
-  <data name="Parking_Notify_VoucherReview_Title" xml:space="preserve"><value>An apology voucher awaits approval</value></data>
-  <data name="Parking_Notify_VoucherReview_Body" xml:space="preserve"><value>A driver reported spot {0} as blocked and attached photo proof. Judge the evidence and approve or reject the voucher in administration (Occupancy mismatches).</value></data>
   <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Your apology voucher is ready</value></data>
   <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>The check is complete — your blocked-spot report was confirmed. Your voucher for one free reservation (peak included) is now active: valid for 30 days, redeemed by ticking the box when booking.</value></data>
   <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>We couldn't confirm your report</value></data>
@@ -81,8 +79,16 @@
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Spot {0} opened up for your queued window – we've held it for you for {1} minutes. Confirm the reservation in the app, otherwise we'll offer it to the next person.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
-  <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Suspicious sharing interactions</value></data>
-  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Operations oversight).</value></data>
+  <data name="Parking_Notify_OversightNew_Title" xml:space="preserve"><value>An urgent oversight case</value></data>
+  <data name="Parking_Notify_OversightNew_Body" xml:space="preserve"><value>Case #{0} ({1}) opened as urgent and is waiting for a ruling. Open it in administration (Operations oversight).</value></data>
+  <data name="Parking_Notify_OversightOverdue_Title" xml:space="preserve"><value>An oversight case is overdue</value></data>
+  <data name="Parking_Notify_OversightOverdue_Body" xml:space="preserve"><value>Case #{0} has passed the deadline for its priority and is still open.</value></data>
+  <data name="Parking_Notify_OversightDigest_Title" xml:space="preserve"><value>Operations oversight — daily digest</value></data>
+  <data name="Parking_Notify_OversightDigest_Body" xml:space="preserve"><value>Open cases: {0}, of which overdue: {1}.</value></data>
+  <data name="Parking_Oversight_Reason_Recurrence" xml:space="preserve"><value>This is report {0} on this spot in the last {1} days — that reads as a fault with the spot, not as bad luck.</value></data>
+  <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>The pair sits at {0} % concentration on both sides across {1} mutual interactions.</value></data>
+  <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>The nightly scan re-measured the pair: {0} mutual interactions, concentration {1} % / {2} %.</value></data>
+  <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>a pair at {0} % concentration</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code under My account:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>

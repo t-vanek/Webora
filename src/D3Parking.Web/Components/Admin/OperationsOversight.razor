@@ -110,7 +110,7 @@
             </div>
             <div class="admin-panel">
                 <FluentDataGrid Items="@_queue.Cases.AsQueryable()" TGridItem="OversightCaseListItemDto"
-                                GridTemplateColumns="0.5fr 1.1fr 1.6fr 0.9fr 0.8fr 1.1fr 1fr auto">
+                                GridTemplateColumns="0.5fr 1.1fr 1.5fr 0.9fr 0.8fr 1fr 1fr auto">
                     <TemplateColumn Title="@L["Parking_Oversight_Number"]">
                         <a href="@CaseLink(context.Id)">#@context.Number</a>
                     </TemplateColumn>
@@ -139,8 +139,24 @@
                     <TemplateColumn Title="@L["Parking_Oversight_Assignee"]">
                         @(context.AssigneeName ?? L["Parking_Oversight_Unassigned"].Value)
                     </TemplateColumn>
-                    <TemplateColumn Title="@L["Parking_Oversight_Opened"]">
-                        @Local(context.OpenedAtUtc, "g")
+                    @* The deadline replaces the opening time: how long a case has been sitting is
+                       only interesting against how long it was allowed to. *@
+                    <TemplateColumn Title="@L["Parking_Oversight_Due"]">
+                        @if (context.DueAtUtc is { } due)
+                        {
+                            @if (context.IsOverdue)
+                            {
+                                <span class="state-pill state-pill--alert" title="@Local(due, "g")">@L["Parking_Oversight_Overdue"]</span>
+                            }
+                            else
+                            {
+                                @Local(due, "g")
+                            }
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
                     </TemplateColumn>
                     <TemplateColumn Align="Align.End">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true"
@@ -162,7 +178,7 @@
 
 @code {
     private static readonly OversightView[] Views =
-        [OversightView.Open, OversightView.Mine, OversightView.Unassigned, OversightView.All];
+        [OversightView.Open, OversightView.Mine, OversightView.Unassigned, OversightView.Overdue, OversightView.All];
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -264,6 +280,7 @@
         OversightView.Open => _queue.OpenCount,
         OversightView.Mine => _queue.MineCount,
         OversightView.Unassigned => _queue.UnassignedCount,
+        OversightView.Overdue => _queue.OverdueCount,
         _ => _queue.TotalCount,
     };
 

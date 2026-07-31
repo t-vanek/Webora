@@ -71,12 +71,14 @@ public sealed class ParkingMaintenanceService(
             // Last, so the flags this very cycle raised are already on the oversight desk. The
             // queue's own load reconciles too, so this is the backstop for a lot nobody opens.
             var casesOpened = await StepAsync("oversight case ingest", () => oversight.EnsureCasesAsync(cancellationToken), 0, cancellationToken);
+            // And then the desk's own turn: deadlines that have passed, signals that moved, the digest.
+            var casesFollowedUp = await StepAsync("oversight follow-up", () => oversight.RunDueCaseWorkAsync(cancellationToken), 0, cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || planReleased > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0 || casesOpened > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || planReleased > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0 || casesOpened > 0 || casesFollowedUp > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {PlanReleased} usage-plan releases, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients, {CasesOpened} oversight cases opened.",
-                    reminded, residentReminders, autoShared, planReleased, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients, casesOpened);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {PlanReleased} usage-plan releases, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients, {CasesOpened} oversight cases opened, {CasesFollowedUp} oversight cases followed up.",
+                    reminded, residentReminders, autoShared, planReleased, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients, casesOpened, casesFollowedUp);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -18,6 +18,13 @@ public interface IOversightService
     /// </summary>
     Task<int> EnsureCasesAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The lot's own turn at the desk, run from the maintenance sweep: announces the deadlines that
+    /// have passed, notices when a signal moved under an open case, and sends the daily digest.
+    /// Returns how many cases it wrote something on.
+    /// </summary>
+    Task<int> RunDueCaseWorkAsync(CancellationToken cancellationToken = default);
+
     Task<OversightQueueDto> GetQueueAsync(OversightQuery query, OversightScope scope, CancellationToken cancellationToken = default);
 
     /// <summary>How many open cases the scope can see — the badge in the page head and the nav.</summary>

@@ -947,18 +947,10 @@ public sealed class ReservationService(
                 messages["Parking_Notify_VoucherGranted_Title"],
                 messages["Parking_Notify_VoucherGranted_Body"], cancellationToken);
 
-            // The pending voucher is a call to action for whoever manages the spots: tell every
-            // holder of the ManageSpots permission there is proof waiting to be judged.
-            var spotCode = await dbContext.ParkingSpots.AsNoTracking()
-                .Where(s => s.Id == reservation.SpotId)
-                .Select(s => s.Code)
-                .FirstAsync(cancellationToken);
-            foreach (var managerId in await GetSpotManagerIdsAsync(dbContext, cancellationToken))
-            {
-                await notifications.NotifyAsync(managerId, NotificationCategory.Administrative, NotificationLevel.Info,
-                    messages["Parking_Notify_VoucherReview_Title"],
-                    messages["Parking_Notify_VoucherReview_Body", spotCode], cancellationToken);
-            }
+            // Calling the reviewers is the oversight desk's job, not this one's. It used to happen
+            // here, addressed to every ManageSpots holder — the wrong audience, since the evidence
+            // (a photograph of somebody's car) is gated behind ReviewMismatches. The desk opens a
+            // case for this report within a sweep and tells the people who may actually judge it.
         }
 
         return relocatedCode is null
@@ -966,20 +958,6 @@ public sealed class ReservationService(
             : BlockedSpotOutcome.Relocated(relocatedCode, voucherGranted);
     }
 
-    // Everyone whose role carries the ManageSpots permission — the "spot manager" audience the
-    // voucher review notifications go to (same role-claim shape the authorization layer checks).
-    private static async Task<List<Guid>> GetSpotManagerIdsAsync(D3ParkingDbContext dbContext, CancellationToken cancellationToken)
-    {
-        var managerRoleIds = dbContext.RoleClaims
-            .Where(c => c.ClaimType == D3ParkingClaimTypes.Permission
-                && c.ClaimValue == Permissions.Parking.ManageSpots)
-            .Select(c => c.RoleId);
-        return await dbContext.UserRoles
-            .Where(ur => managerRoleIds.Contains(ur.RoleId))
-            .Select(ur => ur.UserId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
-    }
 
     public async Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default)
     {

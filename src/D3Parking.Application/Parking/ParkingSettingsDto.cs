@@ -70,4 +70,11 @@ public sealed record ParkingSettingsDto(
     int AvailabilityLookaheadDays,
     int AvailabilityFreeThresholdPercent,
     int AvailabilityMinConsecutiveDays,
-    int AvailabilitySendHourLocal);
+    int AvailabilitySendHourLocal,
+    int OversightSlaCriticalHours,
+    int OversightSlaHighHours,
+    int OversightSlaNormalHours,
+    int OversightSlaLowHours,
+    int OversightRecurrenceWindowDays,
+    int OversightRecurrenceThreshold,
+    int OversightDigestHourLocal);

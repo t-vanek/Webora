@@ -1,4 +1,5 @@
 using D3Parking.Domain.Common;
+using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking.Incentives;
 
 namespace D3Parking.Domain.Parking;
@@ -170,6 +171,37 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>Local hour of day at which a due campaign is sent (weekdays only).</summary>
     public int AvailabilitySendHourLocal { get; private set; } = 9;
 
+    // --- Operations oversight (how long a case may sit, and when repetition is a pattern) ---
+
+    /// <summary>
+    /// How many hours a case of each priority may stay open before it counts as overdue. Hours
+    /// rather than working days on purpose: a blocked spot is a today problem, and a deadline that
+    /// skips weekends would quietly grant two extra days to exactly the reports that hurt most.
+    /// </summary>
+    public int OversightSlaCriticalHours { get; private set; } = 4;
+
+    public int OversightSlaHighHours { get; private set; } = 24;
+
+    public int OversightSlaNormalHours { get; private set; } = 72;
+
+    public int OversightSlaLowHours { get; private set; } = 168;
+
+    /// <summary>How far back repeated reports on one spot still count as the same pattern.</summary>
+    public int OversightRecurrenceWindowDays { get; private set; } = 30;
+
+    /// <summary>
+    /// Reports on one spot within the window that make it a pattern rather than an incident. At the
+    /// threshold a fresh case opens high; at twice it, critical — a spot reported that often is not
+    /// a run of bad luck, it is something about the spot.
+    /// </summary>
+    public int OversightRecurrenceThreshold { get; private set; } = 3;
+
+    /// <summary>Local hour of day at which the daily oversight digest is sent.</summary>
+    public int OversightDigestHourLocal { get; private set; } = 8;
+
+    /// <summary>State: when the oversight digest last went out.</summary>
+    public DateTimeOffset? LastOversightDigestUtc { get; private set; }
+
     private ParkingSettings() { }
 
     public static ParkingSettings CreateDefault()
@@ -248,7 +280,14 @@ public class ParkingSettings : Entity, IAggregateRoot
         int availabilityLookaheadDays,
         int availabilityFreeThresholdPercent,
         int availabilityMinConsecutiveDays,
-        int availabilitySendHourLocal)
+        int availabilitySendHourLocal,
+        int oversightSlaCriticalHours,
+        int oversightSlaHighHours,
+        int oversightSlaNormalHours,
+        int oversightSlaLowHours,
+        int oversightRecurrenceWindowDays,
+        int oversightRecurrenceThreshold,
+        int oversightDigestHourLocal)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -320,7 +359,29 @@ public class ParkingSettings : Entity, IAggregateRoot
         AvailabilityFreeThresholdPercent = Math.Clamp(availabilityFreeThresholdPercent, 1, 100);
         AvailabilityMinConsecutiveDays = Math.Clamp(availabilityMinConsecutiveDays, 1, 30);
         AvailabilitySendHourLocal = Math.Clamp(availabilitySendHourLocal, 0, 23);
+
+        // Kept ordered, so a "critical" case can never be given longer than a low-priority one —
+        // an inversion here would silently invert the queue.
+        OversightSlaCriticalHours = Math.Max(1, oversightSlaCriticalHours);
+        OversightSlaHighHours = Math.Max(OversightSlaCriticalHours, oversightSlaHighHours);
+        OversightSlaNormalHours = Math.Max(OversightSlaHighHours, oversightSlaNormalHours);
+        OversightSlaLowHours = Math.Max(OversightSlaNormalHours, oversightSlaLowHours);
+        OversightRecurrenceWindowDays = Math.Clamp(oversightRecurrenceWindowDays, 1, 365);
+        OversightRecurrenceThreshold = Math.Max(2, oversightRecurrenceThreshold);
+        OversightDigestHourLocal = Math.Clamp(oversightDigestHourLocal, 0, 23);
     }
+
+    /// <summary>How long a case of this priority may stay open before it is overdue.</summary>
+    public TimeSpan SlaFor(OversightCasePriority priority) => TimeSpan.FromHours(priority switch
+    {
+        OversightCasePriority.Critical => OversightSlaCriticalHours,
+        OversightCasePriority.High => OversightSlaHighHours,
+        OversightCasePriority.Low => OversightSlaLowHours,
+        _ => OversightSlaNormalHours,
+    });
+
+    /// <summary>Records when the oversight digest last went out.</summary>
+    public void MarkOversightDigestSent(DateTimeOffset at) => LastOversightDigestUtc = at;
 
     /// <summary>Records when the trust graph was last recomputed.</summary>
     public void MarkTrustComputed(DateTimeOffset at) => LastTrustComputeUtc = at;

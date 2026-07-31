@@ -827,7 +827,22 @@
   <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Načíst znovu</value></data>
   <data name="Parking_Oversight_Records" xml:space="preserve"><value>Záznamů</value></data>
   <data name="Parking_Oversight_Empty" xml:space="preserve"><value>Žádné případy k zobrazení.</value></data>
+  <data name="Parking_Settings_OversightSection" xml:space="preserve"><value>Provozní dohled</value></data>
+  <data name="Parking_Settings_OversightHelp" xml:space="preserve"><value>Lhůty, do kdy má být případ vyřízený, podle jeho priority — po jejich uplynutí se případ označí jako po termínu a dostane o tom zprávu ten, kdo ho drží. Opakovaná hlášení na jednom místě zakládají případ rovnou s vyšší prioritou.</value></data>
+  <data name="Parking_Settings_OversightSlaCritical" xml:space="preserve"><value>Lhůta pro kritickou (hodin)</value></data>
+  <data name="Parking_Settings_OversightSlaHigh" xml:space="preserve"><value>Lhůta pro vysokou (hodin)</value></data>
+  <data name="Parking_Settings_OversightSlaNormal" xml:space="preserve"><value>Lhůta pro běžnou (hodin)</value></data>
+  <data name="Parking_Settings_OversightSlaLow" xml:space="preserve"><value>Lhůta pro nízkou (hodin)</value></data>
+  <data name="Parking_Settings_OversightRecurrenceThreshold" xml:space="preserve"><value>Hlášení na místě, než jde o vzorec</value></data>
+  <data name="Parking_Settings_OversightRecurrenceWindow" xml:space="preserve"><value>Okno pro opakování (dní)</value></data>
+  <data name="Parking_Settings_OversightDigestHour" xml:space="preserve"><value>Hodina denního souhrnu</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Pohledy na frontu</value></data>
+  <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Po termínu</value></data>
+  <data name="Parking_Oversight_Due" xml:space="preserve"><value>Termín</value></data>
+  <data name="Parking_Oversight_Overdue" xml:space="preserve"><value>Po termínu</value></data>
+  <data name="Parking_OversightEvent_Escalated" xml:space="preserve"><value>Zvýšena priorita systémem</value></data>
+  <data name="Parking_OversightEvent_SlaBreached" xml:space="preserve"><value>Uplynula lhůta</value></data>
+  <data name="Parking_OversightEvent_SignalUpdated" xml:space="preserve"><value>Nové zjištění k případu</value></data>
   <data name="Parking_Oversight_View_Open" xml:space="preserve"><value>Otevřené</value></data>
   <data name="Parking_Oversight_View_Mine" xml:space="preserve"><value>Moje</value></data>
   <data name="Parking_Oversight_View_Unassigned" xml:space="preserve"><value>Nepřiřazené</value></data>

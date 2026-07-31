@@ -216,6 +216,29 @@
                         <FluentAnchor Href="/admin/parking/oversight/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
                     </AuthorizeView>
 
+                    @* The desk itself sits here rather than under its own tab: what it holds are the
+                       signals this section produces, and its deadlines are what turn them into work. *@
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightSection"]</FluentLabel>
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_OversightHelp"]</FluentLabel>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaCriticalHours" Min="1"
+                                           Label="@L["Parking_Settings_OversightSlaCritical"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaHighHours" Min="1"
+                                           Label="@L["Parking_Settings_OversightSlaHigh"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaNormalHours" Min="1"
+                                           Label="@L["Parking_Settings_OversightSlaNormal"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaLowHours" Min="1"
+                                           Label="@L["Parking_Settings_OversightSlaLow"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightRecurrenceThreshold" Min="2"
+                                           Label="@L["Parking_Settings_OversightRecurrenceThreshold"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightRecurrenceWindowDays" Min="1" Max="365"
+                                           Label="@L["Parking_Settings_OversightRecurrenceWindow"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightDigestHourLocal" Min="0" Max="23"
+                                           Label="@L["Parking_Settings_OversightDigestHour"]" Style="width:100%" />
+                    </div>
+
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AvailabilitySection"]</FluentLabel>
                         <FluentSwitch @bind-Value="_form.AvailabilityCampaignsEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
@@ -544,6 +567,13 @@
             AvailabilityFreeThresholdPercent = s.AvailabilityFreeThresholdPercent,
             AvailabilityMinConsecutiveDays = s.AvailabilityMinConsecutiveDays,
             AvailabilitySendHourLocal = s.AvailabilitySendHourLocal,
+            OversightSlaCriticalHours = s.OversightSlaCriticalHours,
+            OversightSlaHighHours = s.OversightSlaHighHours,
+            OversightSlaNormalHours = s.OversightSlaNormalHours,
+            OversightSlaLowHours = s.OversightSlaLowHours,
+            OversightRecurrenceWindowDays = s.OversightRecurrenceWindowDays,
+            OversightRecurrenceThreshold = s.OversightRecurrenceThreshold,
+            OversightDigestHourLocal = s.OversightDigestHourLocal,
         };
 
         _economyOn = s.BaseReservationCost > 0;
@@ -628,7 +658,11 @@
             _form.AvailabilityLookaheadDays,
             _form.AvailabilityFreeThresholdPercent,
             _form.AvailabilityMinConsecutiveDays,
-            _form.AvailabilitySendHourLocal);
+            _form.AvailabilitySendHourLocal,
+            _form.OversightSlaCriticalHours, _form.OversightSlaHighHours,
+            _form.OversightSlaNormalHours, _form.OversightSlaLowHours,
+            _form.OversightRecurrenceWindowDays, _form.OversightRecurrenceThreshold,
+            _form.OversightDigestHourLocal);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -713,5 +747,19 @@
         public int AvailabilityFreeThresholdPercent { get; set; }
         public int AvailabilityMinConsecutiveDays { get; set; }
         public int AvailabilitySendHourLocal { get; set; }
+
+        public int OversightSlaCriticalHours { get; set; }
+
+        public int OversightSlaHighHours { get; set; }
+
+        public int OversightSlaNormalHours { get; set; }
+
+        public int OversightSlaLowHours { get; set; }
+
+        public int OversightRecurrenceWindowDays { get; set; }
+
+        public int OversightRecurrenceThreshold { get; set; }
+
+        public int OversightDigestHourLocal { get; set; }
     }
 }

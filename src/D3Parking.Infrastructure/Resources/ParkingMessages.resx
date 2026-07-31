@@ -30,8 +30,6 @@
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Pro návštěvu {0} je rezervované návštěvnické místo {1}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>V období {0}–{1} je obsazeno jen ~{2} % míst. Rezervace teď vyjde levně a mimo špičku k ní sbíráte body — vyberte si termín na stránce Rezervace místa.</value></data>
   <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Vaše hlášení o zablokovaném místě jsme přijali a situaci právě prověřujeme. Jako omluva vás po dokončení kontroly čeká kupón na jednu rezervaci zdarma (platí i ve špičce) — dáme vám vědět, jakmile bude připravený k použití.</value></data>
-  <data name="Parking_Notify_VoucherReview_Title" xml:space="preserve"><value>Omluvný kupón čeká na schválení</value></data>
-  <data name="Parking_Notify_VoucherReview_Body" xml:space="preserve"><value>Řidič nahlásil zablokované místo {0} a doložil ho fotografií. Posuďte důkaz a kupón schvalte či zamítněte v administraci (Neshody obsazenosti).</value></data>
   <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Omluvný kupón je připraven</value></data>
   <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>Kontrola je hotová — vaše hlášení o zablokovaném místě se potvrdilo. Kupón na jednu rezervaci zdarma (i ve špičce) je aktivní: platí 30 dní a uplatníte ho zaškrtnutím při rezervaci.</value></data>
   <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>Hlášení se nepodařilo potvrdit</value></data>
@@ -81,8 +79,16 @@
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Uvolnilo se místo {0} pro tvé okno z fronty – přidrželi jsme ti ho na {1} minut. Potvrď rezervaci v aplikaci, jinak ho nabídneme dalšímu.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>Nedostavení k místu z fronty</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>Nedostavil(a) ses k místu {0}, které sis převzal(a) z fronty. Tvrdá penalizace: −{1} bodů, −{2} kreditů, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
-  <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Podezřelé sdílecí interakce</value></data>
-  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>Detekováno {0} nových podezřelých párů sdílení. Zkontroluj je v administraci (Provozní dohled).</value></data>
+  <data name="Parking_Notify_OversightNew_Title" xml:space="preserve"><value>Naléhavý případ v provozním dohledu</value></data>
+  <data name="Parking_Notify_OversightNew_Body" xml:space="preserve"><value>Případ #{0} ({1}) je označený jako naléhavý a čeká na rozhodnutí. Otevři ho v administraci (Provozní dohled).</value></data>
+  <data name="Parking_Notify_OversightOverdue_Title" xml:space="preserve"><value>Případ po termínu</value></data>
+  <data name="Parking_Notify_OversightOverdue_Body" xml:space="preserve"><value>Případ #{0} překročil lhůtu pro svou prioritu a pořád je otevřený.</value></data>
+  <data name="Parking_Notify_OversightDigest_Title" xml:space="preserve"><value>Provozní dohled — denní souhrn</value></data>
+  <data name="Parking_Notify_OversightDigest_Body" xml:space="preserve"><value>Otevřených případů: {0}, z toho po termínu: {1}.</value></data>
+  <data name="Parking_Oversight_Reason_Recurrence" xml:space="preserve"><value>Na tomhle místě je to {0}. hlášení za posledních {1} dní — vypadá to na závadu místa, ne na náhodu.</value></data>
+  <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>Koncentrace dvojice je {0} % u obou stran při {1} vzájemných interakcích.</value></data>
+  <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>Noční kontrola dvojici přeměřila: {0} vzájemných interakcí, koncentrace {1} % / {2} %.</value></data>
+  <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>dvojice s koncentrací {0} %</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Potvrzovací kód pro spárování vozidla</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;Pro spárování firemního vozidla &lt;strong&gt;{0}&lt;/strong&gt; s vaším účtem zadejte v sekci Můj účet tento kód:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>Kód platí jen krátce. Pokud jste o spárování nežádali, tento e-mail ignorujte.</value></data>

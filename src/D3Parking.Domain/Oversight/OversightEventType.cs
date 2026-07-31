@@ -17,6 +17,19 @@ public enum OversightEventType
 
     PriorityChanged,
 
+    /// <summary>The lot raised the priority itself, and says on what grounds.</summary>
+    Escalated,
+
+    /// <summary>The deadline for this case's priority passed with the case still open.</summary>
+    SlaBreached,
+
+    /// <summary>
+    /// The signal behind the case moved after the case was opened: the same spot was reported
+    /// again, or the nightly scan re-measured the pair. Without it the numbers on the evidence
+    /// panel change under the reviewer with nothing to say when, or why.
+    /// </summary>
+    SignalUpdated,
+
     /// <summary>A note, internal or shown to the participants.</summary>
     Comment,
 

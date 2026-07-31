@@ -75,7 +75,9 @@ public sealed class ParkingSettingsService(
             s.MaxPairTrustWeight, s.AntiCollusionEnabled, s.CollusionMinInteractions,
             s.CollusionConcentrationPercent, s.CollusionScanIntervalHours,
             s.AvailabilityCampaignsEnabled, s.AvailabilityLookaheadDays, s.AvailabilityFreeThresholdPercent,
-            s.AvailabilityMinConsecutiveDays, s.AvailabilitySendHourLocal);
+            s.AvailabilityMinConsecutiveDays, s.AvailabilitySendHourLocal,
+            s.OversightSlaCriticalHours, s.OversightSlaHighHours, s.OversightSlaNormalHours, s.OversightSlaLowHours,
+            s.OversightRecurrenceWindowDays, s.OversightRecurrenceThreshold, s.OversightDigestHourLocal);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -108,7 +110,9 @@ public sealed class ParkingSettingsService(
             dto.MaxPairTrustWeight, dto.AntiCollusionEnabled, dto.CollusionMinInteractions,
             dto.CollusionConcentrationPercent, dto.CollusionScanIntervalHours,
             dto.AvailabilityCampaignsEnabled, dto.AvailabilityLookaheadDays, dto.AvailabilityFreeThresholdPercent,
-            dto.AvailabilityMinConsecutiveDays, dto.AvailabilitySendHourLocal);
+            dto.AvailabilityMinConsecutiveDays, dto.AvailabilitySendHourLocal,
+            dto.OversightSlaCriticalHours, dto.OversightSlaHighHours, dto.OversightSlaNormalHours, dto.OversightSlaLowHours,
+            dto.OversightRecurrenceWindowDays, dto.OversightRecurrenceThreshold, dto.OversightDigestHourLocal);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
