@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using D3Parking.Application;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
 using D3Parking.Domain.Accounts;
@@ -69,12 +70,7 @@ public sealed class RoleAdminService(
             .ToArray();
 
         var groups = await LoadGroupsByRoleAsync(dbContext, cancellationToken);
-        var members = await (from userRole in dbContext.UserRoles
-                             join user in dbContext.Users on userRole.UserId equals user.Id
-                             where userRole.RoleId == roleId
-                             orderby user.Email
-                             select new RoleMember(user.Id, user.Email!, user.DisplayName))
-            .ToListAsync(cancellationToken);
+        var memberCount = await dbContext.UserRoles.CountAsync(ur => ur.RoleId == roleId, cancellationToken);
 
         return new RoleDetail(
             role.Id,
@@ -82,7 +78,71 @@ public sealed class RoleAdminService(
             Roles.IsDefault(role.Name!),
             groups.TryGetValue(roleId, out var held) ? held : [],
             Permissions.All.Where(permissions.Contains).ToArray(),
-            members);
+            memberCount);
+    }
+
+    public async Task<PagedResult<RoleMember>> ListMembersPageAsync(
+        Guid roleId,
+        string? search,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        // Clamped here rather than trusted from the caller, the same way the account directory does
+        // it: the page size decides how much one request can ask the database to materialise.
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var matching = MatchingMembers(dbContext, roleId, search);
+
+        var total = await matching.CountAsync(cancellationToken);
+        if (total == 0)
+        {
+            return PagedResult<RoleMember>.Empty(size);
+        }
+
+        // A search narrows the list under the reader's feet, so a page past the end walks back to
+        // the last one that exists instead of rendering an empty table.
+        index = Math.Min(index, (total - 1) / size);
+
+        // Email is unique (Identity is configured with RequireUniqueEmail) and therefore already a
+        // total order; the id rides along for the theoretical account without one, because a tie
+        // under Skip/Take drops rows off one page and repeats them on the next.
+        var items = await matching
+            .OrderBy(u => u.Email)
+            .ThenBy(u => u.Id)
+            .Skip(index * size)
+            .Take(size)
+            .Select(u => new RoleMember(u.Id, u.Email!, u.DisplayName))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<RoleMember>(items, total, index, size);
+    }
+
+    /// <summary>
+    /// The accounts holding the role, narrowed by the search term. Matches email and display name —
+    /// the two columns the members table shows.
+    /// </summary>
+    private static IQueryable<ApplicationUser> MatchingMembers(
+        D3ParkingDbContext dbContext,
+        Guid roleId,
+        string? search)
+    {
+        var members = dbContext.Users.AsNoTracking()
+            .Where(u => dbContext.UserRoles.Any(ur => ur.RoleId == roleId && ur.UserId == u.Id));
+
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return members;
+        }
+
+        // LIKE is case-insensitive under SQL Server's default (CI) collation; on a case-sensitive
+        // database collation the search would turn case-sensitive, same caveat as the directory.
+        var term = $"%{search.Trim()}%";
+        return members.Where(u =>
+            EF.Functions.Like(u.Email!, term) ||
+            (u.DisplayName != null && EF.Functions.Like(u.DisplayName, term)));
     }
 
     public async Task<AccountResult> CreateAsync(string name, IReadOnlyList<Guid> groupIds, Guid actorId, CancellationToken cancellationToken = default)

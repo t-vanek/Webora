@@ -2278,6 +2278,57 @@ fluent-menu-item:has(> .account-menu-link) {
     color: var(--neutral-foreground-hint, #6b6b6b);
 }
 
+/* --- Detail role: složení vlevo, členové vpravo ---
+   Členové stáli pod pickerem vysokým jako celý katalog skupin, takže odpověď na „koho se ta změna
+   dotkne“ byla mimo obrazovku přesně ve chvíli, kdy se složení upravovalo. Vedle sebe je vidět
+   obojí. Karty uvnitř musí zrušit strop .profile-section (680 px) — jinak by pravý sloupec zůstal
+   z poloviny prázdný a tabulka by se mačkala vedle něj. */
+.role-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+    gap: 16px;
+    width: 100%;
+    align-items: start;
+}
+
+.role-split__main,
+.role-split__side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.role-split__card {
+    max-width: none;
+    width: 100%;
+}
+
+/* Tabulka v úzkém sloupci přeteče vodorovně uvnitř panelu, ne celou stránkou. */
+.role-split__table {
+    overflow-x: auto;
+}
+
+/* Svislý FluentStack zarovnává děti na začátek, takže se vyhledávací pole i tabulka srazí na šířku
+   obsahu — placeholder byl useknutý a tabulka končila v půlce karty. V postranním sloupci mají
+   zabírat celou její šířku. */
+.role-split__side fluent-search,
+.role-split__side .admin-panel,
+.role-split__side .pager {
+    width: 100%;
+}
+
+.role-split__side fluent-data-grid {
+    width: 100%;
+}
+
+@media (max-width: 1100px) {
+    /* Pod sebe, složení první: to se mění, členové se čtou. */
+    .role-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* --- Roles: cards, matrix, members, templates ---
    A role is a job description, so the list leads with what each one is for and who holds it; the
    matrix answers the cross-role question ("who can do what") that no single role page can. */

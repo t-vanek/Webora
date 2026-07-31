@@ -1421,6 +1421,7 @@
   <data name="Admin_RoleEdit_Overview" xml:space="preserve"><value>Overview</value></data>
   <data name="Admin_RoleEdit_Members" xml:space="preserve"><value>Members</value></data>
   <data name="Admin_RoleEdit_NoMembers" xml:space="preserve"><value>Nobody holds this role yet.</value></data>
+  <data name="Admin_RoleEdit_NoMemberMatch" xml:space="preserve"><value>No member of this role matches the search.</value></data>
   <data name="Admin_RoleEdit_BuiltInNote" xml:space="preserve"><value>This built-in role is managed by the system — its permissions are re-applied on every start. Duplicate it to customize.</value></data>
   <data name="Admin_RoleEdit_ReadOnly" xml:space="preserve"><value>You do not have permission to change this role.</value></data>
   <data name="Admin_RoleEdit_Duplicate" xml:space="preserve"><value>Duplicate</value></data>

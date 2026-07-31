@@ -21,6 +21,21 @@ public interface IRoleAdminService
 
     Task<RoleDetail?> GetAsync(Guid roleId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One page of the accounts holding the role, ordered by email and narrowed by an optional
+    /// search over email and display name.
+    /// </summary>
+    /// <remarks>
+    /// Paged in SQL rather than filtered in the page: a role can be held by the whole company, and
+    /// "who exactly holds this" is asked precisely when the answer is too long to read at once.
+    /// </remarks>
+    Task<PagedResult<RoleMember>> ListMembersPageAsync(
+        Guid roleId,
+        string? search,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     Task<AccountResult> CreateAsync(string name, IReadOnlyList<Guid> groupIds, Guid actorId, CancellationToken cancellationToken = default);
 
     Task<AccountResult> RenameAsync(Guid roleId, string name, CancellationToken cancellationToken = default);
