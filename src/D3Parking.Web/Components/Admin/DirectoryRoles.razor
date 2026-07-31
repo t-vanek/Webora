@@ -60,24 +60,37 @@
     }
 
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="add">
-        <FluentCard Class="profile-section">
+        @* A plain panel, deliberately not FluentCard: fluent-card ships contain:content, which clips
+           the select's dropped-down listbox to the card edge — the role menu opened as a strip
+           peeking out from under the card, with most of its options unreachable. Same reason the
+           spot generator uses this panel. *@
+        <div class="form-panel directory-add">
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                 <FluentLabel Typo="Typography.Subject">@L["Admin_Directory_Add"]</FluentLabel>
                 <p class="admin-head__intro">@L["Admin_Directory_AddIntro"]</p>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true">
-                    <FluentTextField @bind-Value="_newExternalRole" Label="@L["Admin_Directory_AppRole"]"
-                                     Placeholder="Parking.LotManager" Style="min-width:280px" />
-                    <FluentSelect TOption="RoleSummary"
-                                  Items="@_roles"
-                                  OptionValue="@(r => r.Id.ToString())"
-                                  OptionText="@(r => AuthorizationDisplay.RoleName(L, r.Name))"
-                                  @bind-SelectedOption="_newRole"
-                                  Label="@L["Admin_Directory_LocalRole"]"
-                                  Style="min-width:240px" />
+                @* Each field is wrapped, because a Fluent label is a sibling of its input rather
+                   than its parent: in a bare flex row every field is two items, and a wrap can put
+                   "Role v aplikaci" at the end of the previous line, where it reads as a label for
+                   the text field beside it while its own menu sits alone underneath. Wrapped, a
+                   field breaks as one piece and the label stays above what it names. *@
+                <div class="directory-add__row">
+                    <div class="directory-add__field">
+                        <FluentTextField @bind-Value="_newExternalRole" Label="@L["Admin_Directory_AppRole"]"
+                                         Placeholder="Parking.LotManager" Style="min-width:280px" />
+                    </div>
+                    <div class="directory-add__field">
+                        <FluentSelect TOption="RoleSummary"
+                                      Items="@_roles"
+                                      OptionValue="@(r => r.Id.ToString())"
+                                      OptionText="@(r => AuthorizationDisplay.RoleName(L, r.Name))"
+                                      @bind-SelectedOption="_newRole"
+                                      Label="@L["Admin_Directory_LocalRole"]"
+                                      Style="min-width:240px" />
+                    </div>
                     <FluentButton OnClick="AddAsync" Appearance="Appearance.Accent">@L["Admin_Directory_AddAction"]</FluentButton>
-                </FluentStack>
+                </div>
             </FluentStack>
-        </FluentCard>
+        </div>
     </AuthorizeView>
 
     @* One row per app role the tenant publishes — a set the directory writes and this page only

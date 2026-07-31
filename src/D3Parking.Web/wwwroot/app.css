@@ -1031,6 +1031,28 @@ fluent-menu-item:has(> .account-menu-link) {
     flex-wrap: wrap;
 }
 
+/* Formulář nového mapování drží šířku karet ze zbytku administrace; panel sám je .form-panel,
+   protože fluent-card by rozbalený seznam rolí ořízl na své hraně. */
+.directory-add {
+    max-width: 680px;
+}
+
+.directory-add__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+/* Popisek je u Fluentu sourozenec vstupu, ne jeho rodič. Bez tohohle obalu je každé pole v řádku
+   dvě položky flexu a zalomení je od sebe odtrhne — popisek zůstane viset na konci předchozího
+   řádku u cizího pole. Obalené pole se láme vcelku a popisek zůstává nad tím, co pojmenovává. */
+.directory-add__field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .auth-alert--success {
     background: rgba(16, 124, 16, .08);
     border: 1px solid rgba(16, 124, 16, .35);
