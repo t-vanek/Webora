@@ -206,6 +206,13 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// </summary>
     public int OversightInfoDeadlineDays { get; private set; } = 7;
 
+    /// <summary>
+    /// Whether anybody may report something wrong with the lot. On by default — a lot where the
+    /// lighting fails silently is worse than one with a few duplicate reports — but a manager who
+    /// handles this elsewhere can close the channel rather than leave it unread.
+    /// </summary>
+    public bool OversightAllowUserReports { get; private set; } = true;
+
     /// <summary>State: when the oversight digest last went out.</summary>
     public DateTimeOffset? LastOversightDigestUtc { get; private set; }
 
@@ -295,7 +302,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         int oversightRecurrenceWindowDays,
         int oversightRecurrenceThreshold,
         int oversightDigestHourLocal,
-        int oversightInfoDeadlineDays)
+        int oversightInfoDeadlineDays,
+        bool oversightAllowUserReports)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -378,6 +386,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OversightRecurrenceThreshold = Math.Max(2, oversightRecurrenceThreshold);
         OversightDigestHourLocal = Math.Clamp(oversightDigestHourLocal, 0, 23);
         OversightInfoDeadlineDays = Math.Clamp(oversightInfoDeadlineDays, 1, 90);
+        OversightAllowUserReports = oversightAllowUserReports;
     }
 
     /// <summary>How long a case of this priority may stay open before it is overdue.</summary>

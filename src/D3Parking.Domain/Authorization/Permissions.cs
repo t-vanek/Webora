@@ -99,6 +99,14 @@ public static class Permissions
         /// <summary>Review collusion flags raised against named users.</summary>
         public const string ReviewCollusion = "Parking.ReviewCollusion";
 
+        /// <summary>
+        /// Act against a person from an oversight case: a formal warning, or a deduction from their
+        /// reputation and wallet. Held apart from the review permissions on purpose — judging
+        /// whether a photograph shows a blocked spot and deciding what it should cost somebody are
+        /// different jobs, and the second one is the one that needs a second pair of hands.
+        /// </summary>
+        public const string SanctionOversight = "Parking.SanctionOversight";
+
         /// <summary>Verify a user's home address, which decides their commute-based entitlements.</summary>
         public const string VerifyResidency = "Parking.VerifyResidency";
     }
@@ -133,6 +141,7 @@ public static class Permissions
         new(Parking.ViewAnalytics, AreaNames.Parking, Parking.View),
         new(Parking.ManageIncentives, AreaNames.Parking, Parking.View),
         new(Parking.ReviewCollusion, AreaNames.Parking, Parking.View),
+        new(Parking.SanctionOversight, AreaNames.Parking, Parking.View),
         new(Parking.VerifyResidency, AreaNames.Parking, Users.View),
 
         new(Users.View, AreaNames.Users),

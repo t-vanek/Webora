@@ -822,7 +822,7 @@
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Scan interval (hours)</value></data>
   <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Open the review of suspicious pairs →</value></data>
   <data name="Parking_Oversight_Title" xml:space="preserve"><value>Operations oversight</value></data>
-  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>One queue of cases over everything the lot flags for a human decision: occupancy mismatches reported by drivers, and pairs whose sharing the nightly scan found suspicious. A case knows who is working it, what has already been tried, and how it ended.</value></data>
+  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>One queue of cases over everything at the lot waiting on a human decision: occupancy mismatches reported by drivers, pairs whose sharing the nightly scan found suspicious, and defects people have reported. A case knows who is working it, what has already been tried, and how it ended.</value></data>
   <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Open cases</value></data>
   <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Reload</value></data>
   <data name="Parking_Oversight_Records" xml:space="preserve"><value>Records</value></data>
@@ -875,6 +875,39 @@
   <data name="Parking_MyReports_Event_VoucherRejected" xml:space="preserve"><value>Voucher rejected</value></data>
   <data name="Nav_MyReports" xml:space="preserve"><value>My reports</value></data>
   <data name="Nav_Short_MyReports" xml:space="preserve"><value>Reports</value></data>
+  <data name="Parking_Settings_OversightUserReports" xml:space="preserve"><value>Accept defect reports from users</value></data>
+  <data name="Parking_OversightKind_SpotDefect" xml:space="preserve"><value>Lot defect</value></data>
+  <data name="Parking_OversightEvent_Sanctioned" xml:space="preserve"><value>Ruling against a person</value></data>
+  <data name="Parking_MyReports_Event_Sanctioned" xml:space="preserve"><value>Ruling against you</value></data>
+  <data name="Parking_Defect_Report" xml:space="preserve"><value>Report something wrong with the lot</value></data>
+  <data name="Parking_Defect_Help" xml:space="preserve"><value>Barrier stuck, light out, markings gone, a pallet left on a bay? Say so here — the lot manager sees it as a case to deal with.</value></data>
+  <data name="Parking_Defect_Category" xml:space="preserve"><value>What it concerns</value></data>
+  <data name="Parking_Defect_Spot" xml:space="preserve"><value>Spot</value></data>
+  <data name="Parking_Defect_WholeLot" xml:space="preserve"><value>The lot as a whole</value></data>
+  <data name="Parking_Defect_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Parking_Defect_Placeholder" xml:space="preserve"><value>What is wrong…</value></data>
+  <data name="Parking_Defect_Send" xml:space="preserve"><value>Send the report</value></data>
+  <data name="Parking_Defect_Sent" xml:space="preserve"><value>Thanks — the lot manager has it.</value></data>
+  <data name="Parking_Defect_Error_DescriptionRequired" xml:space="preserve"><value>Please say what is wrong.</value></data>
+  <data name="Parking_Defect_Error_Disabled" xml:space="preserve"><value>Defect reporting is switched off for this lot.</value></data>
+  <data name="Parking_DefectCategory_Surface" xml:space="preserve"><value>Surface and ground</value></data>
+  <data name="Parking_DefectCategory_Markings" xml:space="preserve"><value>Markings and signage</value></data>
+  <data name="Parking_DefectCategory_Access" xml:space="preserve"><value>Barrier and entry</value></data>
+  <data name="Parking_DefectCategory_Lighting" xml:space="preserve"><value>Lighting</value></data>
+  <data name="Parking_DefectCategory_Obstruction" xml:space="preserve"><value>Something in the way</value></data>
+  <data name="Parking_DefectCategory_Other" xml:space="preserve"><value>Something else</value></data>
+  <data name="Parking_Oversight_Sanction" xml:space="preserve"><value>Ruling against a person</value></data>
+  <data name="Parking_Oversight_SanctionHelp" xml:space="preserve"><value>A formal warning, optionally with points and credits deducted. It goes on the case history, the account's audit trail and the points ledger, and the person is notified with the reason. Leave the deductions at zero for a warning alone.</value></data>
+  <data name="Parking_Oversight_SanctionTarget" xml:space="preserve"><value>Who it concerns</value></data>
+  <data name="Parking_Oversight_SanctionPoints" xml:space="preserve"><value>Deduct points</value></data>
+  <data name="Parking_Oversight_SanctionCredits" xml:space="preserve"><value>Deduct credits</value></data>
+  <data name="Parking_Oversight_SanctionReason" xml:space="preserve"><value>Reason (the person will see it)</value></data>
+  <data name="Parking_Oversight_SanctionApply" xml:space="preserve"><value>Record the ruling</value></data>
+  <data name="Parking_Oversight_Sanctioned" xml:space="preserve"><value>The ruling is recorded and the person has been notified.</value></data>
+  <data name="Parking_Oversight_Error_MayNotSanction" xml:space="preserve"><value>You may not rule against a person.</value></data>
+  <data name="Parking_Oversight_Error_NotAParty" xml:space="preserve"><value>This person is not a party to the case.</value></data>
+  <data name="Parking_Oversight_Error_SanctionSelf" xml:space="preserve"><value>You cannot rule against yourself.</value></data>
+  <data name="Home_Card_Oversight" xml:space="preserve"><value>{0} cases waiting for a decision.</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Queue views</value></data>
   <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Overdue</value></data>
   <data name="Parking_Oversight_Due" xml:space="preserve"><value>Due</value></data>
@@ -1282,6 +1315,8 @@
   <data name="Perm_Parking_ManageIncentives_Desc" xml:space="preserve"><value>Sets point values, thresholds and loyalty tiers.</value></data>
   <data name="Perm_Parking_ReviewCollusion" xml:space="preserve"><value>Review suspicious pairs</value></data>
   <data name="Perm_Parking_ReviewCollusion_Desc" xml:space="preserve"><value>Reviews and decides collusion flags raised against named users.</value></data>
+  <data name="Perm_Parking_SanctionOversight" xml:space="preserve"><value>Rule against people from oversight cases</value></data>
+  <data name="Perm_Parking_SanctionOversight_Desc" xml:space="preserve"><value>Issues a formal warning from a case and deducts points or credits from a participant. Held apart from reviewing evidence — what a ruling costs somebody is a different responsibility from whether the evidence holds.</value></data>
   <data name="Perm_Parking_VerifyResidency" xml:space="preserve"><value>Verify home address</value></data>
   <data name="Perm_Parking_VerifyResidency_Desc" xml:space="preserve"><value>Confirms a user's home address, which decides their commute-based entitlements.</value></data>
   <data name="Perm_Users_View" xml:space="preserve"><value>See users</value></data>
@@ -1383,6 +1418,7 @@
   <data name="Audit_Type_RolePermissionsChanged" xml:space="preserve"><value>Role permissions changed</value></data>
   <data name="Audit_Type_SettingsChanged" xml:space="preserve"><value>Settings changed</value></data>
   <data name="Audit_Type_ReservationOverridden" xml:space="preserve"><value>Reservation overridden</value></data>
+  <data name="Audit_Type_OversightSanctioned" xml:space="preserve"><value>Oversight ruling</value></data>
   <data name="Audit_Type_PasswordChanged" xml:space="preserve"><value>Password changed</value></data>
   <data name="Audit_Type_PasswordResetRequested" xml:space="preserve"><value>Password reset requested</value></data>
   <data name="Audit_Type_PasswordReset" xml:space="preserve"><value>Password reset</value></data>

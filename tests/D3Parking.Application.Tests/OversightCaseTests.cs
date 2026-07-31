@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
@@ -27,11 +28,18 @@ public class OversightCaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 7, 15, 20, 0, 0, TimeSpan.Zero);
 
-    /// <summary>Sees both kinds — what an administrator holds.</summary>
-    private static readonly OversightScope Both = OversightScope.From(true, true);
+    /// <summary>Sees every kind, but may not rule against anybody — what most reviewers hold.</summary>
+    private static readonly OversightScope Both = OversightScope.From(true, true, manageSpots: true);
 
     /// <summary>Sees reports only — the split that keeps photographs of third parties' cars in one queue.</summary>
     private static readonly OversightScope MismatchesOnly = OversightScope.From(true, false);
+
+    /// <summary>Maintains the lot and nothing else: sees defects, no evidence about anybody.</summary>
+    private static readonly OversightScope SpotsOnly = OversightScope.From(false, false, manageSpots: true);
+
+    /// <summary>Sees everything and may rule against a person.</summary>
+    private static readonly OversightScope Sanctioning =
+        OversightScope.From(true, true, manageSpots: true, maySanction: true);
 
     private DbContextOptions<D3ParkingDbContext> _options = null!;
     private OversightService _oversight = null!;
@@ -620,6 +628,109 @@ public class OversightCaseTests
         Assert.That(asked.Errors, Does.Contain("Parking_Oversight_Error_NoParticipant"));
     }
 
+    // --- defects and rulings ----------------------------------------------------------------
+
+    [Test]
+    public async Task Anybody_can_report_something_wrong_with_the_lot()
+    {
+        await SeedSettingsAsync();
+        var spot = await SeedSpotAsync("C-30");
+        var reporter = await SeedUserAsync();
+
+        var sent = await _oversight.ReportDefectAsync(
+            reporter, SpotDefectCategory.Lighting, "  Nesvítí lampa nad místem.  ", spot);
+        Assert.That(sent.Succeeded, Is.True, sent.Errors.FirstOrDefault());
+
+        // The report is on the desk immediately — the reporter does not wait for a sweep.
+        var mine = (await _oversight.GetMyReportsAsync(reporter)).Single();
+        Assert.That(mine.Kind, Is.EqualTo(OversightCaseKind.SpotDefect));
+        Assert.That(mine.SpotCode, Is.EqualTo("C-30"));
+        Assert.That(mine.VoucherStatus, Is.Null, "Nothing is owed for pointing out a broken light.");
+
+        var detail = await _oversight.GetCaseAsync(mine.Id, Both);
+        Assert.That(detail!.Defect!.Description, Is.EqualTo("Nesvítí lampa nad místem."));
+        Assert.That(detail.Defect.Category, Is.EqualTo(SpotDefectCategory.Lighting));
+        Assert.That(detail.Parties, Is.Empty,
+            "Somebody who says a light is out is not a party to anything.");
+
+        Assert.That((await _oversight.ReportDefectAsync(reporter, SpotDefectCategory.Other, "   ", null)).Errors,
+            Does.Contain("Parking_Defect_Error_DescriptionRequired"));
+    }
+
+    [Test]
+    public async Task Defects_are_seen_by_the_permission_that_maintains_the_lot()
+    {
+        await SeedSettingsAsync();
+        var reporter = await SeedUserAsync();
+        await _oversight.ReportDefectAsync(reporter, SpotDefectCategory.Access, "Závora nečte karty.", null);
+        var caseId = (await _oversight.GetMyReportsAsync(reporter)).Single().Id;
+
+        // The review permissions guard evidence about people; a broken barrier is not that.
+        Assert.That(await _oversight.GetCaseAsync(caseId, MismatchesOnly), Is.Null);
+        Assert.That(await _oversight.GetCaseAsync(caseId, SpotsOnly), Is.Not.Null);
+
+        var queue = await _oversight.GetQueueAsync(new OversightQuery(Guid.NewGuid()), SpotsOnly);
+        Assert.That(queue.Cases.Select(c => c.Kind), Has.All.EqualTo(OversightCaseKind.SpotDefect));
+        Assert.That(queue.Cases.Single(c => c.Id == caseId).Subject, Is.EqualTo("Závora nečte karty."),
+            "A defect about the lot itself has no spot to name it by, so it borrows its own words.");
+    }
+
+    [Test]
+    public async Task A_ruling_against_a_person_needs_the_permission_a_party_and_a_reason()
+    {
+        await SeedSettingsAsync();
+        var reviewer = await SeedUserAsync();
+        var stranger = await SeedUserAsync();
+        var mismatch = await SeedMismatchAsync("C-31");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+
+        var withoutPermission = await _oversight.SanctionAsync(caseId, mismatch.ReporterId, 10, 0, "Vymyšlené hlášení.", reviewer, Both);
+        Assert.That(withoutPermission.Errors, Does.Contain("Parking_Oversight_Error_MayNotSanction"));
+
+        var withoutReason = await _oversight.SanctionAsync(caseId, mismatch.ReporterId, 10, 0, " ", reviewer, Sanctioning);
+        Assert.That(withoutReason.Errors, Does.Contain("Parking_Oversight_Error_ReasonRequired"));
+
+        var atAStranger = await _oversight.SanctionAsync(caseId, stranger, 10, 0, "Vymyšlené hlášení.", reviewer, Sanctioning);
+        Assert.That(atAStranger.Errors, Does.Contain("Parking_Oversight_Error_NotAParty"),
+            "A ruling is aimed at a party to the thing being decided, not at whoever is typed in.");
+    }
+
+    [Test]
+    public async Task A_ruling_lands_on_the_case_the_ledger_the_audit_trail_and_the_person()
+    {
+        await SeedSettingsAsync();
+        var reviewer = await SeedUserAsync();
+        var mismatch = await SeedMismatchAsync("C-32");
+        await SeedScoreAsync(mismatch.ReporterId, points: 40, credits: 25);
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+
+        var ruled = await _oversight.SanctionAsync(caseId, mismatch.ReporterId, 15, 5, "Hlášení bylo vymyšlené.", reviewer, Sanctioning);
+        Assert.That(ruled.Succeeded, Is.True, ruled.Errors.FirstOrDefault());
+
+        await using var db = new D3ParkingDbContext(_options);
+        var score = await db.ParkerScores.SingleAsync(s => s.UserId == mismatch.ReporterId);
+        Assert.That(score.Points, Is.EqualTo(25));
+        Assert.That(score.Credits, Is.EqualTo(20));
+        Assert.That(score.NoShows, Is.Zero, "Nobody failed to turn up; the behaviour counters must not move.");
+
+        var ledger = await db.PointsLedgerEntries.Where(e => e.UserId == mismatch.ReporterId).ToListAsync();
+        Assert.That(ledger.Select(e => e.Points), Is.EquivalentTo(new[] { -15, -5 }));
+        Assert.That(ledger.Select(e => e.Reason), Has.All.EqualTo(IncentiveReason.ManualAdjustment));
+
+        Assert.That(await db.AccountAuditEvents.AnyAsync(e =>
+            e.UserId == mismatch.ReporterId && e.Type == AccountAuditEventType.OversightSanctioned), Is.True,
+            "An oversight case is not the first place anyone looks when asking what happened to an account.");
+
+        Assert.That(_notifications.Sent, Does.Contain((mismatch.ReporterId, "Parking_Notify_OversightSanction_Title")));
+
+        // And the driver sees the ruling and its reason on their own page.
+        var mine = (await _oversight.GetMyReportsAsync(mismatch.ReporterId)).Single(r => r.Id == caseId);
+        var entry = mine.Timeline.Single(e => e.Type == OversightEventType.Sanctioned);
+        Assert.That(entry.Body, Does.Contain("Hlášení bylo vymyšlené."));
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)
@@ -634,6 +745,20 @@ public class OversightCaseTests
             db.OccupancyMismatches.Add(mismatch);
         });
         return mismatch;
+    }
+
+    /// <summary>A standing to deduct from, so a ruling has something to bite on.</summary>
+    private async Task SeedScoreAsync(Guid userId, int points, int credits)
+    {
+        await using var db = new D3ParkingDbContext(_options);
+        var score = new ParkerScore(userId);
+        score.RewardStreak(points, Now);
+        db.ParkerScores.Add(score);
+        await db.SaveChangesAsync();
+
+        // RewardStreak tops up both sides equally; nudge the wallet to the asked-for figure.
+        await db.Database.ExecuteSqlRawAsync(
+            "UPDATE ParkerScores SET Credits = {0} WHERE UserId = {1}", credits, userId);
     }
 
     private async Task<Guid> SeedSpotAsync(string spotCode)

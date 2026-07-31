@@ -98,6 +98,11 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
+  <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>An oversight ruling</value></data>
+  <data name="Parking_Notify_OversightSanction_Body" xml:space="preserve"><value>Case #{0} was ruled on: {1} points and {2} credits deducted. Reason: {3}</value></data>
+  <data name="Parking_Notify_OversightWarning_Body" xml:space="preserve"><value>Case #{0} ended in a formal warning with no deduction. Reason: {1}</value></data>
+  <data name="Parking_Ledger_OversightSanction" xml:space="preserve"><value>Oversight ruling, case #{0}</value></data>
+  <data name="Parking_Audit_OversightSanction" xml:space="preserve"><value>Case #{0}: {1} points and {2} credits deducted.</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code under My account:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>

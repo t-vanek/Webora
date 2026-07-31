@@ -220,6 +220,7 @@
                        signals this section produces, and its deadlines are what turn them into work. *@
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.OversightAllowUserReports" Label="@L["Parking_Settings_OversightUserReports"]" />
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_OversightHelp"]</FluentLabel>
                     <div class="settings-grid">
@@ -577,6 +578,7 @@
             OversightRecurrenceThreshold = s.OversightRecurrenceThreshold,
             OversightDigestHourLocal = s.OversightDigestHourLocal,
             OversightInfoDeadlineDays = s.OversightInfoDeadlineDays,
+            OversightAllowUserReports = s.OversightAllowUserReports,
         };
 
         _economyOn = s.BaseReservationCost > 0;
@@ -665,7 +667,8 @@
             _form.OversightSlaCriticalHours, _form.OversightSlaHighHours,
             _form.OversightSlaNormalHours, _form.OversightSlaLowHours,
             _form.OversightRecurrenceWindowDays, _form.OversightRecurrenceThreshold,
-            _form.OversightDigestHourLocal, _form.OversightInfoDeadlineDays);
+            _form.OversightDigestHourLocal, _form.OversightInfoDeadlineDays,
+            _form.OversightAllowUserReports);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -766,5 +769,7 @@
         public int OversightDigestHourLocal { get; set; }
 
         public int OversightInfoDeadlineDays { get; set; }
+
+        public bool OversightAllowUserReports { get; set; }
     }
 }

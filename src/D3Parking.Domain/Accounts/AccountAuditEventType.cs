@@ -20,6 +20,8 @@ public enum AccountAuditEventType
     SettingsChanged,
     /// <summary>A spot manager cancelled or moved one of this account's parking reservations.</summary>
     ReservationOverridden,
+    /// <summary>An oversight case ended in a warning or a deduction against this account.</summary>
+    OversightSanctioned,
     PasswordChanged,
     PasswordResetRequested,
     PasswordReset,

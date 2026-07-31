@@ -13,4 +13,10 @@ public enum OversightCaseKind
 
     /// <summary>The nightly scan flagged a pair whose sharing is concentrated on each other.</summary>
     CollusionRing,
+
+    /// <summary>
+    /// Somebody reported something wrong with the lot. The only kind nobody is accused in, which
+    /// is why it is gated on managing the spots rather than on reviewing evidence about people.
+    /// </summary>
+    SpotDefect,
 }

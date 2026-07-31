@@ -126,6 +126,19 @@ public class ParkerScore
         UpdatedAtUtc = at;
     }
 
+    /// <summary>
+    /// A deduction ruled by a person on an oversight case. Deliberately not
+    /// <see cref="PenalizeNoShow"/>: nobody failed to turn up, so the no-show count and the
+    /// completion streak — which are records of what happened, not of what was decided about
+    /// it — must not move.
+    /// </summary>
+    public void ApplySanction(int points, int credits, DateTimeOffset at)
+    {
+        Points -= Math.Max(0, points);
+        Credits -= Math.Max(0, credits);
+        UpdatedAtUtc = at;
+    }
+
     /// <summary>An extra credit fine (may push the wallet negative — a debt to earn back).</summary>
     public void PenalizeCredits(int amount, DateTimeOffset at)
     {

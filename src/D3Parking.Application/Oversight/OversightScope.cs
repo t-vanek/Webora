@@ -9,18 +9,28 @@ namespace D3Parking.Application.Oversight;
 /// remembering to filter. A kind outside the scope must not reach the caller in a list, in a
 /// detail, or in a count.
 /// </summary>
-public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds)
+/// <param name="MaySanction">
+/// Whether the caller may act against a person from a case. Carried here rather than checked in
+/// the page, so the one object that says what a caller is allowed to do says all of it — a screen
+/// that forgets the check cannot hand out a deduction the service would have refused.
+/// </param>
+public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds, bool MaySanction = false)
 {
-    /// <summary>Sees nothing. What a caller without either review permission gets.</summary>
+    /// <summary>Sees nothing. What a caller without any review permission gets.</summary>
     public static readonly OversightScope None = new([]);
 
     /// <summary>Every kind — for the maintenance loop and other callers that are not a person.</summary>
     public static readonly OversightScope All = new(Enum.GetValues<OversightCaseKind>());
 
-    /// <summary>The scope the two review permissions add up to.</summary>
-    public static OversightScope From(bool reviewMismatches, bool reviewCollusion)
+    /// <summary>
+    /// The scope the reviewer's permissions add up to. Defects ride on managing the spots: they
+    /// name nobody and hold no evidence about anyone, so the permission that maintains the lot is
+    /// the one that should see them — and the ones that guard evidence about people should not
+    /// have to be handed out to fix a broken light.
+    /// </summary>
+    public static OversightScope From(bool reviewMismatches, bool reviewCollusion, bool manageSpots = false, bool maySanction = false)
     {
-        var kinds = new List<OversightCaseKind>(2);
+        var kinds = new List<OversightCaseKind>(3);
         if (reviewMismatches)
         {
             kinds.Add(OversightCaseKind.OccupancyMismatch);
@@ -31,7 +41,12 @@ public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds)
             kinds.Add(OversightCaseKind.CollusionRing);
         }
 
-        return new OversightScope(kinds);
+        if (manageSpots)
+        {
+            kinds.Add(OversightCaseKind.SpotDefect);
+        }
+
+        return new OversightScope(kinds, maySanction);
     }
 
     public bool IsEmpty => Kinds.Count == 0;

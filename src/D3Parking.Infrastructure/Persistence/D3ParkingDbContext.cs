@@ -71,6 +71,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<CompanyVehicle> CompanyVehicles => Set<CompanyVehicle>();
 
+    public DbSet<SpotDefectReport> SpotDefectReports => Set<SpotDefectReport>();
+
     public DbSet<OversightCase> OversightCases => Set<OversightCase>();
 
     public DbSet<OversightCaseEvent> OversightCaseEvents => Set<OversightCaseEvent>();
@@ -410,6 +412,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             flag.HasIndex(f => new { f.UserA, f.UserB }).IsUnique();
         });
 
+        builder.Entity<SpotDefectReport>(defect =>
+        {
+            defect.ToTable("SpotDefectReports");
+            defect.HasKey(d => d.Id);
+            defect.Property(d => d.Category).HasConversion<string>().HasMaxLength(32);
+            defect.Property(d => d.Description).HasMaxLength(2048).IsRequired();
+            defect.HasIndex(d => d.ReportedAtUtc);
+        });
+
         builder.Entity<OversightCase>(oversight =>
         {
             oversight.ToTable("OversightCases");
@@ -570,6 +581,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.OversightRecurrenceThreshold).HasDefaultValue(3);
             settings.Property(s => s.OversightDigestHourLocal).HasDefaultValue(8);
             settings.Property(s => s.OversightInfoDeadlineDays).HasDefaultValue(7);
+            settings.Property(s => s.OversightAllowUserReports).HasDefaultValue(true);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

@@ -56,6 +56,9 @@ public enum OversightEventType
 
     VoucherRejected,
 
+    /// <summary>A reviewer ruled against one of the people the case is about.</summary>
+    Sanctioned,
+
     Resolved,
 
     Reopened,

@@ -822,7 +822,7 @@
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval kontroly (hodin)</value></data>
   <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Otevřít revizi podezřelých dvojic →</value></data>
   <data name="Parking_Oversight_Title" xml:space="preserve"><value>Provozní dohled</value></data>
-  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>Jedna fronta případů nad vším, co provoz parkoviště označil k ručnímu posouzení: neshody obsazenosti hlášené řidiči a dvojice, u kterých noční kontrola našla podezřelé sdílení. Případ ví, kdo ho řeší, co se u něj už zkusilo a jak dopadl.</value></data>
+  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>Jedna fronta případů nad vším, co na parkovišti čeká na rozhodnutí člověka: neshody obsazenosti hlášené řidiči, dvojice s podezřelým sdílením z noční kontroly a závady, které nahlásili uživatelé. Případ ví, kdo ho řeší, co se u něj už zkusilo a jak dopadl.</value></data>
   <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Otevřené případy</value></data>
   <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Načíst znovu</value></data>
   <data name="Parking_Oversight_Records" xml:space="preserve"><value>Záznamů</value></data>
@@ -875,6 +875,39 @@
   <data name="Parking_MyReports_Event_VoucherRejected" xml:space="preserve"><value>Kupón zamítnut</value></data>
   <data name="Nav_MyReports" xml:space="preserve"><value>Moje hlášení</value></data>
   <data name="Nav_Short_MyReports" xml:space="preserve"><value>Hlášení</value></data>
+  <data name="Parking_Settings_OversightUserReports" xml:space="preserve"><value>Přijímat hlášení závad od uživatelů</value></data>
+  <data name="Parking_OversightKind_SpotDefect" xml:space="preserve"><value>Závada na parkovišti</value></data>
+  <data name="Parking_OversightEvent_Sanctioned" xml:space="preserve"><value>Rozhodnutí vůči osobě</value></data>
+  <data name="Parking_MyReports_Event_Sanctioned" xml:space="preserve"><value>Rozhodnutí vůči vám</value></data>
+  <data name="Parking_Defect_Report" xml:space="preserve"><value>Nahlásit závadu na parkovišti</value></data>
+  <data name="Parking_Defect_Help" xml:space="preserve"><value>Nefunguje závora, nesvítí světlo, chybí čáry nebo někdo nechal na místě paletu? Napište to sem — správce parkoviště to uvidí jako případ k vyřízení.</value></data>
+  <data name="Parking_Defect_Category" xml:space="preserve"><value>Čeho se to týká</value></data>
+  <data name="Parking_Defect_Spot" xml:space="preserve"><value>Místo</value></data>
+  <data name="Parking_Defect_WholeLot" xml:space="preserve"><value>Celé parkoviště</value></data>
+  <data name="Parking_Defect_Description" xml:space="preserve"><value>Popis</value></data>
+  <data name="Parking_Defect_Placeholder" xml:space="preserve"><value>Co je špatně…</value></data>
+  <data name="Parking_Defect_Send" xml:space="preserve"><value>Odeslat hlášení</value></data>
+  <data name="Parking_Defect_Sent" xml:space="preserve"><value>Díky, hlášení jsme předali správci parkoviště.</value></data>
+  <data name="Parking_Defect_Error_DescriptionRequired" xml:space="preserve"><value>Napište prosím, co je špatně.</value></data>
+  <data name="Parking_Defect_Error_Disabled" xml:space="preserve"><value>Hlášení závad je na tomto parkovišti vypnuté.</value></data>
+  <data name="Parking_DefectCategory_Surface" xml:space="preserve"><value>Povrch a stav plochy</value></data>
+  <data name="Parking_DefectCategory_Markings" xml:space="preserve"><value>Značení a čáry</value></data>
+  <data name="Parking_DefectCategory_Access" xml:space="preserve"><value>Závora a vjezd</value></data>
+  <data name="Parking_DefectCategory_Lighting" xml:space="preserve"><value>Osvětlení</value></data>
+  <data name="Parking_DefectCategory_Obstruction" xml:space="preserve"><value>Překážka na místě</value></data>
+  <data name="Parking_DefectCategory_Other" xml:space="preserve"><value>Něco jiného</value></data>
+  <data name="Parking_Oversight_Sanction" xml:space="preserve"><value>Rozhodnutí vůči osobě</value></data>
+  <data name="Parking_Oversight_SanctionHelp" xml:space="preserve"><value>Formální výstraha, případně se srážkou bodů a kreditů. Zapíše se do historie případu, do auditu účtu i do knihy bodů a dotčený dostane oznámení s důvodem. Nechte srážky na nule, pokud jde jen o výstrahu.</value></data>
+  <data name="Parking_Oversight_SanctionTarget" xml:space="preserve"><value>Koho se týká</value></data>
+  <data name="Parking_Oversight_SanctionPoints" xml:space="preserve"><value>Srazit bodů</value></data>
+  <data name="Parking_Oversight_SanctionCredits" xml:space="preserve"><value>Srazit kreditů</value></data>
+  <data name="Parking_Oversight_SanctionReason" xml:space="preserve"><value>Důvod (uvidí ho dotčený)</value></data>
+  <data name="Parking_Oversight_SanctionApply" xml:space="preserve"><value>Zapsat rozhodnutí</value></data>
+  <data name="Parking_Oversight_Sanctioned" xml:space="preserve"><value>Rozhodnutí je zapsané a dotčený dostal oznámení.</value></data>
+  <data name="Parking_Oversight_Error_MayNotSanction" xml:space="preserve"><value>Na rozhodnutí vůči osobě nemáš oprávnění.</value></data>
+  <data name="Parking_Oversight_Error_NotAParty" xml:space="preserve"><value>Tenhle člověk není účastníkem případu.</value></data>
+  <data name="Parking_Oversight_Error_SanctionSelf" xml:space="preserve"><value>Rozhodnout sám o sobě nejde.</value></data>
+  <data name="Home_Card_Oversight" xml:space="preserve"><value>Čeká {0} případů k rozhodnutí.</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Pohledy na frontu</value></data>
   <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Po termínu</value></data>
   <data name="Parking_Oversight_Due" xml:space="preserve"><value>Termín</value></data>
@@ -1282,6 +1315,8 @@
   <data name="Perm_Parking_ManageIncentives_Desc" xml:space="preserve"><value>Nastavuje bodové hodnoty, prahy a úrovně věrnosti.</value></data>
   <data name="Perm_Parking_ReviewCollusion" xml:space="preserve"><value>Přezkoumávat podezřelé dvojice</value></data>
   <data name="Perm_Parking_ReviewCollusion_Desc" xml:space="preserve"><value>Prohlíží podezření na domluvu mezi konkrétními uživateli a rozhoduje o nich.</value></data>
+  <data name="Perm_Parking_SanctionOversight" xml:space="preserve"><value>Rozhodovat vůči osobám z případů dohledu</value></data>
+  <data name="Perm_Parking_SanctionOversight_Desc" xml:space="preserve"><value>Uděluje z případu formální výstrahu a strhává body či kredity účastníkovi. Držené zvlášť od posuzování důkazů — komu co rozhodnutí vezme, je jiná odpovědnost než zda důkaz obstojí.</value></data>
   <data name="Perm_Parking_VerifyResidency" xml:space="preserve"><value>Ověřovat bydliště</value></data>
   <data name="Perm_Parking_VerifyResidency_Desc" xml:space="preserve"><value>Potvrzuje domácí adresu uživatele, která rozhoduje o nároku podle dojezdu.</value></data>
   <data name="Perm_Users_View" xml:space="preserve"><value>Zobrazit uživatele</value></data>
@@ -1383,6 +1418,7 @@
   <data name="Audit_Type_RolePermissionsChanged" xml:space="preserve"><value>Změna oprávnění role</value></data>
   <data name="Audit_Type_SettingsChanged" xml:space="preserve"><value>Změna nastavení</value></data>
   <data name="Audit_Type_ReservationOverridden" xml:space="preserve"><value>Zásah do rezervace</value></data>
+  <data name="Audit_Type_OversightSanctioned" xml:space="preserve"><value>Rozhodnutí provozního dohledu</value></data>
   <data name="Audit_Type_PasswordChanged" xml:space="preserve"><value>Změna hesla</value></data>
   <data name="Audit_Type_PasswordResetRequested" xml:space="preserve"><value>Žádost o reset hesla</value></data>
   <data name="Audit_Type_PasswordReset" xml:space="preserve"><value>Reset hesla</value></data>

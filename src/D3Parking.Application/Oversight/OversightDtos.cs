@@ -73,6 +73,23 @@ public sealed record OversightTimelineEntryDto(
     DateTimeOffset OccurredAtUtc);
 
 /// <summary>
+/// Somebody a case is about, and therefore somebody a ruling on it could fall on. The list comes
+/// from the case rather than from a search box: a sanction has to be aimed at a party to the thing
+/// being decided, not at whoever the reviewer types.
+/// </summary>
+public sealed record OversightPartyDto(Guid UserId, string Name);
+
+/// <summary>Something reported wrong with the lot, as the spot manager reads it.</summary>
+public sealed record SpotDefectDto(
+    Guid Id,
+    string? SpotCode,
+    SpotDefectCategory Category,
+    string Description,
+    string ReporterName,
+    string? ReporterEmail,
+    DateTimeOffset ReportedAtUtc);
+
+/// <summary>
 /// A driver's own report, as they see it. Deliberately not the reviewer's view of the same case:
 /// no internal notes, no reviewer's name — only what was decided, what has been asked of them, and
 /// what they can still do about it.
@@ -84,6 +101,7 @@ public sealed record OversightTimelineEntryDto(
 public sealed record MyOversightReportDto(
     Guid Id,
     int Number,
+    OversightCaseKind Kind,
     string SpotCode,
     OversightCaseStatus Status,
     DateTimeOffset OpenedAtUtc,
@@ -116,4 +134,6 @@ public sealed record OversightCaseDetailDto(
     string? ResolutionNote,
     OccupancyMismatchDto? Mismatch,
     CollusionFlagDto? Flag,
+    SpotDefectDto? Defect,
+    IReadOnlyList<OversightPartyDto> Parties,
     IReadOnlyList<OversightTimelineEntryDto> Timeline);

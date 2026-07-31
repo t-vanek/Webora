@@ -4,10 +4,12 @@ using D3Parking.Application.Notifications;
 using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Oversight;
@@ -54,7 +56,14 @@ public sealed class OversightService(
             .OrderBy(f => f.DetectedAtUtc)
             .ToListAsync(cancellationToken);
 
-        if (mismatches.Count == 0 && flags.Count == 0)
+        var defects = await dbContext.SpotDefectReports.AsNoTracking()
+            .Where(d => !dbContext.OversightCases.Any(c =>
+                c.Kind == OversightCaseKind.SpotDefect && c.SubjectId == d.Id))
+            .Select(d => new { d.Id, d.SpotId, d.ReporterId, d.ReportedAtUtc })
+            .OrderBy(d => d.ReportedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        if (mismatches.Count == 0 && flags.Count == 0 && defects.Count == 0)
         {
             return 0;
         }
@@ -130,6 +139,19 @@ public sealed class OversightService(
             announce.Add((opened, PairLabel(flag.ConcentrationAPercent, flag.ConcentrationBPercent)));
         }
 
+        foreach (var defect in defects)
+        {
+            // No triage rules here: nobody is accused, there is nothing to weigh, and a burnt-out
+            // light is not more or less urgent for having been reported twice.
+            var opened = new OversightCase(
+                OversightCaseKind.SpotDefect, defect.Id, defect.ReportedAtUtc,
+                spotId: defect.SpotId, reporterId: defect.ReporterId);
+            dbContext.OversightCases.Add(opened);
+            opened.OpenAt(OversightCasePriority.Normal, settings.SlaFor(OversightCasePriority.Normal));
+            dbContext.OversightCaseEvents.Add(
+                OversightCaseEvent.FromSystem(opened.Id, OversightEventType.Opened, defect.ReportedAtUtc));
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Only the ones that will not wait for tomorrow's digest.
@@ -140,7 +162,36 @@ public sealed class OversightService(
                 messages["Parking_Notify_OversightNew_Body", @case.Number, subject], cancellationToken);
         }
 
-        return mismatches.Count + flags.Count;
+        return mismatches.Count + flags.Count + defects.Count;
+    }
+
+    public async Task<ParkingResult> ReportDefectAsync(
+        Guid userId, SpotDefectCategory category, string description, Guid? spotId, CancellationToken cancellationToken = default)
+    {
+        var text = description?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return ParkingResult.Failure("Parking_Defect_Error_DescriptionRequired");
+        }
+
+        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
+        {
+            var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+            if (!settings.OversightAllowUserReports)
+            {
+                return ParkingResult.Failure("Parking_Defect_Error_Disabled");
+            }
+
+            dbContext.SpotDefectReports.Add(
+                new SpotDefectReport(userId, category, text, timeProvider.GetUtcNow(), spotId));
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        // Opened through the same ingest as every other signal rather than here, so there is still
+        // exactly one place a case comes into being — and the reporter does not have to wait a
+        // sweep to see their own report on the list.
+        await EnsureCasesAsync(cancellationToken);
+        return ParkingResult.Success;
     }
 
     /// <summary>
@@ -408,6 +459,24 @@ public sealed class OversightService(
             .FirstOrDefaultAsync(s => s.Id == ParkingSettings.SingletonId, cancellationToken)
         ?? ParkingSettings.CreateDefault();
 
+    private static async Task<SpotDefectDto?> LoadDefectAsync(
+        D3ParkingDbContext dbContext, Guid defectId, CancellationToken cancellationToken) =>
+        await (from d in dbContext.SpotDefectReports.AsNoTracking()
+               where d.Id == defectId
+               join s in dbContext.ParkingSpots.AsNoTracking() on d.SpotId equals s.Id into spots
+               from spot in spots.DefaultIfEmpty()
+               join u in dbContext.Users.AsNoTracking() on d.ReporterId equals u.Id into reporters
+               from reporter in reporters.DefaultIfEmpty()
+               select new SpotDefectDto(
+                   d.Id,
+                   spot != null ? spot.Code : null,
+                   d.Category,
+                   d.Description,
+                   reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
+                   reporter != null ? reporter.Email : null,
+                   d.ReportedAtUtc))
+            .FirstOrDefaultAsync(cancellationToken);
+
     private static async Task<string> SpotCodeAsync(D3ParkingDbContext dbContext, Guid spotId, CancellationToken cancellationToken) =>
         await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.Id == spotId)
@@ -531,8 +600,16 @@ public sealed class OversightService(
         var flag = entity.Kind == OversightCaseKind.CollusionRing
             ? await collusion.GetFlagAsync(entity.SubjectId, cancellationToken)
             : null;
+        var defect = entity.Kind == OversightCaseKind.SpotDefect
+            ? await LoadDefectAsync(dbContext, entity.SubjectId, cancellationToken)
+            : null;
 
         var labels = await ResolveLabelsAsync(dbContext, [entity], cancellationToken);
+        var partyIds = await PartyIdsAsync(dbContext, entity, cancellationToken);
+        var partyNames = await ResolveUserNamesAsync(dbContext, partyIds, cancellationToken);
+        var parties = partyIds
+            .Select(id => new OversightPartyDto(id, partyNames.GetValueOrDefault(id, string.Empty)))
+            .ToList();
 
         return new OversightCaseDetailDto(
             entity.Id, entity.Number, entity.Kind, entity.Status, entity.Priority,
@@ -541,7 +618,7 @@ public sealed class OversightService(
             entity.OpenedAtUtc, entity.UpdatedAtUtc,
             entity.DueAtUtc, entity.IsOverdue(timeProvider.GetUtcNow()),
             entity.ResolvedAtUtc, entity.Resolution, entity.ResolutionNote,
-            mismatch, flag,
+            mismatch, flag, defect, parties,
             events.Select(e => new OversightTimelineEntryDto(
                 e.Id, e.Type, e.Actor,
                 e.ActorUserId is { } actor ? actorNames.GetValueOrDefault(actor) : null,
@@ -729,6 +806,116 @@ public sealed class OversightService(
         }, cancellationToken);
     }
 
+    public Task<ParkingResult> SanctionAsync(
+        Guid caseId, Guid targetUserId, int points, int credits, string reason, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default)
+    {
+        var text = reason?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            // The one action here that costs somebody something says why, always. A deduction
+            // nobody wrote a reason for cannot be explained to the person who took it.
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_ReasonRequired"));
+        }
+
+        if (!scope.MaySanction)
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_MayNotSanction"));
+        }
+
+        var deductedPoints = Math.Max(0, points);
+        var deductedCredits = Math.Max(0, credits);
+
+        return MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
+        {
+            var parties = await PartyIdsAsync(dbContext, @case, cancellationToken);
+            if (!parties.Contains(targetUserId))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotAParty");
+            }
+
+            if (targetUserId == reviewerId)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_SanctionSelf");
+            }
+
+            if (deductedPoints > 0 || deductedCredits > 0)
+            {
+                var score = await dbContext.ParkerScores.FirstOrDefaultAsync(s => s.UserId == targetUserId, cancellationToken);
+                if (score is null)
+                {
+                    score = new ParkerScore(targetUserId);
+                    dbContext.ParkerScores.Add(score);
+                }
+
+                score.ApplySanction(deductedPoints, deductedCredits, now);
+
+                // Two ledger reasons would be inventing vocabulary for one act; the detail says
+                // which case it came from, which is what anyone reading the history will ask.
+                var detail = messages["Parking_Ledger_OversightSanction", @case.Number];
+                if (deductedPoints > 0)
+                {
+                    dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                        targetUserId, IncentiveReason.ManualAdjustment, -deductedPoints, null, now, detail));
+                }
+
+                if (deductedCredits > 0)
+                {
+                    dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                        targetUserId, IncentiveReason.ManualAdjustment, -deductedCredits, null, now, detail));
+                }
+            }
+
+            var body = deductedPoints == 0 && deductedCredits == 0
+                ? text
+                : $"−{deductedPoints}/−{deductedCredits}: {text}";
+            dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromReviewer(
+                @case.Id, OversightEventType.Sanctioned, reviewerId, now, body, OversightVisibility.Participants));
+
+            // Also on the person's own record: an oversight case is not the first place anyone
+            // looks when asking what happened to an account.
+            dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+                targetUserId, AccountAuditEventType.OversightSanctioned, $"admin:{reviewerId}",
+                messages["Parking_Audit_OversightSanction", @case.Number, deductedPoints, deductedCredits], now));
+
+            await notifications.NotifyAsync(targetUserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                messages["Parking_Notify_OversightSanction_Title"],
+                deductedPoints == 0 && deductedCredits == 0
+                    ? messages["Parking_Notify_OversightWarning_Body", @case.Number, text]
+                    : messages["Parking_Notify_OversightSanction_Body", @case.Number, deductedPoints, deductedCredits, text],
+                cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// The people this case is about. A report is about the driver who filed it; a flag is about
+    /// the pair it names. A defect is about nobody, which is why it returns nothing rather than
+    /// falling back to the reporter — somebody who tells you a light is out is not a party to
+    /// anything.
+    /// </summary>
+    private static async Task<List<Guid>> PartyIdsAsync(
+        D3ParkingDbContext dbContext, OversightCase @case, CancellationToken cancellationToken)
+    {
+        if (@case.Kind == OversightCaseKind.OccupancyMismatch)
+        {
+            return @case.ReporterId is { } reporter ? [reporter] : [];
+        }
+
+        if (@case.Kind != OversightCaseKind.CollusionRing)
+        {
+            return [];
+        }
+
+        // Projected to a pair and split here rather than in the query: an array built inside a
+        // SelectMany is not something the provider can translate.
+        var pair = await dbContext.CollusionFlags.AsNoTracking()
+            .Where(f => f.Id == @case.SubjectId)
+            .Select(f => new { f.UserA, f.UserB })
+            .FirstOrDefaultAsync(cancellationToken);
+        return pair is null ? [] : [pair.UserA, pair.UserB];
+    }
+
     public Task<ParkingResult> RequestInfoAsync(Guid caseId, string question, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default)
     {
         var text = question?.Trim();
@@ -810,6 +997,7 @@ public sealed class OversightService(
             return new MyOversightReportDto(
                 c.Id,
                 c.Number,
+                c.Kind,
                 c.SpotId is { } spotId ? spotCodes.GetValueOrDefault(spotId, string.Empty) : string.Empty,
                 c.Status,
                 c.OpenedAtUtc,
@@ -1015,20 +1203,39 @@ public sealed class OversightService(
         var names = await ResolveUserNamesAsync(
             dbContext, pairs.Values.SelectMany(p => new[] { p.UserA, p.UserB }), cancellationToken);
 
+        // A defect about the lot itself has no spot to name it by, so it borrows the opening words
+        // of what was reported — "the barrier does not read cards" says more in a list than a dash.
+        var defectIds = cases
+            .Where(c => c.Kind == OversightCaseKind.SpotDefect && c.SpotId is null)
+            .Select(c => c.SubjectId)
+            .Distinct()
+            .ToList();
+        var defectSummaries = defectIds.Count == 0
+            ? []
+            : await dbContext.SpotDefectReports.AsNoTracking()
+                .Where(d => defectIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, d => Summarize(d.Description), cancellationToken);
+
         foreach (var @case in cases)
         {
             labels[@case.Id] = @case.Kind switch
             {
-                OversightCaseKind.OccupancyMismatch =>
-                    @case.SpotId is { } spotId ? spotCodes.GetValueOrDefault(spotId, string.Empty) : string.Empty,
                 OversightCaseKind.CollusionRing when pairs.TryGetValue(@case.SubjectId, out var pair) =>
                     string.Join(PairSeparator, names.GetValueOrDefault(pair.UserA, string.Empty), names.GetValueOrDefault(pair.UserB, string.Empty)),
+                OversightCaseKind.CollusionRing => string.Empty,
+                _ when @case.SpotId is { } spotId => spotCodes.GetValueOrDefault(spotId, string.Empty),
+                OversightCaseKind.SpotDefect => defectSummaries.GetValueOrDefault(@case.SubjectId, string.Empty),
                 _ => string.Empty,
             };
         }
 
         return labels;
     }
+
+    private const int SummaryLength = 60;
+
+    private static string Summarize(string text) =>
+        text.Length <= SummaryLength ? text : text[..SummaryLength].TrimEnd() + "…";
 
     private static async Task<Dictionary<Guid, string>> ResolveUserNamesAsync(
         D3ParkingDbContext dbContext, IEnumerable<Guid> userIds, CancellationToken cancellationToken)

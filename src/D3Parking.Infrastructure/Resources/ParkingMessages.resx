@@ -98,6 +98,11 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>Odvolání proti rozhodnutí</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>Řidič se odvolal proti rozhodnutí u případu #{0}. Případ je znovu otevřený a nepřiřazený.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>Řidič na dotaz neodpověděl do {0} dní; případ se vrací k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>Rozhodnutí provozního dohledu</value></data>
+  <data name="Parking_Notify_OversightSanction_Body" xml:space="preserve"><value>K případu #{0} padlo rozhodnutí: strženo {1} bodů a {2} kreditů. Důvod: {3}</value></data>
+  <data name="Parking_Notify_OversightWarning_Body" xml:space="preserve"><value>K případu #{0} padla formální výstraha bez srážky. Důvod: {1}</value></data>
+  <data name="Parking_Ledger_OversightSanction" xml:space="preserve"><value>Rozhodnutí provozního dohledu, případ #{0}</value></data>
+  <data name="Parking_Audit_OversightSanction" xml:space="preserve"><value>Případ #{0}: strženo {1} bodů a {2} kreditů.</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Potvrzovací kód pro spárování vozidla</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;Pro spárování firemního vozidla &lt;strong&gt;{0}&lt;/strong&gt; s vaším účtem zadejte v sekci Můj účet tento kód:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>Kód platí jen krátce. Pokud jste o spárování nežádali, tento e-mail ignorujte.</value></data>

@@ -1,5 +1,5 @@
 @page "/admin/parking/oversight/case/{Id:guid}"
-@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion)]
+@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion, Permissions.Parking.ManageSpots)]
 @rendermode InteractiveServer
 @inject IOversightService Oversight
 @inject ISiteSettingsService SiteSettings
@@ -109,6 +109,30 @@
                             <dd>@Local(flag.UpdatedAtUtc, "g")</dd>
                         </dl>
                     }
+                    else if (_case.Defect is { } defect)
+                    {
+                        <dl class="case-facts">
+                            <dt>@L["Parking_Defect_Category"]</dt>
+                            <dd>@L[$"Parking_DefectCategory_{defect.Category}"]</dd>
+                            <dt>@L["Parking_Spot"]</dt>
+                            <dd>@(defect.SpotCode ?? L["Parking_Defect_WholeLot"].Value)</dd>
+                            <dt>@L["Parking_Defect_Description"]</dt>
+                            <dd class="case-timeline__body">@defect.Description</dd>
+                            <dt>@L["Parking_Mismatch_Reporter"]</dt>
+                            <dd>
+                                @if (defect.ReporterEmail is { } email)
+                                {
+                                    <a href="@($"mailto:{email}")" target="_blank" rel="noopener" title="@email">@defect.ReporterName</a>
+                                }
+                                else
+                                {
+                                    @defect.ReporterName
+                                }
+                            </dd>
+                            <dt>@L["Parking_Mismatch_ReportedAt"]</dt>
+                            <dd>@Local(defect.ReportedAtUtc, "g")</dd>
+                        </dl>
+                    }
                     else
                     {
                         @* The case outlives its evidence: a report or a flag can be cleaned up
@@ -212,6 +236,31 @@
                                 </FluentLabel>
                             }
 
+                            @* A ruling against a person is fenced off behind its own permission and
+                               its own list of targets: only the people this case is actually about,
+                               never a name typed into a box. *@
+                            @if (_scope.MaySanction && _case.Parties.Count > 0)
+                            {
+                                <FluentDivider />
+                                <FluentLabel Typo="Typography.Subject">@L["Parking_Oversight_Sanction"]</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Oversight_SanctionHelp"]</FluentLabel>
+                                <FluentSelect TOption="OversightPartyDto"
+                                              Label="@L["Parking_Oversight_SanctionTarget"]"
+                                              Items="@_case.Parties"
+                                              OptionValue="@(p => p.UserId.ToString())"
+                                              OptionText="@(p => p.Name)"
+                                              @bind-Value="_sanctionTarget"
+                                              Disabled="@_busy" />
+                                <FluentNumberField TValue="int" @bind-Value="_sanctionPoints" Min="0" Style="width:100%"
+                                                   Label="@L["Parking_Oversight_SanctionPoints"]" />
+                                <FluentNumberField TValue="int" @bind-Value="_sanctionCredits" Min="0" Style="width:100%"
+                                                   Label="@L["Parking_Oversight_SanctionCredits"]" />
+                                <FluentTextArea @bind-Value="_sanctionReason" Rows="2" Style="width:100%"
+                                                Label="@L["Parking_Oversight_SanctionReason"]" />
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="SanctionAsync">@L["Parking_Oversight_SanctionApply"]</FluentButton>
+                            }
+
                             <FluentDivider />
 
                             <FluentSelect TOption="string"
@@ -274,6 +323,10 @@
     private string _resolutionNote = string.Empty;
     private string _reopenReason = string.Empty;
     private string _question = string.Empty;
+    private string _sanctionTarget = string.Empty;
+    private int _sanctionPoints;
+    private int _sanctionCredits;
+    private string _sanctionReason = string.Empty;
     private bool _loaded;
     private bool _busy;
     private string? _error;
@@ -284,7 +337,9 @@
         var principal = (await AuthState!).User;
         _scope = OversightScope.From(
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
-            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion));
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight));
 
         var user = await UserManager.GetUserAsync(principal);
         _reviewerId = user?.Id ?? Guid.Empty;
@@ -300,6 +355,8 @@
         if (_case is not null)
         {
             _priority = _case.Priority.ToString();
+            // Preselect only when there is one party to aim at; a pair has to be chosen between.
+            _sanctionTarget = _case.Parties.Count == 1 ? _case.Parties[0].UserId.ToString() : _sanctionTarget;
         }
     }
 
@@ -322,6 +379,17 @@
 
     private Task RecordContactAsync(string recipient) =>
         RunAsync(() => Oversight.RecordEmailContactAsync(Id, recipient, _reviewerId, _scope), successKey: null);
+
+    private Task SanctionAsync() => RunAsync(
+        () => Guid.TryParse(_sanctionTarget, out var target)
+            ? Oversight.SanctionAsync(Id, target, _sanctionPoints, _sanctionCredits, _sanctionReason, _reviewerId, _scope)
+            : Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_NotAParty")),
+        "Parking_Oversight_Sanctioned",
+        onSuccess: () =>
+        {
+            _sanctionPoints = _sanctionCredits = 0;
+            _sanctionReason = string.Empty;
+        });
 
     private Task RequestInfoAsync() => RunAsync(
         () => Oversight.RequestInfoAsync(Id, _question, _reviewerId, _scope),

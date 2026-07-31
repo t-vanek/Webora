@@ -1,5 +1,6 @@
 using D3Parking.Application.Parking;
 using D3Parking.Domain.Oversight;
+using D3Parking.Domain.Parking;
 
 namespace D3Parking.Application.Oversight;
 
@@ -59,6 +60,16 @@ public interface IOversightService
     Task<ParkingResult> ReopenAsync(Guid caseId, string reason, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Records a ruling against one of the people the case is about: a formal warning on its own,
+    /// or one carrying a deduction from their reputation and wallet. Refused unless the caller may
+    /// sanction, and unless the target is actually a party to this case.
+    /// </summary>
+    /// <param name="points">Reputation to deduct; zero for a warning that costs nothing.</param>
+    /// <param name="credits">Credits to deduct; zero for a warning that costs nothing.</param>
+    Task<ParkingResult> SanctionAsync(
+        Guid caseId, Guid targetUserId, int points, int credits, string reason, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Asks the driver something and stops the clock until they answer. Only for a report — a
     /// collusion case has no participant to ask, and telling a pair they are suspected is not a
     /// question, it is an accusation.
@@ -71,6 +82,12 @@ public interface IOversightService
 
     /// <summary>The driver's own reports, newest first.</summary>
     Task<IReadOnlyList<MyOversightReportDto>> GetMyReportsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reports something wrong with the lot — the one case anybody can open. Refused when the lot
+    /// has the channel switched off.
+    /// </summary>
+    Task<ParkingResult> ReportDefectAsync(Guid userId, SpotDefectCategory category, string description, Guid? spotId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The driver adds something to their own report — an answer to what was asked, or a detail

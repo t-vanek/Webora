@@ -2,6 +2,7 @@
 @attribute [HasPermission(Permissions.Parking.View)]
 @rendermode InteractiveServer
 @inject IOversightService Oversight
+@inject IParkingSpotService Spots
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
@@ -34,6 +35,33 @@
         </FluentMessageBar>
     }
 
+    @* The one case anybody can open. A burnt-out light or a skip across two bays is invisible to
+       every sweep and every scan, so until somebody says so it does not exist. *@
+    <div class="admin-panel case-section">
+        <FluentLabel Typo="Typography.H5">@L["Parking_Defect_Report"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Defect_Help"]</FluentLabel>
+        <FluentSelect TOption="string"
+                      Label="@L["Parking_Defect_Category"]"
+                      Items="@DefectCategories"
+                      OptionValue="@(c => c)"
+                      OptionText="@(c => L[$"Parking_DefectCategory_{c}"])"
+                      @bind-Value="_defectCategory"
+                      Disabled="@_busy" />
+        @* The empty option is first and means the lot itself: a broken barrier belongs to nobody's
+           parking space. *@
+        <FluentSelect TOption="string"
+                      Label="@L["Parking_Defect_Spot"]"
+                      Items="@_spotOptions"
+                      OptionValue="@(s => s)"
+                      OptionText="@(s => s.Length == 0 ? L["Parking_Defect_WholeLot"].Value : _spotCodes.GetValueOrDefault(s, s))"
+                      @bind-Value="_defectSpot"
+                      Disabled="@_busy" />
+        <FluentTextArea @bind-Value="_defectDescription" Rows="3" Style="width:100%"
+                        Placeholder="@L["Parking_Defect_Placeholder"]" />
+        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                      OnClick="ReportDefectAsync">@L["Parking_Defect_Send"]</FluentButton>
+    </div>
+
     @if (_reports is null)
     {
         <div class="loading"><FluentProgressRing /></div>
@@ -49,10 +77,10 @@
             <div class="admin-panel case-section">
                 <div class="admin-head__title-row">
                     <FluentLabel Typo="Typography.H5">
-                        #@report.Number
+                        #@report.Number — @L[$"Parking_OversightKind_{report.Kind}"]
                         @if (!string.IsNullOrEmpty(report.SpotCode))
                         {
-                            <text> — @report.SpotCode</text>
+                            <text> · @report.SpotCode</text>
                         }
                     </FluentLabel>
                     <span class="state-pill state-pill--@StatusClass(report.Status)">
@@ -133,9 +161,16 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
+    private static readonly string[] DefectCategories = Enum.GetNames<SpotDefectCategory>();
+
     private Guid _userId;
     private IReadOnlyList<MyOversightReportDto>? _reports;
     private readonly Dictionary<Guid, string> _notes = [];
+    private string[] _spotOptions = [string.Empty];
+    private Dictionary<string, string> _spotCodes = [];
+    private string _defectCategory = nameof(SpotDefectCategory.Surface);
+    private string _defectSpot = string.Empty;
+    private string _defectDescription = string.Empty;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
     private bool _busy;
     private string? _error;
@@ -146,12 +181,53 @@
         var user = await UserManager.GetUserAsync((await AuthState!).User);
         _userId = user?.Id ?? Guid.Empty;
         _tz = await SiteSettings.GetTimeZoneAsync();
+
+        // Retired spots are left out: nothing anyone can report about them is still actionable.
+        var spots = await Spots.ListAsync(includeInactive: false);
+        _spotCodes = spots.ToDictionary(s => s.Id.ToString(), s => s.Code);
+        _spotOptions = [string.Empty, .. spots.Select(s => s.Id.ToString())];
+
         await LoadAsync();
     }
 
     private async Task LoadAsync() => _reports = await Oversight.GetMyReportsAsync(_userId);
 
     private string NoteFor(Guid caseId) => _notes.GetValueOrDefault(caseId, string.Empty);
+
+    private async Task ReportDefectAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _error = _info = null;
+            var result = await Oversight.ReportDefectAsync(
+                _userId,
+                Enum.Parse<SpotDefectCategory>(_defectCategory),
+                _defectDescription,
+                Guid.TryParse(_defectSpot, out var spotId) ? spotId : null);
+
+            if (result.Succeeded)
+            {
+                _info = "Parking_Defect_Sent";
+                _defectDescription = string.Empty;
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 
     private Task AddNoteAsync(Guid caseId) => RunAsync(
         caseId, body => Oversight.AddParticipantNoteAsync(caseId, body, _userId), "Parking_MyReports_Added");
