@@ -33,6 +33,18 @@ public enum OversightEventType
     /// <summary>A note, internal or shown to the participants.</summary>
     Comment,
 
+    /// <summary>The reviewer asked the driver something and the case is waiting on the answer.</summary>
+    InfoRequested,
+
+    /// <summary>The driver answered, or added something to their report unprompted.</summary>
+    InfoProvided,
+
+    /// <summary>
+    /// The driver disputes a ruling that went against them. Allowed once: a decision has to be
+    /// answerable, but a case cannot be argued in circles.
+    /// </summary>
+    Appealed,
+
     /// <summary>
     /// A reviewer opened the prefilled mail to a participant. Recorded because the follow-up
     /// otherwise happens entirely outside the system and the next reviewer cannot tell whether

@@ -836,6 +836,45 @@
   <data name="Parking_Settings_OversightRecurrenceThreshold" xml:space="preserve"><value>Reports on a spot before it is a pattern</value></data>
   <data name="Parking_Settings_OversightRecurrenceWindow" xml:space="preserve"><value>Recurrence window (days)</value></data>
   <data name="Parking_Settings_OversightDigestHour" xml:space="preserve"><value>Hour of the daily digest</value></data>
+  <data name="Parking_Settings_OversightInfoDeadline" xml:space="preserve"><value>Deadline for the driver's answer (days)</value></data>
+  <data name="Parking_Oversight_Question" xml:space="preserve"><value>Question for the driver</value></data>
+  <data name="Parking_Oversight_RequestInfo" xml:space="preserve"><value>Ask the driver</value></data>
+  <data name="Parking_Oversight_InfoRequested" xml:space="preserve"><value>The question is with the driver; the case deadline is paused until they answer.</value></data>
+  <data name="Parking_Oversight_AwaitingHelp" xml:space="preserve"><value>Waiting for the driver's answer. The case deadline is paused meanwhile; if no answer comes, the case returns for a decision by itself.</value></data>
+  <data name="Parking_Oversight_Error_QuestionRequired" xml:space="preserve"><value>Write what you are asking.</value></data>
+  <data name="Parking_Oversight_Error_NoParticipant" xml:space="preserve"><value>This case has nobody to ask.</value></data>
+  <data name="Parking_Oversight_Error_NotInProgress" xml:space="preserve"><value>Only a case being worked on can carry a question.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyAppealed" xml:space="preserve"><value>You have already appealed this ruling once.</value></data>
+  <data name="Parking_OversightStatus_AwaitingInfo" xml:space="preserve"><value>Waiting on the driver</value></data>
+  <data name="Parking_OversightEvent_InfoRequested" xml:space="preserve"><value>Question for the driver</value></data>
+  <data name="Parking_OversightEvent_InfoProvided" xml:space="preserve"><value>Added by the driver</value></data>
+  <data name="Parking_OversightEvent_Appealed" xml:space="preserve"><value>Driver's appeal</value></data>
+  <data name="Parking_MyReports_Title" xml:space="preserve"><value>My reports</value></data>
+  <data name="Parking_MyReports_Intro" xml:space="preserve"><value>What is happening with your blocked-spot reports: where each one stands, what the manager is asking you, and how it ended. You can answer or add something right here.</value></data>
+  <data name="Parking_MyReports_Empty" xml:space="preserve"><value>You haven't reported anything yet.</value></data>
+  <data name="Parking_MyReports_Reported" xml:space="preserve"><value>Reported</value></data>
+  <data name="Parking_MyReports_Question" xml:space="preserve"><value>The manager asks:</value></data>
+  <data name="Parking_MyReports_Add" xml:space="preserve"><value>Add to the report</value></data>
+  <data name="Parking_MyReports_AddPlaceholder" xml:space="preserve"><value>Anything to add?</value></data>
+  <data name="Parking_MyReports_Answer" xml:space="preserve"><value>Answer</value></data>
+  <data name="Parking_MyReports_AnswerPlaceholder" xml:space="preserve"><value>Your answer…</value></data>
+  <data name="Parking_MyReports_Added" xml:space="preserve"><value>Thanks — we've passed that to the manager.</value></data>
+  <data name="Parking_MyReports_Appeal" xml:space="preserve"><value>Appeal</value></data>
+  <data name="Parking_MyReports_AppealHelp" xml:space="preserve"><value>Think the ruling is wrong? Say why — the case reopens and someone else looks at it. You can appeal once.</value></data>
+  <data name="Parking_MyReports_AppealPlaceholder" xml:space="preserve"><value>Why you think the ruling doesn't hold…</value></data>
+  <data name="Parking_MyReports_Appealed" xml:space="preserve"><value>Your appeal is in; the case is open again.</value></data>
+  <data name="Parking_MyReports_State_New" xml:space="preserve"><value>Received</value></data>
+  <data name="Parking_MyReports_State_InProgress" xml:space="preserve"><value>Being checked</value></data>
+  <data name="Parking_MyReports_State_AwaitingInfo" xml:space="preserve"><value>Waiting on you</value></data>
+  <data name="Parking_MyReports_State_Resolved" xml:space="preserve"><value>Settled</value></data>
+  <data name="Parking_MyReports_Event_InfoRequested" xml:space="preserve"><value>Question from the manager</value></data>
+  <data name="Parking_MyReports_Event_InfoProvided" xml:space="preserve"><value>What you added</value></data>
+  <data name="Parking_MyReports_Event_Appealed" xml:space="preserve"><value>Your appeal</value></data>
+  <data name="Parking_MyReports_Event_Comment" xml:space="preserve"><value>Message from the manager</value></data>
+  <data name="Parking_MyReports_Event_VoucherApproved" xml:space="preserve"><value>Voucher approved</value></data>
+  <data name="Parking_MyReports_Event_VoucherRejected" xml:space="preserve"><value>Voucher rejected</value></data>
+  <data name="Nav_MyReports" xml:space="preserve"><value>My reports</value></data>
+  <data name="Nav_Short_MyReports" xml:space="preserve"><value>Reports</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Queue views</value></data>
   <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Overdue</value></data>
   <data name="Parking_Oversight_Due" xml:space="preserve"><value>Due</value></data>

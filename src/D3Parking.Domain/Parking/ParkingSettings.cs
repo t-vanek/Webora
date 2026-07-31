@@ -199,6 +199,13 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>Local hour of day at which the daily oversight digest is sent.</summary>
     public int OversightDigestHourLocal { get; private set; } = 8;
 
+    /// <summary>
+    /// How long a case may wait on a driver's answer before it goes back on the reviewer's desk. A
+    /// question nobody answers must not park a case out of sight forever; the wait ends, the case
+    /// comes back, and a human decides on what there is.
+    /// </summary>
+    public int OversightInfoDeadlineDays { get; private set; } = 7;
+
     /// <summary>State: when the oversight digest last went out.</summary>
     public DateTimeOffset? LastOversightDigestUtc { get; private set; }
 
@@ -287,7 +294,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         int oversightSlaLowHours,
         int oversightRecurrenceWindowDays,
         int oversightRecurrenceThreshold,
-        int oversightDigestHourLocal)
+        int oversightDigestHourLocal,
+        int oversightInfoDeadlineDays)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -369,6 +377,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OversightRecurrenceWindowDays = Math.Clamp(oversightRecurrenceWindowDays, 1, 365);
         OversightRecurrenceThreshold = Math.Max(2, oversightRecurrenceThreshold);
         OversightDigestHourLocal = Math.Clamp(oversightDigestHourLocal, 0, 23);
+        OversightInfoDeadlineDays = Math.Clamp(oversightInfoDeadlineDays, 1, 90);
     }
 
     /// <summary>How long a case of this priority may stay open before it is overdue.</summary>

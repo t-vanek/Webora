@@ -439,6 +439,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             oversight.HasIndex(c => new { c.Status, c.DueAtUtc });
             // Recurrence counts reports per spot within a window.
             oversight.HasIndex(c => new { c.SpotId, c.OpenedAtUtc });
+            // "My reports": every driver's own page load asks this one.
+            oversight.HasIndex(c => new { c.ReporterId, c.OpenedAtUtc });
 
             // Shadow rowversion: two reviewers land on the same fresh case and both press a
             // button. The loser must re-read and meet the guard ("already decided"), not overwrite
@@ -567,6 +569,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.OversightRecurrenceWindowDays).HasDefaultValue(30);
             settings.Property(s => s.OversightRecurrenceThreshold).HasDefaultValue(3);
             settings.Property(s => s.OversightDigestHourLocal).HasDefaultValue(8);
+            settings.Property(s => s.OversightInfoDeadlineDays).HasDefaultValue(7);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

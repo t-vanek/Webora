@@ -57,4 +57,30 @@ public interface IOversightService
     Task<ParkingResult> ResolveAsync(Guid caseId, OversightResolution resolution, string? note, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> ReopenAsync(Guid caseId, string reason, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asks the driver something and stops the clock until they answer. Only for a report — a
+    /// collusion case has no participant to ask, and telling a pair they are suspected is not a
+    /// question, it is an accusation.
+    /// </summary>
+    Task<ParkingResult> RequestInfoAsync(Guid caseId, string question, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
+
+    // --- the driver's side ------------------------------------------------------------------
+    // Everything below is bounded by the caller being the case's own reporter rather than by a
+    // permission: these are somebody's own report, and no scope makes one person's report another's.
+
+    /// <summary>The driver's own reports, newest first.</summary>
+    Task<IReadOnlyList<MyOversightReportDto>> GetMyReportsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The driver adds something to their own report — an answer to what was asked, or a detail
+    /// they remembered. Either way the case goes back on the reviewer's desk.
+    /// </summary>
+    Task<ParkingResult> AddParticipantNoteAsync(Guid caseId, string body, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The driver disputes a ruling that went against them, once. The case reopens unassigned so
+    /// whoever picks it up is deciding again rather than confirming themselves.
+    /// </summary>
+    Task<ParkingResult> AppealAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default);
 }

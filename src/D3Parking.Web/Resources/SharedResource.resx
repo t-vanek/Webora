@@ -836,6 +836,45 @@
   <data name="Parking_Settings_OversightRecurrenceThreshold" xml:space="preserve"><value>Hlášení na místě, než jde o vzorec</value></data>
   <data name="Parking_Settings_OversightRecurrenceWindow" xml:space="preserve"><value>Okno pro opakování (dní)</value></data>
   <data name="Parking_Settings_OversightDigestHour" xml:space="preserve"><value>Hodina denního souhrnu</value></data>
+  <data name="Parking_Settings_OversightInfoDeadline" xml:space="preserve"><value>Lhůta na odpověď řidiče (dní)</value></data>
+  <data name="Parking_Oversight_Question" xml:space="preserve"><value>Dotaz na řidiče</value></data>
+  <data name="Parking_Oversight_RequestInfo" xml:space="preserve"><value>Vyžádat informaci</value></data>
+  <data name="Parking_Oversight_InfoRequested" xml:space="preserve"><value>Dotaz odešel řidiči; než odpoví, lhůta případu neběží.</value></data>
+  <data name="Parking_Oversight_AwaitingHelp" xml:space="preserve"><value>Čeká se na odpověď řidiče. Lhůta případu je po tu dobu zastavená; když odpověď nepřijde, případ se sám vrátí k rozhodnutí.</value></data>
+  <data name="Parking_Oversight_Error_QuestionRequired" xml:space="preserve"><value>Napiš, na co se ptáš.</value></data>
+  <data name="Parking_Oversight_Error_NoParticipant" xml:space="preserve"><value>U tohoto případu není koho se zeptat.</value></data>
+  <data name="Parking_Oversight_Error_NotInProgress" xml:space="preserve"><value>Zeptat se jde jen u případu, který se právě řeší.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyAppealed" xml:space="preserve"><value>Proti tomuto rozhodnutí už jste se jednou odvolal(a).</value></data>
+  <data name="Parking_OversightStatus_AwaitingInfo" xml:space="preserve"><value>Čeká na řidiče</value></data>
+  <data name="Parking_OversightEvent_InfoRequested" xml:space="preserve"><value>Dotaz na řidiče</value></data>
+  <data name="Parking_OversightEvent_InfoProvided" xml:space="preserve"><value>Doplnění od řidiče</value></data>
+  <data name="Parking_OversightEvent_Appealed" xml:space="preserve"><value>Odvolání řidiče</value></data>
+  <data name="Parking_MyReports_Title" xml:space="preserve"><value>Moje hlášení</value></data>
+  <data name="Parking_MyReports_Intro" xml:space="preserve"><value>Co se děje s vašimi hlášeními o zablokovaném místě: v jakém jsou stavu, na co se vás správce ptá a jak dopadla. Odpovědět nebo něco doplnit můžete rovnou tady.</value></data>
+  <data name="Parking_MyReports_Empty" xml:space="preserve"><value>Zatím jste nic nenahlásil(a).</value></data>
+  <data name="Parking_MyReports_Reported" xml:space="preserve"><value>Nahlášeno</value></data>
+  <data name="Parking_MyReports_Question" xml:space="preserve"><value>Správce se ptá:</value></data>
+  <data name="Parking_MyReports_Add" xml:space="preserve"><value>Doplnit k hlášení</value></data>
+  <data name="Parking_MyReports_AddPlaceholder" xml:space="preserve"><value>Chcete něco doplnit?</value></data>
+  <data name="Parking_MyReports_Answer" xml:space="preserve"><value>Odpovědět</value></data>
+  <data name="Parking_MyReports_AnswerPlaceholder" xml:space="preserve"><value>Vaše odpověď…</value></data>
+  <data name="Parking_MyReports_Added" xml:space="preserve"><value>Díky, předali jsme to správci.</value></data>
+  <data name="Parking_MyReports_Appeal" xml:space="preserve"><value>Odvolat se</value></data>
+  <data name="Parking_MyReports_AppealHelp" xml:space="preserve"><value>Myslíte si, že rozhodnutí není správné? Napište proč — případ se otevře znovu a posoudí ho někdo další. Odvolat se lze jednou.</value></data>
+  <data name="Parking_MyReports_AppealPlaceholder" xml:space="preserve"><value>Proč podle vás rozhodnutí neplatí…</value></data>
+  <data name="Parking_MyReports_Appealed" xml:space="preserve"><value>Odvolání jsme přijali, případ je znovu otevřený.</value></data>
+  <data name="Parking_MyReports_State_New" xml:space="preserve"><value>Přijato</value></data>
+  <data name="Parking_MyReports_State_InProgress" xml:space="preserve"><value>Prověřuje se</value></data>
+  <data name="Parking_MyReports_State_AwaitingInfo" xml:space="preserve"><value>Čeká na vás</value></data>
+  <data name="Parking_MyReports_State_Resolved" xml:space="preserve"><value>Vyřízeno</value></data>
+  <data name="Parking_MyReports_Event_InfoRequested" xml:space="preserve"><value>Dotaz od správce</value></data>
+  <data name="Parking_MyReports_Event_InfoProvided" xml:space="preserve"><value>Vaše doplnění</value></data>
+  <data name="Parking_MyReports_Event_Appealed" xml:space="preserve"><value>Vaše odvolání</value></data>
+  <data name="Parking_MyReports_Event_Comment" xml:space="preserve"><value>Zpráva od správce</value></data>
+  <data name="Parking_MyReports_Event_VoucherApproved" xml:space="preserve"><value>Kupón schválen</value></data>
+  <data name="Parking_MyReports_Event_VoucherRejected" xml:space="preserve"><value>Kupón zamítnut</value></data>
+  <data name="Nav_MyReports" xml:space="preserve"><value>Moje hlášení</value></data>
+  <data name="Nav_Short_MyReports" xml:space="preserve"><value>Hlášení</value></data>
   <data name="Parking_Oversight_Views" xml:space="preserve"><value>Pohledy na frontu</value></data>
   <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Po termínu</value></data>
   <data name="Parking_Oversight_Due" xml:space="preserve"><value>Termín</value></data>

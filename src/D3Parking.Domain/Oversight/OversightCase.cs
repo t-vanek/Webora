@@ -54,6 +54,13 @@ public class OversightCase : Entity
     /// </summary>
     public DateTimeOffset? SlaBreachedAtUtc { get; private set; }
 
+    /// <summary>
+    /// Since when the case has been waiting on the driver. The deadline is pushed by exactly this
+    /// much when the answer arrives: the reviewer asked a question, which is work, and charging
+    /// them for the time it takes somebody else to reply would punish asking.
+    /// </summary>
+    public DateTimeOffset? AwaitingSinceUtc { get; private set; }
+
     /// <summary>Last activity of any kind — what the queue sorts a stale case to the top by.</summary>
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
@@ -79,8 +86,12 @@ public class OversightCase : Entity
     /// <summary>True while the case still wants a human — what "open" means in the queue and the counts.</summary>
     public bool IsOpen => Status != OversightCaseStatus.Resolved;
 
-    /// <summary>Open and past its deadline.</summary>
-    public bool IsOverdue(DateTimeOffset now) => IsOpen && DueAtUtc is { } due && due <= now;
+    /// <summary>
+    /// Open, the reviewer's move, and past its deadline. A case waiting on the driver is none of
+    /// the reviewer's doing, so it is never overdue while it waits.
+    /// </summary>
+    public bool IsOverdue(DateTimeOffset now) =>
+        IsOpen && Status != OversightCaseStatus.AwaitingInfo && DueAtUtc is { } due && due <= now;
 
     /// <summary>
     /// Sets the priority the lot itself judged the case to deserve, at the moment it is opened.
@@ -140,6 +151,42 @@ public class OversightCase : Entity
         return true;
     }
 
+    /// <summary>The reviewer asked the driver something; the clock stops until an answer comes.</summary>
+    public bool AwaitAnswer(DateTimeOffset at)
+    {
+        if (!OversightCaseStatusTransitions.IsAllowed(Status, OversightCaseStatus.AwaitingInfo))
+        {
+            return false;
+        }
+
+        Status = OversightCaseStatus.AwaitingInfo;
+        AwaitingSinceUtc = at;
+        Touch(at);
+        return true;
+    }
+
+    /// <summary>
+    /// The wait is over — the driver answered, or it ran out. The deadline moves by however long
+    /// the case spent waiting, so the reviewer gets back the time they were not spending.
+    /// </summary>
+    public bool ResumeWork(DateTimeOffset at)
+    {
+        if (Status != OversightCaseStatus.AwaitingInfo)
+        {
+            return false;
+        }
+
+        if (AwaitingSinceUtc is { } since && DueAtUtc is { } due)
+        {
+            DueAtUtc = due + (at - since);
+        }
+
+        Status = OversightCaseStatus.InProgress;
+        AwaitingSinceUtc = null;
+        Touch(at);
+        return true;
+    }
+
     /// <summary>Records that the deadline passed. Returns false when it was already announced.</summary>
     public bool MarkSlaBreached(DateTimeOffset at)
     {
@@ -169,6 +216,7 @@ public class OversightCase : Entity
         ResolutionNote = note;
         ResolvedAtUtc = at;
         AssigneeId ??= reviewerId;
+        AwaitingSinceUtc = null;
         Touch(at);
         return true;
     }
@@ -194,6 +242,7 @@ public class OversightCase : Entity
         // original one over would open it already overdue for a delay nobody caused.
         DueAtUtc = at + sla;
         SlaBreachedAtUtc = null;
+        AwaitingSinceUtc = null;
         Touch(at);
         return true;
     }

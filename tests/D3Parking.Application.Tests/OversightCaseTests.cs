@@ -482,6 +482,144 @@ public class OversightCaseTests
         Assert.That(_notifications.Sent.Where(s => s.Title == "Parking_Notify_OversightDigest_Title"), Is.Empty);
     }
 
+    // --- the driver's side ------------------------------------------------------------------
+
+    [Test]
+    public async Task Waiting_on_the_driver_stops_the_clock_and_answering_starts_it_again()
+    {
+        await SeedSettingsAsync();
+        var mismatch = await SeedMismatchAsync("C-20");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+        var reviewer = Guid.NewGuid();
+        await _oversight.ClaimAsync(caseId, reviewer, Both);
+
+        var due = (await _oversight.GetCaseAsync(caseId, Both))!.DueAtUtc;
+        var asked = await _oversight.RequestInfoAsync(caseId, "Poznal(a) jste značku vozu?", reviewer, Both);
+        Assert.That(asked.Succeeded, Is.True, asked.Errors.FirstOrDefault());
+
+        // Two days of waiting must not eat the reviewer's deadline...
+        _clock.UtcNow = Now.AddDays(2);
+        await _oversight.RunDueCaseWorkAsync();
+        var waiting = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(waiting!.Status, Is.EqualTo(OversightCaseStatus.AwaitingInfo));
+        Assert.That(waiting.IsOverdue, Is.False, "The case is not the reviewer's move while it waits.");
+        Assert.That(waiting.DueAtUtc, Is.EqualTo(due), "The deadline holds still until the answer lands.");
+
+        var answered = await _oversight.AddParticipantNoteAsync(caseId, "Ano, 3AB 1234.", mismatch.ReporterId);
+        Assert.That(answered.Succeeded, Is.True, answered.Errors.FirstOrDefault());
+
+        // ...and once it lands, the reviewer gets that time back.
+        var resumed = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(resumed!.Status, Is.EqualTo(OversightCaseStatus.InProgress));
+        Assert.That(resumed.DueAtUtc, Is.EqualTo(due!.Value.AddDays(2)));
+        Assert.That(resumed.Timeline.Select(e => e.Type),
+            Does.Contain(OversightEventType.InfoRequested).And.Contain(OversightEventType.InfoProvided));
+    }
+
+    [Test]
+    public async Task A_question_nobody_answers_puts_the_case_back_on_the_desk()
+    {
+        await SeedSettingsAsync();
+        var mismatch = await SeedMismatchAsync("C-21");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+        var reviewer = Guid.NewGuid();
+        await _oversight.ClaimAsync(caseId, reviewer, Both);
+        await _oversight.RequestInfoAsync(caseId, "Máte fotku i z druhé strany?", reviewer, Both);
+
+        _clock.UtcNow = Now.AddDays(8);
+        await _oversight.RunDueCaseWorkAsync();
+
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.Status, Is.EqualTo(OversightCaseStatus.InProgress),
+            "The lot can tell nobody replied; what that means for the report is still a person's call.");
+        Assert.That(detail.Resolution, Is.Null, "Silence is not a verdict.");
+        Assert.That(detail.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.SignalUpdated));
+    }
+
+    [Test]
+    public async Task A_driver_sees_their_own_reports_and_only_what_faces_them()
+    {
+        await SeedSettingsAsync();
+        var mine = await SeedMismatchAsync("C-22");
+        var someoneElses = await SeedMismatchAsync("C-23");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mine.Id);
+        var reviewer = Guid.NewGuid();
+
+        await _oversight.CommentAsync(caseId, "Fotka je rozmazaná, ověřit u ostrahy.", visibleToParticipants: false, reviewer, Both);
+        await _oversight.CommentAsync(caseId, "Prověřujeme, ozveme se.", visibleToParticipants: true, reviewer, Both);
+
+        var reports = await _oversight.GetMyReportsAsync(mine.ReporterId);
+
+        Assert.That(reports.Select(r => r.Id), Is.EquivalentTo(new[] { caseId }),
+            "Somebody else's report is nobody's business, whatever its number.");
+        var bodies = reports[0].Timeline.Select(e => e.Body).ToList();
+        Assert.That(bodies, Does.Contain("Prověřujeme, ozveme se."));
+        Assert.That(bodies, Does.Not.Contain("Fotka je rozmazaná, ověřit u ostrahy."),
+            "Internal notes never leave the database, so no template can leak one.");
+        Assert.That(reports[0].Timeline.Select(e => e.ActorName), Has.All.Null,
+            "The driver is owed the decision and its reasons, not a colleague to corner about it.");
+
+        // And a stranger cannot write to it either.
+        var intruder = await _oversight.AddParticipantNoteAsync(caseId, "pustte me dovnitr", someoneElses.ReporterId);
+        Assert.That(intruder.Succeeded, Is.False);
+        Assert.That(intruder.Errors, Does.Contain("Parking_Oversight_Error_NotFound"));
+    }
+
+    [Test]
+    public async Task A_rejected_apology_can_be_disputed_once()
+    {
+        await SeedSettingsAsync();
+        var reviewer = await SeedUserAsync();
+        var (driver, reservation) = await SeedBlockedReservationAsync("C-24");
+        var report = await _reservations.ReportBlockedSpotAsync(driver, reservation.Id, relocate: false, Photo(24));
+        Assert.That(report.VoucherGranted, Is.True, report.Error);
+
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, await MismatchIdOfAsync(driver));
+        await _oversight.ReviewVoucherAsync(caseId, approve: false, reviewer, Both);
+
+        var mine = (await _oversight.GetMyReportsAsync(driver)).Single(r => r.Id == caseId);
+        Assert.That(mine.Status, Is.EqualTo(OversightCaseStatus.Resolved));
+        Assert.That(mine.CanAppeal, Is.True, "A ruling that cost the driver something has to be answerable.");
+
+        var appeal = await _oversight.AppealAsync(caseId, "Auto tam stálo, mám i video.", driver);
+        Assert.That(appeal.Succeeded, Is.True, appeal.Errors.FirstOrDefault());
+
+        var reopened = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(reopened!.Status, Is.EqualTo(OversightCaseStatus.New));
+        Assert.That(reopened.AssigneeId, Is.Null,
+            "An appeal must not land back with the reviewer whose ruling is being disputed.");
+        Assert.That(reopened.Resolution, Is.Null);
+        Assert.That(reopened.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.Appealed));
+
+        // Answerable once — not arguable in circles.
+        await _oversight.ResolveAsync(caseId, OversightResolution.Unfounded, "Video nic nedokládá.", reviewer, Both);
+        var again = await _oversight.AppealAsync(caseId, "Pořád nesouhlasím.", driver);
+        Assert.That(again.Succeeded, Is.False);
+        Assert.That(again.Errors, Does.Contain("Parking_Oversight_Error_AlreadyAppealed"));
+        Assert.That((await _oversight.GetMyReportsAsync(driver)).Single(r => r.Id == caseId).CanAppeal, Is.False);
+    }
+
+    [Test]
+    public async Task A_flagged_pair_has_nobody_to_ask()
+    {
+        await SeedSettingsAsync();
+        var flagId = await SeedFlagAsync();
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.CollusionRing, flagId);
+        var reviewer = Guid.NewGuid();
+        await _oversight.ClaimAsync(caseId, reviewer, Both);
+
+        var asked = await _oversight.RequestInfoAsync(caseId, "Vysvětlíte to?", reviewer, Both);
+
+        Assert.That(asked.Succeeded, Is.False,
+            "Telling two colleagues they are suspected is not a question, and this is not the place to decide it.");
+        Assert.That(asked.Errors, Does.Contain("Parking_Oversight_Error_NoParticipant"));
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)

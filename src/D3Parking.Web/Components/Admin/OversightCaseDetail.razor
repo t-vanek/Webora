@@ -195,6 +195,23 @@
                                 </FluentStack>
                             }
 
+                            @* Only a report has somebody to ask; a flagged pair has no participant,
+                               and telling two colleagues they are suspected is not a question. *@
+                            @if (_case.Kind == OversightCaseKind.OccupancyMismatch
+                                 && _case.Status != OversightCaseStatus.AwaitingInfo)
+                            {
+                                <FluentTextArea @bind-Value="_question" Rows="2" Style="width:100%"
+                                                Label="@L["Parking_Oversight_Question"]" />
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="RequestInfoAsync">@L["Parking_Oversight_RequestInfo"]</FluentButton>
+                            }
+                            else if (_case.Status == OversightCaseStatus.AwaitingInfo)
+                            {
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                    @L["Parking_Oversight_AwaitingHelp"]
+                                </FluentLabel>
+                            }
+
                             <FluentDivider />
 
                             <FluentSelect TOption="string"
@@ -256,6 +273,7 @@
     private string _resolution = nameof(OversightResolution.Founded);
     private string _resolutionNote = string.Empty;
     private string _reopenReason = string.Empty;
+    private string _question = string.Empty;
     private bool _loaded;
     private bool _busy;
     private string? _error;
@@ -304,6 +322,11 @@
 
     private Task RecordContactAsync(string recipient) =>
         RunAsync(() => Oversight.RecordEmailContactAsync(Id, recipient, _reviewerId, _scope), successKey: null);
+
+    private Task RequestInfoAsync() => RunAsync(
+        () => Oversight.RequestInfoAsync(Id, _question, _reviewerId, _scope),
+        "Parking_Oversight_InfoRequested",
+        onSuccess: () => _question = string.Empty);
 
     private Task ReviewVoucherAsync(bool approve) => RunAsync(
         () => Oversight.ReviewVoucherAsync(Id, approve, _reviewerId, _scope),

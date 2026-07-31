@@ -1,5 +1,6 @@
 using D3Parking.Application.Parking;
 using D3Parking.Domain.Oversight;
+using D3Parking.Domain.Parking;
 
 namespace D3Parking.Application.Oversight;
 
@@ -70,6 +71,27 @@ public sealed record OversightTimelineEntryDto(
     string? Body,
     OversightVisibility Visibility,
     DateTimeOffset OccurredAtUtc);
+
+/// <summary>
+/// A driver's own report, as they see it. Deliberately not the reviewer's view of the same case:
+/// no internal notes, no reviewer's name — only what was decided, what has been asked of them, and
+/// what they can still do about it.
+/// </summary>
+/// <param name="Question">The reviewer's open question, when the case is waiting on an answer.</param>
+/// <param name="CanAppeal">
+/// True when the ruling went against them and they have not already disputed it.
+/// </param>
+public sealed record MyOversightReportDto(
+    Guid Id,
+    int Number,
+    string SpotCode,
+    OversightCaseStatus Status,
+    DateTimeOffset OpenedAtUtc,
+    OversightResolution? Resolution,
+    ApologyVoucherStatus? VoucherStatus,
+    string? Question,
+    bool CanAppeal,
+    IReadOnlyList<OversightTimelineEntryDto> Timeline);
 
 /// <summary>
 /// A case opened for review: the case itself, its history, and whichever evidence panel its kind

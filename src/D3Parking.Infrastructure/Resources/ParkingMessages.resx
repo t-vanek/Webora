@@ -89,6 +89,15 @@
   <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>Koncentrace dvojice je {0} % u obou stran při {1} vzájemných interakcích.</value></data>
   <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>Noční kontrola dvojici přeměřila: {0} vzájemných interakcí, koncentrace {1} % / {2} %.</value></data>
   <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>dvojice s koncentrací {0} %</value></data>
+  <data name="Parking_Notify_OversightQuestion_Title" xml:space="preserve"><value>Dotaz k vašemu hlášení</value></data>
+  <data name="Parking_Notify_OversightQuestion_Body" xml:space="preserve"><value>K hlášení #{0} potřebujeme doplnit: {1} — odpovědět můžete na stránce Moje hlášení.</value></data>
+  <data name="Parking_Notify_OversightAnswer_Title" xml:space="preserve"><value>Řidič odpověděl</value></data>
+  <data name="Parking_Notify_OversightAnswer_Body" xml:space="preserve"><value>K případu #{0} přibyla informace od řidiče; případ je zpátky k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Title" xml:space="preserve"><value>Na dotaz nikdo neodpověděl</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Body" xml:space="preserve"><value>Případ #{0} čekal na odpověď řidiče marně a vrací se k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>Odvolání proti rozhodnutí</value></data>
+  <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>Řidič se odvolal proti rozhodnutí u případu #{0}. Případ je znovu otevřený a nepřiřazený.</value></data>
+  <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>Řidič na dotaz neodpověděl do {0} dní; případ se vrací k rozhodnutí.</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Potvrzovací kód pro spárování vozidla</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;Pro spárování firemního vozidla &lt;strong&gt;{0}&lt;/strong&gt; s vaším účtem zadejte v sekci Můj účet tento kód:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>Kód platí jen krátce. Pokud jste o spárování nežádali, tento e-mail ignorujte.</value></data>

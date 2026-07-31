@@ -89,6 +89,15 @@
   <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>The pair sits at {0} % concentration on both sides across {1} mutual interactions.</value></data>
   <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>The nightly scan re-measured the pair: {0} mutual interactions, concentration {1} % / {2} %.</value></data>
   <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>a pair at {0} % concentration</value></data>
+  <data name="Parking_Notify_OversightQuestion_Title" xml:space="preserve"><value>A question about your report</value></data>
+  <data name="Parking_Notify_OversightQuestion_Body" xml:space="preserve"><value>We need something added to report #{0}: {1} — you can answer on the My reports page.</value></data>
+  <data name="Parking_Notify_OversightAnswer_Title" xml:space="preserve"><value>The driver answered</value></data>
+  <data name="Parking_Notify_OversightAnswer_Body" xml:space="preserve"><value>Case #{0} has new information from the driver and is back for a decision.</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Title" xml:space="preserve"><value>The question went unanswered</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Body" xml:space="preserve"><value>Case #{0} waited for the driver's answer in vain and is back for a decision.</value></data>
+  <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
+  <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
+  <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code under My account:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>

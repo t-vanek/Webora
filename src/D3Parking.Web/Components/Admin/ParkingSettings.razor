@@ -237,6 +237,8 @@
                                            Label="@L["Parking_Settings_OversightRecurrenceWindow"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.OversightDigestHourLocal" Min="0" Max="23"
                                            Label="@L["Parking_Settings_OversightDigestHour"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.OversightInfoDeadlineDays" Min="1" Max="90"
+                                           Label="@L["Parking_Settings_OversightInfoDeadline"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
@@ -574,6 +576,7 @@
             OversightRecurrenceWindowDays = s.OversightRecurrenceWindowDays,
             OversightRecurrenceThreshold = s.OversightRecurrenceThreshold,
             OversightDigestHourLocal = s.OversightDigestHourLocal,
+            OversightInfoDeadlineDays = s.OversightInfoDeadlineDays,
         };
 
         _economyOn = s.BaseReservationCost > 0;
@@ -662,7 +665,7 @@
             _form.OversightSlaCriticalHours, _form.OversightSlaHighHours,
             _form.OversightSlaNormalHours, _form.OversightSlaLowHours,
             _form.OversightRecurrenceWindowDays, _form.OversightRecurrenceThreshold,
-            _form.OversightDigestHourLocal);
+            _form.OversightDigestHourLocal, _form.OversightInfoDeadlineDays);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -761,5 +764,7 @@
         public int OversightRecurrenceThreshold { get; set; }
 
         public int OversightDigestHourLocal { get; set; }
+
+        public int OversightInfoDeadlineDays { get; set; }
     }
 }

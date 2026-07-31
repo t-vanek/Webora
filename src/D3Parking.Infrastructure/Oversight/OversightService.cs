@@ -165,10 +165,53 @@ public sealed class OversightService(
     public async Task<int> RunDueCaseWorkAsync(CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
-        var touched = await AnnounceBreachesAsync(now, cancellationToken);
+        // Unanswered questions first: a case that comes back off the wait can then breach in the
+        // same sweep, rather than waiting another one to be noticed.
+        var touched = await EndStaleWaitsAsync(now, cancellationToken);
+        touched += await AnnounceBreachesAsync(now, cancellationToken);
         touched += await RecordSignalUpdatesAsync(cancellationToken);
         await SendDigestIfDueAsync(now, cancellationToken);
         return touched;
+    }
+
+    /// <summary>
+    /// Puts back on the desk the cases whose question was never answered. Deliberately not a
+    /// verdict: the lot can tell that nobody replied, but what that means for the report is a
+    /// judgement, and judgements stay with people.
+    /// </summary>
+    private async Task<int> EndStaleWaitsAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+        var deadline = now.AddDays(-settings.OversightInfoDeadlineDays);
+
+        var stale = await dbContext.OversightCases
+            .Where(c => c.Status == OversightCaseStatus.AwaitingInfo
+                && c.AwaitingSinceUtc != null && c.AwaitingSinceUtc <= deadline)
+            .ToListAsync(cancellationToken);
+        if (stale.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var @case in stale)
+        {
+            @case.ResumeWork(now);
+            dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromSystem(
+                @case.Id, OversightEventType.SignalUpdated, now,
+                messages["Parking_Oversight_Reason_NoAnswer", settings.OversightInfoDeadlineDays]));
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var @case in stale)
+        {
+            await NotifyOwnerOrReviewersAsync(dbContext, @case, NotificationLevel.Info,
+                messages["Parking_Notify_OversightNoAnswer_Title"],
+                messages["Parking_Notify_OversightNoAnswer_Body", @case.Number], cancellationToken);
+        }
+
+        return stale.Count;
     }
 
     /// <summary>
@@ -180,7 +223,9 @@ public sealed class OversightService(
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var overdue = await dbContext.OversightCases
+            // A case waiting on the driver is not late; the clock is stopped while it waits.
             .Where(c => c.Status != OversightCaseStatus.Resolved
+                && c.Status != OversightCaseStatus.AwaitingInfo
                 && c.SlaBreachedAtUtc == null
                 && c.DueAtUtc != null && c.DueAtUtc <= now)
             .ToListAsync(cancellationToken);
@@ -308,6 +353,7 @@ public sealed class OversightService(
 
             var overdue = await dbContext.OversightCases.AsNoTracking()
                 .CountAsync(c => c.Kind == kind && c.Status != OversightCaseStatus.Resolved
+                    && c.Status != OversightCaseStatus.AwaitingInfo
                     && c.DueAtUtc != null && c.DueAtUtc <= now, cancellationToken);
 
             foreach (var reviewerId in await ReviewerIdsAsync(dbContext, kind, cancellationToken))
@@ -398,7 +444,9 @@ public sealed class OversightService(
                 Open = g.Count(c => c.Status != OversightCaseStatus.Resolved),
                 Mine = g.Count(c => c.Status != OversightCaseStatus.Resolved && c.AssigneeId == reviewerId),
                 Unassigned = g.Count(c => c.Status != OversightCaseStatus.Resolved && c.AssigneeId == null),
-                Overdue = g.Count(c => c.Status != OversightCaseStatus.Resolved && c.DueAtUtc != null && c.DueAtUtc <= now),
+                Overdue = g.Count(c => c.Status != OversightCaseStatus.Resolved
+                    && c.Status != OversightCaseStatus.AwaitingInfo
+                    && c.DueAtUtc != null && c.DueAtUtc <= now),
                 Total = g.Count(),
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -412,7 +460,8 @@ public sealed class OversightService(
         filtered = query.View == OversightView.All
             ? filtered.OrderByDescending(c => c.UpdatedAtUtc)
             : filtered
-                .OrderByDescending(c => c.DueAtUtc != null && c.DueAtUtc <= now)
+                .OrderByDescending(c => c.Status != OversightCaseStatus.AwaitingInfo
+                    && c.DueAtUtc != null && c.DueAtUtc <= now)
                 .ThenByDescending(c => c.Priority)
                 .ThenBy(c => c.OpenedAtUtc);
 
@@ -680,6 +729,227 @@ public sealed class OversightService(
         }, cancellationToken);
     }
 
+    public Task<ParkingResult> RequestInfoAsync(Guid caseId, string question, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default)
+    {
+        var text = question?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_QuestionRequired"));
+        }
+
+        return MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
+        {
+            if (@case.ReporterId is not { } reporterId)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NoParticipant");
+            }
+
+            if (!@case.AwaitAnswer(now))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotInProgress");
+            }
+
+            // The question is the one thing on this timeline written to be read by the driver.
+            dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromReviewer(
+                @case.Id, OversightEventType.InfoRequested, reviewerId, now, text, OversightVisibility.Participants));
+
+            await notifications.NotifyAsync(reporterId, NotificationCategory.Administrative, NotificationLevel.Info,
+                messages["Parking_Notify_OversightQuestion_Title"],
+                messages["Parking_Notify_OversightQuestion_Body", @case.Number, text], cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MyOversightReportDto>> GetMyReportsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var cases = await dbContext.OversightCases.AsNoTracking()
+            .Where(c => c.ReporterId == userId)
+            .OrderByDescending(c => c.OpenedAtUtc)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+        if (cases.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = cases.Select(c => c.Id).ToList();
+        var subjectIds = cases.Select(c => c.SubjectId).ToList();
+        var spotIds = cases.Where(c => c.SpotId is not null).Select(c => c.SpotId!.Value).Distinct().ToList();
+
+        // Only what faces the participants. The internal notes are not filtered in the UI — they
+        // never leave the database, so a template that forgets to check cannot leak one.
+        var timeline = await dbContext.OversightCaseEvents.AsNoTracking()
+            .Where(e => ids.Contains(e.CaseId) && e.Visibility == OversightVisibility.Participants)
+            .OrderBy(e => e.OccurredAtUtc)
+            .ThenBy(e => EF.Property<long>(e, D3ParkingDbContext.OversightEventOrdinal))
+            .ToListAsync(cancellationToken);
+
+        var appealed = await dbContext.OversightCaseEvents.AsNoTracking()
+            .Where(e => ids.Contains(e.CaseId) && e.Type == OversightEventType.Appealed)
+            .Select(e => e.CaseId)
+            .ToListAsync(cancellationToken);
+
+        var spotCodes = spotIds.Count == 0
+            ? []
+            : await dbContext.ParkingSpots.AsNoTracking()
+                .Where(s => spotIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+        var vouchers = await dbContext.ApologyVouchers.AsNoTracking()
+            .Where(v => subjectIds.Contains(v.SourceMismatchId))
+            .ToDictionaryAsync(v => v.SourceMismatchId, v => v.Status, cancellationToken);
+
+        return cases.Select(c =>
+        {
+            var mine = timeline.Where(e => e.CaseId == c.Id).ToList();
+            var voucher = vouchers.TryGetValue(c.SubjectId, out var status) ? status : (ApologyVoucherStatus?)null;
+
+            return new MyOversightReportDto(
+                c.Id,
+                c.Number,
+                c.SpotId is { } spotId ? spotCodes.GetValueOrDefault(spotId, string.Empty) : string.Empty,
+                c.Status,
+                c.OpenedAtUtc,
+                c.Resolution,
+                voucher,
+                c.Status == OversightCaseStatus.AwaitingInfo
+                    ? mine.LastOrDefault(e => e.Type == OversightEventType.InfoRequested)?.Body
+                    : null,
+                // Only a rejected apology is worth disputing: the other rulings cost the driver
+                // nothing, so there is nothing for them to argue against.
+                CanAppeal: voucher == ApologyVoucherStatus.Rejected
+                    && c.Status == OversightCaseStatus.Resolved
+                    && !appealed.Contains(c.Id),
+                // The reviewer stays a role rather than a name: the driver is owed the decision and
+                // its reasons, not a colleague to take it up with in the corridor.
+                mine.Select(e => new OversightTimelineEntryDto(
+                    e.Id, e.Type, e.Actor, ActorName: null, e.Body, e.Visibility, e.OccurredAtUtc)).ToList());
+        }).ToList();
+    }
+
+    public Task<ParkingResult> AddParticipantNoteAsync(Guid caseId, string body, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var text = body?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_EmptyComment"));
+        }
+
+        return MutateAsParticipantAsync(caseId, userId, async (@case, dbContext, now) =>
+        {
+            if (!@case.IsOpen)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotOpen");
+            }
+
+            dbContext.OversightCaseEvents.Add(new OversightCaseEvent(
+                @case.Id, OversightEventType.InfoProvided, OversightActor.Participant, now,
+                userId, text, OversightVisibility.Participants));
+
+            // Answering ends the wait; adding something unprompted only bumps the case.
+            if (!@case.ResumeWork(now))
+            {
+                @case.Touch(now);
+            }
+
+            await NotifyOwnerOrReviewersAsync(dbContext, @case, NotificationLevel.Info,
+                messages["Parking_Notify_OversightAnswer_Title"],
+                messages["Parking_Notify_OversightAnswer_Body", @case.Number], cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    public Task<ParkingResult> AppealAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var text = reason?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_ReasonRequired"));
+        }
+
+        return MutateAsParticipantAsync(caseId, userId, async (@case, dbContext, now) =>
+        {
+            if (@case.Status != OversightCaseStatus.Resolved)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotResolved");
+            }
+
+            var alreadyAppealed = await dbContext.OversightCaseEvents
+                .AnyAsync(e => e.CaseId == @case.Id && e.Type == OversightEventType.Appealed, cancellationToken);
+            if (alreadyAppealed)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_AlreadyAppealed");
+            }
+
+            var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+            if (!@case.Reopen(reviewerId: Guid.Empty, settings.SlaFor(@case.Priority), now))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotResolved");
+            }
+
+            // Reopen hands the case to whoever reopened it; an appeal has no reviewer yet, and it
+            // must not land back with the person whose ruling is being disputed.
+            @case.Release(now);
+
+            dbContext.OversightCaseEvents.Add(new OversightCaseEvent(
+                @case.Id, OversightEventType.Appealed, OversightActor.Participant, now,
+                userId, text, OversightVisibility.Participants));
+
+            await NotifyReviewersAsync(dbContext, @case.Kind, NotificationLevel.Warning,
+                messages["Parking_Notify_OversightAppeal_Title"],
+                messages["Parking_Notify_OversightAppeal_Body", @case.Number], cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    /// <summary>Whoever holds the case, or everyone who could pick it up when nobody does.</summary>
+    private async Task NotifyOwnerOrReviewersAsync(
+        D3ParkingDbContext dbContext, OversightCase @case, NotificationLevel level, string title, string body, CancellationToken cancellationToken)
+    {
+        if (@case.AssigneeId is { } assignee)
+        {
+            await notifications.NotifyAsync(assignee, NotificationCategory.Administrative, level, title, body, cancellationToken);
+        }
+        else
+        {
+            await NotifyReviewersAsync(dbContext, @case.Kind, level, title, body, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// The write path for the driver's own actions. The gate is ownership of the report rather
+    /// than a permission, and a case that is not theirs reads as absent — the same answer someone
+    /// gets for a case number they invented.
+    /// </summary>
+    private Task<ParkingResult> MutateAsParticipantAsync(
+        Guid caseId,
+        Guid userId,
+        Func<OversightCase, D3ParkingDbContext, DateTimeOffset, Task<ParkingResult>> action,
+        CancellationToken cancellationToken) =>
+        OptimisticConcurrency.RetryAsync(async () =>
+        {
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var entity = await dbContext.OversightCases.FirstOrDefaultAsync(c => c.Id == caseId, cancellationToken);
+            if (entity is null || entity.ReporterId != userId)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotFound");
+            }
+
+            var result = await action(entity, dbContext, timeProvider.GetUtcNow());
+            if (!result.Succeeded)
+            {
+                return result;
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return result;
+        }, cancellationToken);
+
     /// <summary>
     /// One write path for every case action: load inside the scope, let the caller decide, save.
     /// Retried on a lost race so the second reviewer's click re-reads and meets the guard that
@@ -779,7 +1049,9 @@ public sealed class OversightService(
             OversightView.Open => cases.Where(c => c.Status != OversightCaseStatus.Resolved),
             OversightView.Mine => cases.Where(c => c.Status != OversightCaseStatus.Resolved && c.AssigneeId == query.ReviewerId),
             OversightView.Unassigned => cases.Where(c => c.Status != OversightCaseStatus.Resolved && c.AssigneeId == null),
-            OversightView.Overdue => cases.Where(c => c.Status != OversightCaseStatus.Resolved && c.DueAtUtc != null && c.DueAtUtc <= now),
+            OversightView.Overdue => cases.Where(c => c.Status != OversightCaseStatus.Resolved
+                && c.Status != OversightCaseStatus.AwaitingInfo
+                && c.DueAtUtc != null && c.DueAtUtc <= now),
             _ => cases,
         };
 

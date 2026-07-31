@@ -77,7 +77,8 @@ public sealed class ParkingSettingsService(
             s.AvailabilityCampaignsEnabled, s.AvailabilityLookaheadDays, s.AvailabilityFreeThresholdPercent,
             s.AvailabilityMinConsecutiveDays, s.AvailabilitySendHourLocal,
             s.OversightSlaCriticalHours, s.OversightSlaHighHours, s.OversightSlaNormalHours, s.OversightSlaLowHours,
-            s.OversightRecurrenceWindowDays, s.OversightRecurrenceThreshold, s.OversightDigestHourLocal);
+            s.OversightRecurrenceWindowDays, s.OversightRecurrenceThreshold, s.OversightDigestHourLocal,
+            s.OversightInfoDeadlineDays);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
@@ -112,7 +113,8 @@ public sealed class ParkingSettingsService(
             dto.AvailabilityCampaignsEnabled, dto.AvailabilityLookaheadDays, dto.AvailabilityFreeThresholdPercent,
             dto.AvailabilityMinConsecutiveDays, dto.AvailabilitySendHourLocal,
             dto.OversightSlaCriticalHours, dto.OversightSlaHighHours, dto.OversightSlaNormalHours, dto.OversightSlaLowHours,
-            dto.OversightRecurrenceWindowDays, dto.OversightRecurrenceThreshold, dto.OversightDigestHourLocal);
+            dto.OversightRecurrenceWindowDays, dto.OversightRecurrenceThreshold, dto.OversightDigestHourLocal,
+            dto.OversightInfoDeadlineDays);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
