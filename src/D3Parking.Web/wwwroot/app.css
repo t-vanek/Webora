@@ -977,27 +977,51 @@ fluent-menu-item:has(> .account-menu-link) {
     background: var(--neutral-stroke-divider-rest, #e3e6ea);
 }
 
+/* Kotva, ne <button>: prohlížeč jí sám nedá border-box, který formulářovým prvkům dává, a globální
+   reset tenhle list nemá. Bez toho by width:100% počítalo jen obsah a tlačítko by o svůj rámeček
+   s odsazením přetékalo z karty ven — vedle stejně širokého .auth-submit dobře viditelně.
+   Metriky i řez písma jsou schválně stejné jako u .auth-submit: obě tlačítka stojí pod sebou, tak
+   se mají lišit jen barevností, která říká, které z nich je hlavní cesta dovnitř. */
 .auth-external {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     width: 100%;
-    padding: 12px 16px;
+    /* O pixel nižší než u .auth-submit: rámeček, který hlavní tlačítko nemá, ty dva chybějící
+       dorovná, takže obě tlačítka měří stejných 44 px. */
+    padding: 12px 20px;
     border: 1px solid var(--neutral-stroke-rest, #d8d8d8);
     border-radius: var(--brand-radius);
     background: var(--neutral-layer-1, #fff);
     color: var(--neutral-foreground-rest, #333);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     text-decoration: none;
     transition: border-color .15s ease, background .15s ease;
 }
 
-.auth-external:hover,
-.auth-external:focus-visible {
+/* Ikona jinak diktuje výšku řádku (20 px proti 18 px textu) a tlačítko o ty dva pixely vyroste. */
+.auth-external svg {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+}
+
+.auth-external:hover {
     border-color: var(--accent-fill-rest, #884DFF);
     background: rgba(136, 77, 255, .05);
+    color: var(--neutral-foreground-rest, #333);
+    text-decoration: none;
+}
+
+.auth-external:focus-visible {
+    border-color: var(--accent-fill-rest, #884DFF);
+    outline: 2px solid var(--brand-green);
+    outline-offset: 2px;
 }
 
 .directory-status {
