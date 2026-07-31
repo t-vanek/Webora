@@ -544,9 +544,14 @@
   <data name="Help_Visitors_A1" xml:space="preserve"><value>V sekci Návštěvy vyberte termín, volné návštěvnické místo a vyplňte jméno hosta (firmu a SPZ doporučujeme). Host nepotřebuje účet ani kredity.</value></data>
   <data name="Help_Visitors_A2" xml:space="preserve"><value>Když vyberete hostitele, přijde mu upozornění, kde jeho návštěva parkuje. Návštěvnická místa jsou vyčleněná z běžného fondu, takže je zaměstnanci nemohou zabrat — spravují se jen tady.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>Zatím nemáte žádné aktivní místo typu „Pro návštěvy" — dokud ho nezaložíte ve Správě parkovacích míst, agenda návštěv nebude co nabídnout.</value></data>
-  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Neshody obsazenosti — kdo blokoval místo</value></data>
-  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Když řidič nahlásí, že se na rezervovaném místě nedalo zaparkovat, najdete záznam v přehledu Neshody obsazenosti. U každého vidíte rezervace, které se s oknem na tom místě potkaly — typicky toho, kdo si místo rezervoval a nedorazil — a můžete ho jedním klikem kontaktovat e-mailem.</value></data>
-  <data name="Help_Mismatch_A2" xml:space="preserve"><value>Pokud řidič opsal SPZ, systém ji spáruje s registrovanými vozidly zaměstnanců i s návštěvami. „Mimo systém" znamená vozidlo, které v aplikaci nikdo nemá — to je podklad pro ostrahu nebo řád parkoviště. Opakované neshody na jednom místě ukazují na trvalejší problém.</value></data>
+  <data name="Help_MyReports_Q" xml:space="preserve"><value>Moje hlášení — co se s nimi děje a jak nahlásit závadu</value></data>
+  <data name="Help_MyReports_A1" xml:space="preserve"><value>Na stránce Moje hlášení vidíte u každého svého hlášení o zablokovaném místě jeho stav: jestli se prověřuje, jestli čeká na vás, nebo je vyřízené. Je tam i to, co vám k němu správce napsal.</value></data>
+  <data name="Help_MyReports_A2" xml:space="preserve"><value>Když se správce na něco zeptá, odpovíte přímo tam — do té doby případu neběží lhůta, takže vás nikdo netlačí. Kdykoli můžete i sami něco doplnit. Pokud omluvný kupón zamítne a myslíte si, že neprávem, můžete se jednou odvolat; případ pak posoudí někdo další.</value></data>
+  <data name="Help_MyReports_A3" xml:space="preserve"><value>Na téže stránce nahlásíte i závadu na parkovišti — nefunkční závoru, zhaslé světlo, chybějící čáry nebo překážku na místě. Nemusí jít o vaše místo ani o vaši rezervaci.</value></data>
+  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Provozní dohled — případy k rozhodnutí</value></data>
+  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Všechno, co čeká na rozhodnutí člověka, je v Provozním dohledu jako případ s číslem, vlastníkem a lhůtou: hlášení „nedalo se zaparkovat", podezřelé dvojice z noční kontroly i závady nahlášené uživateli. U hlášení vidíte fotodůkaz a rezervace, které se s oknem na tom místě potkaly — typicky toho, kdo si místo rezervoval a nedorazil — a můžete ho jedním klikem kontaktovat e-mailem.</value></data>
+  <data name="Help_Mismatch_A2" xml:space="preserve"><value>Pokud řidič opsal SPZ, systém ji spáruje s registrovanými vozidly zaměstnanců i s návštěvami. „Mimo systém" znamená vozidlo, které v aplikaci nikdo nemá — to je podklad pro ostrahu nebo řád parkoviště. Opakovaná hlášení na jednom místě založí případ rovnou s vyšší prioritou a ostatní otevřené případy na tom místě se o tom dozvědí.</value></data>
+  <data name="Help_Mismatch_A3" xml:space="preserve"><value>Případ si vezmete tlačítkem, můžete se zeptat řidiče (než odpoví, lhůta neběží) a uzavřít ho se závěrem. Schválení nebo zamítnutí omluvného kupónu případ zároveň uzavírá — je to totéž rozhodnutí. Historie případu se nemaže: interní poznámky vidíte jen vy, ty určené řidiči vidí i on.</value></data>
   <data name="Help_Rules_Q" xml:space="preserve"><value>Pravidla, ceny a oznámení volné kapacity</value></data>
   <data name="Help_Rules_A1" xml:space="preserve"><value>V sekci Pravidla a ceny se za běhu ladí celá ekonomika: základní cena a přirážky, body a penalizace, úrovně a jejich výhody, fronta, rezidentní pravidla i ochrana proti zneužití. Změny platí okamžitě, není potřeba nasazovat novou verzi.</value></data>
   <data name="Help_Rules_State_Pricing" xml:space="preserve"><value>Adaptivní ceny (regulátor sám ladí přirážku ke zvolené obsazenosti): {0}.</value></data>
@@ -896,6 +901,14 @@
   <data name="Parking_DefectCategory_Lighting" xml:space="preserve"><value>Osvětlení</value></data>
   <data name="Parking_DefectCategory_Obstruction" xml:space="preserve"><value>Překážka na místě</value></data>
   <data name="Parking_DefectCategory_Other" xml:space="preserve"><value>Něco jiného</value></data>
+  <data name="Parking_Oversight_AssignTo" xml:space="preserve"><value>Předat kolegovi</value></data>
+  <data name="Parking_Oversight_Assign" xml:space="preserve"><value>Přiřadit</value></data>
+  <data name="Parking_Oversight_Assigned" xml:space="preserve"><value>Případ je přiřazený a dotyčný dostal oznámení.</value></data>
+  <data name="Parking_OversightEvent_Assigned" xml:space="preserve"><value>Předáno kolegovi</value></data>
+  <data name="Parking_Oversight_Error_MayNotAssign" xml:space="preserve"><value>Na přiřazování případů jiným nemáš oprávnění.</value></data>
+  <data name="Parking_Oversight_Error_NotAReviewer" xml:space="preserve"><value>Tenhle člověk na případy tohoto druhu nevidí.</value></data>
+  <data name="Perm_Parking_AssignOversight" xml:space="preserve"><value>Přiřazovat případy dohledu jiným</value></data>
+  <data name="Perm_Parking_AssignOversight_Desc" xml:space="preserve"><value>Předá případ konkrétnímu kolegovi. Vzít si případ může každý, kdo na něj vidí; tohle je právo naložit práci někomu jinému.</value></data>
   <data name="Parking_Oversight_Sanction" xml:space="preserve"><value>Rozhodnutí vůči osobě</value></data>
   <data name="Parking_Oversight_SanctionHelp" xml:space="preserve"><value>Formální výstraha, případně se srážkou bodů a kreditů. Zapíše se do historie případu, do auditu účtu i do knihy bodů a dotčený dostane oznámení s důvodem. Nechte srážky na nule, pokud jde jen o výstrahu.</value></data>
   <data name="Parking_Oversight_SanctionTarget" xml:space="preserve"><value>Koho se týká</value></data>

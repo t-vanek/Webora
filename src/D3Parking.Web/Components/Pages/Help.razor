@@ -136,6 +136,16 @@
             </div>
         </details>
 
+        @* Kam se řidič podívá, co se s hlášením děje — a kde nahlásí závadu. Obojí je tatáž stránka. *@
+        <details class="help-item">
+            <summary class="help-item__q">@L["Help_MyReports_Q"]</summary>
+            <div class="help-item__a">
+                <p>@L["Help_MyReports_A1"]</p>
+                <p>@L["Help_MyReports_A2"]</p>
+                <p>@L["Help_MyReports_A3"]</p>
+            </div>
+        </details>
+
         @* Rezidentní pravidla vidí jen ten, koho se týkají: vlastník místa nebo správce míst. *@
         @if (_ownsSpot)
         {
@@ -207,6 +217,7 @@
                 <div class="help-item__a">
                     <p>@L["Help_Mismatch_A1"]</p>
                     <p>@L["Help_Mismatch_A2"]</p>
+                    <p>@L["Help_Mismatch_A3"]</p>
                 </div>
             </details>
         </AuthorizeView>

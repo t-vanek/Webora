@@ -198,6 +198,21 @@
                                               OnClick="ReleaseAsync">@L["Parking_Oversight_Release"]</FluentButton>
                             }
 
+                            @* Taking a case is anyone's; putting one on somebody else's desk is a
+                               decision about their time, so it has its own permission. *@
+                            @if (_scope.MayAssign && _reviewers.Count > 0)
+                            {
+                                <FluentSelect TOption="OversightReviewerDto"
+                                              Label="@L["Parking_Oversight_AssignTo"]"
+                                              Items="@_reviewers"
+                                              OptionValue="@(r => r.UserId.ToString())"
+                                              OptionText="@(r => r.Name)"
+                                              @bind-Value="_assignee"
+                                              Disabled="@_busy" />
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="AssignAsync">@L["Parking_Oversight_Assign"]</FluentButton>
+                            }
+
                             <FluentSelect TOption="string"
                                           Label="@L["Parking_Oversight_Priority"]"
                                           Items="@PriorityOptions"
@@ -323,6 +338,8 @@
     private string _resolutionNote = string.Empty;
     private string _reopenReason = string.Empty;
     private string _question = string.Empty;
+    private IReadOnlyList<OversightReviewerDto> _reviewers = [];
+    private string _assignee = string.Empty;
     private string _sanctionTarget = string.Empty;
     private int _sanctionPoints;
     private int _sanctionCredits;
@@ -339,7 +356,8 @@
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots),
-            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight));
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.AssignOversight));
 
         var user = await UserManager.GetUserAsync(principal);
         _reviewerId = user?.Id ?? Guid.Empty;
@@ -357,6 +375,12 @@
             _priority = _case.Priority.ToString();
             // Preselect only when there is one party to aim at; a pair has to be chosen between.
             _sanctionTarget = _case.Parties.Count == 1 ? _case.Parties[0].UserId.ToString() : _sanctionTarget;
+
+            // Fetched per kind, once: who may work a case does not change while one is open.
+            if (_scope.MayAssign && _reviewers.Count == 0)
+            {
+                _reviewers = await Oversight.GetAssignableReviewersAsync(_case.Kind);
+            }
         }
     }
 
@@ -379,6 +403,12 @@
 
     private Task RecordContactAsync(string recipient) =>
         RunAsync(() => Oversight.RecordEmailContactAsync(Id, recipient, _reviewerId, _scope), successKey: null);
+
+    private Task AssignAsync() => RunAsync(
+        () => Guid.TryParse(_assignee, out var assignee)
+            ? Oversight.AssignAsync(Id, assignee, _reviewerId, _scope)
+            : Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_NotAReviewer")),
+        "Parking_Oversight_Assigned");
 
     private Task SanctionAsync() => RunAsync(
         () => Guid.TryParse(_sanctionTarget, out var target)

@@ -98,6 +98,8 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
+  <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>A case was assigned to you</value></data>
+  <data name="Parking_Notify_OversightAssigned_Body" xml:space="preserve"><value>Case #{0} is now yours to work.</value></data>
   <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>An oversight ruling</value></data>
   <data name="Parking_Notify_OversightSanction_Body" xml:space="preserve"><value>Case #{0} was ruled on: {1} points and {2} credits deducted. Reason: {3}</value></data>
   <data name="Parking_Notify_OversightWarning_Body" xml:space="preserve"><value>Case #{0} ended in a formal warning with no deduction. Reason: {1}</value></data>

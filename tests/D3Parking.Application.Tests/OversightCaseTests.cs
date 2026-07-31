@@ -41,6 +41,10 @@ public class OversightCaseTests
     private static readonly OversightScope Sanctioning =
         OversightScope.From(true, true, manageSpots: true, maySanction: true);
 
+    /// <summary>Sees everything and may put a case on somebody else's desk.</summary>
+    private static readonly OversightScope Assigning =
+        OversightScope.From(true, true, manageSpots: true, mayAssign: true);
+
     private DbContextOptions<D3ParkingDbContext> _options = null!;
     private OversightService _oversight = null!;
     private ReservationService _reservations = null!;
@@ -731,6 +735,42 @@ public class OversightCaseTests
         Assert.That(entry.Body, Does.Contain("Hlášení bylo vymyšlené."));
     }
 
+    [Test]
+    public async Task A_case_can_be_handed_to_a_colleague_who_can_actually_see_it()
+    {
+        await SeedSettingsAsync();
+        var mismatchReviewer = await SeedReviewerAsync(Permissions.Parking.ReviewMismatches);
+        var collusionReviewer = await SeedReviewerAsync(Permissions.Parking.ReviewCollusion);
+        var mismatch = await SeedMismatchAsync("C-40");
+        await _oversight.EnsureCasesAsync();
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatch.Id);
+        var actor = Guid.NewGuid();
+
+        var withoutPermission = await _oversight.AssignAsync(caseId, mismatchReviewer, actor, Both);
+        Assert.That(withoutPermission.Errors, Does.Contain("Parking_Oversight_Error_MayNotAssign"),
+            "Taking a case is anyone's; putting one on somebody else's desk is not.");
+
+        var toTheWrongQueue = await _oversight.AssignAsync(caseId, collusionReviewer, actor, Assigning);
+        Assert.That(toTheWrongQueue.Errors, Does.Contain("Parking_Oversight_Error_NotAReviewer"),
+            "Handing a case to somebody who cannot open it is a dead end that looks like progress.");
+
+        _notifications.Sent.Clear();
+        var handed = await _oversight.AssignAsync(caseId, mismatchReviewer, actor, Assigning);
+        Assert.That(handed.Succeeded, Is.True, handed.Errors.FirstOrDefault());
+
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.AssigneeId, Is.EqualTo(mismatchReviewer));
+        Assert.That(detail.Status, Is.EqualTo(OversightCaseStatus.InProgress));
+        Assert.That(detail.Timeline.Single(e => e.Type == OversightEventType.Assigned).Body,
+            Is.EqualTo("Kolega z dohledu"),
+            "The name is recorded as it read then — a later rename must not rewrite the history.");
+        Assert.That(_notifications.Sent, Does.Contain((mismatchReviewer, "Parking_Notify_OversightAssigned_Title")));
+
+        var candidates = await _oversight.GetAssignableReviewersAsync(OversightCaseKind.OccupancyMismatch);
+        Assert.That(candidates.Select(c => c.UserId), Does.Contain(mismatchReviewer));
+        Assert.That(candidates.Select(c => c.UserId), Does.Not.Contain(collusionReviewer));
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)
@@ -785,6 +825,7 @@ public class OversightCaseTests
         {
             UserName = $"rev-{Guid.NewGuid():N}",
             Email = $"rev-{Guid.NewGuid():N}@test.local",
+            DisplayName = "Kolega z dohledu",
         };
         var role = new ApplicationRole($"Reviewers-{Guid.NewGuid():N}");
         await SeedAsync(db =>

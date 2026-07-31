@@ -40,6 +40,15 @@ public interface IOversightService
     /// <summary>Puts the case back in the queue.</summary>
     Task<ParkingResult> ReleaseAsync(Guid caseId, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Hands the case to another reviewer. Refused unless the caller may assign and the person
+    /// they picked can actually see this kind of case.
+    /// </summary>
+    Task<ParkingResult> AssignAsync(Guid caseId, Guid assigneeId, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
+
+    /// <summary>Who could be given a case of this kind — the holders of the permission that sees it.</summary>
+    Task<IReadOnlyList<OversightReviewerDto>> GetAssignableReviewersAsync(OversightCaseKind kind, CancellationToken cancellationToken = default);
+
     Task<ParkingResult> SetPriorityAsync(Guid caseId, OversightCasePriority priority, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
 
     /// <summary>Adds a note. Internal unless the reviewer chose to show it to the participants.</summary>

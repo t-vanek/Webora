@@ -79,6 +79,13 @@ public sealed record OversightTimelineEntryDto(
 /// </summary>
 public sealed record OversightPartyDto(Guid UserId, string Name);
 
+/// <summary>
+/// Somebody who could be given this case: they hold the permission that may see its kind. The
+/// distinction from a party matters — one is who the case is about, the other is who could work it,
+/// and handing a case to somebody who cannot open it would be a dead end.
+/// </summary>
+public sealed record OversightReviewerDto(Guid UserId, string Name);
+
 /// <summary>Something reported wrong with the lot, as the spot manager reads it.</summary>
 public sealed record SpotDefectDto(
     Guid Id,

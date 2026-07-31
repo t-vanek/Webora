@@ -100,6 +100,13 @@ public static class Permissions
         public const string ReviewCollusion = "Parking.ReviewCollusion";
 
         /// <summary>
+        /// Hand an oversight case to another reviewer. Anyone who can see a case may take it; this
+        /// is the one that lets someone put work on a colleague's desk, which is a decision about
+        /// other people's time rather than about the case.
+        /// </summary>
+        public const string AssignOversight = "Parking.AssignOversight";
+
+        /// <summary>
         /// Act against a person from an oversight case: a formal warning, or a deduction from their
         /// reputation and wallet. Held apart from the review permissions on purpose — judging
         /// whether a photograph shows a blocked spot and deciding what it should cost somebody are
@@ -141,6 +148,7 @@ public static class Permissions
         new(Parking.ViewAnalytics, AreaNames.Parking, Parking.View),
         new(Parking.ManageIncentives, AreaNames.Parking, Parking.View),
         new(Parking.ReviewCollusion, AreaNames.Parking, Parking.View),
+        new(Parking.AssignOversight, AreaNames.Parking, Parking.View),
         new(Parking.SanctionOversight, AreaNames.Parking, Parking.View),
         new(Parking.VerifyResidency, AreaNames.Parking, Users.View),
 

@@ -71,6 +71,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
 | **Graf důvěry** | zapnout, interval přepočtu (hodin), práh odznaku Důvěryhodný |
 | **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
+| **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), přijímat hlášení závad od uživatelů |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
 | **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky, horizont plánu využití (dní) |
@@ -277,4 +278,26 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   všechny e-maily lze vyžádat znovu. Pro garantované doručení přidejte `WolverineFx.SqlServer`
   a `PersistMessagesWithSqlServer` (využije stávající databázi, žádná nová infrastruktura).
 - **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší no-shows,
-  připomínky, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny a graf důvěry.
+  připomínky, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
+  a nakonec provozní dohled (viz níže). Každý krok je izolovaný — selhání jednoho nesmí přeskočit ty za ním.
+- **Provozní dohled:** `OversightCase` je obálka nad signálem, nikdy jeho kopie — ukazuje na
+  `OccupancyMismatch`, `CollusionFlag` nebo `SpotDefectReport` přes `(Kind, SubjectId)` a důkazy se
+  čtou ze zdrojových služeb za běhu. Případy **nezakládají služby, které signály vyvolávají**, ale
+  `IOversightService.EnsureCasesAsync` (idempotentní anti-join): hlášení vzniká na kritické cestě
+  řidiče a sken v údržbové smyčce a ani jedno nesmí spadnout kvůli frontě. Tentýž kód je zároveň
+  migrací pro signály starší než případy. Volá se jak ze smyčky, tak při načtení fronty, aby recenzent
+  nečekal na sweep.
+
+  `OversightCaseEvent` je append-only historie; viditelnost (`Internal` / `Participants`) je jediné,
+  co dělí pohled správce od pohledu řidiče, a filtruje se **v dotazu**, ne v šabloně. Zápisy ve stejný
+  okamžik řadí stínový identity sloupec `Ordinal` — jedna akce jich umí zapsat víc a samotný čas by
+  jejich pořadí neurčil.
+
+  Číslo případu je z databázové sekvence `OversightCaseNumbers` (dvě založení v jednom sweepu se
+  o číslo nesmí porvat). Souběh dvou recenzentů nad jedním případem hlídá stínový `rowversion` —
+  poražený zápis se přečte znovu a narazí na strážce („už rozhodnuto"), místo aby přebil první verdikt.
+
+  Co kdo **vidí** (druh případu) a co kdo **smí** (přiřadit, rozhodnout vůči osobě) nese jediný objekt
+  `OversightScope`, takže obrazovka, která by kontrolu zapomněla, stejně narazí na službu. Případ druhu,
+  na který volající nevidí, se tváří jako neexistující — „na případ 142 nemáš právo" už prozrazuje, že
+  případ 142 existuje.

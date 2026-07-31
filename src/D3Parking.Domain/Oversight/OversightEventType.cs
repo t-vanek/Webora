@@ -12,6 +12,9 @@ public enum OversightEventType
     /// <summary>A reviewer took the case.</summary>
     Claimed,
 
+    /// <summary>A reviewer handed the case to somebody else.</summary>
+    Assigned,
+
     /// <summary>A reviewer put the case back in the queue.</summary>
     Released,
 

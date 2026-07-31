@@ -656,6 +656,58 @@ public sealed class OversightService(
             return Task.FromResult(ParkingResult.Success);
         }, cancellationToken);
 
+    public Task<ParkingResult> AssignAsync(Guid caseId, Guid assigneeId, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default)
+    {
+        if (!scope.MayAssign)
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_MayNotAssign"));
+        }
+
+        return MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
+        {
+            // Handing a case to somebody who cannot open it is a dead end that looks like progress,
+            // so the target is checked against the very permission the case's kind is gated on.
+            var eligible = await ReviewerIdsAsync(dbContext, @case.Kind, cancellationToken);
+            if (!eligible.Contains(assigneeId))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotAReviewer");
+            }
+
+            if (!@case.Claim(assigneeId, now))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotOpen");
+            }
+
+            var names = await ResolveUserNamesAsync(dbContext, [assigneeId], cancellationToken);
+            var name = names.GetValueOrDefault(assigneeId, string.Empty);
+
+            // The name goes in the body as it reads today: the timeline is a record of what
+            // happened, and a display name that changes later must not rewrite it.
+            dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromReviewer(
+                @case.Id, OversightEventType.Assigned, reviewerId, now, name));
+
+            if (assigneeId != reviewerId)
+            {
+                await notifications.NotifyAsync(assigneeId, NotificationCategory.Administrative, NotificationLevel.Info,
+                    messages["Parking_Notify_OversightAssigned_Title"],
+                    messages["Parking_Notify_OversightAssigned_Body", @case.Number], cancellationToken);
+            }
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<OversightReviewerDto>> GetAssignableReviewersAsync(
+        OversightCaseKind kind, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var ids = await ReviewerIdsAsync(dbContext, kind, cancellationToken);
+        var names = await ResolveUserNamesAsync(dbContext, ids, cancellationToken);
+        return [.. ids
+            .Select(id => new OversightReviewerDto(id, names.GetValueOrDefault(id, string.Empty)))
+            .OrderBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase)];
+    }
+
     public Task<ParkingResult> SetPriorityAsync(Guid caseId, OversightCasePriority priority, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default) =>
         MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
         {

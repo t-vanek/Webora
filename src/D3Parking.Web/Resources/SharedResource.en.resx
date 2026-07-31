@@ -544,9 +544,14 @@
   <data name="Help_Visitors_A1" xml:space="preserve"><value>Under Visitors, pick the window and a free visitor spot, then fill in the guest's name (company and plate are recommended). The guest needs no account and no credits.</value></data>
   <data name="Help_Visitors_A2" xml:space="preserve"><value>If you pick a host, they get a notification telling them where their guest parks. Visitor spots are carved out of the regular pool, so employees cannot take them — they are managed only here.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>There is no active "Visitor" spot yet — until you create one under Parking spots, the visitor agenda has nothing to offer.</value></data>
-  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Occupancy mismatches — who blocked the spot</value></data>
-  <data name="Help_Mismatch_A1" xml:space="preserve"><value>When a driver reports that they couldn't park at their reserved spot, the record shows up under Occupancy mismatches. Each row lists the bookings that met the window on that spot — typically whoever booked it and never arrived — and you can email them in one click.</value></data>
-  <data name="Help_Mismatch_A2" xml:space="preserve"><value>If the driver noted the plate, the system matches it against registered employee vehicles and visitor bookings. "Not in the system" means a vehicle nobody has registered — grounds for security or the lot rules. Repeated mismatches on one spot point to a lasting problem.</value></data>
+  <data name="Help_MyReports_Q" xml:space="preserve"><value>My reports — what happens to them, and how to report a defect</value></data>
+  <data name="Help_MyReports_A1" xml:space="preserve"><value>The My reports page shows where each of your blocked-spot reports stands: being checked, waiting on you, or settled. Whatever the manager has written to you about it is there too.</value></data>
+  <data name="Help_MyReports_A2" xml:space="preserve"><value>When the manager asks you something, you answer right there — and the case deadline is paused until you do, so nobody is rushing you. You can add something unprompted at any time. If your apology voucher is rejected and you believe that is wrong, you can appeal once; somebody else then looks at the case.</value></data>
+  <data name="Help_MyReports_A3" xml:space="preserve"><value>The same page is where you report something wrong with the lot — a stuck barrier, a light out, missing markings, something left on a bay. It does not have to be your spot or your booking.</value></data>
+  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Operations oversight — cases to decide</value></data>
+  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Everything waiting on a human decision sits in Operations oversight as a case with a number, an owner and a deadline: "couldn't park" reports, suspicious pairs from the nightly scan, and defects people have reported. On a report you see the photo proof and the bookings that met the window on that spot — typically whoever booked it and never arrived — and you can email them in one click.</value></data>
+  <data name="Help_Mismatch_A2" xml:space="preserve"><value>If the driver noted the plate, the system matches it against registered employee vehicles and visitor bookings. "Not in the system" means a vehicle nobody has registered — grounds for security or the lot rules. Repeated reports on one spot open their case at a higher priority, and the other open cases on that spot are told about it.</value></data>
+  <data name="Help_Mismatch_A3" xml:space="preserve"><value>You take a case with a button, you can ask the driver something (the deadline pauses until they answer), and you close it with a verdict. Approving or rejecting the apology voucher closes the case with it — it is the same decision. The case history is never erased: internal notes are yours alone, the ones meant for the driver are visible to them too.</value></data>
   <data name="Help_Rules_Q" xml:space="preserve"><value>Rules, pricing and free-capacity announcements</value></data>
   <data name="Help_Rules_A1" xml:space="preserve"><value>Rules and pricing tunes the whole economy at runtime: base price and surcharges, points and penalties, tiers and their perks, the queue, resident rules and the anti-abuse limits. Changes take effect immediately, with no redeployment.</value></data>
   <data name="Help_Rules_State_Pricing" xml:space="preserve"><value>Adaptive pricing (a controller tunes the peak surcharge toward a target occupancy): {0}.</value></data>
@@ -896,6 +901,14 @@
   <data name="Parking_DefectCategory_Lighting" xml:space="preserve"><value>Lighting</value></data>
   <data name="Parking_DefectCategory_Obstruction" xml:space="preserve"><value>Something in the way</value></data>
   <data name="Parking_DefectCategory_Other" xml:space="preserve"><value>Something else</value></data>
+  <data name="Parking_Oversight_AssignTo" xml:space="preserve"><value>Hand to a colleague</value></data>
+  <data name="Parking_Oversight_Assign" xml:space="preserve"><value>Assign</value></data>
+  <data name="Parking_Oversight_Assigned" xml:space="preserve"><value>The case is assigned and they have been notified.</value></data>
+  <data name="Parking_OversightEvent_Assigned" xml:space="preserve"><value>Handed to a colleague</value></data>
+  <data name="Parking_Oversight_Error_MayNotAssign" xml:space="preserve"><value>You may not assign cases to other people.</value></data>
+  <data name="Parking_Oversight_Error_NotAReviewer" xml:space="preserve"><value>That person cannot see cases of this kind.</value></data>
+  <data name="Perm_Parking_AssignOversight" xml:space="preserve"><value>Assign oversight cases to others</value></data>
+  <data name="Perm_Parking_AssignOversight_Desc" xml:space="preserve"><value>Hands a case to a named colleague. Anyone who can see a case may take it; this is the right to put work on somebody else's desk.</value></data>
   <data name="Parking_Oversight_Sanction" xml:space="preserve"><value>Ruling against a person</value></data>
   <data name="Parking_Oversight_SanctionHelp" xml:space="preserve"><value>A formal warning, optionally with points and credits deducted. It goes on the case history, the account's audit trail and the points ledger, and the person is notified with the reason. Leave the deductions at zero for a warning alone.</value></data>
   <data name="Parking_Oversight_SanctionTarget" xml:space="preserve"><value>Who it concerns</value></data>

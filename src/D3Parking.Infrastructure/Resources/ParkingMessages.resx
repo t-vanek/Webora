@@ -98,6 +98,8 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>Odvolání proti rozhodnutí</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>Řidič se odvolal proti rozhodnutí u případu #{0}. Případ je znovu otevřený a nepřiřazený.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>Řidič na dotaz neodpověděl do {0} dní; případ se vrací k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>Dostal(a) jsi případ k řešení</value></data>
+  <data name="Parking_Notify_OversightAssigned_Body" xml:space="preserve"><value>Případ #{0} je nově přiřazený tobě.</value></data>
   <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>Rozhodnutí provozního dohledu</value></data>
   <data name="Parking_Notify_OversightSanction_Body" xml:space="preserve"><value>K případu #{0} padlo rozhodnutí: strženo {1} bodů a {2} kreditů. Důvod: {3}</value></data>
   <data name="Parking_Notify_OversightWarning_Body" xml:space="preserve"><value>K případu #{0} padla formální výstraha bez srážky. Důvod: {1}</value></data>

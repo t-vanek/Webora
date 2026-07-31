@@ -14,7 +14,11 @@ namespace D3Parking.Application.Oversight;
 /// the page, so the one object that says what a caller is allowed to do says all of it — a screen
 /// that forgets the check cannot hand out a deduction the service would have refused.
 /// </param>
-public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds, bool MaySanction = false)
+/// <param name="MayAssign">Whether the caller may put a case on somebody else's desk.</param>
+public sealed record OversightScope(
+    IReadOnlyList<OversightCaseKind> Kinds,
+    bool MaySanction = false,
+    bool MayAssign = false)
 {
     /// <summary>Sees nothing. What a caller without any review permission gets.</summary>
     public static readonly OversightScope None = new([]);
@@ -28,7 +32,12 @@ public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds, bool
     /// the one that should see them — and the ones that guard evidence about people should not
     /// have to be handed out to fix a broken light.
     /// </summary>
-    public static OversightScope From(bool reviewMismatches, bool reviewCollusion, bool manageSpots = false, bool maySanction = false)
+    public static OversightScope From(
+        bool reviewMismatches,
+        bool reviewCollusion,
+        bool manageSpots = false,
+        bool maySanction = false,
+        bool mayAssign = false)
     {
         var kinds = new List<OversightCaseKind>(3);
         if (reviewMismatches)
@@ -46,7 +55,7 @@ public sealed record OversightScope(IReadOnlyList<OversightCaseKind> Kinds, bool
             kinds.Add(OversightCaseKind.SpotDefect);
         }
 
-        return new OversightScope(kinds, maySanction);
+        return new OversightScope(kinds, maySanction, mayAssign);
     }
 
     public bool IsEmpty => Kinds.Count == 0;
