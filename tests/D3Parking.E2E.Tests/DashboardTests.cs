@@ -27,6 +27,22 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
+    public async Task Sidebar_gives_both_authorization_catalogs_one_entry_that_stays_lit()
+    {
+        // Roles and groups are two tabs of one screen, so the menu names it once. The groups tab
+        // keeps its own route, and NavLink only matches the href it was given — landing there used
+        // to leave the whole menu unlit, which reads as "you navigated off the menu".
+        await Pages.GotoInteractiveAsync(Page, "/admin/permission-groups");
+
+        var nav = Page.Locator(".side-nav");
+        await Expect(nav).ToContainTextAsync("Správa oprávnění");
+        await Expect(nav.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Skupiny oprávnění$") }))
+            .ToHaveCountAsync(0);
+        await Expect(nav.Locator(".side-nav__item--active")).ToHaveCountAsync(1);
+        await Expect(nav.Locator(".side-nav__item--active")).ToContainTextAsync("Správa oprávnění");
+    }
+
+    [Test]
     public async Task Sidebar_collapses_to_the_rail_and_expands_back()
     {
         // The nav is an interactive island; wait for the circuit before clicking.

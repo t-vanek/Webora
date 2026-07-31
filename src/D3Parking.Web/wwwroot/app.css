@@ -1834,7 +1834,6 @@ fluent-menu-item:has(> .account-menu-link) {
 .home-tile__ic--users { background: var(--neutral-fill-secondary-rest, rgba(2, 52, 68, .10)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 .home-tile__ic--roles { background: var(--brand-violet-deep); color: var(--brand-on-violet); }
 .home-tile__ic--analytics { background: var(--brand-green); color: var(--brand-on-green); }
-.home-tile__ic--groups { background: rgba(136, 77, 255, .14); color: var(--brand-violet-deep); }
 .home-tile__ic--audit { background: rgba(2, 52, 68, .10); color: var(--brand-sherpa); }
 .home-tile__ic--settings { background: var(--neutral-fill-secondary-rest, var(--brand-grey)); color: var(--neutral-foreground-rest, var(--brand-sherpa)); }
 

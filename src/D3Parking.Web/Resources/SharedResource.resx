@@ -170,7 +170,7 @@
   <data name="Bell_MarkRead" xml:space="preserve"><value>Označit přečtené</value></data>
   <data name="Bell_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
   <data name="Nav_AdminUsers" xml:space="preserve"><value>Správa účtů</value></data>
-  <data name="Nav_AdminRoles" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Nav_AdminRoles" xml:space="preserve"><value>Správa oprávnění</value></data>
   <data name="Admin_Loading" xml:space="preserve"><value>Načítání…</value></data>
   <data name="Admin_Manage" xml:space="preserve"><value>Spravovat</value></data>
   <data name="Admin_Save" xml:space="preserve"><value>Uložit</value></data>
@@ -215,7 +215,7 @@
   <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Role byly uloženy.</value></data>
   <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Účet byl zablokován.</value></data>
   <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Účet byl odblokován.</value></data>
-  <data name="Admin_Roles_Title" xml:space="preserve"><value>Správa práv</value></data>
+  <data name="Admin_Roles_Title" xml:space="preserve"><value>Správa oprávnění</value></data>
   <data name="Admin_Roles_Create" xml:space="preserve"><value>Nová role</value></data>
   <data name="Admin_Roles_Name" xml:space="preserve"><value>Název role</value></data>
   <data name="Admin_Roles_Permissions" xml:space="preserve"><value>Oprávnění</value></data>
@@ -1085,7 +1085,7 @@
   <data name="Nav_Short_Reserve" xml:space="preserve"><value>Rezervace</value></data>
   <data name="Nav_Short_Leaderboard" xml:space="preserve"><value>Žebříček</value></data>
   <data name="Nav_Short_Users" xml:space="preserve"><value>Účty</value></data>
-  <data name="Nav_Short_Roles" xml:space="preserve"><value>Práva</value></data>
+  <data name="Nav_Short_Roles" xml:space="preserve"><value>Oprávnění</value></data>
   <data name="Nav_Short_Spots" xml:space="preserve"><value>Místa</value></data>
   <data name="Nav_Short_Rules" xml:space="preserve"><value>Pravidla</value></data>
   <data name="Nav_Short_Settings" xml:space="preserve"><value>Web</value></data>
@@ -1520,8 +1520,6 @@
   <data name="Perm_PermissionGroups_Delete" xml:space="preserve"><value>Mazat skupiny oprávnění</value></data>
   <data name="Perm_PermissionGroups_Delete_Desc" xml:space="preserve"><value>Odstraňuje vlastní skupiny, které nejsou v žádné roli.</value></data>
   <data name="Nav_AdminPermissionGroups" xml:space="preserve"><value>Skupiny oprávnění</value></data>
-  <data name="Nav_Short_PermissionGroups" xml:space="preserve"><value>Skupiny</value></data>
-  <data name="Home_Card_PermissionGroups" xml:space="preserve"><value>Balíčky oprávnění, ze kterých se skládají role</value></data>
   <data name="Admin_Groups_Intro" xml:space="preserve"><value>Skupina je pojmenovaný balíček oprávnění. Role se skládají z nich, takže je vždy vidět, odkud které oprávnění pochází.</value></data>
   <data name="Admin_Groups_Create" xml:space="preserve"><value>Nová skupina</value></data>
   <data name="Admin_Groups_EditTitle" xml:space="preserve"><value>Detail skupiny</value></data>

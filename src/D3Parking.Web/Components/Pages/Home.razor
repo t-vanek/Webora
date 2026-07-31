@@ -296,14 +296,6 @@
             </a>
         </AuthorizeView>
 
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.PermissionGroups.View)">
-            <a href="admin/permission-groups" class="home-tile">
-                <span class="home-tile__ic home-tile__ic--groups"><FluentIcon Value="@(new Icons.Regular.Size24.Braces())" Color="Color.Custom" CustomColor="currentColor" /></span>
-                <span class="home-tile__title">@L["Nav_AdminPermissionGroups"]</span>
-                <span class="home-tile__desc">@L["Home_Card_PermissionGroups"]</span>
-            </a>
-        </AuthorizeView>
-
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Audit.View)">
             <a href="admin/audit" class="home-tile">
                 <span class="home-tile__ic home-tile__ic--audit"><FluentIcon Value="@(new Icons.Regular.Size24.History())" Color="Color.Custom" CustomColor="currentColor" /></span>

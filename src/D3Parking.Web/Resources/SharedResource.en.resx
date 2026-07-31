@@ -1520,8 +1520,6 @@
   <data name="Perm_PermissionGroups_Delete" xml:space="preserve"><value>Delete permission groups</value></data>
   <data name="Perm_PermissionGroups_Delete_Desc" xml:space="preserve"><value>Removes custom groups that no role is composed of.</value></data>
   <data name="Nav_AdminPermissionGroups" xml:space="preserve"><value>Permission groups</value></data>
-  <data name="Nav_Short_PermissionGroups" xml:space="preserve"><value>Groups</value></data>
-  <data name="Home_Card_PermissionGroups" xml:space="preserve"><value>The bundles roles are built from</value></data>
   <data name="Admin_Groups_Intro" xml:space="preserve"><value>A group is a named bundle of permissions. Roles are composed of them, so where any permission came from is always visible.</value></data>
   <data name="Admin_Groups_Create" xml:space="preserve"><value>New group</value></data>
   <data name="Admin_Groups_EditTitle" xml:space="preserve"><value>Group detail</value></data>
