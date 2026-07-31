@@ -75,6 +75,34 @@
                       OnClick="ReportDefectAsync">@L["Parking_Defect_Send"]</FluentButton>
     </div>
 
+    @* Until this, a no-show penalty was final and wordless: points gone, streak reset, credit
+       forfeited, and nowhere to say "I was in hospital" or "the barrier never let me in". *@
+    @if (_noShows.Count > 0)
+    {
+        <div class="admin-panel case-section">
+            <FluentLabel Typo="Typography.H5">@L["Parking_Dispute_Title"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Dispute_Help"]</FluentLabel>
+            @foreach (var noShow in _noShows)
+            {
+                <div class="case-facts">
+                    <dt>@noShow.SpotCode</dt>
+                    <dd>
+                        @Local(noShow.StartUtc, "g") – @Local(noShow.EndUtc, "t")
+                        <text> · </text>
+                        @L["Parking_Dispute_Amounts", noShow.PointsLost, noShow.CreditsLost]
+                    </dd>
+                </div>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentTextArea Value="@NoteFor(noShow.ReservationId)"
+                                    ValueChanged="@(v => _notes[noShow.ReservationId] = v ?? string.Empty)"
+                                    Rows="2" Style="width:100%" Placeholder="@L["Parking_Dispute_Placeholder"]" />
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                  OnClick="() => DisputeAsync(noShow.ReservationId)">@L["Parking_Dispute_Send"]</FluentButton>
+                </FluentStack>
+            }
+        </div>
+    }
+
     @if (_reports is null)
     {
         <div class="loading"><FluentProgressRing /></div>
@@ -185,6 +213,7 @@
 
     private Guid _userId;
     private IReadOnlyList<MyOversightReportDto>? _reports;
+    private IReadOnlyList<NoShowDisputeDto> _noShows = [];
     private readonly Dictionary<Guid, string> _notes = [];
     private string[] _spotOptions = [string.Empty];
     private Dictionary<string, string> _spotCodes = [];
@@ -211,7 +240,14 @@
         await LoadAsync();
     }
 
-    private async Task LoadAsync() => _reports = await Oversight.GetMyReportsAsync(_userId);
+    private async Task LoadAsync()
+    {
+        _reports = await Oversight.GetMyReportsAsync(_userId);
+        _noShows = await Oversight.GetDisputableNoShowsAsync(_userId);
+    }
+
+    private Task DisputeAsync(Guid reservationId) => RunAsync(
+        reservationId, reason => Oversight.DisputeNoShowAsync(reservationId, reason, _userId), "Parking_Dispute_Sent");
 
     private string NoteFor(Guid caseId) => _notes.GetValueOrDefault(caseId, string.Empty);
 

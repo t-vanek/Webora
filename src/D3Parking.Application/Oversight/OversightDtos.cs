@@ -86,6 +86,22 @@ public sealed record OversightPartyDto(Guid UserId, string Name);
 /// </summary>
 public sealed record OversightReviewerDto(Guid UserId, string Name);
 
+/// <summary>
+/// A no-show and what it cost, either as an offer to dispute it or as the facts of a case that
+/// disputes it. The amounts are read back from the ledger rather than recomputed from today's
+/// settings: what a reviewer has to decide about is what was actually taken, not what the same
+/// no-show would cost now.
+/// </summary>
+/// <param name="Reversed">True once a reviewer has given the penalty back.</param>
+public sealed record NoShowDisputeDto(
+    Guid ReservationId,
+    string SpotCode,
+    DateTimeOffset StartUtc,
+    DateTimeOffset EndUtc,
+    int PointsLost,
+    int CreditsLost,
+    bool Reversed);
+
 /// <summary>Something reported wrong with the lot, as the spot manager reads it.</summary>
 public sealed record SpotDefectDto(
     Guid Id,
@@ -143,5 +159,6 @@ public sealed record OversightCaseDetailDto(
     OccupancyMismatchDto? Mismatch,
     CollusionFlagDto? Flag,
     SpotDefectDto? Defect,
+    NoShowDisputeDto? NoShow,
     IReadOnlyList<OversightPartyDto> Parties,
     IReadOnlyList<OversightTimelineEntryDto> Timeline);

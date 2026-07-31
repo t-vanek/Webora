@@ -87,6 +87,9 @@ vyhrazeného místa) a penalizují nedostavení se.
   případu neběží.
 - **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě, volitelně
   s fotkou; vzniká z toho případ pro správu míst.
+- **Spor o nedostavení** — penalizace za no-show už není konečná a němá: řidič ji v dané lhůtě napadne,
+  a uznaná námitka vrátí **přesně to, co bylo strženo** (body, kreditovou pokutu, zákaz fronty i srážku
+  příštího přídělu).
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -379,8 +382,9 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 <details>
 <summary>Jedna fronta případů nad vším, co čeká na rozhodnutí člověka</summary>
 
-`/admin/parking/oversight` je jeden seznam nad třemi zdroji: **neshodami obsazenosti** (hlášení
-řidičů), **podezřelými dvojicemi** (noční sken) a **závadami**, které nahlásili uživatelé. Co bylo
+`/admin/parking/oversight` je jeden seznam nad čtyřmi zdroji: **neshodami obsazenosti** (hlášení
+řidičů), **podezřelými dvojicemi** (noční sken), **závadami** nahlášenými uživateli a **spory
+o nedostavení**. Co bylo
 dřív tabulkou signálů, je teď **případ**: má číslo, které se dá citovat, vlastníka, lhůtu a
 nemazatelnou historii.
 

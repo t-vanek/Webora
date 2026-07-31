@@ -99,6 +99,12 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>Odvolání proti rozhodnutí</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>Řidič se odvolal proti rozhodnutí u případu #{0}. Případ je znovu otevřený a nepřiřazený.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>Řidič na dotaz neodpověděl do {0} dní; případ se vrací k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightDispute_Title" xml:space="preserve"><value>Řidič napadl nedostavení</value></data>
+  <data name="Parking_Notify_OversightDispute_Body" xml:space="preserve"><value>Případ #{0}: řidič nesouhlasí s penalizací za nedostavení a žádá o přezkoumání.</value></data>
+  <data name="Parking_Notify_NoShowReversed_Title" xml:space="preserve"><value>Penalizace za nedostavení byla zrušena</value></data>
+  <data name="Parking_Notify_NoShowReversed_Body" xml:space="preserve"><value>Případ #{0}: vaše námitka byla uznána. Vráceno {1} bodů a {2} kreditů, zákaz fronty i srážka příštího přídělu jsou zrušené. Sérii dokončení bohužel obnovit nelze.</value></data>
+  <data name="Parking_Ledger_NoShowReversed" xml:space="preserve"><value>Zrušená penalizace za nedostavení, případ #{0}</value></data>
+  <data name="Parking_Oversight_Reason_Reversed" xml:space="preserve"><value>Námitka uznána: vráceno {0} bodů a {1} kreditů.</value></data>
   <data name="Parking_Notify_OversightWithdrawn_Title" xml:space="preserve"><value>Řidič vzal hlášení zpět</value></data>
   <data name="Parking_Notify_OversightWithdrawn_Body" xml:space="preserve"><value>Případ #{0} stáhl sám ohlašovatel a je uzavřený. Není co řešit.</value></data>
   <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>Dostal(a) jsi případ k řešení</value></data>

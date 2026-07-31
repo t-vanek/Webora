@@ -544,6 +544,28 @@ public sealed class OversightService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private static async Task<NoShowDisputeDto?> LoadNoShowAsync(
+        D3ParkingDbContext dbContext, OversightCase @case, CancellationToken cancellationToken)
+    {
+        var reservation = await (
+            from r in dbContext.Reservations.AsNoTracking()
+            where r.Id == @case.SubjectId
+            join s in dbContext.ParkingSpots.AsNoTracking() on r.SpotId equals s.Id into spots
+            from spot in spots.DefaultIfEmpty()
+            select new { r.Id, Code = spot != null ? spot.Code : string.Empty, r.StartUtc, r.EndUtc })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null)
+        {
+            return null;
+        }
+
+        var penalties = await PenaltiesByReservationAsync(dbContext, [reservation.Id], cancellationToken);
+        var (points, credits) = penalties.GetValueOrDefault(reservation.Id);
+        return new NoShowDisputeDto(
+            reservation.Id, reservation.Code, reservation.StartUtc, reservation.EndUtc, points, credits,
+            Reversed: @case.Resolution == OversightResolution.Founded);
+    }
+
     private static async Task<SpotDefectDto?> LoadDefectAsync(
         D3ParkingDbContext dbContext, Guid defectId, CancellationToken cancellationToken) =>
         await (from d in dbContext.SpotDefectReports.AsNoTracking()
@@ -690,6 +712,9 @@ public sealed class OversightService(
         var defect = entity.Kind == OversightCaseKind.SpotDefect
             ? await LoadDefectAsync(dbContext, entity.SubjectId, cancellationToken)
             : null;
+        var noShow = entity.Kind == OversightCaseKind.NoShowDispute
+            ? await LoadNoShowAsync(dbContext, entity, cancellationToken)
+            : null;
 
         var labels = await ResolveLabelsAsync(dbContext, [entity], cancellationToken);
         var partyIds = await PartyIdsAsync(dbContext, entity, cancellationToken);
@@ -705,7 +730,7 @@ public sealed class OversightService(
             entity.OpenedAtUtc, entity.UpdatedAtUtc,
             entity.DueAtUtc, entity.IsOverdue(timeProvider.GetUtcNow()),
             entity.ResolvedAtUtc, entity.Resolution, entity.ResolutionNote,
-            mismatch, flag, defect, parties,
+            mismatch, flag, defect, noShow, parties,
             events.Select(e => new OversightTimelineEntryDto(
                 e.Id, e.Type, e.Actor,
                 e.ActorUserId is { } actor ? actorNames.GetValueOrDefault(actor) : null,
@@ -1232,6 +1257,186 @@ public sealed class OversightService(
 
             return ParkingResult.Success;
         }, cancellationToken);
+    }
+
+    /// <summary>The ledger reasons the no-show sweep writes; what a upheld dispute has to give back.</summary>
+    private static readonly IncentiveReason[] NoShowPenaltyReasons =
+        [IncentiveReason.NoShowPenalty, IncentiveReason.QueueNoShowPenalty, IncentiveReason.QueueNoShowFine];
+
+    public async Task<IReadOnlyList<NoShowDisputeDto>> GetDisputableNoShowsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+        var since = timeProvider.GetUtcNow().AddDays(-settings.OversightDisputeWindowDays);
+
+        var reservations = await (
+            from r in dbContext.Reservations.AsNoTracking()
+            where r.UserId == userId && r.Status == ReservationStatus.NoShow && r.StartUtc >= since
+                && !dbContext.OversightCases.Any(c =>
+                    c.Kind == OversightCaseKind.NoShowDispute && c.SubjectId == r.Id)
+            join s in dbContext.ParkingSpots.AsNoTracking() on r.SpotId equals s.Id into spots
+            from spot in spots.DefaultIfEmpty()
+            orderby r.StartUtc descending
+            select new { r.Id, Code = spot != null ? spot.Code : string.Empty, r.StartUtc, r.EndUtc })
+            .Take(20)
+            .ToListAsync(cancellationToken);
+
+        if (reservations.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = reservations.Select(r => r.Id).ToList();
+        var penalties = await PenaltiesByReservationAsync(dbContext, ids, cancellationToken);
+
+        return [.. reservations.Select(r =>
+        {
+            var (points, credits) = penalties.GetValueOrDefault(r.Id);
+            return new NoShowDisputeDto(r.Id, r.Code, r.StartUtc, r.EndUtc, points, credits, Reversed: false);
+        })];
+    }
+
+    public async Task<ParkingResult> DisputeNoShowAsync(Guid reservationId, string reason, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var text = reason?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return ParkingResult.Failure("Parking_Oversight_Error_ReasonRequired");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+        var now = timeProvider.GetUtcNow();
+
+        var reservation = await dbContext.Reservations.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
+        if (reservation is null || reservation.UserId != userId || reservation.Status != ReservationStatus.NoShow)
+        {
+            return ParkingResult.Failure("Parking_Oversight_Error_NotDisputable");
+        }
+
+        if (reservation.StartUtc < now.AddDays(-settings.OversightDisputeWindowDays))
+        {
+            return ParkingResult.Failure("Parking_Oversight_Error_DisputeWindowClosed");
+        }
+
+        // Opened here rather than by the ingest: the ingest reconciles signals the lot itself
+        // raised, and a dispute is not one of those — the reservation has sat there all along and
+        // nothing about it changed except that somebody decided to argue.
+        var opened = new OversightCase(
+            OversightCaseKind.NoShowDispute, reservationId, now,
+            spotId: reservation.SpotId, reporterId: userId);
+        dbContext.OversightCases.Add(opened);
+        opened.OpenAt(OversightCasePriority.Normal, settings.SlaFor(OversightCasePriority.Normal));
+        dbContext.OversightCaseEvents.Add(
+            OversightCaseEvent.FromSystem(opened.Id, OversightEventType.Opened, now));
+        dbContext.OversightCaseEvents.Add(new OversightCaseEvent(
+            opened.Id, OversightEventType.InfoProvided, OversightActor.Participant, now,
+            userId, text, OversightVisibility.Participants));
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // The (Kind, SubjectId) index is what makes "once per reservation" true even against
+            // a double submit; it does not need a second check in front of it.
+            return ParkingResult.Failure("Parking_Oversight_Error_AlreadyDisputed");
+        }
+
+        await NotifyReviewersAsync(dbContext, OversightCaseKind.NoShowDispute, NotificationLevel.Info,
+            messages["Parking_Notify_OversightDispute_Title"],
+            messages["Parking_Notify_OversightDispute_Body", opened.Number], cancellationToken);
+
+        return ParkingResult.Success;
+    }
+
+    public Task<ParkingResult> ReverseNoShowAsync(Guid caseId, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default) =>
+        MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
+        {
+            if (@case.Kind != OversightCaseKind.NoShowDispute)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotADispute");
+            }
+
+            var reservation = await dbContext.Reservations.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == @case.SubjectId, cancellationToken);
+            if (reservation is null)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotDisputable");
+            }
+
+            var penalties = await PenaltiesByReservationAsync(dbContext, [reservation.Id], cancellationToken);
+            var (points, credits) = penalties.GetValueOrDefault(reservation.Id);
+            if (points == 0 && credits == 0)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NothingToReverse");
+            }
+
+            var score = await dbContext.ParkerScores.FirstOrDefaultAsync(s => s.UserId == reservation.UserId, cancellationToken);
+            if (score is null)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NothingToReverse");
+            }
+
+            // Exactly what was taken, no more: the amounts come from the ledger, so this can undo
+            // a mistake but can never be used to hand somebody a standing they never had.
+            score.ReverseNoShowPenalty(points, credits, now);
+
+            var detail = messages["Parking_Ledger_NoShowReversed", @case.Number];
+            if (points > 0)
+            {
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    reservation.UserId, IncentiveReason.ManualAdjustment, points, reservation.Id, now, detail));
+            }
+
+            if (credits > 0)
+            {
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    reservation.UserId, IncentiveReason.ManualAdjustment, credits, reservation.Id, now, detail));
+            }
+
+            dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromReviewer(
+                @case.Id, OversightEventType.Sanctioned, reviewerId, now,
+                messages["Parking_Oversight_Reason_Reversed", points, credits],
+                OversightVisibility.Participants));
+
+            if (!@case.Resolve(OversightResolution.Founded, note: null, reviewerId, now))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_AlreadyResolved");
+            }
+
+            await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Info,
+                messages["Parking_Notify_NoShowReversed_Title"],
+                messages["Parking_Notify_NoShowReversed_Body", @case.Number, points, credits], cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+
+    /// <summary>
+    /// What the no-show sweep took per reservation, read back from the ledger and returned as
+    /// positive amounts to give back. The two are kept apart because they restore to different
+    /// places: reputation to the score, the fine to the wallet.
+    /// </summary>
+    private static async Task<Dictionary<Guid, (int Points, int Credits)>> PenaltiesByReservationAsync(
+        D3ParkingDbContext dbContext, IReadOnlyList<Guid> reservationIds, CancellationToken cancellationToken)
+    {
+        var entries = await dbContext.PointsLedgerEntries.AsNoTracking()
+            .Where(e => e.ReservationId != null && reservationIds.Contains(e.ReservationId.Value)
+                && NoShowPenaltyReasons.Contains(e.Reason))
+            .Select(e => new { ReservationId = e.ReservationId!.Value, e.Reason, e.Points })
+            .ToListAsync(cancellationToken);
+
+        // The sweep writes them negative; a reversal hands the same magnitude back.
+        return entries
+            .GroupBy(e => e.ReservationId)
+            .ToDictionary(
+                g => g.Key,
+                g => (
+                    Points: -g.Where(e => e.Reason is IncentiveReason.NoShowPenalty or IncentiveReason.QueueNoShowPenalty)
+                        .Sum(e => e.Points),
+                    Credits: -g.Where(e => e.Reason == IncentiveReason.QueueNoShowFine).Sum(e => e.Points)));
     }
 
     public Task<ParkingResult> WithdrawAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default)

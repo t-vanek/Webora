@@ -889,6 +889,25 @@
   <data name="Parking_OversightKind_SpotDefect" xml:space="preserve"><value>Závada na parkovišti</value></data>
   <data name="Parking_OversightEvent_Sanctioned" xml:space="preserve"><value>Rozhodnutí vůči osobě</value></data>
   <data name="Parking_MyReports_Event_Sanctioned" xml:space="preserve"><value>Rozhodnutí vůči vám</value></data>
+  <data name="Parking_OversightKind_NoShowDispute" xml:space="preserve"><value>Spor o nedostavení</value></data>
+  <data name="Parking_Settings_OversightDisputeWindow" xml:space="preserve"><value>Lhůta na napadení nedostavení (dní)</value></data>
+  <data name="Parking_Dispute_Title" xml:space="preserve"><value>Nesouhlasíte s penalizací za nedostavení?</value></data>
+  <data name="Parking_Dispute_Help" xml:space="preserve"><value>Když vás systém označil za nedostavení neprávem — byli jste v nemocnici, závora vás nepustila, místo bylo zablokované — napište to a správce to přezkoumá. Uznaná námitka vrátí body i kredity a zruší zákaz fronty.</value></data>
+  <data name="Parking_Dispute_Amounts" xml:space="preserve"><value>strženo {0} bodů a {1} kreditů</value></data>
+  <data name="Parking_Dispute_Placeholder" xml:space="preserve"><value>Co se stalo…</value></data>
+  <data name="Parking_Dispute_Send" xml:space="preserve"><value>Napadnout</value></data>
+  <data name="Parking_Dispute_Sent" xml:space="preserve"><value>Námitku jsme přijali, správce ji přezkoumá.</value></data>
+  <data name="Parking_Dispute_Deducted" xml:space="preserve"><value>Penalizace</value></data>
+  <data name="Parking_Dispute_Standing" xml:space="preserve"><value>Penalizace platí</value></data>
+  <data name="Parking_Dispute_Reversed" xml:space="preserve"><value>Penalizace zrušena</value></data>
+  <data name="Parking_Dispute_Reverse" xml:space="preserve"><value>Zrušit penalizaci</value></data>
+  <data name="Parking_Dispute_ReverseHelp" xml:space="preserve"><value>Vrátí přesně to, co nedostavení strhlo — body, kreditovou pokutu, zákaz fronty i srážku příštího přídělu — a případ uzavře. Sérii dokončení obnovit nelze.</value></data>
+  <data name="Parking_Dispute_Reversed_Info" xml:space="preserve"><value>Penalizace byla zrušena a řidič dostal oznámení.</value></data>
+  <data name="Parking_Oversight_Error_NotDisputable" xml:space="preserve"><value>Tuhle rezervaci napadnout nelze.</value></data>
+  <data name="Parking_Oversight_Error_DisputeWindowClosed" xml:space="preserve"><value>Lhůta pro napadení téhle penalizace už uplynula.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyDisputed" xml:space="preserve"><value>Tuhle penalizaci jste už napadl(a).</value></data>
+  <data name="Parking_Oversight_Error_NotADispute" xml:space="preserve"><value>Tenhle případ není spor o nedostavení.</value></data>
+  <data name="Parking_Oversight_Error_NothingToReverse" xml:space="preserve"><value>U téhle rezervace není co vracet.</value></data>
   <data name="Parking_Defect_Report" xml:space="preserve"><value>Nahlásit závadu na parkovišti</value></data>
   <data name="Parking_Defect_Help" xml:space="preserve"><value>Nefunguje závora, nesvítí světlo, chybí čáry nebo někdo nechal na místě paletu? Napište to sem — správce parkoviště to uvidí jako případ k vyřízení.</value></data>
   <data name="Parking_Defect_Category" xml:space="preserve"><value>Čeho se to týká</value></data>

@@ -107,6 +107,25 @@ public interface IOversightService
     Task<MismatchPhotoDto?> GetDefectPhotoAsync(Guid defectId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The driver's own no-shows still inside the dispute window that they have not disputed yet,
+    /// with what each one cost them.
+    /// </summary>
+    Task<IReadOnlyList<NoShowDisputeDto>> GetDisputableNoShowsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The driver says a no-show penalty was wrong. Opens a case over the reservation itself —
+    /// once per reservation, and only while it is inside the dispute window.
+    /// </summary>
+    Task<ParkingResult> DisputeNoShowAsync(Guid reservationId, string reason, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Upholds a dispute: gives back exactly what the no-show sweep took — the reputation, the
+    /// credit fine, the waitlist ban and the allowance cut — and closes the case. Bounded to the
+    /// recorded penalty on purpose, so the action can undo a mistake but never mint anything.
+    /// </summary>
+    Task<ParkingResult> ReverseNoShowAsync(Guid caseId, Guid reviewerId, OversightScope scope, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The driver adds something to their own report — an answer to what was asked, or a detail
     /// they remembered. Either way the case goes back on the reviewer's desk.
     /// </summary>

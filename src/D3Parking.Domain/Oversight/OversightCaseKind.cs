@@ -19,4 +19,10 @@ public enum OversightCaseKind
     /// is why it is gated on managing the spots rather than on reviewing evidence about people.
     /// </summary>
     SpotDefect,
+
+    /// <summary>
+    /// A driver says a no-show penalty was wrong. The subject is the reservation itself — the lot
+    /// already holds every fact, so there is nothing new to record, only a decision to make.
+    /// </summary>
+    NoShowDispute,
 }

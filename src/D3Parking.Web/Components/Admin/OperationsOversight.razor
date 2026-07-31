@@ -4,7 +4,7 @@
    so bookmarks and older deep links land on the matching filter instead of a 404. *@
 @page "/admin/parking/mismatches"
 @page "/admin/parking/collusion"
-@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion, Permissions.Parking.ManageSpots)]
+@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion, Permissions.Parking.ManageSpots, Permissions.Parking.ManageReservations)]
 @rendermode InteractiveServer
 @inject IOversightService Oversight
 @inject ISiteSettingsService SiteSettings
@@ -212,7 +212,9 @@
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots),
-            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight));
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight),
+            mayAssign: principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.AssignOversight),
+            manageReservations: principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageReservations));
         _scopeKinds = _scope.Kinds;
         _kindOptions = [string.Empty, .. _scopeKinds.Select(k => k.ToString())];
 

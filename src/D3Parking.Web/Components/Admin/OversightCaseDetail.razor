@@ -1,5 +1,5 @@
 @page "/admin/parking/oversight/case/{Id:guid}"
-@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion, Permissions.Parking.ManageSpots)]
+@attribute [HasAnyPermission(Permissions.Parking.ReviewMismatches, Permissions.Parking.ReviewCollusion, Permissions.Parking.ManageSpots, Permissions.Parking.ManageReservations)]
 @rendermode InteractiveServer
 @inject IOversightService Oversight
 @inject ISiteSettingsService SiteSettings
@@ -107,6 +107,23 @@
                                cannot tell fresh numbers from the ones the flag was raised with. *@
                             <dt>@L["Parking_Collusion_UpdatedAt"]</dt>
                             <dd>@Local(flag.UpdatedAtUtc, "g")</dd>
+                        </dl>
+                    }
+                    else if (_case.NoShow is { } noShow)
+                    {
+                        <dl class="case-facts">
+                            <dt>@L["Parking_Spot"]</dt>
+                            <dd>@noShow.SpotCode</dd>
+                            <dt>@L["Parking_Mismatch_Window"]</dt>
+                            <dd>@Local(noShow.StartUtc, "g") – @Local(noShow.EndUtc, "t")</dd>
+                            <dt>@L["Parking_Dispute_Deducted"]</dt>
+                            <dd>@L["Parking_Dispute_Amounts", noShow.PointsLost, noShow.CreditsLost]</dd>
+                            <dt>@L["Parking_Status"]</dt>
+                            <dd>
+                                <span class="state-pill state-pill--@(noShow.Reversed ? "on" : "warn")">
+                                    @L[noShow.Reversed ? "Parking_Dispute_Reversed" : "Parking_Dispute_Standing"]
+                                </span>
+                            </dd>
                         </dl>
                     }
                     else if (_case.Defect is { } defect)
@@ -236,6 +253,15 @@
                                           @bind-Value="_priority"
                                           @bind-Value:after="SetPriorityAsync"
                                           Disabled="@_busy" />
+
+                            @* Upholding a dispute is the verdict on it, so it closes the case
+                               itself — same shape as ruling on a voucher. *@
+                            @if (_case.NoShow is { Reversed: false, PointsLost: > 0 } or { Reversed: false, CreditsLost: > 0 })
+                            {
+                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Dispute_ReverseHelp"]</FluentLabel>
+                                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                              OnClick="ReverseNoShowAsync">@L["Parking_Dispute_Reverse"]</FluentButton>
+                            }
 
                             @* Ruling on the voucher is the verdict on the report, so it sits above
                                the general close-out and does the closing itself. *@
@@ -372,7 +398,8 @@
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots),
             principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.SanctionOversight),
-            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.AssignOversight));
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.AssignOversight),
+            principal.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageReservations));
 
         var user = await UserManager.GetUserAsync(principal);
         _reviewerId = user?.Id ?? Guid.Empty;
@@ -418,6 +445,9 @@
 
     private Task RecordContactAsync(string recipient) =>
         RunAsync(() => Oversight.RecordEmailContactAsync(Id, recipient, _reviewerId, _scope), successKey: null);
+
+    private Task ReverseNoShowAsync() => RunAsync(
+        () => Oversight.ReverseNoShowAsync(Id, _reviewerId, _scope), "Parking_Dispute_Reversed_Info");
 
     private Task AssignAsync() => RunAsync(
         () => Guid.TryParse(_assignee, out var assignee)

@@ -889,6 +889,25 @@
   <data name="Parking_OversightKind_SpotDefect" xml:space="preserve"><value>Lot defect</value></data>
   <data name="Parking_OversightEvent_Sanctioned" xml:space="preserve"><value>Ruling against a person</value></data>
   <data name="Parking_MyReports_Event_Sanctioned" xml:space="preserve"><value>Ruling against you</value></data>
+  <data name="Parking_OversightKind_NoShowDispute" xml:space="preserve"><value>Disputed no-show</value></data>
+  <data name="Parking_Settings_OversightDisputeWindow" xml:space="preserve"><value>Window for disputing a no-show (days)</value></data>
+  <data name="Parking_Dispute_Title" xml:space="preserve"><value>Disagree with a no-show penalty?</value></data>
+  <data name="Parking_Dispute_Help" xml:space="preserve"><value>If the system marked you a no-show unfairly — you were in hospital, the barrier would not let you in, the spot was blocked — say so and a manager will look at it. An upheld dispute returns the points and credits and lifts the waitlist ban.</value></data>
+  <data name="Parking_Dispute_Amounts" xml:space="preserve"><value>{0} points and {1} credits deducted</value></data>
+  <data name="Parking_Dispute_Placeholder" xml:space="preserve"><value>What happened…</value></data>
+  <data name="Parking_Dispute_Send" xml:space="preserve"><value>Dispute it</value></data>
+  <data name="Parking_Dispute_Sent" xml:space="preserve"><value>Your dispute is in; a manager will look at it.</value></data>
+  <data name="Parking_Dispute_Deducted" xml:space="preserve"><value>Penalty</value></data>
+  <data name="Parking_Dispute_Standing" xml:space="preserve"><value>Penalty stands</value></data>
+  <data name="Parking_Dispute_Reversed" xml:space="preserve"><value>Penalty reversed</value></data>
+  <data name="Parking_Dispute_Reverse" xml:space="preserve"><value>Reverse the penalty</value></data>
+  <data name="Parking_Dispute_ReverseHelp" xml:space="preserve"><value>Gives back exactly what the no-show took — points, the credit fine, the waitlist ban and the allowance cut — and closes the case. The completion streak cannot be restored.</value></data>
+  <data name="Parking_Dispute_Reversed_Info" xml:space="preserve"><value>The penalty is reversed and the driver has been notified.</value></data>
+  <data name="Parking_Oversight_Error_NotDisputable" xml:space="preserve"><value>That booking cannot be disputed.</value></data>
+  <data name="Parking_Oversight_Error_DisputeWindowClosed" xml:space="preserve"><value>The window for disputing this penalty has closed.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyDisputed" xml:space="preserve"><value>You have already disputed this penalty.</value></data>
+  <data name="Parking_Oversight_Error_NotADispute" xml:space="preserve"><value>This case is not a no-show dispute.</value></data>
+  <data name="Parking_Oversight_Error_NothingToReverse" xml:space="preserve"><value>There is nothing to give back on this booking.</value></data>
   <data name="Parking_Defect_Report" xml:space="preserve"><value>Report something wrong with the lot</value></data>
   <data name="Parking_Defect_Help" xml:space="preserve"><value>Barrier stuck, light out, markings gone, a pallet left on a bay? Say so here — the lot manager sees it as a case to deal with.</value></data>
   <data name="Parking_Defect_Category" xml:space="preserve"><value>What it concerns</value></data>

@@ -127,6 +127,26 @@ public class ParkerScore
     }
 
     /// <summary>
+    /// A no-show penalty given back after a driver disputed it and was right. Undoes the whole
+    /// package the sweep applied — the reputation, the fine, the waitlist ban and the cut to next
+    /// month's allowance — and takes the no-show off their count, because it is no longer one.
+    /// </summary>
+    /// <remarks>
+    /// The completion streak is deliberately not restored: it is a record of an unbroken run, and
+    /// the run really did break at the time. Rebuilding it would mean remembering how long it had
+    /// been, which nothing stores, and inventing a number is worse than letting it start again.
+    /// </remarks>
+    public void ReverseNoShowPenalty(int points, int credits, DateTimeOffset at)
+    {
+        Points += Math.Max(0, points);
+        Credits += Math.Max(0, credits);
+        NoShows = Math.Max(0, NoShows - 1);
+        QueueBannedUntilUtc = null;
+        NextAllowancePenalty = 0;
+        UpdatedAtUtc = at;
+    }
+
+    /// <summary>
     /// A deduction ruled by a person on an oversight case. Deliberately not
     /// <see cref="PenalizeNoShow"/>: nobody failed to turn up, so the no-show count and the
     /// completion streak — which are records of what happened, not of what was decided about

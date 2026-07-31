@@ -37,9 +37,10 @@ public sealed record OversightScope(
         bool reviewCollusion,
         bool manageSpots = false,
         bool maySanction = false,
-        bool mayAssign = false)
+        bool mayAssign = false,
+        bool manageReservations = false)
     {
-        var kinds = new List<OversightCaseKind>(3);
+        var kinds = new List<OversightCaseKind>(4);
         if (reviewMismatches)
         {
             kinds.Add(OversightCaseKind.OccupancyMismatch);
@@ -53,6 +54,13 @@ public sealed record OversightScope(
         if (manageSpots)
         {
             kinds.Add(OversightCaseKind.SpotDefect);
+        }
+
+        // A disputed no-show is a reservation decision, so it goes to the permission that already
+        // owns them — the same people who can cancel or move somebody's booking.
+        if (manageReservations)
+        {
+            kinds.Add(OversightCaseKind.NoShowDispute);
         }
 
         return new OversightScope(kinds, maySanction, mayAssign);

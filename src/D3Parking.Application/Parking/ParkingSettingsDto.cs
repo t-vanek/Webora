@@ -79,4 +79,5 @@ public sealed record ParkingSettingsDto(
     int OversightRecurrenceThreshold,
     int OversightDigestHourLocal,
     int OversightInfoDeadlineDays,
-    bool OversightAllowUserReports);
+    bool OversightAllowUserReports,
+    int OversightDisputeWindowDays);

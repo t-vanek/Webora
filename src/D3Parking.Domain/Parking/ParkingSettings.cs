@@ -213,6 +213,13 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// </summary>
     public bool OversightAllowUserReports { get; private set; } = true;
 
+    /// <summary>
+    /// How long after a no-show a driver may still dispute it. Bounded on purpose: the evidence a
+    /// reviewer would need (who was on the spot, what the barrier logged) thins out fast, and a
+    /// penalty has to become final at some point for the standings to mean anything.
+    /// </summary>
+    public int OversightDisputeWindowDays { get; private set; } = 30;
+
     /// <summary>State: when the oversight digest last went out.</summary>
     public DateTimeOffset? LastOversightDigestUtc { get; private set; }
 
@@ -303,7 +310,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         int oversightRecurrenceThreshold,
         int oversightDigestHourLocal,
         int oversightInfoDeadlineDays,
-        bool oversightAllowUserReports)
+        bool oversightAllowUserReports,
+        int oversightDisputeWindowDays)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -387,6 +395,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OversightDigestHourLocal = Math.Clamp(oversightDigestHourLocal, 0, 23);
         OversightInfoDeadlineDays = Math.Clamp(oversightInfoDeadlineDays, 1, 90);
         OversightAllowUserReports = oversightAllowUserReports;
+        OversightDisputeWindowDays = Math.Clamp(oversightDisputeWindowDays, 1, 365);
     }
 
     /// <summary>How long a case of this priority may stay open before it is overdue.</summary>

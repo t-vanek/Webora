@@ -71,7 +71,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
 | **Graf důvěry** | zapnout, interval přepočtu (hodin), práh odznaku Důvěryhodný |
 | **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
-| **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), přijímat hlášení závad od uživatelů |
+| **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), lhůta na napadení nedostavení (dní), přijímat hlášení závad od uživatelů |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
 | **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky, horizont plánu využití (dní) |
@@ -281,10 +281,14 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   připomínky, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
   a nakonec provozní dohled (viz níže). Každý krok je izolovaný — selhání jednoho nesmí přeskočit ty za ním.
 - **Provozní dohled:** `OversightCase` je obálka nad signálem, nikdy jeho kopie — ukazuje na
-  `OccupancyMismatch`, `CollusionFlag` nebo `SpotDefectReport` přes `(Kind, SubjectId)` a důkazy se
-  čtou ze zdrojových služeb za běhu. Případy **nezakládají služby, které signály vyvolávají**, ale
+  `OccupancyMismatch`, `CollusionFlag`, `SpotDefectReport` nebo rovnou `Reservation` (u sporu
+  o nedostavení) přes `(Kind, SubjectId)` a důkazy se čtou ze zdrojových služeb za běhu. Případy
+  nad signály, které vyvolalo parkoviště, **nezakládají služby, které je vyvolaly**, ale
   `IOversightService.EnsureCasesAsync` (idempotentní anti-join): hlášení vzniká na kritické cestě
-  řidiče a sken v údržbové smyčce a ani jedno nesmí spadnout kvůli frontě. Tentýž kód je zároveň
+  řidiče a sken v údržbové smyčce a ani jedno nesmí spadnout kvůli frontě. Případy, které otevře
+  **člověk** (spor o nedostavení), vznikají přímo tím úkonem — reconciliace by neměla co dohánět,
+  protože rezervace tam ležela celou dobu a nezměnilo se na ní nic než to, že se někdo ozval.
+  Unikátní index `(Kind, SubjectId)` je zároveň tím, co drží pravidlo „jeden spor na rezervaci". Tentýž kód je zároveň
   migrací pro signály starší než případy. Volá se jak ze smyčky, tak při načtení fronty, aby recenzent
   nečekal na sweep.
 

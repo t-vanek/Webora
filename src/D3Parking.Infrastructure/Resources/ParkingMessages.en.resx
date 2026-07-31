@@ -99,6 +99,12 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
+  <data name="Parking_Notify_OversightDispute_Title" xml:space="preserve"><value>A driver disputes a no-show</value></data>
+  <data name="Parking_Notify_OversightDispute_Body" xml:space="preserve"><value>Case #{0}: a driver disagrees with a no-show penalty and asks for it to be looked at.</value></data>
+  <data name="Parking_Notify_NoShowReversed_Title" xml:space="preserve"><value>Your no-show penalty was reversed</value></data>
+  <data name="Parking_Notify_NoShowReversed_Body" xml:space="preserve"><value>Case #{0}: your dispute was upheld. {1} points and {2} credits are back, and the waitlist ban and allowance cut are lifted. The completion streak cannot be restored.</value></data>
+  <data name="Parking_Ledger_NoShowReversed" xml:space="preserve"><value>No-show penalty reversed, case #{0}</value></data>
+  <data name="Parking_Oversight_Reason_Reversed" xml:space="preserve"><value>Dispute upheld: {0} points and {1} credits returned.</value></data>
   <data name="Parking_Notify_OversightWithdrawn_Title" xml:space="preserve"><value>The driver took their report back</value></data>
   <data name="Parking_Notify_OversightWithdrawn_Body" xml:space="preserve"><value>Case #{0} was withdrawn by the reporter and is closed. Nothing to do.</value></data>
   <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>A case was assigned to you</value></data>

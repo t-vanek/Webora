@@ -45,6 +45,10 @@ public class OversightCaseTests
     private static readonly OversightScope Assigning =
         OversightScope.From(true, true, manageSpots: true, mayAssign: true);
 
+    /// <summary>Owns reservations, and with them the disputed no-shows.</summary>
+    private static readonly OversightScope Reservations =
+        OversightScope.From(false, false, manageReservations: true);
+
     private DbContextOptions<D3ParkingDbContext> _options = null!;
     private OversightService _oversight = null!;
     private ReservationService _reservations = null!;
@@ -888,6 +892,53 @@ public class OversightCaseTests
         throw new InvalidOperationException($"No defect case for '{description}'.");
     }
 
+    [Test]
+    public async Task A_no_show_can_be_disputed_once_and_the_penalty_given_back_exactly()
+    {
+        await SeedSettingsAsync();
+        var driver = await SeedUserAsync();
+        var spot = await SeedSpotAsync("C-60");
+        var reservation = await SeedNoShowAsync(driver, spot, points: 20, credits: 15, banDays: 14);
+
+        var offered = await _oversight.GetDisputableNoShowsAsync(driver);
+        var mine = offered.Single(o => o.ReservationId == reservation);
+        Assert.That(mine.PointsLost, Is.EqualTo(20));
+        Assert.That(mine.CreditsLost, Is.EqualTo(15));
+
+        Assert.That((await _oversight.DisputeNoShowAsync(reservation, "  ", driver)).Errors,
+            Does.Contain("Parking_Oversight_Error_ReasonRequired"));
+        Assert.That((await _oversight.DisputeNoShowAsync(reservation, "Nebyl jsem to já.", await SeedUserAsync())).Errors,
+            Does.Contain("Parking_Oversight_Error_NotDisputable"),
+            "Somebody else's penalty is not theirs to argue about.");
+
+        var disputed = await _oversight.DisputeNoShowAsync(reservation, "Závora mě nepustila dovnitř.", driver);
+        Assert.That(disputed.Succeeded, Is.True, disputed.Errors.FirstOrDefault());
+        Assert.That((await _oversight.DisputeNoShowAsync(reservation, "Znovu.", driver)).Errors,
+            Does.Contain("Parking_Oversight_Error_AlreadyDisputed"));
+        Assert.That((await _oversight.GetDisputableNoShowsAsync(driver)).Select(o => o.ReservationId),
+            Does.Not.Contain(reservation), "A penalty already argued about is not offered again.");
+
+        var caseId = await CaseIdForAsync(OversightCaseKind.NoShowDispute, reservation);
+        Assert.That(await _oversight.GetCaseAsync(caseId, MismatchesOnly), Is.Null,
+            "A reservation decision belongs to the permission that owns reservations.");
+
+        var reversed = await _oversight.ReverseNoShowAsync(caseId, await SeedUserAsync(), Reservations);
+        Assert.That(reversed.Succeeded, Is.True, reversed.Errors.FirstOrDefault());
+
+        await using var db = new D3ParkingDbContext(_options);
+        var score = await db.ParkerScores.SingleAsync(s => s.UserId == driver);
+        Assert.That(score.Points, Is.Zero, "Exactly what was taken comes back — no more.");
+        Assert.That(score.Credits, Is.Zero);
+        Assert.That(score.NoShows, Is.Zero, "It is no longer a no-show, so it stops counting as one.");
+        Assert.That(score.QueueBannedUntilUtc, Is.Null);
+        Assert.That(score.NextAllowancePenalty, Is.Zero);
+
+        var detail = await _oversight.GetCaseAsync(caseId, Reservations);
+        Assert.That(detail!.Resolution, Is.EqualTo(OversightResolution.Founded));
+        Assert.That(detail.NoShow!.Reversed, Is.True);
+        Assert.That(_notifications.Sent, Does.Contain((driver, "Parking_Notify_NoShowReversed_Title")));
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)
@@ -902,6 +953,37 @@ public class OversightCaseTests
             db.OccupancyMismatches.Add(mismatch);
         });
         return mismatch;
+    }
+
+    /// <summary>
+    /// A no-show exactly as the sweep leaves one: the reservation in that state, the ledger entries
+    /// that record what was taken, and the standing already docked. The reversal reads the ledger,
+    /// so it has to be the real shape and not just a status.
+    /// </summary>
+    private async Task<Guid> SeedNoShowAsync(Guid userId, Guid spotId, int points, int credits, int banDays)
+    {
+        var reservation = new Reservation(spotId, userId, Now.AddDays(-2), Now.AddDays(-2).AddHours(8), false, Now.AddDays(-3), creditsCharged: 0);
+        reservation.MarkNoShow();
+
+        // Starts from nothing and is docked, so "exactly what was taken came back" reads as a
+        // return to zero rather than as arithmetic against some seeded starting balance.
+        var score = new ParkerScore(userId);
+        score.PenalizeNoShow(points, Now);
+        score.PenalizeCredits(credits, Now);
+        score.BanFromQueue(Now.AddDays(banDays), Now);
+        score.AddAllowancePenalty(30, Now);
+
+        await SeedAsync(db =>
+        {
+            db.Reservations.Add(reservation);
+            db.ParkerScores.Add(score);
+            db.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.QueueNoShowPenalty, -points, reservation.Id, Now));
+            db.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                userId, IncentiveReason.QueueNoShowFine, -credits, reservation.Id, Now));
+        });
+
+        return reservation.Id;
     }
 
     /// <summary>A standing to deduct from, so a ruling has something to bite on.</summary>
