@@ -92,6 +92,12 @@ přepínače; dokud není zapnutý ani jeden, aplikace běží jen s místními 
 Změna se projeví **bez restartu**: schéma OpenID Connect se po uložení publikuje nebo odebere za
 běhu. Dokud přihlašování není nakonfigurované, žádné schéma v pipeline není.
 
+Uložení ale sladí jen tu instanci, která ho obsloužila — snapshot nastavení i mapa schémat jsou
+v paměti procesu. Za víc instancemi to dorovnává `EntraSchemeSynchronizer`, který každých 30 s
+načte uložené nastavení a nechá `EntraSchemeReloader` srovnat stav; když se nic nezměnilo, neudělá
+nic (jinak by každý cyklus zahodil staženou discovery metadata a otevřel okno, kdy schéma
+neexistuje). Změna je tak živá všude do minuty, bez distribuované cache a bez další infrastruktury.
+
 **Tajemství** (client secret, SCIM token) se ukládají zašifrovaná přes ASP.NET Data Protection a
 stránka je nikdy nezobrazí zpět — jen řekne, že existují. Prázdné pole znamená „ponechat", odebrat
 se musí explicitně. Klíčenka Data Protection proto musí přežít redeploy; jinak se tajemství po
@@ -128,14 +134,21 @@ Na `/register` se firemní přihlášení nabízí taky. Bez toho je registrace 
 slepá ulička: založí si místní účet s heslem, o kterém adresář neví, a přihlášení přes adresář ho
 pak odmítne, dokud e-mail nepotvrdí.
 
-**Odhlášení** federovaného účtu jde přes `/account/external/signout`, který ukončí místní session
-i tu v adresáři (RP-initiated logout s `id_token_hint`; ten se proto z přihlašovacího callbacku
-přenáší do aplikační cookie). Bez toho by další klik na „Přihlásit se přes…" tiše přihlásil téhož
-člověka zpět — na sdíleném počítači toho předchozího. Cesta zpět je `SignedOutCallbackPath` a musí
-sedět s registrací aplikace v Entře.
+**Odhlášení** federovaného účtu jde přes `POST /account/external/signout`, který ukončí místní
+session i tu v adresáři (RP-initiated logout s `id_token_hint`; ten se proto z přihlašovacího
+callbacku přenáší do aplikační cookie). Bez toho by další klik na „Přihlásit se přes…" tiše
+přihlásil téhož člověka zpět — na sdíleném počítači toho předchozího. Endpoint vyžaduje přihlášení
+a antiforgery token, proto `/logout` federovanému účtu vykreslí obyčejný `<form>` místo `EditForm`.
+Cesta zpět je `SignedOutCallbackPath` a musí sedět s registrací aplikace v Entře.
 
 Účet, který adresář právě založil, skončí na `/account/welcome` — jeden přeskočitelný krok na SPZ.
-Token ji nenese a bez ní účet vypadne z párování s vozovým parkem.
+Token ji nenese a bez ní účet vypadne z párování s vozovým parkem; krok proto po uložení volá
+`SyncUserPlateAsync` i `NotifyPairableAsync`, stejně jako profil a aktivace.
+
+**Přejmenování v adresáři** se propíše, ale jen když projde validací. Když adresář pošle adresu,
+kterou tu už drží jiný účet, `UpdateProfileAsync` změnu vrátí zpět a zaloguje — nikoli zapíše
+napůl. Unikátní index na `NormalizedEmail` neexistuje, takže polovičatý zápis by účtu natrvalo
+rozešel zobrazovanou adresu s tou vyhledávací. Přihlášení samotné to neblokuje.
 
 Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
 

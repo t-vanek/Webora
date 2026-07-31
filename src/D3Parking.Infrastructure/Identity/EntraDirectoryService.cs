@@ -227,13 +227,43 @@ public sealed class EntraDirectoryService(
 
         // A rename in the directory follows through, but a blocked account is not quietly revived:
         // that decision belongs to SetActiveAsync, where the administrator guard lives.
-        if (!string.Equals(user.Email, identity.Email, StringComparison.OrdinalIgnoreCase))
+        var previousEmail = user.Email;
+        var previousUserName = user.UserName;
+        var renamed = !string.Equals(user.Email, identity.Email, StringComparison.OrdinalIgnoreCase);
+        if (renamed)
         {
             user.Email = identity.Email;
             user.UserName = identity.Email;
         }
 
-        await userManager.UpdateAsync(user);
+        var updated = await userManager.UpdateAsync(user);
+
+        // The result cannot be discarded. On a validation failure — most plausibly the address the
+        // directory now asserts already belonging to another account here — UpdateUserAsync returns
+        // before it writes the normalized columns, while the entity this context tracks is already
+        // carrying the new address. The SaveChangesAsync below would then persist Email without
+        // NormalizedEmail, leaving the account displaying one address and being found under the
+        // other, for good. There is no unique index on NormalizedEmail to catch it either.
+        if (!updated.Succeeded && renamed)
+        {
+            logger.LogError("Refusing the rename of {UserId} to the address {Provider} now asserts: {Errors}. "
+                + "The account keeps its current address; resolve the conflict in the directory or here.",
+                user.Id, identity.Provider, string.Join("; ", updated.Errors.Select(e => e.Description)));
+
+            user.Email = previousEmail;
+            user.UserName = previousUserName;
+
+            // The provenance still has to land — this sign-in did happen, and the object id, tenant
+            // and sync timestamp are what later lookups run on.
+            updated = await userManager.UpdateAsync(user);
+        }
+
+        if (!updated.Succeeded)
+        {
+            logger.LogError("Could not update {UserId} from {Provider}: {Errors}",
+                user.Id, identity.Provider, string.Join("; ", updated.Errors.Select(e => e.Description)));
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -306,14 +336,31 @@ public sealed class EntraDirectoryService(
             return;
         }
 
+        // Both results are checked: a refused role change that is written to the provenance below
+        // anyway would leave this application believing it holds a grant on the directory's behalf
+        // that the account never got — and the audit entry would say so too.
         if (revoked.Count > 0)
         {
-            await userManager.RemoveFromRolesAsync(user, revoked.Select(r => r.Name));
+            var removed = await userManager.RemoveFromRolesAsync(user, revoked.Select(r => r.Name));
+            if (!removed.Succeeded)
+            {
+                logger.LogError("Could not revoke {Roles} from {UserId} on behalf of {Provider}: {Errors}",
+                    Join(revoked.Select(r => r.Name)), user.Id, provider,
+                    string.Join("; ", removed.Errors.Select(e => e.Description)));
+                return;
+            }
         }
 
         if (addNames.Count > 0)
         {
-            await userManager.AddToRolesAsync(user, addNames);
+            var added = await userManager.AddToRolesAsync(user, addNames);
+            if (!added.Succeeded)
+            {
+                logger.LogError("Could not grant {Roles} to {UserId} on behalf of {Provider}: {Errors}",
+                    Join(addNames), user.Id, provider,
+                    string.Join("; ", added.Errors.Select(e => e.Description)));
+                return;
+            }
         }
 
         // Rewrite the provenance so it always equals what this application currently holds on the

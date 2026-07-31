@@ -56,6 +56,10 @@ builder.Services.AddPermissionAuthorization();
 // once the stored settings have been read, so an installation without a tenant is untouched.
 builder.Services.AddEntraIdAuthentication();
 
+// The settings snapshot and the scheme map are both per process, so a save reaches only the
+// instance that handled it. This polls the stored settings and reconciles the rest.
+builder.Services.AddHostedService<EntraSchemeSynchronizer>();
+
 // Fluent UI Blazor components (providers go into MainLayout). Available in both server-rendered
 // and WebAssembly components — the WASM client also registers AddFluentUIComponents() in its host.
 builder.Services.AddFluentUIComponents();

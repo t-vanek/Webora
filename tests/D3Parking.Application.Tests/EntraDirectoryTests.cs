@@ -188,6 +188,45 @@ public class EntraDirectoryTests
     }
 
     [Test]
+    public async Task A_rename_onto_an_address_another_account_holds_leaves_the_account_findable()
+    {
+        Guid userId;
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            var created = await CreateService(scope).SyncAsync(Identity("oid-rename", "original@example.test"));
+            Assert.That(created.Succeeded, Is.True);
+            userId = created.UserId;
+
+            await CreateLocalUserAsync(scope, "taken@example.test", emailConfirmed: true);
+        }
+
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            // The directory now asserts, for this account, an address somebody else already holds
+            // here. Identity refuses the update — and the refusal must not be discarded, or the
+            // account is written with the new Email and the old NormalizedEmail and stops being
+            // findable under either.
+            var renamed = await CreateService(scope).SyncAsync(Identity("oid-rename", "taken@example.test"));
+
+            Assert.That(renamed.Succeeded, Is.True,
+                "A refused rename is not a reason to refuse the sign-in itself.");
+        }
+
+        await using (var verify = _provider.CreateAsyncScope())
+        {
+            var userManager = verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            var reloaded = await userManager.FindByIdAsync(userId.ToString());
+            Assert.That(reloaded!.Email, Is.EqualTo("original@example.test"),
+                "The rename must be rolled back whole, not half-applied.");
+
+            var found = await userManager.FindByEmailAsync("original@example.test");
+            Assert.That(found?.Id, Is.EqualTo(userId),
+                "Email and NormalizedEmail must not drift apart — the account has to stay findable.");
+        }
+    }
+
+    [Test]
     public async Task An_account_whose_email_was_never_confirmed_is_not_adopted()
     {
         await using var scope = _provider.CreateAsyncScope();

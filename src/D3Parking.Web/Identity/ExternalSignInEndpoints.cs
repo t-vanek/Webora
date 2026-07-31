@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -149,11 +150,28 @@ public static class ExternalSignInEndpoints
         // Ending the local session is only half the job: the directory session outlives it, and the
         // next click on "sign in with Microsoft" would sign the same person straight back in with
         // nothing asked — on a shared computer, as whoever used it last.
-        app.MapGet(SignOutPath, async (
+        //
+        // A POST behind authorization and an antiforgery token, like the sign-out page it replaces
+        // for federated accounts. As a GET this would let any page sign a visitor out by embedding
+        // it — and, with nobody signed in, still bounce an anonymous visitor through the directory's
+        // end-session endpoint and sign them out of Microsoft in that browser.
+        app.MapPost(SignOutPath, async (
             HttpContext context,
             SignInManager<ApplicationUser> signInManager,
+            IAntiforgery antiforgery,
             IEntraSettingsService entra) =>
         {
+            try
+            {
+                await antiforgery.ValidateRequestAsync(context);
+            }
+            catch (AntiforgeryValidationException)
+            {
+                // Minimal APIs only get automatic validation when they bind a form, so this is
+                // checked by hand — the same arrangement the notification endpoints use.
+                return Results.LocalRedirect("/logout");
+            }
+
             // Read before the sign-out below deletes the cookie carrying it.
             var idToken = await context.GetTokenAsync(
                 IdentityConstants.ApplicationScheme, EntraAuthenticationExtensions.IdTokenName);
@@ -174,7 +192,7 @@ public static class ExternalSignInEndpoints
             }
 
             return Results.SignOut(properties, [EntraAuthenticationExtensions.Scheme]);
-        });
+        }).RequireAuthorization();
 
         return app;
     }

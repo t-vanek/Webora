@@ -3,7 +3,9 @@
 @using System.ComponentModel.DataAnnotations
 @using D3Parking.Web.Identity
 @inject UserManager<ApplicationUser> UserManager
+@inject IFleetService Fleet
 @inject NavigationManager Nav
+@inject ILogger<Welcome> Logger
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Welcome_Title"]</PageTitle>
@@ -99,6 +101,21 @@
             Nav.NavigateTo($"{ExternalSignInEndpoints.WelcomePath}?returnUrl={Uri.EscapeDataString(Destination)}"
                 + $"&error={Uri.EscapeDataString(string.Join(" ", saved.Errors.Select(e => e.Description)))}");
             return;
+        }
+
+        // Saving the plate is not the point — pairing is. The profile page follows its own save with
+        // SyncUserPlateAsync, and the activation path nudges a matching plate towards the pairing
+        // code; a directory-created account passes through neither, so both belong here or the step
+        // collects an answer and does nothing with it. Advisory, exactly as on the activation path:
+        // a fleet hiccup must not strand someone on their first screen.
+        try
+        {
+            await Fleet.SyncUserPlateAsync(user.Id);
+            await Fleet.NotifyPairableAsync(user.Id);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Fleet pairing after the welcome step of {UserId} failed", user.Id);
         }
 
         Nav.NavigateTo(Destination);
