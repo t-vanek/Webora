@@ -864,6 +864,11 @@
   <data name="Parking_MyReports_Answer" xml:space="preserve"><value>Answer</value></data>
   <data name="Parking_MyReports_AnswerPlaceholder" xml:space="preserve"><value>Your answer…</value></data>
   <data name="Parking_MyReports_Added" xml:space="preserve"><value>Thanks — we've passed that to the manager.</value></data>
+  <data name="Parking_MyReports_Withdraw" xml:space="preserve"><value>Take it back</value></data>
+  <data name="Parking_MyReports_WithdrawHelp" xml:space="preserve"><value>Wrong spot, or the fault has been fixed since? Say so in the box and withdraw the report — the case closes and nobody has to work it. A pending apology voucher goes with it.</value></data>
+  <data name="Parking_MyReports_Withdrawn" xml:space="preserve"><value>The report is withdrawn and the case is closed.</value></data>
+  <data name="Parking_MyReports_Event_Withdrawn" xml:space="preserve"><value>You took the report back</value></data>
+  <data name="Parking_OversightEvent_Withdrawn" xml:space="preserve"><value>The reporter took it back</value></data>
   <data name="Parking_MyReports_Appeal" xml:space="preserve"><value>Appeal</value></data>
   <data name="Parking_MyReports_AppealHelp" xml:space="preserve"><value>Think the ruling is wrong? Say why — the case reopens and someone else looks at it. You can appeal once.</value></data>
   <data name="Parking_MyReports_AppealPlaceholder" xml:space="preserve"><value>Why you think the ruling doesn't hold…</value></data>
@@ -891,6 +896,9 @@
   <data name="Parking_Defect_WholeLot" xml:space="preserve"><value>The lot as a whole</value></data>
   <data name="Parking_Defect_Description" xml:space="preserve"><value>Description</value></data>
   <data name="Parking_Defect_Placeholder" xml:space="preserve"><value>What is wrong…</value></data>
+  <data name="Parking_Defect_Photo" xml:space="preserve"><value>Photo (optional)</value></data>
+  <data name="Parking_Defect_PhotoAttached" xml:space="preserve"><value>The photo is ready to send.</value></data>
+  <data name="Parking_Defect_Error_PhotoTooLarge" xml:space="preserve"><value>That photo is too large (8 MB limit).</value></data>
   <data name="Parking_Defect_Send" xml:space="preserve"><value>Send the report</value></data>
   <data name="Parking_Defect_Sent" xml:space="preserve"><value>Thanks — the lot manager has it.</value></data>
   <data name="Parking_Defect_Error_DescriptionRequired" xml:space="preserve"><value>Please say what is wrong.</value></data>

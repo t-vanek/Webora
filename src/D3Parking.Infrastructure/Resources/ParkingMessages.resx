@@ -86,6 +86,7 @@
   <data name="Parking_Notify_OversightDigest_Title" xml:space="preserve"><value>Provozní dohled — denní souhrn</value></data>
   <data name="Parking_Notify_OversightDigest_Body" xml:space="preserve"><value>Otevřených případů: {0}, z toho po termínu: {1}.</value></data>
   <data name="Parking_Oversight_Reason_Recurrence" xml:space="preserve"><value>Na tomhle místě je to {0}. hlášení za posledních {1} dní — vypadá to na závadu místa, ne na náhodu.</value></data>
+  <data name="Parking_Oversight_Reason_OutsiderPlate" xml:space="preserve"><value>SPZ {0} nepatří žádnému zaměstnanci, vozu z parku ani ohlášené návštěvě — potvrzené vozidlo mimo systém.</value></data>
   <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>Koncentrace dvojice je {0} % u obou stran při {1} vzájemných interakcích.</value></data>
   <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>Noční kontrola dvojici přeměřila: {0} vzájemných interakcí, koncentrace {1} % / {2} %.</value></data>
   <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>dvojice s koncentrací {0} %</value></data>
@@ -98,6 +99,8 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>Odvolání proti rozhodnutí</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>Řidič se odvolal proti rozhodnutí u případu #{0}. Případ je znovu otevřený a nepřiřazený.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>Řidič na dotaz neodpověděl do {0} dní; případ se vrací k rozhodnutí.</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Title" xml:space="preserve"><value>Řidič vzal hlášení zpět</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Body" xml:space="preserve"><value>Případ #{0} stáhl sám ohlašovatel a je uzavřený. Není co řešit.</value></data>
   <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>Dostal(a) jsi případ k řešení</value></data>
   <data name="Parking_Notify_OversightAssigned_Body" xml:space="preserve"><value>Případ #{0} je nově přiřazený tobě.</value></data>
   <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>Rozhodnutí provozního dohledu</value></data>

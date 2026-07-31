@@ -48,6 +48,9 @@ public enum OversightEventType
     /// </summary>
     Appealed,
 
+    /// <summary>The driver took their own report back.</summary>
+    Withdrawn,
+
     /// <summary>
     /// A reviewer opened the prefilled mail to a participant. Recorded because the follow-up
     /// otherwise happens entirely outside the system and the next reviewer cannot tell whether

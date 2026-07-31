@@ -247,6 +247,19 @@ public class OversightCase : Entity
         return true;
     }
 
+    /// <summary>
+    /// Drops an assignee that should never have stuck. <see cref="Resolve"/> credits an unheld
+    /// case to whoever closed it, which is right for a reviewer and wrong for the driver
+    /// withdrawing their own report — they did not work the case, they ended it.
+    /// </summary>
+    public void ClearAssigneeIf(Guid userId)
+    {
+        if (AssigneeId == userId)
+        {
+            AssigneeId = null;
+        }
+    }
+
     /// <summary>Marks activity that changed nothing on the case itself, such as a comment.</summary>
     public void Touch(DateTimeOffset at) => UpdatedAtUtc = at;
 }

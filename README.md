@@ -82,10 +82,11 @@ vyhrazeného místa) a penalizují nedostavení se.
   historií. Opakovaná hlášení na jednom místě zakládají případ rovnou s vyšší prioritou, po uplynutí
   lhůty se ozve systém sám a místo plošného rozesílání chodí adresné zprávy a jeden denní souhrn.
 - **Řidič vidí, co se s jeho hlášením děje** — stránka *Moje hlášení* ukazuje stav, veřejnou část
-  historie a otevřený dotaz správce. Řidič může doplnit informaci, odpovědět, a proti zamítnutému
-  kupónu se **jednou odvolat**. Než odpoví, lhůta případu neběží.
-- **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě; vzniká
-  z toho případ pro správu míst.
+  historie a otevřený dotaz správce. Řidič může doplnit informaci, odpovědět, hlášení **vzít zpět**
+  (čekající kupón tím zaniká) a proti zamítnutému kupónu se **jednou odvolat**. Než odpoví, lhůta
+  případu neběží.
+- **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě, volitelně
+  s fotkou; vzniká z toho případ pro správu míst.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -400,6 +401,13 @@ nemazatelnou historii.
 - **Priorita z opakování:** tři hlášení na jednom místě v okně zakládají případ rovnou jako vysokou
   prioritu, šest jako kritickou — a otevřené případy na tom místě se dozví, že se to stalo znovu.
   Vzorec je celá pointa a jinak ho držitel jednoho případu nikdy neuvidí.
+- **Priorita z cizí SPZ:** opsaná značka se porovná se zaměstnanci, vozovým parkem i **návštěvami
+  přes okno rezervace** — host je známý po dobu své návštěvy a cizí až týden nato. Potvrzené vozidlo
+  mimo systém zvedne prioritu, a když jde o dnešní okno, rovnou na kritickou: zítra je to záznam,
+  dnes je to auto v cestě.
+- **Řidič může hlášení vzít zpět** („spletl jsem si řadu", „už je to opravené"). Případ se uzavře a
+  čekající omluvný kupón s ním zaniká — na vlastní kupón je tohle jediný pohyb, který nepotřebuje
+  hlídat, protože může jen ubrat.
 - **Notifikace jsou adresné.** Okamžitě se ozve jen naléhavý případ; zbytek shrne **jeden denní souhrn
   sečtený na osobu** (kdo drží obě fronty, má jednu hromadu práce, ne dvě). Dřívější plošné rozesílání
   všem administrátorům skončilo — a s ním i to, že výzva k posouzení fotky chodila lidem, kteří na ni

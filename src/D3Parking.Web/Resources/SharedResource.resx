@@ -864,6 +864,11 @@
   <data name="Parking_MyReports_Answer" xml:space="preserve"><value>Odpovědět</value></data>
   <data name="Parking_MyReports_AnswerPlaceholder" xml:space="preserve"><value>Vaše odpověď…</value></data>
   <data name="Parking_MyReports_Added" xml:space="preserve"><value>Díky, předali jsme to správci.</value></data>
+  <data name="Parking_MyReports_Withdraw" xml:space="preserve"><value>Vzít zpět</value></data>
+  <data name="Parking_MyReports_WithdrawHelp" xml:space="preserve"><value>Spletl(a) jste si místo nebo je závada mezitím opravená? Napište to do pole a hlášení stáhněte — případ se uzavře a nikdo ho už nemusí řešit. Čekající omluvný kupón tím zaniká.</value></data>
+  <data name="Parking_MyReports_Withdrawn" xml:space="preserve"><value>Hlášení jsme stáhli, případ je uzavřený.</value></data>
+  <data name="Parking_MyReports_Event_Withdrawn" xml:space="preserve"><value>Vzali jste hlášení zpět</value></data>
+  <data name="Parking_OversightEvent_Withdrawn" xml:space="preserve"><value>Ohlašovatel vzal hlášení zpět</value></data>
   <data name="Parking_MyReports_Appeal" xml:space="preserve"><value>Odvolat se</value></data>
   <data name="Parking_MyReports_AppealHelp" xml:space="preserve"><value>Myslíte si, že rozhodnutí není správné? Napište proč — případ se otevře znovu a posoudí ho někdo další. Odvolat se lze jednou.</value></data>
   <data name="Parking_MyReports_AppealPlaceholder" xml:space="preserve"><value>Proč podle vás rozhodnutí neplatí…</value></data>
@@ -891,6 +896,9 @@
   <data name="Parking_Defect_WholeLot" xml:space="preserve"><value>Celé parkoviště</value></data>
   <data name="Parking_Defect_Description" xml:space="preserve"><value>Popis</value></data>
   <data name="Parking_Defect_Placeholder" xml:space="preserve"><value>Co je špatně…</value></data>
+  <data name="Parking_Defect_Photo" xml:space="preserve"><value>Fotka (nepovinná)</value></data>
+  <data name="Parking_Defect_PhotoAttached" xml:space="preserve"><value>Fotka je připravená k odeslání.</value></data>
+  <data name="Parking_Defect_Error_PhotoTooLarge" xml:space="preserve"><value>Fotka je příliš velká (limit 8 MB).</value></data>
   <data name="Parking_Defect_Send" xml:space="preserve"><value>Odeslat hlášení</value></data>
   <data name="Parking_Defect_Sent" xml:space="preserve"><value>Díky, hlášení jsme předali správci parkoviště.</value></data>
   <data name="Parking_Defect_Error_DescriptionRequired" xml:space="preserve"><value>Napište prosím, co je špatně.</value></data>

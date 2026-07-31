@@ -96,7 +96,15 @@ public interface IOversightService
     /// Reports something wrong with the lot — the one case anybody can open. Refused when the lot
     /// has the channel switched off.
     /// </summary>
-    Task<ParkingResult> ReportDefectAsync(Guid userId, SpotDefectCategory category, string description, Guid? spotId, CancellationToken cancellationToken = default);
+    /// <param name="photo">
+    /// Optional, and optional on purpose: it saves the spot manager a walk, but a defect nobody
+    /// photographed is still worth knowing about.
+    /// </param>
+    Task<ParkingResult> ReportDefectAsync(
+        Guid userId, SpotDefectCategory category, string description, Guid? spotId, BlockedSpotPhoto? photo = null, CancellationToken cancellationToken = default);
+
+    /// <summary>The picture attached to a defect report, or null when there is none.</summary>
+    Task<MismatchPhotoDto?> GetDefectPhotoAsync(Guid defectId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The driver adds something to their own report — an answer to what was asked, or a detail
@@ -109,4 +117,11 @@ public interface IOversightService
     /// whoever picks it up is deciding again rather than confirming themselves.
     /// </summary>
     Task<ParkingResult> AppealAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The driver takes their own report back — they had the wrong spot, or the light works again.
+    /// Closes the case and gives up any apology voucher it was going to earn them, which is why it
+    /// is theirs to do: the only direction it moves value is away from themselves.
+    /// </summary>
+    Task<ParkingResult> WithdrawAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default);
 }

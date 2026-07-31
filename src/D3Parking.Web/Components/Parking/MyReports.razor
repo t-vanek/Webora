@@ -58,6 +58,19 @@
                       Disabled="@_busy" />
         <FluentTextArea @bind-Value="_defectDescription" Rows="3" Style="width:100%"
                         Placeholder="@L["Parking_Defect_Placeholder"]" />
+
+        @* Optional, unlike the blocked-spot proof: a picture saves the manager a walk, but a
+           defect nobody photographed is still worth knowing about. *@
+        <div>
+            <label class="settings-field__label" for="defect-photo">@L["Parking_Defect_Photo"]</label>
+            <InputFile id="defect-photo" OnChange="OnDefectPhotoSelectedAsync"
+                       accept="image/jpeg,image/png,image/webp" capture="environment" />
+            @if (_defectPhoto is not null)
+            {
+                <FluentLabel Typo="Typography.Body" Color="Color.Success">@L["Parking_Defect_PhotoAttached"]</FluentLabel>
+            }
+        </div>
+
         <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
                       OnClick="ReportDefectAsync">@L["Parking_Defect_Send"]</FluentButton>
     </div>
@@ -136,10 +149,17 @@
                         <FluentTextArea Value="@NoteFor(report.Id)" ValueChanged="@(v => _notes[report.Id] = v ?? string.Empty)"
                                         Rows="2" Style="width:100%"
                                         Placeholder="@L[report.Question is null ? "Parking_MyReports_AddPlaceholder" : "Parking_MyReports_AnswerPlaceholder"]" />
-                        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
-                                      OnClick="() => AddNoteAsync(report.Id)">
-                            @L[report.Question is null ? "Parking_MyReports_Add" : "Parking_MyReports_Answer"]
-                        </FluentButton>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                          OnClick="() => AddNoteAsync(report.Id)">
+                                @L[report.Question is null ? "Parking_MyReports_Add" : "Parking_MyReports_Answer"]
+                            </FluentButton>
+                            @* Same box, other button: taking the report back needs a reason just
+                               like adding to it does, and a second field would only ask twice. *@
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                          Title="@L["Parking_MyReports_WithdrawHelp"]"
+                                          OnClick="() => WithdrawAsync(report.Id)">@L["Parking_MyReports_Withdraw"]</FluentButton>
+                        </FluentStack>
                     </FluentStack>
                 }
                 else if (report.CanAppeal)
@@ -171,6 +191,7 @@
     private string _defectCategory = nameof(SpotDefectCategory.Surface);
     private string _defectSpot = string.Empty;
     private string _defectDescription = string.Empty;
+    private BlockedSpotPhoto? _defectPhoto;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
     private bool _busy;
     private string? _error;
@@ -194,6 +215,25 @@
 
     private string NoteFor(Guid caseId) => _notes.GetValueOrDefault(caseId, string.Empty);
 
+    // Buffers the picked photo so the submit sends bytes, not a stream tied to the input's
+    // lifetime. The size cap is enforced right here — OpenReadStream throws past the limit.
+    private async Task OnDefectPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _defectPhoto = null;
+        _error = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: BlockedSpotPhoto.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _defectPhoto = new BlockedSpotPhoto(buffer.ToArray(), e.File.ContentType);
+        }
+        catch (IOException)
+        {
+            _error = "Parking_Defect_Error_PhotoTooLarge";
+        }
+    }
+
     private async Task ReportDefectAsync()
     {
         if (_busy)
@@ -209,12 +249,14 @@
                 _userId,
                 Enum.Parse<SpotDefectCategory>(_defectCategory),
                 _defectDescription,
-                Guid.TryParse(_defectSpot, out var spotId) ? spotId : null);
+                Guid.TryParse(_defectSpot, out var spotId) ? spotId : null,
+                _defectPhoto);
 
             if (result.Succeeded)
             {
                 _info = "Parking_Defect_Sent";
                 _defectDescription = string.Empty;
+                _defectPhoto = null;
             }
             else
             {
@@ -231,6 +273,9 @@
 
     private Task AddNoteAsync(Guid caseId) => RunAsync(
         caseId, body => Oversight.AddParticipantNoteAsync(caseId, body, _userId), "Parking_MyReports_Added");
+
+    private Task WithdrawAsync(Guid caseId) => RunAsync(
+        caseId, reason => Oversight.WithdrawAsync(caseId, reason, _userId), "Parking_MyReports_Withdrawn");
 
     private Task AppealAsync(Guid caseId) => RunAsync(
         caseId, reason => Oversight.AppealAsync(caseId, reason, _userId), "Parking_MyReports_Appealed");

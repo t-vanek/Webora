@@ -94,6 +94,7 @@ public sealed record SpotDefectDto(
     string Description,
     string ReporterName,
     string? ReporterEmail,
+    bool HasPhoto,
     DateTimeOffset ReportedAtUtc);
 
 /// <summary>

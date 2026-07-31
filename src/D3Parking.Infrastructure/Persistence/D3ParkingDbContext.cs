@@ -73,6 +73,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<SpotDefectReport> SpotDefectReports => Set<SpotDefectReport>();
 
+    public DbSet<SpotDefectPhoto> SpotDefectPhotos => Set<SpotDefectPhoto>();
+
     public DbSet<OversightCase> OversightCases => Set<OversightCase>();
 
     public DbSet<OversightCaseEvent> OversightCaseEvents => Set<OversightCaseEvent>();
@@ -419,6 +421,21 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             defect.Property(d => d.Category).HasConversion<string>().HasMaxLength(32);
             defect.Property(d => d.Description).HasMaxLength(2048).IsRequired();
             defect.HasIndex(d => d.ReportedAtUtc);
+        });
+
+        builder.Entity<SpotDefectPhoto>(photo =>
+        {
+            photo.ToTable("SpotDefectPhotos");
+            photo.HasKey(p => p.Id);
+            photo.Property(p => p.ContentType).HasMaxLength(64).IsRequired();
+            // One picture per report, and no fingerprint: this one proves nothing, so the same
+            // photo of a light that is still out may accompany a later report about it.
+            photo.HasIndex(p => p.DefectId).IsUnique();
+
+            photo.HasOne<SpotDefectReport>()
+                .WithMany()
+                .HasForeignKey(p => p.DefectId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<OversightCase>(oversight =>

@@ -86,6 +86,7 @@
   <data name="Parking_Notify_OversightDigest_Title" xml:space="preserve"><value>Operations oversight — daily digest</value></data>
   <data name="Parking_Notify_OversightDigest_Body" xml:space="preserve"><value>Open cases: {0}, of which overdue: {1}.</value></data>
   <data name="Parking_Oversight_Reason_Recurrence" xml:space="preserve"><value>This is report {0} on this spot in the last {1} days — that reads as a fault with the spot, not as bad luck.</value></data>
+  <data name="Parking_Oversight_Reason_OutsiderPlate" xml:space="preserve"><value>Plate {0} belongs to no employee, fleet car or booked visitor — a confirmed vehicle from outside the system.</value></data>
   <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>The pair sits at {0} % concentration on both sides across {1} mutual interactions.</value></data>
   <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>The nightly scan re-measured the pair: {0} mutual interactions, concentration {1} % / {2} %.</value></data>
   <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>a pair at {0} % concentration</value></data>
@@ -98,6 +99,8 @@
   <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
   <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
   <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Title" xml:space="preserve"><value>The driver took their report back</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Body" xml:space="preserve"><value>Case #{0} was withdrawn by the reporter and is closed. Nothing to do.</value></data>
   <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>A case was assigned to you</value></data>
   <data name="Parking_Notify_OversightAssigned_Body" xml:space="preserve"><value>Case #{0} is now yours to work.</value></data>
   <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>An oversight ruling</value></data>

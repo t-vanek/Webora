@@ -6,6 +6,7 @@ using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
+using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
@@ -45,7 +46,7 @@ public sealed class OversightService(
         var mismatches = await dbContext.OccupancyMismatches.AsNoTracking()
             .Where(m => !dbContext.OversightCases.Any(c =>
                 c.Kind == OversightCaseKind.OccupancyMismatch && c.SubjectId == m.Id))
-            .Select(m => new { m.Id, m.SpotId, m.ReporterId, m.ReportedAtUtc })
+            .Select(m => new { m.Id, m.SpotId, m.ReporterId, m.ReportedAtUtc, m.StartUtc, m.EndUtc, m.BlockerPlate })
             .OrderBy(m => m.ReportedAtUtc)
             .ToListAsync(cancellationToken);
 
@@ -69,6 +70,8 @@ public sealed class OversightService(
         }
 
         var settings = await LoadSettingsAsync(dbContext, cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
         var announce = new List<(OversightCase Case, string Subject)>();
 
         foreach (var mismatch in mismatches)
@@ -93,22 +96,40 @@ public sealed class OversightService(
                         && e.Entity.SpotId == mismatch.SpotId && e.Entity.OpenedAtUtc >= since)
                 + 1;
 
-            var priority = repeats >= settings.OversightRecurrenceThreshold * 2 ? OversightCasePriority.Critical
+            var fromRecurrence = repeats >= settings.OversightRecurrenceThreshold * 2 ? OversightCasePriority.Critical
                 : repeats >= settings.OversightRecurrenceThreshold ? OversightCasePriority.High
                 : OversightCasePriority.Normal;
+
+            // A car nobody in the system owns, sitting on somebody's spot: nothing here can be
+            // resolved by the incentive rules, only by a person going out there. Today's window
+            // makes it critical — tomorrow it is a record, today it is a car in the way.
+            var outsider = mismatch.BlockerPlate is { } plate
+                && !await IsKnownPlateAsync(dbContext, plate, mismatch.StartUtc, mismatch.EndUtc, cancellationToken);
+            var fromPlate = !outsider ? OversightCasePriority.Normal
+                : SiteTime.Today(mismatch.StartUtc, timeZone) == SiteTime.Today(now, timeZone)
+                    ? OversightCasePriority.Critical
+                    : OversightCasePriority.High;
+
+            var priority = (OversightCasePriority)Math.Max((int)fromRecurrence, (int)fromPlate);
             opened.OpenAt(priority, settings.SlaFor(priority));
 
-            if (priority != OversightCasePriority.Normal)
+            if (fromRecurrence != OversightCasePriority.Normal)
             {
+                var reason = messages["Parking_Oversight_Reason_Recurrence", repeats, settings.OversightRecurrenceWindowDays];
                 dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromSystem(
-                    opened.Id, OversightEventType.Escalated, mismatch.ReportedAtUtc,
-                    messages["Parking_Oversight_Reason_Recurrence", repeats, settings.OversightRecurrenceWindowDays]));
+                    opened.Id, OversightEventType.Escalated, mismatch.ReportedAtUtc, reason));
 
                 // Tell whoever is already holding an open case on this spot that it happened
                 // again — the pattern is the point, and they would otherwise never see the rest of it.
-                await AppendToOpenCasesOnSpotAsync(dbContext, mismatch.SpotId, opened.Id,
-                    messages["Parking_Oversight_Reason_Recurrence", repeats, settings.OversightRecurrenceWindowDays],
-                    mismatch.ReportedAtUtc, cancellationToken);
+                await AppendToOpenCasesOnSpotAsync(
+                    dbContext, mismatch.SpotId, opened.Id, reason, mismatch.ReportedAtUtc, cancellationToken);
+            }
+
+            if (outsider)
+            {
+                dbContext.OversightCaseEvents.Add(OversightCaseEvent.FromSystem(
+                    opened.Id, OversightEventType.Escalated, mismatch.ReportedAtUtc,
+                    messages["Parking_Oversight_Reason_OutsiderPlate", mismatch.BlockerPlate!]));
             }
 
             announce.Add((opened, await SpotCodeAsync(dbContext, mismatch.SpotId, cancellationToken)));
@@ -166,12 +187,17 @@ public sealed class OversightService(
     }
 
     public async Task<ParkingResult> ReportDefectAsync(
-        Guid userId, SpotDefectCategory category, string description, Guid? spotId, CancellationToken cancellationToken = default)
+        Guid userId, SpotDefectCategory category, string description, Guid? spotId, BlockedSpotPhoto? photo = null, CancellationToken cancellationToken = default)
     {
         var text = description?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             return ParkingResult.Failure("Parking_Defect_Error_DescriptionRequired");
+        }
+
+        if (photo is not null && photo.Content.Length > BlockedSpotPhoto.MaxBytes)
+        {
+            return ParkingResult.Failure("Parking_Defect_Error_PhotoTooLarge");
         }
 
         await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
@@ -182,8 +208,15 @@ public sealed class OversightService(
                 return ParkingResult.Failure("Parking_Defect_Error_Disabled");
             }
 
-            dbContext.SpotDefectReports.Add(
-                new SpotDefectReport(userId, category, text, timeProvider.GetUtcNow(), spotId));
+            var now = timeProvider.GetUtcNow();
+            var report = new SpotDefectReport(userId, category, text, now, spotId);
+            dbContext.SpotDefectReports.Add(report);
+            if (photo is not null)
+            {
+                dbContext.SpotDefectPhotos.Add(
+                    new SpotDefectPhoto(report.Id, photo.ContentType, photo.Content, now));
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
@@ -192,6 +225,49 @@ public sealed class OversightService(
         // sweep to see their own report on the list.
         await EnsureCasesAsync(cancellationToken);
         return ParkingResult.Success;
+    }
+
+    /// <summary>
+    /// Whether the recorded plate belongs to anyone the lot knows: an employee's registered
+    /// vehicle, a fleet car, or a visitor booked over the same window. Visitors are checked
+    /// against the window on purpose — a guest's car is known while their booking runs and a
+    /// stranger's the week after, and calling the first one an outsider would escalate exactly
+    /// the case where nothing is wrong. All three are compared in the one canonical plate form,
+    /// so a plate cannot match here and miss in the reviewer's own panel.
+    /// </summary>
+    private static async Task<bool> IsKnownPlateAsync(
+        D3ParkingDbContext dbContext, string plate, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
+    {
+        var normalized = PlateNormalizer.Normalize(plate);
+        if (normalized.Length == 0)
+        {
+            // Nothing legible was written down, so nothing was confirmed either way.
+            return true;
+        }
+
+        if (await dbContext.CompanyVehicles.AsNoTracking()
+            .AnyAsync(v => v.NormalizedPlate == normalized, cancellationToken))
+        {
+            return true;
+        }
+
+        // Employee and visitor plates are stored as typed, so they are normalized in memory —
+        // the sets are small and the alternative is a query the provider cannot translate.
+        var employeePlates = await dbContext.Users.AsNoTracking()
+            .Where(u => u.LicensePlate != null)
+            .Select(u => u.LicensePlate!)
+            .ToListAsync(cancellationToken);
+        if (employeePlates.Any(p => PlateNormalizer.Normalize(p) == normalized))
+        {
+            return true;
+        }
+
+        var visitorPlates = await dbContext.VisitorBookings.AsNoTracking()
+            .Where(b => b.LicensePlate != null && b.Status == VisitorBookingStatus.Booked
+                && b.StartUtc < endUtc && b.EndUtc > startUtc)
+            .Select(b => b.LicensePlate!)
+            .ToListAsync(cancellationToken);
+        return visitorPlates.Any(p => PlateNormalizer.Normalize(p) == normalized);
     }
 
     /// <summary>
@@ -459,6 +535,15 @@ public sealed class OversightService(
             .FirstOrDefaultAsync(s => s.Id == ParkingSettings.SingletonId, cancellationToken)
         ?? ParkingSettings.CreateDefault();
 
+    public async Task<MismatchPhotoDto?> GetDefectPhotoAsync(Guid defectId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await dbContext.SpotDefectPhotos.AsNoTracking()
+            .Where(p => p.DefectId == defectId)
+            .Select(p => new MismatchPhotoDto(p.Content, p.ContentType))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private static async Task<SpotDefectDto?> LoadDefectAsync(
         D3ParkingDbContext dbContext, Guid defectId, CancellationToken cancellationToken) =>
         await (from d in dbContext.SpotDefectReports.AsNoTracking()
@@ -474,6 +559,8 @@ public sealed class OversightService(
                    d.Description,
                    reporter != null ? (reporter.DisplayName ?? reporter.Email ?? string.Empty) : string.Empty,
                    reporter != null ? reporter.Email : null,
+                   // The bytes stay out of this query; the review fetches them through the endpoint.
+                   dbContext.SpotDefectPhotos.Any(p => p.DefectId == d.Id),
                    d.ReportedAtUtc))
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1142,6 +1229,54 @@ public sealed class OversightService(
             await NotifyReviewersAsync(dbContext, @case.Kind, NotificationLevel.Warning,
                 messages["Parking_Notify_OversightAppeal_Title"],
                 messages["Parking_Notify_OversightAppeal_Body", @case.Number], cancellationToken);
+
+            return ParkingResult.Success;
+        }, cancellationToken);
+    }
+
+    public Task<ParkingResult> WithdrawAsync(Guid caseId, string reason, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var text = reason?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_ReasonRequired"));
+        }
+
+        return MutateAsParticipantAsync(caseId, userId, async (@case, dbContext, now) =>
+        {
+            if (!@case.IsOpen)
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_NotOpen");
+            }
+
+            // The apology goes with the report. Relinquish, not Reject: nobody ruled on anything,
+            // and the holder giving up their own voucher is the one move on it that needs no
+            // guarding — it can only ever cost them.
+            var voucher = await dbContext.ApologyVouchers
+                .FirstOrDefaultAsync(v => v.SourceMismatchId == @case.SubjectId
+                    && v.Status == ApologyVoucherStatus.PendingApproval, cancellationToken);
+            voucher?.Relinquish(now);
+
+            dbContext.OversightCaseEvents.Add(new OversightCaseEvent(
+                @case.Id, OversightEventType.Withdrawn, OversightActor.Participant, now,
+                userId, text, OversightVisibility.Participants));
+
+            // A report taken back did not hold up; a defect taken back was real and is over.
+            var resolution = @case.Kind == OversightCaseKind.OccupancyMismatch
+                ? OversightResolution.Unfounded
+                : OversightResolution.NoActionNeeded;
+            if (!@case.Resolve(resolution, text, reviewerId: userId, now))
+            {
+                return ParkingResult.Failure("Parking_Oversight_Error_AlreadyResolved");
+            }
+
+            // Resolve credits the case to whoever closed it when nobody held it; the driver is not
+            // a reviewer and must not end up looking like the one who worked it.
+            @case.ClearAssigneeIf(userId);
+
+            await NotifyOwnerOrReviewersAsync(dbContext, @case, NotificationLevel.Info,
+                messages["Parking_Notify_OversightWithdrawn_Title"],
+                messages["Parking_Notify_OversightWithdrawn_Body", @case.Number], cancellationToken);
 
             return ParkingResult.Success;
         }, cancellationToken);

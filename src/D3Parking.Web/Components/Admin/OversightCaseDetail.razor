@@ -118,6 +118,21 @@
                             <dd>@(defect.SpotCode ?? L["Parking_Defect_WholeLot"].Value)</dd>
                             <dt>@L["Parking_Defect_Description"]</dt>
                             <dd class="case-timeline__body">@defect.Description</dd>
+                            <dt>@L["Parking_Defect_Photo"]</dt>
+                            <dd>
+                                @if (defect.HasPhoto)
+                                {
+                                    @* target=_blank keeps Blazor's router out; the endpoint checks ManageSpots. *@
+                                    <a href="@($"api/parking/defects/{defect.Id}/photo")" target="_blank" rel="noopener">
+                                        <img src="@($"api/parking/defects/{defect.Id}/photo")" alt="@L["Parking_Defect_Photo"]"
+                                             loading="lazy" class="case-facts__photo" />
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </dd>
                             <dt>@L["Parking_Mismatch_Reporter"]</dt>
                             <dd>
                                 @if (defect.ReporterEmail is { } email)

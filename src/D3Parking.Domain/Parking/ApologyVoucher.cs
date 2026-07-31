@@ -67,6 +67,18 @@ public class ApologyVoucher : Entity
         ReviewedAtUtc = at;
     }
 
+    /// <summary>
+    /// The holder withdrew the report this apologises for, so the voucher goes with it. Not
+    /// <see cref="Reject"/>: nobody ruled on anything, which is why no reviewer is recorded. Safe
+    /// in the holder's own hands precisely because it only ever moves value away from them — the
+    /// guard that stops somebody approving their own apology has nothing to defend here.
+    /// </summary>
+    public void Relinquish(DateTimeOffset at)
+    {
+        Status = ApologyVoucherStatus.Rejected;
+        ReviewedAtUtc = at;
+    }
+
     public void Redeem(Guid reservationId, int waivedCredits, DateTimeOffset at)
     {
         RedeemedAtUtc = at;

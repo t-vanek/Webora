@@ -771,6 +771,123 @@ public class OversightCaseTests
         Assert.That(candidates.Select(c => c.UserId), Does.Not.Contain(collusionReviewer));
     }
 
+    [Test]
+    public async Task A_driver_can_take_their_own_report_back_and_gives_up_the_apology_with_it()
+    {
+        await SeedSettingsAsync();
+        var (driver, reservation) = await SeedBlockedReservationAsync("C-50");
+        var report = await _reservations.ReportBlockedSpotAsync(driver, reservation.Id, relocate: false, Photo(50));
+        Assert.That(report.VoucherGranted, Is.True, report.Error);
+
+        await _oversight.EnsureCasesAsync();
+        var mismatchId = await MismatchIdOfAsync(driver);
+        var caseId = await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, mismatchId);
+
+        Assert.That((await _oversight.WithdrawAsync(caseId, "  ", driver)).Errors,
+            Does.Contain("Parking_Oversight_Error_ReasonRequired"));
+
+        var withdrawn = await _oversight.WithdrawAsync(caseId, "Spletl jsem si řadu, místo bylo volné.", driver);
+        Assert.That(withdrawn.Succeeded, Is.True, withdrawn.Errors.FirstOrDefault());
+
+        var detail = await _oversight.GetCaseAsync(caseId, Both);
+        Assert.That(detail!.Status, Is.EqualTo(OversightCaseStatus.Resolved));
+        Assert.That(detail.Resolution, Is.EqualTo(OversightResolution.Unfounded));
+        Assert.That(detail.AssigneeId, Is.Null,
+            "The driver ended the case; they did not work it, and must not read as its reviewer.");
+        Assert.That(detail.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.Withdrawn));
+
+        await using var db = new D3ParkingDbContext(_options);
+        var voucher = await db.ApologyVouchers.SingleAsync(v => v.SourceMismatchId == mismatchId);
+        Assert.That(voucher.Status, Is.EqualTo(ApologyVoucherStatus.Rejected),
+            "The apology goes with the report — the one move on their own voucher that only costs them.");
+        Assert.That(voucher.ReviewedById, Is.Null, "Nobody ruled on it, so no reviewer is recorded.");
+        Assert.That(await _reservations.GetMyApologyVoucherAsync(driver), Is.Null);
+    }
+
+    [Test]
+    public async Task A_plate_nobody_owns_opens_the_case_urgently()
+    {
+        await SeedSettingsAsync();
+        var spot = await SeedSpotAsync("C-51");
+        var reporter = await SeedUserAsync();
+
+        // Reported for a window happening today: a car in the way right now, not a record.
+        var outsider = new OccupancyMismatch(
+            spot, Guid.NewGuid(), reporter, Now.AddHours(-2), Now.AddHours(1), Now.AddHours(-1), "9XY 4321");
+        await SeedAsync(db => db.OccupancyMismatches.Add(outsider));
+        await _oversight.EnsureCasesAsync();
+
+        var detail = await _oversight.GetCaseAsync(
+            await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, outsider.Id), Both);
+        Assert.That(detail!.Priority, Is.EqualTo(OversightCasePriority.Critical));
+        Assert.That(detail.Timeline.Select(e => e.Type), Does.Contain(OversightEventType.Escalated));
+    }
+
+    [Test]
+    public async Task A_plate_the_lot_knows_is_not_an_outsider()
+    {
+        await SeedSettingsAsync();
+        var spot = await SeedSpotAsync("C-52");
+        var reporter = await SeedUserAsync();
+
+        // Same plate, typed with different spacing and case — the one canonical form must match.
+        await SeedAsync(db => db.Users.Add(new ApplicationUser
+        {
+            UserName = $"owner-{Guid.NewGuid():N}",
+            Email = $"owner-{Guid.NewGuid():N}@test.local",
+            LicensePlate = "5ab 6789",
+        }));
+
+        var known = new OccupancyMismatch(
+            spot, Guid.NewGuid(), reporter, Now.AddHours(-2), Now.AddHours(1), Now.AddHours(-1), "5AB-6789");
+        await SeedAsync(db => db.OccupancyMismatches.Add(known));
+        await _oversight.EnsureCasesAsync();
+
+        var detail = await _oversight.GetCaseAsync(
+            await CaseIdForAsync(OversightCaseKind.OccupancyMismatch, known.Id), Both);
+        Assert.That(detail!.Priority, Is.EqualTo(OversightCasePriority.Normal),
+            "A colleague's car is a conversation, not an emergency.");
+    }
+
+    [Test]
+    public async Task A_defect_can_carry_a_picture_but_does_not_have_to()
+    {
+        await SeedSettingsAsync();
+        var reporter = await SeedUserAsync();
+        var spot = await SeedSpotAsync("C-53");
+
+        await _oversight.ReportDefectAsync(reporter, SpotDefectCategory.Surface, "Díra u sloupu.", spot, Photo(53));
+        await _oversight.ReportDefectAsync(reporter, SpotDefectCategory.Lighting, "Nesvítí lampa.", spot);
+
+        var reports = await _oversight.GetMyReportsAsync(reporter);
+        var withPhoto = await DefectDetailAsync(reports, "Díra u sloupu.");
+        var without = await DefectDetailAsync(reports, "Nesvítí lampa.");
+
+        Assert.That(withPhoto.HasPhoto, Is.True);
+        Assert.That(without.HasPhoto, Is.False, "A defect nobody photographed is still worth knowing about.");
+        Assert.That((await _oversight.GetDefectPhotoAsync(withPhoto.Id))!.Content, Is.EqualTo(Photo(53).Content));
+        Assert.That(await _oversight.GetDefectPhotoAsync(without.Id), Is.Null);
+
+        // The same picture may accompany a second report — it proves nothing, so there is nothing
+        // for a fingerprint to defend against.
+        var again = await _oversight.ReportDefectAsync(reporter, SpotDefectCategory.Surface, "Ta díra je pořád tady.", spot, Photo(53));
+        Assert.That(again.Succeeded, Is.True, again.Errors.FirstOrDefault());
+    }
+
+    private async Task<SpotDefectDto> DefectDetailAsync(IReadOnlyList<MyOversightReportDto> reports, string description)
+    {
+        foreach (var report in reports.Where(r => r.Kind == OversightCaseKind.SpotDefect))
+        {
+            var detail = await _oversight.GetCaseAsync(report.Id, Both);
+            if (detail?.Defect is { } defect && defect.Description == description)
+            {
+                return defect;
+            }
+        }
+
+        throw new InvalidOperationException($"No defect case for '{description}'.");
+    }
+
     // --- seeding ---------------------------------------------------------------------------
 
     private async Task<OccupancyMismatch> SeedMismatchAsync(string spotCode)
