@@ -33,16 +33,32 @@ public class DashboardTests : AdminTest
         await Pages.GotoInteractiveAsync(Page, "/");
 
         var nav = Page.Locator(".side-nav");
-        var expanded = await nav.BoundingBoxAsync();
-        Assert.That(expanded!.Width, Is.GreaterThan(180), "Expanded sidebar should be ~220px wide.");
+        var expanded = await WidthAsync(nav);
+        Assert.That(expanded, Is.GreaterThan(180), "Expanded sidebar should be ~220px wide.");
 
         await Page.Locator(".side-nav__collapse").ClickAsync();
         await Expect(Page.Locator(".side-nav--rail")).ToBeVisibleAsync();
-        var rail = await nav.BoundingBoxAsync();
-        Assert.That(rail!.Width, Is.LessThan(100), "Rail should be ~76px wide.");
+        var rail = await WidthAsync(nav);
+        Assert.That(rail, Is.LessThan(100), "Rail should be ~76px wide.");
 
         await Page.Locator(".side-nav__collapse").ClickAsync();
         await Expect(Page.Locator(".side-nav--rail")).ToHaveCountAsync(0);
+    }
+
+    /// <summary>
+    /// Reads the rendered width of an element once it is actually on screen. BoundingBoxAsync
+    /// does no visibility wait of its own — for an element that is hidden, has no layout box yet
+    /// or was just detached by a hydration re-render it returns null rather than retrying, which
+    /// is how the sidebar spec used to fail intermittently with a NullReferenceException. An
+    /// attached circuit says the island can take clicks, not that it has been laid out, so every
+    /// measurement gates on ToBeVisibleAsync first.
+    /// </summary>
+    private async Task<float> WidthAsync(ILocator locator)
+    {
+        await Expect(locator).ToBeVisibleAsync();
+        var box = await locator.BoundingBoxAsync();
+        Assert.That(box, Is.Not.Null, "Element is visible but reports no bounding box.");
+        return box!.Width;
     }
 
     [Test]
