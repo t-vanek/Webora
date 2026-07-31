@@ -212,7 +212,7 @@ Obojí **bez rizika no-show penalizace**. Součástí záznamu je **povinná fot
 místa** — důkaz, který následně posuzuje správce.
 
 - Pro řidiče je tok záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega,
-  eviduje se **stav místa** (neshoda obsazenosti). Správce ale na `/admin/parking/mismatches` vidí
+  eviduje se **stav místa** (neshoda obsazenosti). Správce ale na `/admin/parking/oversight` vidí
   u každého záznamu i **rezervace, které se s oknem na místě potkaly** — typicky toho, kdo si místo
   rezervoval a nedorazil — a může držitele i ohlašovatele rovnou **kontaktovat e-mailem**
   (předvyplněný mailto s místem a dnem).
@@ -350,7 +350,7 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
    kruh si nenapumpuje skóre.
 8. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
    (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi** a admin dostane
-   notifikaci. Tvrdé akce řeší admin ručně na stránce *Podezřelé interakce* (false-positive bezpečné).
+   notifikaci. Tvrdé akce řeší admin ručně na stránce *Provozní dohled* (false-positive bezpečné).
 9. **Odměny za dokončení max. 1× za den**, check-in jen kolem okna rezervace a dokončení až po jeho
    začátku — smyčka rezervuj→check-in→dokonči nefarmí ani body, ani kredity.
 10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; záznam vyžaduje **fotodůkaz**,

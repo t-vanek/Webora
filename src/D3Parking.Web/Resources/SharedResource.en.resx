@@ -824,14 +824,22 @@
   <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Pair weight cap in the trust graph</value></data>
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Scan interval (hours)</value></data>
   <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Open the review of suspicious pairs →</value></data>
-  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Suspicious interactions</value></data>
+  <data name="Parking_Oversight_Title" xml:space="preserve"><value>Operations oversight</value></data>
+  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>Everything the lot flags for a human decision: occupancy mismatches reported by drivers, and pairs whose sharing the nightly scan found suspicious. The number in the heading counts the cases still awaiting a ruling.</value></data>
+  <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Cases awaiting a ruling</value></data>
+  <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Reload</value></data>
+  <data name="Parking_Oversight_Records" xml:space="preserve"><value>Records</value></data>
+  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Suspicious pairs</value></data>
   <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Pairs whose sharing is too concentrated on each other. Review and either keep on record or dismiss as a false positive.</value></data>
   <data name="Parking_Collusion_Empty" xml:space="preserve"><value>No suspicious pairs.</value></data>
   <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pair</value></data>
   <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Mutual</value></data>
   <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Concentration</value></data>
+  <data name="Parking_Collusion_DetectedAt" xml:space="preserve"><value>Detected</value></data>
   <data name="Parking_Collusion_Review" xml:space="preserve"><value>Reviewed</value></data>
   <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Parking_Collusion_ReviewedInfo" xml:space="preserve"><value>The pair is marked reviewed and stays on record.</value></data>
+  <data name="Parking_Collusion_DismissedInfo" xml:space="preserve"><value>The pair was dismissed as a false positive; future scans leave it alone.</value></data>
   <data name="Parking_CollusionState_New" xml:space="preserve"><value>New</value></data>
   <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Reviewed</value></data>
   <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Dismissed</value></data>
@@ -1132,10 +1140,8 @@
   <data name="Lot_Queue_Refused" xml:space="preserve"><value>Distribution of rejected demand</value></data>
   <data name="Nav_AdminAudit" xml:space="preserve"><value>Audit trail</value></data>
   <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
-  <data name="Nav_AdminMismatches" xml:space="preserve"><value>Mismatches</value></data>
-  <data name="Nav_Short_Mismatches" xml:space="preserve"><value>Mismat.</value></data>
-  <data name="Nav_AdminCollusion" xml:space="preserve"><value>Suspicious pairs</value></data>
-  <data name="Nav_Short_Collusion" xml:space="preserve"><value>Pairs</value></data>
+  <data name="Nav_AdminOversight" xml:space="preserve"><value>Oversight</value></data>
+  <data name="Nav_Short_Oversight" xml:space="preserve"><value>Overs.</value></data>
   <data name="Home_Card_Analytics" xml:space="preserve"><value>Occupancy, trends and turned-away demand</value></data>
   <data name="Home_Card_Audit" xml:space="preserve"><value>History of account and permission changes</value></data>
   <data name="Perm_Parking_View" xml:space="preserve"><value>See the lot</value></data>

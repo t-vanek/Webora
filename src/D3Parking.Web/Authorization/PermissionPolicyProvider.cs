@@ -22,7 +22,8 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         {
             var policy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .AddRequirements(new PermissionRequirement(policyName[Prefix.Length..]))
+                .AddRequirements(new PermissionRequirement(
+                    policyName[Prefix.Length..].Split(PermissionPolicies.AnySeparator)))
                 .Build();
 
             return Task.FromResult<AuthorizationPolicy?>(policy);
