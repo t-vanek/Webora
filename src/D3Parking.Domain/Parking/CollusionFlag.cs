@@ -7,6 +7,13 @@ namespace D3Parking.Domain.Parking;
 /// collusion ring. Detected automatically; hard action is left to an administrator. The pair is stored
 /// with <see cref="UserA"/> &lt; <see cref="UserB"/> so each pair has one stable flag.
 /// </summary>
+/// <remarks>
+/// The flag is the measurement, not the verdict: how it was ruled on lives on the oversight case
+/// opened for it. It used to carry a status of its own, which meant a pair could be "reviewed" here
+/// and unresolved there — two answers to one question. The scan reads the case's resolution instead
+/// (see <c>CollusionService.ScanAsync</c>), so a dismissal still keeps the pair from being raised
+/// again.
+/// </remarks>
 public class CollusionFlag : Entity
 {
     public Guid UserA { get; private set; }
@@ -21,8 +28,6 @@ public class CollusionFlag : Entity
 
     /// <summary>Percent of UserB's interactions that are with UserA.</summary>
     public int ConcentrationBPercent { get; private set; }
-
-    public CollusionFlagStatus Status { get; private set; } = CollusionFlagStatus.New;
 
     public DateTimeOffset DetectedAtUtc { get; private set; }
 
@@ -44,24 +49,12 @@ public class CollusionFlag : Entity
     /// <summary>The ordered key for a pair, matching how the flag stores its users.</summary>
     public static (Guid A, Guid B) Key(Guid x, Guid y) => x.CompareTo(y) <= 0 ? (x, y) : (y, x);
 
-    /// <summary>Refreshes the metrics on a re-scan (does not revive a dismissed flag).</summary>
+    /// <summary>Refreshes the metrics on a re-scan.</summary>
     public void Update(int mutualInteractions, int concentrationAPercent, int concentrationBPercent, DateTimeOffset at)
     {
         MutualInteractions = mutualInteractions;
         ConcentrationAPercent = concentrationAPercent;
         ConcentrationBPercent = concentrationBPercent;
-        UpdatedAtUtc = at;
-    }
-
-    public void MarkReviewed(DateTimeOffset at)
-    {
-        Status = CollusionFlagStatus.Reviewed;
-        UpdatedAtUtc = at;
-    }
-
-    public void Dismiss(DateTimeOffset at)
-    {
-        Status = CollusionFlagStatus.Dismissed;
         UpdatedAtUtc = at;
     }
 }

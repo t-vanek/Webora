@@ -416,9 +416,6 @@
   <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>No other spot is free right now. The state was recorded and the reservation cancelled with a full refund — consider joining the queue.</value></data>
   <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>A spot's state can be recorded only during the reservation window.</value></data>
   <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>You've reached today's limit for recorded spot states.</value></data>
-  <data name="Parking_Mismatch_Title" xml:space="preserve"><value>Occupancy mismatches</value></data>
-  <data name="Parking_Mismatch_Intro" xml:space="preserve"><value>Drivers recorded that they couldn't park at their reserved spot. Each record shows the reservations that met the window on that spot — typically whoever reserved it and never arrived — so you can contact them directly by email. For records with a pending apology voucher, judge the photo proof and approve or reject the voucher.</value></data>
-  <data name="Parking_Mismatch_Empty" xml:space="preserve"><value>No mismatches — every spot works as it should.</value></data>
   <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Window</value></data>
   <data name="Parking_Mismatch_ReportedAt" xml:space="preserve"><value>Recorded</value></data>
   <data name="Parking_Mismatch_RelocatedTo" xml:space="preserve"><value>Replacement spot</value></data>
@@ -547,9 +544,14 @@
   <data name="Help_Visitors_A1" xml:space="preserve"><value>Under Visitors, pick the window and a free visitor spot, then fill in the guest's name (company and plate are recommended). The guest needs no account and no credits.</value></data>
   <data name="Help_Visitors_A2" xml:space="preserve"><value>If you pick a host, they get a notification telling them where their guest parks. Visitor spots are carved out of the regular pool, so employees cannot take them — they are managed only here.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>There is no active "Visitor" spot yet — until you create one under Parking spots, the visitor agenda has nothing to offer.</value></data>
-  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Occupancy mismatches — who blocked the spot</value></data>
-  <data name="Help_Mismatch_A1" xml:space="preserve"><value>When a driver reports that they couldn't park at their reserved spot, the record shows up under Occupancy mismatches. Each row lists the bookings that met the window on that spot — typically whoever booked it and never arrived — and you can email them in one click.</value></data>
-  <data name="Help_Mismatch_A2" xml:space="preserve"><value>If the driver noted the plate, the system matches it against registered employee vehicles and visitor bookings. "Not in the system" means a vehicle nobody has registered — grounds for security or the lot rules. Repeated mismatches on one spot point to a lasting problem.</value></data>
+  <data name="Help_MyReports_Q" xml:space="preserve"><value>My reports — what happens to them, and how to report a defect</value></data>
+  <data name="Help_MyReports_A1" xml:space="preserve"><value>The My reports page shows where each of your blocked-spot reports stands: being checked, waiting on you, or settled. Whatever the manager has written to you about it is there too.</value></data>
+  <data name="Help_MyReports_A2" xml:space="preserve"><value>When the manager asks you something, you answer right there — and the case deadline is paused until you do, so nobody is rushing you. You can add something unprompted at any time. If your apology voucher is rejected and you believe that is wrong, you can appeal once; somebody else then looks at the case.</value></data>
+  <data name="Help_MyReports_A3" xml:space="preserve"><value>The same page is where you report something wrong with the lot — a stuck barrier, a light out, missing markings, something left on a bay. It does not have to be your spot or your booking.</value></data>
+  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Operations oversight — cases to decide</value></data>
+  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Everything waiting on a human decision sits in Operations oversight as a case with a number, an owner and a deadline: "couldn't park" reports, suspicious pairs from the nightly scan, and defects people have reported. On a report you see the photo proof and the bookings that met the window on that spot — typically whoever booked it and never arrived — and you can email them in one click.</value></data>
+  <data name="Help_Mismatch_A2" xml:space="preserve"><value>If the driver noted the plate, the system matches it against registered employee vehicles and visitor bookings. "Not in the system" means a vehicle nobody has registered — grounds for security or the lot rules. Repeated reports on one spot open their case at a higher priority, and the other open cases on that spot are told about it.</value></data>
+  <data name="Help_Mismatch_A3" xml:space="preserve"><value>You take a case with a button, you can ask the driver something (the deadline pauses until they answer), and you close it with a verdict. Approving or rejecting the apology voucher closes the case with it — it is the same decision. The case history is never erased: internal notes are yours alone, the ones meant for the driver are visible to them too.</value></data>
   <data name="Help_Rules_Q" xml:space="preserve"><value>Rules, pricing and free-capacity announcements</value></data>
   <data name="Help_Rules_A1" xml:space="preserve"><value>Rules and pricing tunes the whole economy at runtime: base price and surcharges, points and penalties, tiers and their perks, the queue, resident rules and the anti-abuse limits. Changes take effect immediately, with no redeployment.</value></data>
   <data name="Help_Rules_State_Pricing" xml:space="preserve"><value>Adaptive pricing (a controller tunes the peak surcharge toward a target occupancy): {0}.</value></data>
@@ -825,24 +827,211 @@
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Scan interval (hours)</value></data>
   <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Open the review of suspicious pairs →</value></data>
   <data name="Parking_Oversight_Title" xml:space="preserve"><value>Operations oversight</value></data>
-  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>Everything the lot flags for a human decision: occupancy mismatches reported by drivers, and pairs whose sharing the nightly scan found suspicious. The number in the heading counts the cases still awaiting a ruling.</value></data>
-  <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Cases awaiting a ruling</value></data>
+  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>One queue of cases over everything at the lot waiting on a human decision: occupancy mismatches reported by drivers, pairs whose sharing the nightly scan found suspicious, and defects people have reported. A case knows who is working it, what has already been tried, and how it ended.</value></data>
+  <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Open cases</value></data>
   <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Reload</value></data>
   <data name="Parking_Oversight_Records" xml:space="preserve"><value>Records</value></data>
-  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Suspicious pairs</value></data>
-  <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Pairs whose sharing is too concentrated on each other. Review and either keep on record or dismiss as a false positive.</value></data>
-  <data name="Parking_Collusion_Empty" xml:space="preserve"><value>No suspicious pairs.</value></data>
+  <data name="Parking_Oversight_Empty" xml:space="preserve"><value>No cases to show.</value></data>
+  <data name="Parking_Settings_OversightSection" xml:space="preserve"><value>Operations oversight</value></data>
+  <data name="Parking_Settings_OversightHelp" xml:space="preserve"><value>How long a case of each priority may stay open. Past the deadline it is marked overdue and whoever holds it is told. Repeated reports on one spot open their case at a higher priority straight away.</value></data>
+  <data name="Parking_Settings_OversightSlaCritical" xml:space="preserve"><value>Deadline for critical (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaHigh" xml:space="preserve"><value>Deadline for high (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaNormal" xml:space="preserve"><value>Deadline for normal (hours)</value></data>
+  <data name="Parking_Settings_OversightSlaLow" xml:space="preserve"><value>Deadline for low (hours)</value></data>
+  <data name="Parking_Settings_OversightRecurrenceThreshold" xml:space="preserve"><value>Reports on a spot before it is a pattern</value></data>
+  <data name="Parking_Settings_OversightRecurrenceWindow" xml:space="preserve"><value>Recurrence window (days)</value></data>
+  <data name="Parking_Settings_OversightDigestHour" xml:space="preserve"><value>Hour of the daily digest</value></data>
+  <data name="Parking_Settings_OversightInfoDeadline" xml:space="preserve"><value>Deadline for the driver's answer (days)</value></data>
+  <data name="Parking_Oversight_Question" xml:space="preserve"><value>Question for the driver</value></data>
+  <data name="Parking_Oversight_RequestInfo" xml:space="preserve"><value>Ask the driver</value></data>
+  <data name="Parking_Oversight_InfoRequested" xml:space="preserve"><value>The question is with the driver; the case deadline is paused until they answer.</value></data>
+  <data name="Parking_Oversight_AwaitingHelp" xml:space="preserve"><value>Waiting for the driver's answer. The case deadline is paused meanwhile; if no answer comes, the case returns for a decision by itself.</value></data>
+  <data name="Parking_Oversight_Error_QuestionRequired" xml:space="preserve"><value>Write what you are asking.</value></data>
+  <data name="Parking_Oversight_Error_NoParticipant" xml:space="preserve"><value>This case has nobody to ask.</value></data>
+  <data name="Parking_Oversight_Error_NotInProgress" xml:space="preserve"><value>Only a case being worked on can carry a question.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyAppealed" xml:space="preserve"><value>You have already appealed this ruling once.</value></data>
+  <data name="Parking_OversightStatus_AwaitingInfo" xml:space="preserve"><value>Waiting on the driver</value></data>
+  <data name="Parking_OversightEvent_InfoRequested" xml:space="preserve"><value>Question for the driver</value></data>
+  <data name="Parking_OversightEvent_InfoProvided" xml:space="preserve"><value>Added by the driver</value></data>
+  <data name="Parking_OversightEvent_Appealed" xml:space="preserve"><value>Driver's appeal</value></data>
+  <data name="Parking_MyReports_Title" xml:space="preserve"><value>My reports</value></data>
+  <data name="Parking_MyReports_Intro" xml:space="preserve"><value>What is happening with your blocked-spot reports: where each one stands, what the manager is asking you, and how it ended. You can answer or add something right here.</value></data>
+  <data name="Parking_MyReports_Empty" xml:space="preserve"><value>You haven't reported anything yet.</value></data>
+  <data name="Parking_MyReports_Reported" xml:space="preserve"><value>Reported</value></data>
+  <data name="Parking_MyReports_Question" xml:space="preserve"><value>The manager asks:</value></data>
+  <data name="Parking_MyReports_Add" xml:space="preserve"><value>Add to the report</value></data>
+  <data name="Parking_MyReports_AddPlaceholder" xml:space="preserve"><value>Anything to add?</value></data>
+  <data name="Parking_MyReports_Answer" xml:space="preserve"><value>Answer</value></data>
+  <data name="Parking_MyReports_AnswerPlaceholder" xml:space="preserve"><value>Your answer…</value></data>
+  <data name="Parking_MyReports_Added" xml:space="preserve"><value>Thanks — we've passed that to the manager.</value></data>
+  <data name="Parking_MyReports_Withdraw" xml:space="preserve"><value>Take it back</value></data>
+  <data name="Parking_MyReports_WithdrawHelp" xml:space="preserve"><value>Wrong spot, or the fault has been fixed since? Say so in the box and withdraw the report — the case closes and nobody has to work it. A pending apology voucher goes with it.</value></data>
+  <data name="Parking_MyReports_Withdrawn" xml:space="preserve"><value>The report is withdrawn and the case is closed.</value></data>
+  <data name="Parking_MyReports_Event_Withdrawn" xml:space="preserve"><value>You took the report back</value></data>
+  <data name="Parking_OversightEvent_Withdrawn" xml:space="preserve"><value>The reporter took it back</value></data>
+  <data name="Parking_MyReports_Appeal" xml:space="preserve"><value>Appeal</value></data>
+  <data name="Parking_MyReports_AppealHelp" xml:space="preserve"><value>Think the ruling is wrong? Say why — the case reopens and someone else looks at it. You can appeal once.</value></data>
+  <data name="Parking_MyReports_AppealPlaceholder" xml:space="preserve"><value>Why you think the ruling doesn't hold…</value></data>
+  <data name="Parking_MyReports_Appealed" xml:space="preserve"><value>Your appeal is in; the case is open again.</value></data>
+  <data name="Parking_MyReports_State_New" xml:space="preserve"><value>Received</value></data>
+  <data name="Parking_MyReports_State_InProgress" xml:space="preserve"><value>Being checked</value></data>
+  <data name="Parking_MyReports_State_AwaitingInfo" xml:space="preserve"><value>Waiting on you</value></data>
+  <data name="Parking_MyReports_State_Resolved" xml:space="preserve"><value>Settled</value></data>
+  <data name="Parking_MyReports_Event_InfoRequested" xml:space="preserve"><value>Question from the manager</value></data>
+  <data name="Parking_MyReports_Event_InfoProvided" xml:space="preserve"><value>What you added</value></data>
+  <data name="Parking_MyReports_Event_Appealed" xml:space="preserve"><value>Your appeal</value></data>
+  <data name="Parking_MyReports_Event_Comment" xml:space="preserve"><value>Message from the manager</value></data>
+  <data name="Parking_MyReports_Event_VoucherApproved" xml:space="preserve"><value>Voucher approved</value></data>
+  <data name="Parking_MyReports_Event_VoucherRejected" xml:space="preserve"><value>Voucher rejected</value></data>
+  <data name="Nav_MyReports" xml:space="preserve"><value>My reports</value></data>
+  <data name="Nav_Short_MyReports" xml:space="preserve"><value>Reports</value></data>
+  <data name="Parking_Settings_OversightUserReports" xml:space="preserve"><value>Accept defect reports from users</value></data>
+  <data name="Parking_OversightKind_SpotDefect" xml:space="preserve"><value>Lot defect</value></data>
+  <data name="Parking_OversightEvent_Sanctioned" xml:space="preserve"><value>Ruling against a person</value></data>
+  <data name="Parking_MyReports_Event_Sanctioned" xml:space="preserve"><value>Ruling against you</value></data>
+  <data name="Parking_OversightKind_NoShowDispute" xml:space="preserve"><value>Disputed no-show</value></data>
+  <data name="Parking_Settings_OversightDisputeWindow" xml:space="preserve"><value>Window for disputing a no-show (days)</value></data>
+  <data name="Parking_Dispute_Title" xml:space="preserve"><value>Disagree with a no-show penalty?</value></data>
+  <data name="Parking_Dispute_Help" xml:space="preserve"><value>If the system marked you a no-show unfairly — you were in hospital, the barrier would not let you in, the spot was blocked — say so and a manager will look at it. An upheld dispute returns the points and credits and lifts the waitlist ban.</value></data>
+  <data name="Parking_Dispute_Amounts" xml:space="preserve"><value>{0} points and {1} credits deducted</value></data>
+  <data name="Parking_Dispute_Placeholder" xml:space="preserve"><value>What happened…</value></data>
+  <data name="Parking_Dispute_Send" xml:space="preserve"><value>Dispute it</value></data>
+  <data name="Parking_Dispute_Sent" xml:space="preserve"><value>Your dispute is in; a manager will look at it.</value></data>
+  <data name="Parking_Dispute_Deducted" xml:space="preserve"><value>Penalty</value></data>
+  <data name="Parking_Dispute_Standing" xml:space="preserve"><value>Penalty stands</value></data>
+  <data name="Parking_Dispute_Reversed" xml:space="preserve"><value>Penalty reversed</value></data>
+  <data name="Parking_Dispute_Reverse" xml:space="preserve"><value>Reverse the penalty</value></data>
+  <data name="Parking_Dispute_ReverseHelp" xml:space="preserve"><value>Gives back exactly what the no-show took — points, the credit fine, the waitlist ban and the allowance cut — and closes the case. The completion streak cannot be restored.</value></data>
+  <data name="Parking_Dispute_Reversed_Info" xml:space="preserve"><value>The penalty is reversed and the driver has been notified.</value></data>
+  <data name="Parking_Oversight_Error_NotDisputable" xml:space="preserve"><value>That booking cannot be disputed.</value></data>
+  <data name="Parking_Oversight_Error_DisputeWindowClosed" xml:space="preserve"><value>The window for disputing this penalty has closed.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyDisputed" xml:space="preserve"><value>You have already disputed this penalty.</value></data>
+  <data name="Parking_Oversight_Error_NotADispute" xml:space="preserve"><value>This case is not a no-show dispute.</value></data>
+  <data name="Parking_Oversight_Error_NothingToReverse" xml:space="preserve"><value>There is nothing to give back on this booking.</value></data>
+  <data name="Parking_Defect_Report" xml:space="preserve"><value>Report something wrong with the lot</value></data>
+  <data name="Parking_Defect_Help" xml:space="preserve"><value>Barrier stuck, light out, markings gone, a pallet left on a bay? Say so here — the lot manager sees it as a case to deal with.</value></data>
+  <data name="Parking_Defect_Category" xml:space="preserve"><value>What it concerns</value></data>
+  <data name="Parking_Defect_Spot" xml:space="preserve"><value>Spot</value></data>
+  <data name="Parking_Defect_WholeLot" xml:space="preserve"><value>The lot as a whole</value></data>
+  <data name="Parking_Defect_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Parking_Defect_Placeholder" xml:space="preserve"><value>What is wrong…</value></data>
+  <data name="Parking_Defect_Photo" xml:space="preserve"><value>Photo (optional)</value></data>
+  <data name="Parking_Defect_PhotoAttached" xml:space="preserve"><value>The photo is ready to send.</value></data>
+  <data name="Parking_Defect_Error_PhotoTooLarge" xml:space="preserve"><value>That photo is too large (8 MB limit).</value></data>
+  <data name="Parking_Defect_Send" xml:space="preserve"><value>Send the report</value></data>
+  <data name="Parking_Defect_Sent" xml:space="preserve"><value>Thanks — the lot manager has it.</value></data>
+  <data name="Parking_Defect_Error_DescriptionRequired" xml:space="preserve"><value>Please say what is wrong.</value></data>
+  <data name="Parking_Defect_Error_Disabled" xml:space="preserve"><value>Defect reporting is switched off for this lot.</value></data>
+  <data name="Parking_DefectCategory_Surface" xml:space="preserve"><value>Surface and ground</value></data>
+  <data name="Parking_DefectCategory_Markings" xml:space="preserve"><value>Markings and signage</value></data>
+  <data name="Parking_DefectCategory_Access" xml:space="preserve"><value>Barrier and entry</value></data>
+  <data name="Parking_DefectCategory_Lighting" xml:space="preserve"><value>Lighting</value></data>
+  <data name="Parking_DefectCategory_Obstruction" xml:space="preserve"><value>Something in the way</value></data>
+  <data name="Parking_DefectCategory_Other" xml:space="preserve"><value>Something else</value></data>
+  <data name="Parking_Oversight_AssignTo" xml:space="preserve"><value>Hand to a colleague</value></data>
+  <data name="Parking_Oversight_Assign" xml:space="preserve"><value>Assign</value></data>
+  <data name="Parking_Oversight_Assigned" xml:space="preserve"><value>The case is assigned and they have been notified.</value></data>
+  <data name="Parking_OversightEvent_Assigned" xml:space="preserve"><value>Handed to a colleague</value></data>
+  <data name="Parking_Oversight_Error_MayNotAssign" xml:space="preserve"><value>You may not assign cases to other people.</value></data>
+  <data name="Parking_Oversight_Error_NotAReviewer" xml:space="preserve"><value>That person cannot see cases of this kind.</value></data>
+  <data name="Perm_Parking_AssignOversight" xml:space="preserve"><value>Assign oversight cases to others</value></data>
+  <data name="Perm_Parking_AssignOversight_Desc" xml:space="preserve"><value>Hands a case to a named colleague. Anyone who can see a case may take it; this is the right to put work on somebody else's desk.</value></data>
+  <data name="Parking_Oversight_Sanction" xml:space="preserve"><value>Ruling against a person</value></data>
+  <data name="Parking_Oversight_SanctionHelp" xml:space="preserve"><value>A formal warning, optionally with points and credits deducted. It goes on the case history, the account's audit trail and the points ledger, and the person is notified with the reason. Leave the deductions at zero for a warning alone.</value></data>
+  <data name="Parking_Oversight_SanctionTarget" xml:space="preserve"><value>Who it concerns</value></data>
+  <data name="Parking_Oversight_SanctionPoints" xml:space="preserve"><value>Deduct points</value></data>
+  <data name="Parking_Oversight_SanctionCredits" xml:space="preserve"><value>Deduct credits</value></data>
+  <data name="Parking_Oversight_SanctionReason" xml:space="preserve"><value>Reason (the person will see it)</value></data>
+  <data name="Parking_Oversight_SanctionApply" xml:space="preserve"><value>Record the ruling</value></data>
+  <data name="Parking_Oversight_Sanctioned" xml:space="preserve"><value>The ruling is recorded and the person has been notified.</value></data>
+  <data name="Parking_Oversight_Error_MayNotSanction" xml:space="preserve"><value>You may not rule against a person.</value></data>
+  <data name="Parking_Oversight_Error_NotAParty" xml:space="preserve"><value>This person is not a party to the case.</value></data>
+  <data name="Parking_Oversight_Error_SanctionSelf" xml:space="preserve"><value>You cannot rule against yourself.</value></data>
+  <data name="Home_Card_Oversight" xml:space="preserve"><value>{0} cases waiting for a decision.</value></data>
+  <data name="Parking_Oversight_Views" xml:space="preserve"><value>Queue views</value></data>
+  <data name="Parking_Oversight_View_Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="Parking_Oversight_Due" xml:space="preserve"><value>Due</value></data>
+  <data name="Parking_Oversight_Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="Parking_OversightEvent_Escalated" xml:space="preserve"><value>Priority raised by the system</value></data>
+  <data name="Parking_OversightEvent_SlaBreached" xml:space="preserve"><value>Deadline passed</value></data>
+  <data name="Parking_OversightEvent_SignalUpdated" xml:space="preserve"><value>New finding on this case</value></data>
+  <data name="Parking_Oversight_View_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Parking_Oversight_View_Mine" xml:space="preserve"><value>Mine</value></data>
+  <data name="Parking_Oversight_View_Unassigned" xml:space="preserve"><value>Unassigned</value></data>
+  <data name="Parking_Oversight_View_All" xml:space="preserve"><value>All</value></data>
+  <data name="Parking_Oversight_Number" xml:space="preserve"><value>Case</value></data>
+  <data name="Parking_Oversight_Kind" xml:space="preserve"><value>Type</value></data>
+  <data name="Parking_Oversight_Subject" xml:space="preserve"><value>Subject</value></data>
+  <data name="Parking_Oversight_Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="Parking_Oversight_Assignee" xml:space="preserve"><value>Owner</value></data>
+  <data name="Parking_Oversight_Unassigned" xml:space="preserve"><value>Nobody</value></data>
+  <data name="Parking_Oversight_Opened" xml:space="preserve"><value>Opened</value></data>
+  <data name="Parking_Oversight_Claim" xml:space="preserve"><value>Take it</value></data>
+  <data name="Parking_Oversight_Release" xml:space="preserve"><value>Back to the queue</value></data>
+  <data name="Parking_Oversight_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Parking_Oversight_Back" xml:space="preserve"><value>Back to the queue</value></data>
+  <data name="Parking_Oversight_AllKinds" xml:space="preserve"><value>All types</value></data>
+  <data name="Parking_Oversight_AllPriorities" xml:space="preserve"><value>All priorities</value></data>
+  <data name="Parking_Oversight_SearchHint" xml:space="preserve"><value>Case number, spot or name</value></data>
+  <data name="Parking_Oversight_Facts" xml:space="preserve"><value>Facts</value></data>
+  <data name="Parking_Oversight_Timeline" xml:space="preserve"><value>Case history</value></data>
+  <data name="Parking_Oversight_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Parking_Oversight_Visible" xml:space="preserve"><value>Shown to participants</value></data>
+  <data name="Parking_Oversight_CommentPlaceholder" xml:space="preserve"><value>A note on this case…</value></data>
+  <data name="Parking_Oversight_CommentVisible" xml:space="preserve"><value>Show to participants</value></data>
+  <data name="Parking_Oversight_AddComment" xml:space="preserve"><value>Add note</value></data>
+  <data name="Parking_Oversight_Resolution" xml:space="preserve"><value>Verdict</value></data>
+  <data name="Parking_Oversight_ResolutionNote" xml:space="preserve"><value>Reason</value></data>
+  <data name="Parking_Oversight_Resolve" xml:space="preserve"><value>Close the case</value></data>
+  <data name="Parking_Oversight_ResolvedAt" xml:space="preserve"><value>Closed</value></data>
+  <data name="Parking_Oversight_Reopen" xml:space="preserve"><value>Reopen</value></data>
+  <data name="Parking_Oversight_ReopenReason" xml:space="preserve"><value>Why reopen</value></data>
+  <data name="Parking_Oversight_NotFound" xml:space="preserve"><value>No such case, or you may not see it.</value></data>
+  <data name="Parking_Oversight_EvidenceGone" xml:space="preserve"><value>The evidence behind this case is no longer in the system; only the record of how it was closed remains.</value></data>
+  <data name="Parking_Oversight_Claimed" xml:space="preserve"><value>The case is yours.</value></data>
+  <data name="Parking_Oversight_Released" xml:space="preserve"><value>The case is back in the queue.</value></data>
+  <data name="Parking_Oversight_Commented" xml:space="preserve"><value>The note was added to the case history.</value></data>
+  <data name="Parking_Oversight_PriorityChanged" xml:space="preserve"><value>Priority changed.</value></data>
+  <data name="Parking_Oversight_ResolvedInfo" xml:space="preserve"><value>The case is closed.</value></data>
+  <data name="Parking_Oversight_ReopenedInfo" xml:space="preserve"><value>The case is open again and assigned to you.</value></data>
+  <data name="Parking_Oversight_Error_NotFound" xml:space="preserve"><value>No such case, or you may not see it.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyAssigned" xml:space="preserve"><value>Another reviewer has already taken this case.</value></data>
+  <data name="Parking_Oversight_Error_NotOpen" xml:space="preserve"><value>The case is already closed.</value></data>
+  <data name="Parking_Oversight_Error_AlreadyResolved" xml:space="preserve"><value>Another reviewer has already closed this case.</value></data>
+  <data name="Parking_Oversight_Error_NotResolved" xml:space="preserve"><value>Only a closed case can be reopened.</value></data>
+  <data name="Parking_Oversight_Error_EmptyComment" xml:space="preserve"><value>An empty note cannot be saved.</value></data>
+  <data name="Parking_Oversight_Error_ReasonRequired" xml:space="preserve"><value>A reason is required here.</value></data>
+  <data name="Parking_Oversight_Error_NoVoucher" xml:space="preserve"><value>This case has no voucher awaiting a ruling.</value></data>
+  <data name="Parking_OversightKind_OccupancyMismatch" xml:space="preserve"><value>Occupancy mismatch</value></data>
+  <data name="Parking_OversightKind_CollusionRing" xml:space="preserve"><value>Suspicious pair</value></data>
+  <data name="Parking_OversightStatus_New" xml:space="preserve"><value>New</value></data>
+  <data name="Parking_OversightStatus_InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="Parking_OversightStatus_Resolved" xml:space="preserve"><value>Closed</value></data>
+  <data name="Parking_OversightPriority_Low" xml:space="preserve"><value>Low</value></data>
+  <data name="Parking_OversightPriority_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Parking_OversightPriority_High" xml:space="preserve"><value>High</value></data>
+  <data name="Parking_OversightPriority_Critical" xml:space="preserve"><value>Critical</value></data>
+  <data name="Parking_OversightResolution_Founded" xml:space="preserve"><value>Founded</value></data>
+  <data name="Parking_OversightResolution_Unfounded" xml:space="preserve"><value>False alarm</value></data>
+  <data name="Parking_OversightResolution_NoActionNeeded" xml:space="preserve"><value>No action needed</value></data>
+  <data name="Parking_OversightEvent_Opened" xml:space="preserve"><value>Case opened</value></data>
+  <data name="Parking_OversightEvent_Claimed" xml:space="preserve"><value>Taken on</value></data>
+  <data name="Parking_OversightEvent_Released" xml:space="preserve"><value>Back to the queue</value></data>
+  <data name="Parking_OversightEvent_PriorityChanged" xml:space="preserve"><value>Priority changed</value></data>
+  <data name="Parking_OversightEvent_Comment" xml:space="preserve"><value>Note</value></data>
+  <data name="Parking_OversightEvent_ContactedByEmail" xml:space="preserve"><value>Contacted by email</value></data>
+  <data name="Parking_OversightEvent_VoucherApproved" xml:space="preserve"><value>Voucher approved</value></data>
+  <data name="Parking_OversightEvent_VoucherRejected" xml:space="preserve"><value>Voucher rejected</value></data>
+  <data name="Parking_OversightEvent_Resolved" xml:space="preserve"><value>Case closed</value></data>
+  <data name="Parking_OversightEvent_Reopened" xml:space="preserve"><value>Case reopened</value></data>
+  <data name="Parking_OversightActor_System" xml:space="preserve"><value>System</value></data>
+  <data name="Parking_OversightActor_Reviewer" xml:space="preserve"><value>Reviewer</value></data>
+  <data name="Parking_OversightActor_Participant" xml:space="preserve"><value>Participant</value></data>
   <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pair</value></data>
-  <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Mutual</value></data>
+  <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Mutual interactions</value></data>
   <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Concentration</value></data>
   <data name="Parking_Collusion_DetectedAt" xml:space="preserve"><value>Detected</value></data>
-  <data name="Parking_Collusion_Review" xml:space="preserve"><value>Reviewed</value></data>
-  <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Dismiss</value></data>
-  <data name="Parking_Collusion_ReviewedInfo" xml:space="preserve"><value>The pair is marked reviewed and stays on record.</value></data>
-  <data name="Parking_Collusion_DismissedInfo" xml:space="preserve"><value>The pair was dismissed as a false positive; future scans leave it alone.</value></data>
-  <data name="Parking_CollusionState_New" xml:space="preserve"><value>New</value></data>
-  <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Reviewed</value></data>
-  <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Dismissed</value></data>
+  <data name="Parking_Collusion_UpdatedAt" xml:space="preserve"><value>Last re-measured</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Tier perks</value></data>
   <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Tangible perks growing with each tier reached: an earlier position in the waitlist for freed spots, a higher monthly credit allowance and a discount on the reservation price.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Waitlist head start per tier (min)</value></data>
@@ -1166,6 +1355,8 @@
   <data name="Perm_Parking_ManageIncentives_Desc" xml:space="preserve"><value>Sets point values, thresholds and loyalty tiers.</value></data>
   <data name="Perm_Parking_ReviewCollusion" xml:space="preserve"><value>Review suspicious pairs</value></data>
   <data name="Perm_Parking_ReviewCollusion_Desc" xml:space="preserve"><value>Reviews and decides collusion flags raised against named users.</value></data>
+  <data name="Perm_Parking_SanctionOversight" xml:space="preserve"><value>Rule against people from oversight cases</value></data>
+  <data name="Perm_Parking_SanctionOversight_Desc" xml:space="preserve"><value>Issues a formal warning from a case and deducts points or credits from a participant. Held apart from reviewing evidence — what a ruling costs somebody is a different responsibility from whether the evidence holds.</value></data>
   <data name="Perm_Parking_VerifyResidency" xml:space="preserve"><value>Verify home address</value></data>
   <data name="Perm_Parking_VerifyResidency_Desc" xml:space="preserve"><value>Confirms a user's home address, which decides their commute-based entitlements.</value></data>
   <data name="Perm_Users_View" xml:space="preserve"><value>See users</value></data>
@@ -1267,6 +1458,7 @@
   <data name="Audit_Type_RolePermissionsChanged" xml:space="preserve"><value>Role permissions changed</value></data>
   <data name="Audit_Type_SettingsChanged" xml:space="preserve"><value>Settings changed</value></data>
   <data name="Audit_Type_ReservationOverridden" xml:space="preserve"><value>Reservation overridden</value></data>
+  <data name="Audit_Type_OversightSanctioned" xml:space="preserve"><value>Oversight ruling</value></data>
   <data name="Audit_Type_PasswordChanged" xml:space="preserve"><value>Password changed</value></data>
   <data name="Audit_Type_PasswordResetRequested" xml:space="preserve"><value>Password reset requested</value></data>
   <data name="Audit_Type_PasswordReset" xml:space="preserve"><value>Password reset</value></data>

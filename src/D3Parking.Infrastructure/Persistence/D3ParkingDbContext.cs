@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
+using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Domain.Settings;
@@ -14,6 +15,12 @@ namespace D3Parking.Infrastructure.Persistence;
 public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
+    /// <summary>Backs <see cref="OversightCase.Number"/>; named here so the mapping and the migration agree.</summary>
+    public const string OversightCaseNumberSequence = "OversightCaseNumbers";
+
+    /// <summary>Shadow insertion ordinal on <see cref="OversightCaseEvent"/>: the timeline's tiebreaker.</summary>
+    public const string OversightEventOrdinal = "Ordinal";
+
     public DbSet<PermissionGroup> PermissionGroups => Set<PermissionGroup>();
 
     public DbSet<RolePermissionGroup> RolePermissionGroups => Set<RolePermissionGroup>();
@@ -63,6 +70,14 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     public DbSet<CollusionFlag> CollusionFlags => Set<CollusionFlag>();
 
     public DbSet<CompanyVehicle> CompanyVehicles => Set<CompanyVehicle>();
+
+    public DbSet<SpotDefectReport> SpotDefectReports => Set<SpotDefectReport>();
+
+    public DbSet<SpotDefectPhoto> SpotDefectPhotos => Set<SpotDefectPhoto>();
+
+    public DbSet<OversightCase> OversightCases => Set<OversightCase>();
+
+    public DbSet<OversightCaseEvent> OversightCaseEvents => Set<OversightCaseEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -396,10 +411,95 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         {
             flag.ToTable("CollusionFlags");
             flag.HasKey(f => f.Id);
-            flag.Property(f => f.Status).HasConversion<string>().HasMaxLength(16);
             flag.HasIndex(f => new { f.UserA, f.UserB }).IsUnique();
-            flag.HasIndex(f => f.Status);
         });
+
+        builder.Entity<SpotDefectReport>(defect =>
+        {
+            defect.ToTable("SpotDefectReports");
+            defect.HasKey(d => d.Id);
+            defect.Property(d => d.Category).HasConversion<string>().HasMaxLength(32);
+            defect.Property(d => d.Description).HasMaxLength(2048).IsRequired();
+            defect.HasIndex(d => d.ReportedAtUtc);
+        });
+
+        builder.Entity<SpotDefectPhoto>(photo =>
+        {
+            photo.ToTable("SpotDefectPhotos");
+            photo.HasKey(p => p.Id);
+            photo.Property(p => p.ContentType).HasMaxLength(64).IsRequired();
+            // One picture per report, and no fingerprint: this one proves nothing, so the same
+            // photo of a light that is still out may accompany a later report about it.
+            photo.HasIndex(p => p.DefectId).IsUnique();
+
+            photo.HasOne<SpotDefectReport>()
+                .WithMany()
+                .HasForeignKey(p => p.DefectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<OversightCase>(oversight =>
+        {
+            oversight.ToTable("OversightCases");
+            oversight.HasKey(c => c.Id);
+            oversight.Property(c => c.Kind).HasConversion<string>().HasMaxLength(32);
+            oversight.Property(c => c.Status).HasConversion<string>().HasMaxLength(16);
+            oversight.Property(c => c.Priority).HasConversion<string>().HasMaxLength(16);
+            oversight.Property(c => c.Resolution).HasConversion<string>().HasMaxLength(24);
+            oversight.Property(c => c.ResolutionNote).HasMaxLength(2048);
+
+            // The short handle reviewers quote to each other, from a sequence rather than a count:
+            // two cases opened in the same sweep must not race to the same number, and a number
+            // must never be reused after a case is gone.
+            oversight.Property(c => c.Number)
+                .HasDefaultValueSql($"NEXT VALUE FOR [{OversightCaseNumberSequence}]")
+                .ValueGeneratedOnAdd();
+            oversight.HasIndex(c => c.Number).IsUnique();
+
+            // One case per signal — the ingest is idempotent because of this index, not because it
+            // remembers what it has already seen.
+            oversight.HasIndex(c => new { c.Kind, c.SubjectId }).IsUnique();
+            // The queue's shapes: the open list newest-activity-first, and "mine".
+            oversight.HasIndex(c => new { c.Status, c.UpdatedAtUtc });
+            oversight.HasIndex(c => new { c.AssigneeId, c.Status });
+            // Two sweeps read by this one: the overdue view, and the breach detection that has to
+            // find the handful of open cases past their deadline without walking the archive.
+            oversight.HasIndex(c => new { c.Status, c.DueAtUtc });
+            // Recurrence counts reports per spot within a window.
+            oversight.HasIndex(c => new { c.SpotId, c.OpenedAtUtc });
+            // "My reports": every driver's own page load asks this one.
+            oversight.HasIndex(c => new { c.ReporterId, c.OpenedAtUtc });
+
+            // Shadow rowversion: two reviewers land on the same fresh case and both press a
+            // button. The loser must re-read and meet the guard ("already decided"), not overwrite
+            // the ruling that got there first.
+            oversight.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<OversightCaseEvent>(entry =>
+        {
+            entry.ToTable("OversightCaseEvents");
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Type).HasConversion<string>().HasMaxLength(32);
+            entry.Property(e => e.Actor).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.Visibility).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.Body).HasMaxLength(4000);
+            entry.HasIndex(e => new { e.CaseId, e.OccurredAtUtc });
+
+            // Two entries can share a timestamp — ruling on a voucher writes its own line and the
+            // case's close-out in one act — and then a timestamp alone cannot order them. The
+            // insertion ordinal is what keeps the history in the order it happened; it is a shadow
+            // property because insertion order is the storage's business, not the domain's.
+            entry.Property<long>(OversightEventOrdinal).ValueGeneratedOnAdd().UseIdentityColumn();
+
+            // The history dies with the case it belongs to and with nothing else.
+            entry.HasOne<OversightCase>()
+                .WithMany()
+                .HasForeignKey(e => e.CaseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.HasSequence<int>(OversightCaseNumberSequence).StartsAt(1).IncrementsBy(1);
 
         builder.Entity<Reservation>(reservation =>
         {
@@ -490,6 +590,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.CollusionMinInteractions).HasDefaultValue(4);
             settings.Property(s => s.CollusionConcentrationPercent).HasDefaultValue(70);
             settings.Property(s => s.CollusionScanIntervalHours).HasDefaultValue(24);
+            settings.Property(s => s.OversightSlaCriticalHours).HasDefaultValue(4);
+            settings.Property(s => s.OversightSlaHighHours).HasDefaultValue(24);
+            settings.Property(s => s.OversightSlaNormalHours).HasDefaultValue(72);
+            settings.Property(s => s.OversightSlaLowHours).HasDefaultValue(168);
+            settings.Property(s => s.OversightRecurrenceWindowDays).HasDefaultValue(30);
+            settings.Property(s => s.OversightRecurrenceThreshold).HasDefaultValue(3);
+            settings.Property(s => s.OversightDigestHourLocal).HasDefaultValue(8);
+            settings.Property(s => s.OversightInfoDeadlineDays).HasDefaultValue(7);
+            settings.Property(s => s.OversightAllowUserReports).HasDefaultValue(true);
         });
 
         // Registers the OpenIddict entity sets (applications, authorizations, scopes, tokens).

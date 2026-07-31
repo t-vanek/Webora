@@ -1,0 +1,358 @@
+@page "/parking/reports"
+@attribute [HasPermission(Permissions.Parking.View)]
+@rendermode InteractiveServer
+@inject IOversightService Oversight
+@inject IParkingSpotService Spots
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_MyReports_Title"]</PageTitle>
+
+@* The driver's side of the oversight desk. Until this page a report vanished the moment it was
+   filed: the only sign anything had happened was a voucher appearing, or not appearing, with no
+   way to tell "still being looked at" from "decided against you".
+
+   What it shows is deliberately not the reviewer's screen. No internal notes — those are filtered
+   out in the query, not here, so a template that forgets cannot leak one — and no reviewer's name:
+   the driver is owed the decision and its reasons, not a colleague to corner about it. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head__titles">
+        <FluentLabel Typo="Typography.PageTitle">@L["Parking_MyReports_Title"]</FluentLabel>
+        <p class="admin-head__intro">@L["Parking_MyReports_Intro"]</p>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">
+            @L[_error]
+        </FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">
+            @L[_info]
+        </FluentMessageBar>
+    }
+
+    @* The one case anybody can open. A burnt-out light or a skip across two bays is invisible to
+       every sweep and every scan, so until somebody says so it does not exist. *@
+    <div class="admin-panel case-section">
+        <FluentLabel Typo="Typography.H5">@L["Parking_Defect_Report"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Defect_Help"]</FluentLabel>
+        <FluentSelect TOption="string"
+                      Label="@L["Parking_Defect_Category"]"
+                      Items="@DefectCategories"
+                      OptionValue="@(c => c)"
+                      OptionText="@(c => L[$"Parking_DefectCategory_{c}"])"
+                      @bind-Value="_defectCategory"
+                      Disabled="@_busy" />
+        @* The empty option is first and means the lot itself: a broken barrier belongs to nobody's
+           parking space. *@
+        <FluentSelect TOption="string"
+                      Label="@L["Parking_Defect_Spot"]"
+                      Items="@_spotOptions"
+                      OptionValue="@(s => s)"
+                      OptionText="@(s => s.Length == 0 ? L["Parking_Defect_WholeLot"].Value : _spotCodes.GetValueOrDefault(s, s))"
+                      @bind-Value="_defectSpot"
+                      Disabled="@_busy" />
+        <FluentTextArea @bind-Value="_defectDescription" Rows="3" Style="width:100%"
+                        Placeholder="@L["Parking_Defect_Placeholder"]" />
+
+        @* Optional, unlike the blocked-spot proof: a picture saves the manager a walk, but a
+           defect nobody photographed is still worth knowing about. *@
+        <div>
+            <label class="settings-field__label" for="defect-photo">@L["Parking_Defect_Photo"]</label>
+            <InputFile id="defect-photo" OnChange="OnDefectPhotoSelectedAsync"
+                       accept="image/jpeg,image/png,image/webp" capture="environment" />
+            @if (_defectPhoto is not null)
+            {
+                <FluentLabel Typo="Typography.Body" Color="Color.Success">@L["Parking_Defect_PhotoAttached"]</FluentLabel>
+            }
+        </div>
+
+        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                      OnClick="ReportDefectAsync">@L["Parking_Defect_Send"]</FluentButton>
+    </div>
+
+    @* Until this, a no-show penalty was final and wordless: points gone, streak reset, credit
+       forfeited, and nowhere to say "I was in hospital" or "the barrier never let me in". *@
+    @if (_noShows.Count > 0)
+    {
+        <div class="admin-panel case-section">
+            <FluentLabel Typo="Typography.H5">@L["Parking_Dispute_Title"]</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Dispute_Help"]</FluentLabel>
+            @foreach (var noShow in _noShows)
+            {
+                <div class="case-facts">
+                    <dt>@noShow.SpotCode</dt>
+                    <dd>
+                        @Local(noShow.StartUtc, "g") – @Local(noShow.EndUtc, "t")
+                        <text> · </text>
+                        @L["Parking_Dispute_Amounts", noShow.PointsLost, noShow.CreditsLost]
+                    </dd>
+                </div>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <FluentTextArea Value="@NoteFor(noShow.ReservationId)"
+                                    ValueChanged="@(v => _notes[noShow.ReservationId] = v ?? string.Empty)"
+                                    Rows="2" Style="width:100%" Placeholder="@L["Parking_Dispute_Placeholder"]" />
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                  OnClick="() => DisputeAsync(noShow.ReservationId)">@L["Parking_Dispute_Send"]</FluentButton>
+                </FluentStack>
+            }
+        </div>
+    }
+
+    @if (_reports is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_reports.Count == 0)
+    {
+        <div class="empty-state">@L["Parking_MyReports_Empty"]</div>
+    }
+    else
+    {
+        @foreach (var report in _reports)
+        {
+            <div class="admin-panel case-section">
+                <div class="admin-head__title-row">
+                    <FluentLabel Typo="Typography.H5">
+                        #@report.Number — @L[$"Parking_OversightKind_{report.Kind}"]
+                        @if (!string.IsNullOrEmpty(report.SpotCode))
+                        {
+                            <text> · @report.SpotCode</text>
+                        }
+                    </FluentLabel>
+                    <span class="state-pill state-pill--@StatusClass(report.Status)">
+                        @L[$"Parking_MyReports_State_{report.Status}"]
+                    </span>
+                    @if (report.VoucherStatus is { } voucher)
+                    {
+                        <FluentBadge Appearance="@(voucher == ApologyVoucherStatus.Approved ? Appearance.Accent : Appearance.Neutral)">
+                            @L[$"Parking_VoucherState_{voucher}"]
+                        </FluentBadge>
+                    }
+                </div>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                    @L["Parking_MyReports_Reported"]: @Local(report.OpenedAtUtc, "g")
+                </FluentLabel>
+
+                @* The open question goes above everything else: it is the one thing on this page
+                   that is waiting on the person reading it. *@
+                @if (report.Question is { } question)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar" AllowDismiss="false">
+                        <strong>@L["Parking_MyReports_Question"]</strong>
+                        <div>@question</div>
+                    </FluentMessageBar>
+                }
+
+                @if (report.Timeline.Count > 0)
+                {
+                    <ol class="case-timeline">
+                        @foreach (var entry in report.Timeline)
+                        {
+                            <li class="case-timeline__item case-timeline__item--@entry.Actor.ToString().ToLowerInvariant()">
+                                <div class="case-timeline__head">
+                                    <strong>@L[$"Parking_MyReports_Event_{entry.Type}"]</strong>
+                                    <span class="case-timeline__meta">
+                                        @L[$"Parking_OversightActor_{entry.Actor}"]
+                                        <text> · </text>
+                                        @Local(entry.OccurredAtUtc, "g")
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(entry.Body))
+                                {
+                                    <p class="case-timeline__body">@entry.Body</p>
+                                }
+                            </li>
+                        }
+                    </ol>
+                }
+
+                @if (report.Status != OversightCaseStatus.Resolved)
+                {
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentTextArea Value="@NoteFor(report.Id)" ValueChanged="@(v => _notes[report.Id] = v ?? string.Empty)"
+                                        Rows="2" Style="width:100%"
+                                        Placeholder="@L[report.Question is null ? "Parking_MyReports_AddPlaceholder" : "Parking_MyReports_AnswerPlaceholder"]" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                          OnClick="() => AddNoteAsync(report.Id)">
+                                @L[report.Question is null ? "Parking_MyReports_Add" : "Parking_MyReports_Answer"]
+                            </FluentButton>
+                            @* Same box, other button: taking the report back needs a reason just
+                               like adding to it does, and a second field would only ask twice. *@
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                          Title="@L["Parking_MyReports_WithdrawHelp"]"
+                                          OnClick="() => WithdrawAsync(report.Id)">@L["Parking_MyReports_Withdraw"]</FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                }
+                else if (report.CanAppeal)
+                {
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_MyReports_AppealHelp"]</FluentLabel>
+                        <FluentTextArea Value="@NoteFor(report.Id)" ValueChanged="@(v => _notes[report.Id] = v ?? string.Empty)"
+                                        Rows="2" Style="width:100%"
+                                        Placeholder="@L["Parking_MyReports_AppealPlaceholder"]" />
+                        <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                      OnClick="() => AppealAsync(report.Id)">@L["Parking_MyReports_Appeal"]</FluentButton>
+                    </FluentStack>
+                }
+            </div>
+        }
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private static readonly string[] DefectCategories = Enum.GetNames<SpotDefectCategory>();
+
+    private Guid _userId;
+    private IReadOnlyList<MyOversightReportDto>? _reports;
+    private IReadOnlyList<NoShowDisputeDto> _noShows = [];
+    private readonly Dictionary<Guid, string> _notes = [];
+    private string[] _spotOptions = [string.Empty];
+    private Dictionary<string, string> _spotCodes = [];
+    private string _defectCategory = nameof(SpotDefectCategory.Surface);
+    private string _defectSpot = string.Empty;
+    private string _defectDescription = string.Empty;
+    private BlockedSpotPhoto? _defectPhoto;
+    private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+    private bool _busy;
+    private string? _error;
+    private string? _info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserManager.GetUserAsync((await AuthState!).User);
+        _userId = user?.Id ?? Guid.Empty;
+        _tz = await SiteSettings.GetTimeZoneAsync();
+
+        // Retired spots are left out: nothing anyone can report about them is still actionable.
+        var spots = await Spots.ListAsync(includeInactive: false);
+        _spotCodes = spots.ToDictionary(s => s.Id.ToString(), s => s.Code);
+        _spotOptions = [string.Empty, .. spots.Select(s => s.Id.ToString())];
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _reports = await Oversight.GetMyReportsAsync(_userId);
+        _noShows = await Oversight.GetDisputableNoShowsAsync(_userId);
+    }
+
+    private Task DisputeAsync(Guid reservationId) => RunAsync(
+        reservationId, reason => Oversight.DisputeNoShowAsync(reservationId, reason, _userId), "Parking_Dispute_Sent");
+
+    private string NoteFor(Guid caseId) => _notes.GetValueOrDefault(caseId, string.Empty);
+
+    // Buffers the picked photo so the submit sends bytes, not a stream tied to the input's
+    // lifetime. The size cap is enforced right here — OpenReadStream throws past the limit.
+    private async Task OnDefectPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _defectPhoto = null;
+        _error = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: BlockedSpotPhoto.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _defectPhoto = new BlockedSpotPhoto(buffer.ToArray(), e.File.ContentType);
+        }
+        catch (IOException)
+        {
+            _error = "Parking_Defect_Error_PhotoTooLarge";
+        }
+    }
+
+    private async Task ReportDefectAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _error = _info = null;
+            var result = await Oversight.ReportDefectAsync(
+                _userId,
+                Enum.Parse<SpotDefectCategory>(_defectCategory),
+                _defectDescription,
+                Guid.TryParse(_defectSpot, out var spotId) ? spotId : null,
+                _defectPhoto);
+
+            if (result.Succeeded)
+            {
+                _info = "Parking_Defect_Sent";
+                _defectDescription = string.Empty;
+                _defectPhoto = null;
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task AddNoteAsync(Guid caseId) => RunAsync(
+        caseId, body => Oversight.AddParticipantNoteAsync(caseId, body, _userId), "Parking_MyReports_Added");
+
+    private Task WithdrawAsync(Guid caseId) => RunAsync(
+        caseId, reason => Oversight.WithdrawAsync(caseId, reason, _userId), "Parking_MyReports_Withdrawn");
+
+    private Task AppealAsync(Guid caseId) => RunAsync(
+        caseId, reason => Oversight.AppealAsync(caseId, reason, _userId), "Parking_MyReports_Appealed");
+
+    private async Task RunAsync(Guid caseId, Func<string, Task<ParkingResult>> action, string successKey)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _error = _info = null;
+            var result = await action(NoteFor(caseId));
+            if (result.Succeeded)
+            {
+                _info = successKey;
+                _notes.Remove(caseId);
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string StatusClass(OversightCaseStatus status) => status switch
+    {
+        OversightCaseStatus.AwaitingInfo => "warn",
+        OversightCaseStatus.Resolved => "off",
+        _ => "info",
+    };
+
+    private string Local(DateTimeOffset utc, string format) =>
+        TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+}

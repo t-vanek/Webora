@@ -22,6 +22,8 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("OversightCaseNumbers");
+
             modelBuilder.Entity("D3Parking.Domain.Accounts.AccountAuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -264,6 +266,143 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.ToTable("PushSubscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("D3Parking.Domain.Oversight.OversightCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("AwaitingSinceUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DueAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("Number")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValueSql("NEXT VALUE FOR [OversightCaseNumbers]");
+
+                    b.Property<DateTimeOffset>("OpenedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid?>("ReporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("SlaBreachedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("SpotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("AssigneeId", "Status");
+
+                    b.HasIndex("Kind", "SubjectId")
+                        .IsUnique();
+
+                    b.HasIndex("ReporterId", "OpenedAtUtc");
+
+                    b.HasIndex("SpotId", "OpenedAtUtc");
+
+                    b.HasIndex("Status", "DueAtUtc");
+
+                    b.HasIndex("Status", "UpdatedAtUtc");
+
+                    b.ToTable("OversightCases", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Oversight.OversightCaseEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("Ordinal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Ordinal"));
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId", "OccurredAtUtc");
+
+                    b.ToTable("OversightCaseEvents", (string)null);
+                });
+
             modelBuilder.Entity("D3Parking.Domain.Parking.ApologyVoucher", b =>
                 {
                     b.Property<Guid>("Id")
@@ -366,11 +505,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<int>("MutualInteractions")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -381,8 +515,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Status");
 
                     b.HasIndex("UserA", "UserB")
                         .IsUnique();
@@ -775,6 +907,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastCollusionScanUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("LastOversightDigestUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastTrustComputeUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -823,6 +958,54 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("OffPeakBonusPoints")
                         .HasColumnType("int");
+
+                    b.Property<bool>("OversightAllowUserReports")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("OversightDigestHourLocal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(8);
+
+                    b.Property<int>("OversightDisputeWindowDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OversightInfoDeadlineDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(7);
+
+                    b.Property<int>("OversightRecurrenceThreshold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(3);
+
+                    b.Property<int>("OversightRecurrenceWindowDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("OversightSlaCriticalHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
+
+                    b.Property<int>("OversightSlaHighHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(24);
+
+                    b.Property<int>("OversightSlaLowHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(168);
+
+                    b.Property<int>("OversightSlaNormalHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(72);
 
                     b.Property<TimeOnly>("PeakEnd")
                         .HasColumnType("time");
@@ -1132,6 +1315,70 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "StartUtc");
 
                     b.ToTable("Reservations", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.SpotDefectPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UploadedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefectId")
+                        .IsUnique();
+
+                    b.ToTable("SpotDefectPhotos", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.SpotDefectReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<DateTimeOffset>("ReportedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SpotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportedAtUtc");
+
+                    b.ToTable("SpotDefectReports", (string)null);
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.SpotRelease", b =>
@@ -1879,6 +2126,24 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.HasOne("D3Parking.Infrastructure.Identity.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Oversight.OversightCaseEvent", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Oversight.OversightCase", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.SpotDefectPhoto", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Parking.SpotDefectReport", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

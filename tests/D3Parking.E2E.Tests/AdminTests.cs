@@ -194,38 +194,43 @@ public class AdminTests : AdminTest
     }
 
     [Test]
-    public async Task Oversight_carries_both_review_queues_as_tabs()
+    public async Task Oversight_is_one_queue_of_cases_with_saved_views()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/oversight");
-        await Expect(Page.Locator("fluent-tab", new() { HasText = "Neshody obsazenosti" })).ToBeVisibleAsync();
-        await Expect(Page.Locator("fluent-tab", new() { HasText = "Podezřelé dvojice" })).ToBeVisibleAsync();
+
+        // The two review queues are one list now; what used to be tabs are views over it.
+        foreach (var view in new[] { "Otevřené", "Moje", "Nepřiřazené", "Vše" })
+        {
+            await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex(view) })).ToBeVisibleAsync();
+        }
 
         // The shared database persists between runs, so rows may legitimately exist: assert the
-        // open queue renders one of its two states (empty state or a grid), not emptiness.
+        // queue renders one of its two states (empty state or a grid), not emptiness.
         await Expect(Page.Locator(".empty-state").Or(Page.Locator(".admin-panel")).First).ToBeVisibleAsync();
     }
 
     [Test]
-    public async Task The_retired_collusion_route_still_opens_and_lands_on_its_own_tab()
+    public async Task The_retired_queue_routes_still_open_the_oversight_desk()
     {
-        // Bookmarks and older deep links point at the page the queue used to have to itself.
-        await Pages.GotoInteractiveAsync(Page, "/admin/parking/collusion");
-
-        // Each queue's intro is unique to its panel, and FluentTabs hides the panel that is not
-        // open — so this asserts the landing tab, not merely that the page rendered.
-        await Expect(Page.GetByText(new Regex("Páry, jejichž sdílení"))).ToBeVisibleAsync();
-        await Expect(Page.GetByText(new Regex("Řidiči zaznamenali"))).ToBeHiddenAsync();
+        // Bookmarks and older deep links point at the pages the two queues used to have to
+        // themselves; both now land on the merged desk rather than on a 404.
+        foreach (var retired in new[] { "/admin/parking/collusion", "/admin/parking/mismatches" })
+        {
+            await Pages.GotoInteractiveAsync(Page, retired);
+            await Expect(Page.GetByText(new Regex("Jedna fronta případů"))).ToBeVisibleAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Otevřené") })).ToBeVisibleAsync();
+        }
     }
 
     [Test]
-    public async Task Switching_queues_moves_the_address_bar_onto_the_open_one()
+    public async Task Switching_a_view_moves_the_address_bar_onto_it()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/oversight");
-        await Page.Locator("fluent-tab", new() { HasText = "Podezřelé dvojice" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Nepřiřazené") }).ClickAsync();
 
-        // The selection has to hold: FluentTabs snaps back to the first tab if a panel's children
-        // are swapped underneath it, and the URL is what makes a queue linkable.
-        await Expect(Page).ToHaveURLAsync(new Regex("/admin/parking/oversight/collusion$"));
-        await Expect(Page.GetByText(new Regex("Páry, jejichž sdílení"))).ToBeVisibleAsync();
+        // The URL is what makes a view linkable, and aria-pressed is what says which toggle is on.
+        await Expect(Page).ToHaveURLAsync(new Regex("/admin/parking/oversight/unassigned$"));
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Nepřiřazené") }))
+            .ToHaveAttributeAsync("aria-pressed", "true");
     }
 }

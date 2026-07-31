@@ -4,6 +4,7 @@
 @inject IReservationService Reservations
 @inject IIncentiveService Incentives
 @inject IResidentSpotService ResidentSpots
+@inject IOversightService Oversight
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
 
@@ -257,6 +258,20 @@
             </a>
         </AuthorizeView>
 
+        @* The one tile that carries a number: the desk is the only admin screen with a queue
+           behind it, and how long that queue is decides whether it needs opening today. *@
+        @if (_openCases > 0)
+        {
+            <a href="admin/parking/oversight" class="home-tile">
+                <span class="home-tile__ic home-tile__ic--spots"><FluentIcon Value="@(new Icons.Regular.Size24.ClipboardTask())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                <span class="home-tile__title">
+                    @L["Nav_AdminOversight"]
+                    <span class="count-chip">@_openCases</span>
+                </span>
+                <span class="home-tile__desc">@L["Home_Card_Oversight", _openCases]</span>
+            </a>
+        }
+
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageIncentives)">
             <a href="admin/parking/settings" class="home-tile">
                 <span class="home-tile__ic home-tile__ic--rules"><FluentIcon Value="@(new Icons.Regular.Size24.Options())" Color="Color.Custom" CustomColor="currentColor" /></span>
@@ -317,6 +332,7 @@
     private string? _error;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
 
+    private int _openCases;
     private ReservationDto? _reservation;
     private QueueEntryDto? _queueEntry;
     private OwnedSpotDto? _ownedSpot;
@@ -334,6 +350,16 @@
 
         // Claims only — no UserManager DB round-trip. This runs in the layout's render path, and
         // the dashboard queries below each use their own pooled context (see WalletChip).
+        // Before the parker guard below: a reviewer who never books anything still has a desk.
+        if (_signedIn)
+        {
+            var scope = OversightScope.From(
+                user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
+                user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
+                user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ManageSpots));
+            _openCases = scope.IsEmpty ? 0 : await Oversight.GetOpenCountAsync(scope);
+        }
+
         if (!_signedIn
             || !user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve)
             || !Guid.TryParse(UserManager.GetUserId(user), out _userId))

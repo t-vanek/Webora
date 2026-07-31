@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
 
 namespace D3Parking.Web.Parking;
@@ -44,6 +45,7 @@ public sealed class ParkingMaintenanceService(
             var trust = scope.ServiceProvider.GetRequiredService<ITrustService>();
             var collusion = scope.ServiceProvider.GetRequiredService<ICollusionService>();
             var availability = scope.ServiceProvider.GetRequiredService<IAvailabilityCampaignService>();
+            var oversight = scope.ServiceProvider.GetRequiredService<IOversightService>();
 
             // Every step is isolated: a transient failure in one (a database hiccup, a mail server
             // that is down) must not skip the ones behind it — no-shows and the waitlist still need
@@ -66,12 +68,17 @@ public sealed class ParkingMaintenanceService(
             var trustScored = await StepAsync("trust graph", () => trust.ComputeTrustAsync(cancellationToken), 0, cancellationToken);
             var collusionFlagged = await StepAsync("collusion scan", () => collusion.ScanAsync(cancellationToken), 0, cancellationToken);
             var campaignRecipients = await StepAsync("availability campaigns", () => availability.RunDueCampaignsAsync(cancellationToken), 0, cancellationToken);
+            // Last, so the flags this very cycle raised are already on the oversight desk. The
+            // queue's own load reconciles too, so this is the backstop for a lot nobody opens.
+            var casesOpened = await StepAsync("oversight case ingest", () => oversight.EnsureCasesAsync(cancellationToken), 0, cancellationToken);
+            // And then the desk's own turn: deadlines that have passed, signals that moved, the digest.
+            var casesFollowedUp = await StepAsync("oversight follow-up", () => oversight.RunDueCaseWorkAsync(cancellationToken), 0, cancellationToken);
 
-            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || planReleased > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0)
+            if (reminded > 0 || residentReminders > 0 || autoShared > 0 || planReleased > 0 || resolved > 0 || reconciled > 0 || credited > 0 || queueOffers > 0 || decayed > 0 || repriced || trustScored > 0 || collusionFlagged > 0 || campaignRecipients > 0 || casesOpened > 0 || casesFollowedUp > 0)
             {
                 logger.LogInformation(
-                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {PlanReleased} usage-plan releases, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients.",
-                    reminded, residentReminders, autoShared, planReleased, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients);
+                    "Parking maintenance: {Reminded} reservation reminders, {ResidentReminders} resident reminders, {AutoShared} auto-share notices, {PlanReleased} usage-plan releases, {Resolved} no-shows resolved, {Reconciled} unused shares reversed, {Credited} monthly credit grants, {QueueOffers} queue offers, {Decayed} reputation decays, adaptive reprice={Repriced}, {TrustScored} trust scores, {CollusionFlagged} collusion flags, {CampaignRecipients} availability-tip recipients, {CasesOpened} oversight cases opened, {CasesFollowedUp} oversight cases followed up.",
+                    reminded, residentReminders, autoShared, planReleased, resolved, reconciled, credited, queueOffers, decayed, repriced, trustScored, collusionFlagged, campaignRecipients, casesOpened, casesFollowedUp);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

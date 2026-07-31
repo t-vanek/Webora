@@ -30,8 +30,6 @@
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Visitor spot {1} is booked for your guest {0}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are booked. Booking now is cheap, and off-peak stays earn points — pick your slot on the Reserve page.</value></data>
   <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>We've received your blocked-spot report and are checking the situation right now. As an apology, a voucher for one free reservation (peak included) awaits you once the check completes — we'll let you know as soon as it's ready to use.</value></data>
-  <data name="Parking_Notify_VoucherReview_Title" xml:space="preserve"><value>An apology voucher awaits approval</value></data>
-  <data name="Parking_Notify_VoucherReview_Body" xml:space="preserve"><value>A driver reported spot {0} as blocked and attached photo proof. Judge the evidence and approve or reject the voucher in administration (Occupancy mismatches).</value></data>
   <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Your apology voucher is ready</value></data>
   <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>The check is complete — your blocked-spot report was confirmed. Your voucher for one free reservation (peak included) is now active: valid for 30 days, redeemed by ticking the box when booking.</value></data>
   <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>We couldn't confirm your report</value></data>
@@ -81,8 +79,41 @@
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Spot {0} opened up for your queued window – we've held it for you for {1} minutes. Confirm the reservation in the app, otherwise we'll offer it to the next person.</value></data>
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
-  <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Suspicious sharing interactions</value></data>
-  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Operations oversight).</value></data>
+  <data name="Parking_Notify_OversightNew_Title" xml:space="preserve"><value>An urgent oversight case</value></data>
+  <data name="Parking_Notify_OversightNew_Body" xml:space="preserve"><value>Case #{0} ({1}) opened as urgent and is waiting for a ruling. Open it in administration (Operations oversight).</value></data>
+  <data name="Parking_Notify_OversightOverdue_Title" xml:space="preserve"><value>An oversight case is overdue</value></data>
+  <data name="Parking_Notify_OversightOverdue_Body" xml:space="preserve"><value>Case #{0} has passed the deadline for its priority and is still open.</value></data>
+  <data name="Parking_Notify_OversightDigest_Title" xml:space="preserve"><value>Operations oversight — daily digest</value></data>
+  <data name="Parking_Notify_OversightDigest_Body" xml:space="preserve"><value>Open cases: {0}, of which overdue: {1}.</value></data>
+  <data name="Parking_Oversight_Reason_Recurrence" xml:space="preserve"><value>This is report {0} on this spot in the last {1} days — that reads as a fault with the spot, not as bad luck.</value></data>
+  <data name="Parking_Oversight_Reason_OutsiderPlate" xml:space="preserve"><value>Plate {0} belongs to no employee, fleet car or booked visitor — a confirmed vehicle from outside the system.</value></data>
+  <data name="Parking_Oversight_Reason_Concentration" xml:space="preserve"><value>The pair sits at {0} % concentration on both sides across {1} mutual interactions.</value></data>
+  <data name="Parking_Oversight_Reason_Rescan" xml:space="preserve"><value>The nightly scan re-measured the pair: {0} mutual interactions, concentration {1} % / {2} %.</value></data>
+  <data name="Parking_Oversight_PairLabel" xml:space="preserve"><value>a pair at {0} % concentration</value></data>
+  <data name="Parking_Notify_OversightQuestion_Title" xml:space="preserve"><value>A question about your report</value></data>
+  <data name="Parking_Notify_OversightQuestion_Body" xml:space="preserve"><value>We need something added to report #{0}: {1} — you can answer on the My reports page.</value></data>
+  <data name="Parking_Notify_OversightAnswer_Title" xml:space="preserve"><value>The driver answered</value></data>
+  <data name="Parking_Notify_OversightAnswer_Body" xml:space="preserve"><value>Case #{0} has new information from the driver and is back for a decision.</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Title" xml:space="preserve"><value>The question went unanswered</value></data>
+  <data name="Parking_Notify_OversightNoAnswer_Body" xml:space="preserve"><value>Case #{0} waited for the driver's answer in vain and is back for a decision.</value></data>
+  <data name="Parking_Notify_OversightAppeal_Title" xml:space="preserve"><value>A ruling is being disputed</value></data>
+  <data name="Parking_Notify_OversightAppeal_Body" xml:space="preserve"><value>The driver appealed the ruling on case #{0}. It is open again and unassigned.</value></data>
+  <data name="Parking_Oversight_Reason_NoAnswer" xml:space="preserve"><value>The driver did not answer within {0} days; the case comes back for a decision.</value></data>
+  <data name="Parking_Notify_OversightDispute_Title" xml:space="preserve"><value>A driver disputes a no-show</value></data>
+  <data name="Parking_Notify_OversightDispute_Body" xml:space="preserve"><value>Case #{0}: a driver disagrees with a no-show penalty and asks for it to be looked at.</value></data>
+  <data name="Parking_Notify_NoShowReversed_Title" xml:space="preserve"><value>Your no-show penalty was reversed</value></data>
+  <data name="Parking_Notify_NoShowReversed_Body" xml:space="preserve"><value>Case #{0}: your dispute was upheld. {1} points and {2} credits are back, and the waitlist ban and allowance cut are lifted. The completion streak cannot be restored.</value></data>
+  <data name="Parking_Ledger_NoShowReversed" xml:space="preserve"><value>No-show penalty reversed, case #{0}</value></data>
+  <data name="Parking_Oversight_Reason_Reversed" xml:space="preserve"><value>Dispute upheld: {0} points and {1} credits returned.</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Title" xml:space="preserve"><value>The driver took their report back</value></data>
+  <data name="Parking_Notify_OversightWithdrawn_Body" xml:space="preserve"><value>Case #{0} was withdrawn by the reporter and is closed. Nothing to do.</value></data>
+  <data name="Parking_Notify_OversightAssigned_Title" xml:space="preserve"><value>A case was assigned to you</value></data>
+  <data name="Parking_Notify_OversightAssigned_Body" xml:space="preserve"><value>Case #{0} is now yours to work.</value></data>
+  <data name="Parking_Notify_OversightSanction_Title" xml:space="preserve"><value>An oversight ruling</value></data>
+  <data name="Parking_Notify_OversightSanction_Body" xml:space="preserve"><value>Case #{0} was ruled on: {1} points and {2} credits deducted. Reason: {3}</value></data>
+  <data name="Parking_Notify_OversightWarning_Body" xml:space="preserve"><value>Case #{0} ended in a formal warning with no deduction. Reason: {1}</value></data>
+  <data name="Parking_Ledger_OversightSanction" xml:space="preserve"><value>Oversight ruling, case #{0}</value></data>
+  <data name="Parking_Audit_OversightSanction" xml:space="preserve"><value>Case #{0}: {1} points and {2} credits deducted.</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code under My account:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>

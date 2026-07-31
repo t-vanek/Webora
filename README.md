@@ -40,6 +40,7 @@ vyhrazeného místa) a penalizují nedostavení se.
   - [Rezidentní místa](#rezidentní-místa)
   - [Dojezdová vzdálenost](#dojezdová-vzdálenost)
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
+  - [Provozní dohled](#provozní-dohled)
   - [Plocha parkoviště pro správce](#plocha-parkoviště-pro-správce)
   - [Údržba na pozadí](#údržba-na-pozadí)
   - [Role a oprávnění](#role-a-oprávnění)
@@ -76,6 +77,19 @@ vyhrazeného místa) a penalizují nedostavení se.
   náleží **kupón na jednu rezervaci zdarma** (i ve špičce, max. 1 nevyčerpaný; včasné zrušení ho
   vrací) — kupón ale nejdřív podle fotky **schválí správce parkovacích míst**, platí 30 dní od
   schválení.
+- **Provozní dohled jako fronta případů** — všechno, co čeká na rozhodnutí člověka (neshody, podezřelé
+  dvojice, nahlášené závady), je **případ** s číslem, vlastníkem, lhůtou podle priority a nemazatelnou
+  historií. Opakovaná hlášení na jednom místě zakládají případ rovnou s vyšší prioritou, po uplynutí
+  lhůty se ozve systém sám a místo plošného rozesílání chodí adresné zprávy a jeden denní souhrn.
+- **Řidič vidí, co se s jeho hlášením děje** — stránka *Moje hlášení* ukazuje stav, veřejnou část
+  historie a otevřený dotaz správce. Řidič může doplnit informaci, odpovědět, hlášení **vzít zpět**
+  (čekající kupón tím zaniká) a proti zamítnutému kupónu se **jednou odvolat**. Než odpoví, lhůta
+  případu neběží.
+- **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě, volitelně
+  s fotkou; vzniká z toho případ pro správu míst.
+- **Spor o nedostavení** — penalizace za no-show už není konečná a němá: řidič ji v dané lhůtě napadne,
+  a uznaná námitka vrátí **přesně to, co bylo strženo** (body, kreditovou pokutu, zákaz fronty i srážku
+  příštího přídělu).
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -115,10 +129,10 @@ volných míst — a nahoře banner **omluvného kupónu** na rezervaci zdarma:
 
 ![Žebříček](docs/screenshots/leaderboard.png)
 
-**Neshody obsazenosti** — trend „nedalo se zaparkovat" per místo pro správce, včetně rezervací,
-které se s oknem potkaly, a kontaktu e-mailem:
+**Provozní dohled** — jedna fronta případů se stavem, vlastníkem a termínem; v detailu fotodůkaz,
+rezervace, které se s oknem potkaly, kontakt e-mailem a historie případu:
 
-![Neshody obsazenosti](docs/screenshots/mismatches.png)
+![Provozní dohled](docs/screenshots/mismatches.png)
 
 **Registrace** — vytvoření účtu na split-screen obrazovce s ukazatelem síly hesla:
 
@@ -225,13 +239,15 @@ místa** — důkaz, který následně posuzuje správce.
   indexem — **stejný soubor nelze použít ke dvěma záznamům nikdy** (ani jiným uživatelem, ani po
   čase); opakované předložení skončí srozumitelnou chybou. Limit 8 MB, formáty JPEG/PNG/WebP.
 - **Omluvný kupón se schvalováním:** za potíž náleží kupón na **jednu rezervaci zdarma včetně
-  špičkové ceny** — vzniká ale ve stavu **„čeká na schválení"**. Správce parkovacích míst
-  (`Parking.ManageSpots`) dostane notifikaci, na stránce neshod posoudí fotodůkaz a kupón
-  **schválí, nebo zamítne** (vlastní kupón posoudit nesmí); řidič je o výsledku notifikován.
-  Schválený kupón platí **30 dní od schválení**, uplatní se zaškrtnutím při rezervaci, drží se
-  max. 1 nevyčerpaný (čekající nebo schválený) na uživatele a **včasné zrušení/uvolnění ho
-  vrací**. Zamítnutý kupón nikdy hodnotu nezíská, příští poctivé hlášení ale neblokuje. Fronta
-  je záměrně bez kupónů (odchod od vzácného claimnutého místa nesmí být bezbolestný).
+  špičkové ceny** — vzniká ale ve stavu **„čeká na schválení"**. Recenzent neshod
+  (`Parking.ReviewMismatches`) posoudí v případu fotodůkaz a kupón **schválí, nebo zamítne**
+  (vlastní kupón posoudit nesmí); tím zároveň případ uzavře — schválení je verdikt „hlášení bylo
+  oprávněné". Řidič je o výsledku notifikován. Schválený kupón platí **30 dní od schválení**,
+  uplatní se zaškrtnutím při rezervaci, drží se max. 1 nevyčerpaný (čekající nebo schválený) na
+  uživatele a **včasné zrušení/uvolnění ho vrací**. Zamítnutý kupón nikdy hodnotu nezíská, příští
+  poctivé hlášení ale neblokuje, a řidič se proti zamítnutí může **jednou odvolat** — případ se
+  pak otevře znovu a nepřiřazený, aby ho neposuzoval tentýž člověk. Fronta je záměrně bez kupónů
+  (odchod od vzácného claimnutého místa nesmí být bezbolestný).
 - **Pojistky:** záznam jde pořídit jen v době okna rezervace a nejvýše 2× na uživatele a den —
   z toku se tak nedá udělat úniková cesta z nechtěných rezervací po refund cutoffu.
 
@@ -349,15 +365,69 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
 7. **Cap váhy hrany v grafu důvěry** — jeden protějšek přispěje k důvěře jen do stropu, takže reciproční
    kruh si nenapumpuje skóre.
 8. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
-   (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi** a admin dostane
-   notifikaci. Tvrdé akce řeší admin ručně na stránce *Provozní dohled* (false-positive bezpečné).
+   (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi**, ze kterého vznikne
+   případ v *Provozním dohledu*. Detekce sama **nikdy netrestá**: sráží body či kredity výhradně
+   člověk, a to jen s oprávněním `Parking.SanctionOversight`, jen vůči účastníkovi případu a jen
+   s odůvodněním, které dotčený uvidí.
 9. **Odměny za dokončení max. 1× za den**, check-in jen kolem okna rezervace a dokončení až po jeho
    začátku — smyčka rezervuj→check-in→dokonči nefarmí ani body, ani kredity.
 10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; záznam vyžaduje **fotodůkaz**,
     jehož SHA-256 otisk je unikátní (stejná fotka nikdy nepodloží dva záznamy), a omluvný kupón
-    **odemyká až schválení správcem parkovacích míst** (vlastní kupón schválit nelze). Drží se
+    **odemyká až schválení recenzentem neshod** (vlastní kupón schválit nelze). Drží se
     nejvýše jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají
     co těžit.
+
+### Provozní dohled
+
+<details>
+<summary>Jedna fronta případů nad vším, co čeká na rozhodnutí člověka</summary>
+
+`/admin/parking/oversight` je jeden seznam nad čtyřmi zdroji: **neshodami obsazenosti** (hlášení
+řidičů), **podezřelými dvojicemi** (noční sken), **závadami** nahlášenými uživateli a **spory
+o nedostavení**. Co bylo
+dřív tabulkou signálů, je teď **případ**: má číslo, které se dá citovat, vlastníka, lhůtu a
+nemazatelnou historii.
+
+- **Případ je obálka nad signálem, ne jeho kopie.** Ukazuje na záznam s důkazy (hlášení, flag,
+  závadu) a ten se čte za běhu — fotka, spárovaná SPZ i koncentrace dvojice mají jedno jediné místo.
+  Na případu je jen to, co signál sám neumí říct: kdo to řeší a jak to dopadlo.
+- **Stavy:** `Nový → Řeší se → Uzavřen`, plus `Čeká na řidiče`, když se správce na něco zeptal.
+  Uzavřený případ jde znovu otevřít; předchozí závěr zůstává v historii, protože tam odvolaný verdikt
+  patří.
+- **Historie je jen k připisování** a u každého zápisu je vidět, jestli ho napsalo parkoviště, správce,
+  nebo účastník. Interní poznámky a zprávy pro řidiče sdílejí jednu osu ve dvou čteních — dvě oddělené
+  historie se dřív nebo později rozejdou a otázka „co jsme tomu člověku vlastně řekli" přestane mít
+  jednu odpověď.
+- **Lhůty podle priority** (kritická 4 h / vysoká 24 / běžná 72 / nízká 168, laditelné). Po jejich
+  uplynutí se ozve systém sám — jednou, adresně vlastníkovi, u nepřevzatého případu všem, kdo si ho
+  můžou vzít. Zvýšení priority ručně **přepočítá lhůtu od té chvíle**: „vyřeš to hned" nemůže znamenat
+  termín v minulosti.
+- **Priorita z opakování:** tři hlášení na jednom místě v okně zakládají případ rovnou jako vysokou
+  prioritu, šest jako kritickou — a otevřené případy na tom místě se dozví, že se to stalo znovu.
+  Vzorec je celá pointa a jinak ho držitel jednoho případu nikdy neuvidí.
+- **Priorita z cizí SPZ:** opsaná značka se porovná se zaměstnanci, vozovým parkem i **návštěvami
+  přes okno rezervace** — host je známý po dobu své návštěvy a cizí až týden nato. Potvrzené vozidlo
+  mimo systém zvedne prioritu, a když jde o dnešní okno, rovnou na kritickou: zítra je to záznam,
+  dnes je to auto v cestě.
+- **Řidič může hlášení vzít zpět** („spletl jsem si řadu", „už je to opravené"). Případ se uzavře a
+  čekající omluvný kupón s ním zaniká — na vlastní kupón je tohle jediný pohyb, který nepotřebuje
+  hlídat, protože může jen ubrat.
+- **Notifikace jsou adresné.** Okamžitě se ozve jen naléhavý případ; zbytek shrne **jeden denní souhrn
+  sečtený na osobu** (kdo drží obě fronty, má jednu hromadu práce, ne dvě). Dřívější plošné rozesílání
+  všem administrátorům skončilo — a s ním i to, že výzva k posouzení fotky chodila lidem, kteří na ni
+  nemají oprávnění.
+- **Dotaz na řidiče** zastaví hodiny: čekání na odpověď se do lhůty nepočítá a při odpovědi se termín
+  posune přesně o dobu čekání — zeptat se je práce a nemá se za ni trestat. Když odpověď nepřijde do
+  nastavené lhůty, případ se vrátí k rozhodnutí, ale **systém sám nic nerozhodne**.
+- **Řidič to vidí taky** na `/parking/reports`: stav, veřejnou část historie, otevřený dotaz a
+  možnost doplnit informaci. Interní poznámky se filtrují už v dotazu, ne v šabloně, a správce
+  zůstává rolí, ne jménem.
+- **Rozhodnutí vůči osobě** (výstraha, případně srážka bodů a kreditů) má vlastní oprávnění, míří jen
+  na účastníka případu, nikdy na sebe a nikdy bez důvodu — ten dotčený uvidí. Zapíše se najednou do
+  historie případu, knihy bodů, auditu účtu i notifikace. Nejde přes no-show penalizaci: nikdo se
+  nedostavil, takže počítadla chování se nehýbou.
+
+</details>
 
 ### Plocha parkoviště pro správce
 
@@ -423,14 +493,25 @@ připomínky rezervací a držení rezidentům, **uvolňuje dopředu dny podle p
 řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
 nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
 a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny**,
-**přepočítává graf důvěry** a **skenuje podezřelé kruhy (anti-collusion)**. Lze ji spustit i ručně
-ze správy míst.
+**přepočítává graf důvěry**, **skenuje podezřelé kruhy (anti-collusion)** a nakonec **obsluhuje
+provozní dohled** — zakládá případy pro nové signály, hlásí uplynulé lhůty, zapisuje na osu, že
+noční sken dvojici přeměřil, vrací případy, na jejichž dotaz nikdo neodpověděl, a rozesílá denní
+souhrn. Lze ji spustit i ručně ze správy míst.
 
 ### Role a oprávnění
 
 Jemná oprávnění hlídají UI i služby: `Parking.View`, `Parking.Reserve`, `Parking.ViewLeaderboard`,
-`Parking.ManageSpots`, `Parking.ManageReservations`, `Parking.ManageIncentives`. Seedované role
-`Viewer`/`Editor` mohou prohlížet, rezervovat a vidět žebříček; `Administrator` má vše.
+`Parking.ManageSpots`, `Parking.ManageFleet`, `Parking.ManageReservations`, `Parking.ManageVisitors`,
+`Parking.ReviewMismatches`, `Parking.ReviewCollusion`, `Parking.AssignOversight`,
+`Parking.SanctionOversight`, `Parking.ViewAnalytics`, `Parking.ManageIncentives`,
+`Parking.VerifyResidency`. Seedované role `Viewer`/`Editor` mohou prohlížet, rezervovat a vidět
+žebříček; `Administrator` má vše.
+
+U provozního dohledu jsou oprávnění dělená záměrně: **co kdo vidí** rozhoduje podle druhu případu
+(`ReviewMismatches` na fotky a SPZ, `ReviewCollusion` na jmenované dvojice, `ManageSpots` na
+nahlášené závady) a **co kdo smí udělat** je od toho oddělené — případ si může vzít každý, kdo na
+něj vidí, ale naložit práci kolegovi smí jen `AssignOversight` a rozhodnout vůči osobě jen
+`SanctionOversight`.
 
 Veškerá nastavení motivačního systému jsou **laditelná za běhu** v administraci; jejich přehled je
 v [technické dokumentaci](docs/TECHNICAL.md#konfigurace).

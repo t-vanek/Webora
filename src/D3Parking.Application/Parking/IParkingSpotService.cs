@@ -34,6 +34,12 @@ public interface IParkingSpotService
     /// </summary>
     Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One report, with the same evidence the trend view resolves — the panel an oversight case
+    /// opened for a mismatch reads. Null when the report is gone.
+    /// </summary>
+    Task<OccupancyMismatchDto?> GetOccupancyMismatchAsync(Guid mismatchId, CancellationToken cancellationToken = default);
+
     /// <summary>The reporter's photo proof for a mismatch, or null when the record has none (pre-photo era).</summary>
     Task<MismatchPhotoDto?> GetMismatchPhotoAsync(Guid mismatchId, CancellationToken cancellationToken = default);
 
