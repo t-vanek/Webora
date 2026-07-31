@@ -20,7 +20,7 @@
                 <FluentLabel Typo="Typography.PageTitle">@L["Admin_Directory_Title"]</FluentLabel>
                 @if (_mappings is not null)
                 {
-                    <span class="count-chip">@_mappings.Count</span>
+                    <span class="count-chip">@Visible.Count</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Directory_Intro"]</p>
@@ -80,6 +80,18 @@
         </FluentCard>
     </AuthorizeView>
 
+    @* One row per app role the tenant publishes — a set the directory writes and this page only
+       translates, so it is bounded by the tenant and read whole. No pager; a filter, because the
+       app-role names are long dotted strings that all start alike. *@
+    @if (_mappings is { Count: > 0 })
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+            <FluentSearch Id="directory-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                          Immediate="true" ImmediateDelay="150"
+                          Placeholder="@L["Admin_Directory_SearchHint"]" Style="max-width:320px" />
+        </FluentStack>
+    }
+
     @if (_mappings is null)
     {
         <div class="loading"><FluentProgressRing /></div>
@@ -88,10 +100,14 @@
     {
         <div class="empty-state">@L["Admin_Directory_Empty"]</div>
     }
+    else if (Visible.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Directory_NoMatch"]</div>
+    }
     else
     {
         <div class="admin-panel">
-            <FluentDataGrid Items="@_mappings.AsQueryable()" TGridItem="ExternalRoleMappingSummary"
+            <FluentDataGrid Items="@Visible.AsQueryable()" TGridItem="ExternalRoleMappingSummary"
                             GridTemplateColumns="1.4fr 1.2fr 0.8fr auto">
                 <TemplateColumn Title="@L["Admin_Directory_AppRole"]">
                     <code class="perm-row__id">@context.ExternalRole</code>
@@ -118,6 +134,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private IReadOnlyList<ExternalRoleMappingSummary>? _mappings;
+    private string? _filter;
     private IReadOnlyList<RoleSummary> _roles = [];
     private RoleSummary? _newRole;
     private string? _newExternalRole;
@@ -140,6 +157,22 @@
         _scimUrl = new Uri(new Uri(Nav.BaseUri), "scim/v2").ToString();
 
         await LoadAsync();
+    }
+
+    private IReadOnlyList<ExternalRoleMappingSummary> Visible => _mappings is null
+        ? []
+        : string.IsNullOrWhiteSpace(_filter)
+            ? _mappings
+            : _mappings.Where(Matches).ToList();
+
+    private bool Matches(ExternalRoleMappingSummary mapping)
+    {
+        var term = _filter!.Trim();
+        return Has(mapping.ExternalRole)
+            || Has(mapping.RoleName)
+            || Has(AuthorizationDisplay.RoleName(L, mapping.RoleName));
+
+        bool Has(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task LoadAsync()

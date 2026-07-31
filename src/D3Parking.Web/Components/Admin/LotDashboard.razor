@@ -15,7 +15,9 @@
 @inject IParkingSpotService Spots
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@implements IAsyncDisposable
 
 <PageTitle>@L["Lot_Title"]</PageTitle>
 
@@ -99,14 +101,20 @@
         <div class="lot-split__board">
         @* The lot drawn as itself: a tile per spot, grouped into the sections the codes imply. The
            loop variable is not called "section" — @section is a reserved Razor directive, so
-           @section.Spots would be parsed as one. *@
-        @foreach (var zone in _board.Spots.GroupBy(s => s.Section))
+           @section.Spots would be parsed as one.
+
+           Only as far as the board has been scrolled: a lot of two hundred spots is two hundred
+           buttons, each with a tooltip and four spans, and drawing all of them before the manager has
+           looked at the first row is most of what the tab costs to open. The rest arrives from the
+           patch at the bottom, which loads itself as it comes into view. The chip stays the section's
+           real size — it answers "how big is section P2", not "how much of it is drawn". *@
+        @foreach (var zone in VisibleSections)
         {
             <div class="lot-section">
                 <div class="section-head">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Accent" />
                     <span>@(string.IsNullOrEmpty(zone.Key) ? L["Lot_SectionUnnamed"] : zone.Key)</span>
-                    <span class="count-chip">@zone.Count()</span>
+                    <span class="count-chip">@SectionSize(zone.Key)</span>
                 </div>
                 <div class="lot-board">
                     @foreach (var tile in zone)
@@ -145,6 +153,16 @@
                     }
                 </div>
             </div>
+        }
+
+        @if (HasMoreTiles)
+        {
+            @* Keyed so the diff keeps this exact node as tiles are appended above it: the observer
+               in JS holds the element, and a recreated button would silently stop loading. *@
+            <button @key="BoardSentinelKey" @ref="_boardSentinel" type="button" class="lot-more"
+                    @onclick="RevealMore">
+                @L["Lot_ShowMore", VisibleTileCount, _board.Spots.Count]
+            </button>
         }
         </div>
 
@@ -720,6 +738,38 @@
     private string? _error;
     private string? _info;
 
+    /// <summary>How many tiles the board draws at once, and how many each scroll adds.</summary>
+    private const int BoardTileBatch = 60;
+
+    /// <summary>Stable diff key for the load-more patch (see the note beside it in the markup).</summary>
+    private const string BoardSentinelKey = "board-more";
+
+    // Deliberately not reset when the day changes: the lot holds the same spots on every day, so how
+    // much of the board is drawn is a property of this visit, not of the date. Resetting it would
+    // collapse the board under a manager who is stepping through days at the bottom of it.
+    private int _visibleTiles = BoardTileBatch;
+    private IReadOnlyDictionary<string, int> _sectionSizes = new Dictionary<string, int>();
+
+    private ElementReference _boardSentinel;
+    private DotNetObjectReference<LotDashboard>? _selfRef;
+    private readonly string _observerId = Guid.NewGuid().ToString("N");
+    private bool _observing;
+
+    private bool HasMoreTiles => _board is not null && _board.Spots.Count > _visibleTiles;
+
+    private int VisibleTileCount => Math.Min(_visibleTiles, _board?.Spots.Count ?? 0);
+
+    /// <summary>
+    /// The board as far as it has been revealed. The spots come ordered by section and then by code,
+    /// so a prefix of them groups into whole sections plus one partial section at the end — which is
+    /// what makes cutting mid-section safe, and cutting mid-section is what keeps a lot that is one
+    /// long section from drawing itself in full anyway.
+    /// </summary>
+    private IEnumerable<IGrouping<string, SpotTileDto>> VisibleSections =>
+        _board!.Spots.Take(_visibleTiles).GroupBy(s => s.Section);
+
+    private int SectionSize(string section) => _sectionSizes.TryGetValue(section, out var size) ? size : 0;
+
     /// <summary>How many spots the "busiest" chart lists before it stops being readable.</summary>
     private const int TopSpotCount = 12;
 
@@ -821,11 +871,82 @@
     private async Task ReloadBoardAsync()
     {
         _board = await Dashboard.GetBoardAsync(Day);
+        // How big each section is, taken from the whole board rather than from the tiles drawn so
+        // far — counting the drawn ones would shrink a section's chip while it is being revealed.
+        _sectionSizes = _board.Spots.GroupBy(s => s.Section).ToDictionary(g => g.Key, g => g.Count());
+
         // The open detail must follow the day being looked at, or its calendar and the board disagree.
         if (_detail is not null)
         {
             await OpenDetailAsync(_detail.SpotId);
         }
+    }
+
+    /// <summary>
+    /// Keeps the observer pointed at the load-more patch for exactly as long as there is one: it
+    /// appears when the board first arrives and goes away when the last tile has been revealed,
+    /// neither of which is a render this component initiates.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (HasMoreTiles == _observing)
+        {
+            return;
+        }
+
+        if (HasMoreTiles)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("d3parkingInfiniteScroll.observe", _observerId, _boardSentinel, _selfRef);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("d3parkingInfiniteScroll.disconnect", _observerId);
+        }
+
+        _observing = HasMoreTiles;
+    }
+
+    /// <summary>Called from app.js when the patch at the foot of the board comes into view.</summary>
+    [JSInvokable]
+    public Task LoadMore() => InvokeAsync(RevealMore);
+
+    private void RevealMore()
+    {
+        if (!HasMoreTiles)
+        {
+            return;
+        }
+
+        _visibleTiles += BoardTileBatch;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Disconnects the observer, but only if there is one — <c>_observing</c> is set nowhere except
+    /// inside OnAfterRenderAsync, so it is the component's own record of "interop has worked here".
+    /// The guard is not an optimisation: with prerendering on, this page is rendered twice, and the
+    /// first instance is a static render that is built, drawn into the response and disposed without
+    /// ever reaching an interactive circuit. Calling interop on the way out of that one throws
+    /// InvalidOperationException ("the component is being statically rendered") on every single page
+    /// load — and it is thrown out of Dispose, where the renderer logs it and nothing on screen ever
+    /// looks wrong.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_observing)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("d3parkingInfiniteScroll.disconnect", _observerId);
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is already gone, and the observer with the page it lived on.
+            }
+        }
+
+        _selfRef?.Dispose();
     }
 
     /// <summary>

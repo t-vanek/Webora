@@ -16,7 +16,7 @@
                 <FluentLabel Typo="Typography.PageTitle">@L["Nav_AdminPermissionGroups"]</FluentLabel>
                 @if (_groups is not null)
                 {
-                    <span class="count-chip">@_groups.Count</span>
+                    <span class="count-chip">@Visible.Count</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Groups_Intro"]</p>
@@ -31,14 +31,27 @@
         </FluentStack>
     </div>
 
+    @* Like the role list: an administrator-written catalog, read whole, so no pager. The filter
+       reaches the permissions inside each bundle, because "which group hands out this" is exactly
+       the question you ask before editing one — the card only shows the first four. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        <FluentSearch Id="group-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                      Immediate="true" ImmediateDelay="150"
+                      Placeholder="@L["Admin_Groups_SearchHint"]" Style="max-width:320px" />
+    </FluentStack>
+
     @if (_groups is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
+    else if (Visible.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Groups_NoMatch"]</div>
+    }
     else
     {
         <div class="role-cards">
-            @foreach (var group in _groups)
+            @foreach (var group in Visible)
             {
                 <a class="role-card" href="@($"admin/permission-groups/{group.Id}")">
                     <div class="role-card__head">
@@ -82,6 +95,22 @@
     private const int HighlightLimit = 4;
 
     private IReadOnlyList<PermissionGroupSummary>? _groups;
+    private string? _filter;
 
     protected override async Task OnInitializedAsync() => _groups = await Groups.ListAsync();
+
+    private IReadOnlyList<PermissionGroupSummary> Visible => _groups is null
+        ? []
+        : string.IsNullOrWhiteSpace(_filter) ? _groups : _groups.Where(Matches).ToList();
+
+    private bool Matches(PermissionGroupSummary group)
+    {
+        var term = _filter!.Trim();
+        return Has(group.Name)
+            || Has(AuthorizationDisplay.GroupName(L, group.Name))
+            || Has(AuthorizationDisplay.GroupDescription(L, group.Name, group.Description))
+            || group.Permissions.Any(p => Has(p) || Has(AuthorizationDisplay.PermissionName(L, p)));
+
+        bool Has(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
 }

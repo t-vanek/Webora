@@ -39,5 +39,15 @@ public interface IAccountService
     Task<AccountResult> UnblockAsync(Guid userId, Guid adminId, CancellationToken cancellationToken = default);
 
     // Audit.
-    Task<IReadOnlyList<AccountAuditEntry>> GetAuditTrailAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One page of this account's own trail, newest first. Unpaged it had no ceiling at all: every
+    /// sign-in and every profile change an account has ever recorded came back in one response, and
+    /// the detail screen drew all of them.
+    /// </summary>
+    Task<PagedResult<AccountAuditEntry>> GetAuditTrailAsync(
+        Guid userId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

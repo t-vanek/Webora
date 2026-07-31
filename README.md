@@ -156,7 +156,9 @@ a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita) a neshod
 ### Rezervace a jejich životní cyklus
 
 **Místa** mají kód (`A-12`), typ (`Standard`, `Disabled`, `ElectricCharging`, `Visitor`, `Motorcycle`),
-příznak aktivity a volitelné poznámky; administrátoři je spravují na `/admin/parking/spots`.
+příznak aktivity a volitelné poznámky; administrátoři je spravují na `/admin/parking/spots` — seznam
+je **stránkovaný po 25 místech** (řazeno přirozeně, `P2-2` před `P2-10`) a hledá se v něm podle kódu;
+nově založené místo si stránkování samo najde, ať v pořadí spadne kamkoli.
 **Rezervace** zabírá jedno místo na časové okno a prochází stavovým automatem:
 
 ```
@@ -449,7 +451,10 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
 - **Plocha:** dlaždice míst seskupené do **sekcí podle prefixu kódu** (`A-12` → sekce `A`) a řazené
   přirozeně (`P2-2` před `P2-10`). Barva a tečka nesou stav, ale nikdy samy: dlaždice vždy pojmenuje
   vlastníka i držitele a legenda pojmenuje každý stav. Datum lze přepínat dopředu i dozadu — pro
-  jiný než dnešní den dlaždice ukazují, co je na něj zarezervováno.
+  jiný než dnešní den dlaždice ukazují, co je na něj zarezervováno. Plocha se **donačítá rolováním**
+  po dávkách po 60 dlaždicích; patka na konci se načte sama, jakmile se přiblíží do výřezu, a dá se
+  i zmáčknout (kvůli klávesnici). Počet u sekce zůstává její skutečnou velikostí, ne počtem
+  vykreslených dlaždic.
 - **Precedence stavu** je jedno jediné místo v kódu: neaktivní místo je mimo parkoviště bez ohledu na
   vše ostatní, přítomný řidič přebíjí pouhou rezervaci a rezidentní místo je kapacita fondu teprve
   tehdy, když je skutečně sdílené.

@@ -14,7 +14,9 @@
             <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
             @if (_spots is not null)
             {
-                <span class="count-chip">@_spots.Count</span>
+                @* The whole lot, not the page: the chip answers "how big is this parking lot", which
+                   the number of rows below stopped being the moment the list started paging. *@
+                <span class="count-chip">@_total</span>
             }
         </div>
         <p class="admin-head__intro">
@@ -123,13 +125,27 @@
         </FluentStack>
     </AuthorizeView>
 
+    @* The search is what keeps a paged catalogue usable: without it, reaching P2-08b on a lot of two
+       hundred means clicking through pages until it happens to show up. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        @* Immediate, like the batch inputs above and unlike the search on the audit log: the change
+           event of the underlying web component does not cross the shadow boundary reliably, so a
+           term typed here never reached the component until the field lost focus. The delay is the
+           debounce — every keystroke is a query. *@
+        <FluentSearch Id="spot-search" @bind-Value="_search" @bind-Value:after="SearchAsync"
+                      Immediate="true" ImmediateDelay="300"
+                      Placeholder="@L["Parking_Admin_SearchHint"]" Style="max-width:320px" />
+    </FluentStack>
+
     @if (_spots is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
     else if (_spots.Count == 0)
     {
-        <FluentLabel Typo="Typography.Body">@L["Parking_Admin_NoSpots"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body">
+            @L[string.IsNullOrWhiteSpace(_search) ? "Parking_Admin_NoSpots" : "Parking_Admin_NoMatch"]
+        </FluentLabel>
     }
     else
     {
@@ -184,12 +200,38 @@
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
+        @* Hand-rolled for the same reason as the booking history's pager: FluentPaginator drives
+           PaginationState, which has no page-change hook — it is built for a grid paging an
+           IQueryable client-side, and here the paging happens in SQL. *@
+        @if (_total > SpotPageSize)
+        {
+            <div class="pager">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                              OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                              OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+            </div>
+        }
     }
 </FluentStack>
 
 @code {
     private IReadOnlyList<ParkingSpotDto>? _spots;
     private readonly ParkingSpotType[] _spotTypes = Enum.GetValues<ParkingSpotType>();
+
+    // Paged in SQL. A lot of two hundred spots used to render as two hundred rows, each carrying two
+    // inline selects — and the resident one holds an option per user, so the page grew as the product
+    // of the lot and the directory. One page's worth of rows is the point of this whole screen.
+    private const int SpotPageSize = 25;
+    private int _pageIndex;
+    private int _total;
+    private string? _search;
+
+    /// <summary>Set for one reload after a create, so the page lands where the new code sorted.</summary>
+    private string? _jumpToCode;
+
+    private int PageCount => _total == 0 ? 1 : (_total + SpotPageSize - 1) / SpotPageSize;
 
     private string? _activeAddTab = "tab-single";
 
@@ -286,11 +328,13 @@
     private async Task CreateAsync()
     {
         _error = _info = null;
-        var result = await Spots.CreateAsync(_newCode ?? string.Empty, _newType, _newNotes);
+        var code = _newCode ?? string.Empty;
+        var result = await Spots.CreateAsync(code, _newType, _newNotes);
         if (result.Succeeded)
         {
             _newCode = _newNotes = null;
             _newType = ParkingSpotType.Standard;
+            JumpTo(code);
             await ReloadAsync();
         }
         else
@@ -327,18 +371,19 @@
             return;
         }
 
-        await ApplyBatchAsync(await Spots.CreateBatchAsync(expansion.Codes, _serType, _serNotes));
+        await ApplyBatchAsync(expansion.Codes, await Spots.CreateBatchAsync(expansion.Codes, _serType, _serNotes));
         await RefreshSeriesPlanAsync();
     }
 
     private async Task CreateListAsync()
     {
+        var codes = ParseListCodes();
         _error = _info = null;
-        await ApplyBatchAsync(await Spots.CreateBatchAsync(ParseListCodes(), _listType, _listNotes));
+        await ApplyBatchAsync(codes, await Spots.CreateBatchAsync(codes, _listType, _listNotes));
         await RefreshListPlanAsync();
     }
 
-    private async Task ApplyBatchAsync(SpotBatchResult result)
+    private async Task ApplyBatchAsync(IReadOnlyList<string> requested, SpotBatchResult result)
     {
         if (!result.Succeeded)
         {
@@ -349,6 +394,11 @@
         _info = result.SkippedCodes.Count == 0
             ? string.Format(L["Parking_Admin_BatchCreated"], result.CreatedCount)
             : string.Format(L["Parking_Admin_BatchCreatedSkipped"], result.CreatedCount, result.SkippedCodes.Count, Sample(result.SkippedCodes));
+
+        // The first code that was actually created, so the reload lands on the new series rather than
+        // wherever the admin happened to be paged to.
+        var skipped = result.SkippedCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        JumpTo(requested.FirstOrDefault(c => !skipped.Contains(c.Trim())));
         await ReloadAsync();
     }
 
@@ -388,5 +438,43 @@
         _info = string.Format(L["Parking_Admin_SweepResult"], resolved);
     }
 
-    private async Task ReloadAsync() => _spots = await Spots.ListAsync();
+    private async Task ReloadAsync()
+    {
+        var page = await Spots.ListPageAsync(_pageIndex, SpotPageSize, _search, _jumpToCode);
+        _spots = page.Items;
+        _total = page.TotalCount;
+        // Taken back from the result, not assumed: the service walks the index back when the page
+        // asked for no longer exists, and forward when a jump was requested.
+        _pageIndex = page.PageIndex;
+        _jumpToCode = null;
+    }
+
+    /// <summary>
+    /// Aims the next reload at a freshly created code. The search goes with it: a spot created while
+    /// the list is filtered to something else would otherwise be reported as created and be nowhere
+    /// on screen.
+    /// </summary>
+    private void JumpTo(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return;
+        }
+
+        _jumpToCode = code;
+        _search = null;
+    }
+
+    private async Task SearchAsync()
+    {
+        // A new search starts at the front; page 5 of the old result set means nothing in the new one.
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task GoToPageAsync(int pageIndex)
+    {
+        _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
+        await ReloadAsync();
+    }
 }

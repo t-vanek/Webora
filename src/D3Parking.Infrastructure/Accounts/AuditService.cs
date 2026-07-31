@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using D3Parking.Application;
 using D3Parking.Application.Accounts;
 using D3Parking.Domain.Accounts;
 using D3Parking.Infrastructure.Persistence;
@@ -7,14 +8,18 @@ namespace D3Parking.Infrastructure.Accounts;
 
 public sealed class AuditService(IDbContextFactory<D3ParkingDbContext> dbContextFactory) : IAuditService
 {
-    private const int MaxLimit = 500;
-
-    public async Task<IReadOnlyList<AuditLogEntry>> SearchAsync(
+    public async Task<PagedResult<AuditLogEntry>> SearchAsync(
         string? search,
         AccountAuditEventType? type,
-        int limit,
+        int pageIndex,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
+        // Clamped here, not trusted from the caller: the page size decides how much a single request
+        // can ask the database to materialise.
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // Left join: an event outlives the account it describes (deletion is itself auditable), and
@@ -38,12 +43,27 @@ public sealed class AuditService(IDbContextFactory<D3ParkingDbContext> dbContext
                 || (row.audit.Detail != null && EF.Functions.Like(row.audit.Detail, term)));
         }
 
+        var total = await query.CountAsync(cancellationToken);
+        if (total == 0)
+        {
+            return PagedResult<AuditLogEntry>.Empty(size);
+        }
+
+        // A page past the end walks back to the last page that exists rather than rendering an empty
+        // table — the filters above the grid narrow the trail under the reader's feet.
+        index = Math.Min(index, (total - 1) / size);
+
+        // The instant alone is not a total order: events written by one operation share it to the
+        // tick, and Skip/Take over a tie can drop a row from one page and repeat it on the next. The
+        // id breaks the tie — arbitrary, but stable, which is the whole requirement.
         var rows = await query
             .OrderByDescending(row => row.audit.OccurredAtUtc)
-            .Take(Math.Clamp(limit, 1, MaxLimit))
+            .ThenByDescending(row => row.audit.Id)
+            .Skip(index * size)
+            .Take(size)
             .ToListAsync(cancellationToken);
 
-        return rows
+        var items = rows
             .Select(row => new AuditLogEntry(
                 row.audit.Id,
                 row.audit.UserId,
@@ -54,5 +74,7 @@ public sealed class AuditService(IDbContextFactory<D3ParkingDbContext> dbContext
                 row.audit.Actor,
                 row.audit.Detail))
             .ToArray();
+
+        return new PagedResult<AuditLogEntry>(items, total, index, size);
     }
 }

@@ -3434,7 +3434,25 @@ fluent-menu-item:has(> .account-menu-link) {
     color: var(--warning-rest, #b86e00);
 }
 
+/* Patka plochy: cíl, který pozoruje IntersectionObserver, a zároveň tlačítko. Myší se další dávka
+   dlaždic načte sama při dorolování, klávesnicí se na patku dá dotabovat a zmáčknout ji. Přerušovaný
+   rámeček říká, že tady seznam ještě pokračuje — plná dlaždice by vypadala jako další místo. */
+.lot-more {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px dashed var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
 
+.lot-more:hover {
+    border-color: var(--accent-fill-rest, #884dff);
+    color: var(--accent-fill-rest, #884dff);
+}
 
 /* Plocha vlevo, kliknuté místo vpravo. Detail býval modální dialog: clona překryla přesně tu
    plochu, proti které se detail čte, a před kliknutím na další místo se musel zavřít. Vedle sebe je

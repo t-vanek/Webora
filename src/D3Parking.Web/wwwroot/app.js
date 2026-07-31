@@ -88,3 +88,40 @@ document.addEventListener('submit', (e) => {
     const timeout = new Promise((resolve) => setTimeout(resolve, 400));
     Promise.race([unsubscribe, timeout]).then(resubmit, resubmit);
 });
+
+// Nekonečné rolování: patka dlouhého seznamu se dá pozorovat a jakmile se přiblíží do výřezu,
+// zavolá LoadMore() na Blazor komponentě. IntersectionObserver počítá průnik s výřezem, ale
+// respektuje ořez všech rolujících předků — takže to funguje stejně uvnitř .lot-split__board
+// (vlastní scrollport na širokém okně) jako když roluje celá stránka na mobilu.
+//
+// Pozorovaným prvkem je záměrně tlačítko, ne prázdný div: myší se další dávka načte sama,
+// klávesnicí se na patku dá dotabovat a zmáčknout ji. Načítání bez klikatelné patky by bylo
+// pro klávesnici slepá ulička.
+window.d3parkingInfiniteScroll = {
+    _observers: new Map(),
+
+    observe(id, element, dotNetRef) {
+        this.disconnect(id);
+        if (!element || !('IntersectionObserver' in window)) {
+            return;
+        }
+
+        // Předstih, aby další dávka doběhla ještě než patka doopravdy dojede do výřezu.
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+                dotNetRef.invokeMethodAsync('LoadMore').catch(() => undefined);
+            }
+        }, { rootMargin: '300px' });
+
+        observer.observe(element);
+        this._observers.set(id, observer);
+    },
+
+    disconnect(id) {
+        const observer = this._observers.get(id);
+        if (observer) {
+            observer.disconnect();
+            this._observers.delete(id);
+        }
+    },
+};

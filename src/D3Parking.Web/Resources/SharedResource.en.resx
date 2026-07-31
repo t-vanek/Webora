@@ -172,7 +172,6 @@
   <data name="Nav_AdminUsers" xml:space="preserve"><value>User administration</value></data>
   <data name="Nav_AdminRoles" xml:space="preserve"><value>Roles &amp; permissions</value></data>
   <data name="Admin_Loading" xml:space="preserve"><value>Loading…</value></data>
-  <data name="Admin_Search" xml:space="preserve"><value>Search</value></data>
   <data name="Admin_Manage" xml:space="preserve"><value>Manage</value></data>
   <data name="Admin_Save" xml:space="preserve"><value>Save</value></data>
   <data name="Admin_Cancel" xml:space="preserve"><value>Cancel</value></data>
@@ -644,6 +643,8 @@
   <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Marks expired unused reservations as no-shows and deducts points. Also runs automatically in the background.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>No-shows resolved: {0}</value></data>
   <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>There are no spots yet.</value></data>
+  <data name="Parking_Admin_NoMatch" xml:space="preserve"><value>No spot matches the search.</value></data>
+  <data name="Parking_Admin_SearchHint" xml:space="preserve"><value>Search by spot code…</value></data>
   <data name="Parking_Admin_State" xml:space="preserve"><value>State</value></data>
   <data name="Parking_Admin_Active" xml:space="preserve"><value>Active</value></data>
   <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Inactive</value></data>
@@ -1196,6 +1197,7 @@
   <data name="Lot_Today" xml:space="preserve"><value>Today</value></data>
   <data name="Lot_NotToday" xml:space="preserve"><value>A day other than today — tiles show reservations for the selected day, not the live state.</value></data>
   <data name="Lot_SectionUnnamed" xml:space="preserve"><value>No section</value></data>
+  <data name="Lot_ShowMore" xml:space="preserve"><value>Load more spots ({0} of {1})</value></data>
   <data name="Lot_Tab_Board" xml:space="preserve"><value>Lot floor</value></data>
   <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytics</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Close</value></data>
@@ -1268,9 +1270,9 @@
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Reservation moved and the holder notified.</value></data>
   <data name="Lot_Info_Deactivated" xml:space="preserve"><value>The spot has been taken out of service.</value></data>
   <data name="Lot_Info_Activated" xml:space="preserve"><value>The spot has been returned to service.</value></data>
-  <data name="Parking_PrevPage" xml:space="preserve"><value>← Previous</value></data>
-  <data name="Parking_NextPage" xml:space="preserve"><value>Next →</value></data>
-  <data name="Parking_PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Common_PrevPage" xml:space="preserve"><value>← Previous</value></data>
+  <data name="Common_NextPage" xml:space="preserve"><value>Next →</value></data>
+  <data name="Common_PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
   <data name="Lot_State_OfferedFromQueue" xml:space="preserve"><value>Offered from the queue</value></data>
   <data name="Lot_Stat_ResidentHeld" xml:space="preserve"><value>Reserved for residents</value></data>
   <data name="Lot_Stat_ActiveSpots" xml:space="preserve"><value>Active spots</value></data>
@@ -1537,6 +1539,10 @@
   <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Delete this group? This cannot be undone.</value></data>
   <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>The change reaches {0} roles and {1} users at once.</value></data>
   <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>No groups</value></data>
+  <data name="Admin_Roles_SearchHint" xml:space="preserve"><value>Search role, group or permission…</value></data>
+  <data name="Admin_Roles_NoMatch" xml:space="preserve"><value>No role matches the search.</value></data>
+  <data name="Admin_Groups_SearchHint" xml:space="preserve"><value>Search group or permission…</value></data>
+  <data name="Admin_Groups_NoMatch" xml:space="preserve"><value>No group matches the search.</value></data>
   <data name="Admin_Roles_Effective" xml:space="preserve"><value>Effective permissions</value></data>
   <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Role composition</value></data>
   <data name="Admin_RoleEdit_CompositionIntro" xml:space="preserve"><value>A role is composed of permission groups. Its effective permissions are their union.</value></data>
@@ -1583,6 +1589,8 @@
   <data name="Admin_Directory_Assigned" xml:space="preserve"><value>Assigned</value></data>
   <data name="Admin_Directory_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Admin_Directory_Empty" xml:space="preserve"><value>No directory role is mapped yet.</value></data>
+  <data name="Admin_Directory_SearchHint" xml:space="preserve"><value>Search directory role or local role…</value></data>
+  <data name="Admin_Directory_NoMatch" xml:space="preserve"><value>No mapping matches the search.</value></data>
   <data name="Admin_Directory_PickRole" xml:space="preserve"><value>Pick a role in this app.</value></data>
   <data name="Admin_Directory_Added" xml:space="preserve"><value>Mapping added.</value></data>
   <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapping removed.</value></data>

@@ -13,7 +13,9 @@
                 <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Title"]</FluentLabel>
                 @if (_users is not null)
                 {
-                    <span class="count-chip">@_users.Count</span>
+                    @* What the search matches, not what this page draws — the chip used to read 500
+                       for every directory bigger than 500, which is the one number it must not say. *@
+                    <span class="count-chip">@_total</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Users_Intro"]</p>
@@ -23,11 +25,15 @@
         </AuthorizeView>
     </div>
 
+    @* Immediate: the change event of the underlying web component does not cross the shadow boundary
+       reliably, so a term typed here reached the component only once the field lost focus — which is
+       what the "Hledat" button beside it was really for. With the search firing as it is typed
+       (debounced), the button was a workaround for a bug and is gone. *@
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-        <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
+        <FluentSearch Id="user-search" @bind-Value="_search" @bind-Value:after="SearchAsync"
+                      Immediate="true" ImmediateDelay="300"
                       Placeholder="@L["Admin_Users_SearchPlaceholder"]"
                       Style="max-width:320px" />
-        <FluentButton OnClick="ReloadAsync" Appearance="Appearance.Outline">@L["Admin_Search"]</FluentButton>
     </FluentStack>
 
     @if (_users is null)
@@ -72,14 +78,54 @@
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
+        @if (_total > PageSize)
+        {
+            <div class="pager">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                              OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                              OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+            </div>
+        }
     }
 </FluentStack>
 
 @code {
+    // Paged in SQL. The unpaged read stops at 500 accounts and says nothing about it, so on a
+    // directory any larger the tail simply had no way to be reached — and every row here carries a
+    // status badge and a tag per role, so drawing five hundred of them is not free either.
+    private const int PageSize = 25;
+
     private IReadOnlyList<UserSummary>? _users;
+    private int _pageIndex;
+    private int _total;
     private string? _search;
+
+    private int PageCount => _total == 0 ? 1 : (_total + PageSize - 1) / PageSize;
 
     protected override Task OnInitializedAsync() => ReloadAsync();
 
-    private async Task ReloadAsync() => _users = await UserAdmin.ListAsync(_search);
+    private async Task ReloadAsync()
+    {
+        var page = await UserAdmin.ListPageAsync(_search, _pageIndex, PageSize);
+        _users = page.Items;
+        _total = page.TotalCount;
+        // Taken back from the result: the service walks the index back when the page asked for no
+        // longer exists.
+        _pageIndex = page.PageIndex;
+    }
+
+    private async Task SearchAsync()
+    {
+        // A new search starts at the front; page 5 of the old result set means nothing in the new one.
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task GoToPageAsync(int pageIndex)
+    {
+        _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
+        await ReloadAsync();
+    }
 }

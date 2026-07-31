@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using D3Parking.Application;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Administration;
 using D3Parking.Domain.Accounts;
@@ -29,22 +30,82 @@ public sealed class UserAdminService(
     public async Task<IReadOnlyList<UserSummary>> ListAsync(string? search, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var query = dbContext.Users.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        return await SummariseAsync(
+            dbContext,
+            Matching(dbContext, search).OrderBy(u => u.Email).Take(ListLimit),
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<UserSummary>> ListPageAsync(
+        string? search,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        // Clamped here, not trusted from the caller: the page size decides how much a single request
+        // can ask the database to materialise.
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var matching = Matching(dbContext, search);
+
+        var total = await matching.CountAsync(cancellationToken);
+        if (total == 0)
         {
-            // LIKE is case-insensitive under SQL Server's default (CI) collation. On a
-            // case-sensitive database collation the search would turn case-sensitive —
-            // give the columns an explicit CI collation there.
-            var term = $"%{search.Trim()}%";
-            query = query.Where(u =>
-                EF.Functions.Like(u.Email!, term) ||
-                (u.DisplayName != null && EF.Functions.Like(u.DisplayName, term)));
+            return PagedResult<UserSummary>.Empty(size);
         }
 
-        var rows = await query
-            .OrderBy(u => u.Email)
-            .Take(ListLimit)
+        // A page past the end walks back to the last page that exists rather than rendering an empty
+        // table — the search narrows the directory under the reader's feet.
+        index = Math.Min(index, (total - 1) / size);
+
+        // Email is unique (Identity is configured with RequireUniqueEmail), so it is already a total
+        // order; the id rides along for the theoretical row that has none, because a tie under
+        // Skip/Take drops rows off one page and repeats them on the next.
+        var items = await SummariseAsync(
+            dbContext,
+            matching.OrderBy(u => u.Email).ThenBy(u => u.Id).Skip(index * size).Take(size),
+            cancellationToken);
+
+        return new PagedResult<UserSummary>(items, total, index, size);
+    }
+
+    private static IQueryable<ApplicationUser> Matching(D3ParkingDbContext dbContext, string? search)
+    {
+        var query = dbContext.Users.AsNoTracking();
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return query;
+        }
+
+        // LIKE is case-insensitive under SQL Server's default (CI) collation. On a
+        // case-sensitive database collation the search would turn case-sensitive —
+        // give the columns an explicit CI collation there.
+        var term = $"%{search.Trim()}%";
+        return query.Where(u =>
+            EF.Functions.Like(u.Email!, term) ||
+            (u.DisplayName != null && EF.Functions.Like(u.DisplayName, term)));
+    }
+
+    /// <summary>
+    /// Runs an already-ordered-and-sliced account query and shapes the rows, with each account's
+    /// roles resolved in the same round trip.
+    /// </summary>
+    /// <remarks>
+    /// The projection is written out here rather than factored into a helper the two callers share:
+    /// a lambda handed straight to <c>Select</c> is an expression tree EF translates, but the moment
+    /// it becomes a call to a method taking an entity, EF gives up on translating it, materialises
+    /// every account and runs the roles subquery client-side against a context it is mid-enumeration
+    /// on. That fails outright — which is how this was caught.
+    /// </remarks>
+    private static async Task<UserSummary[]> SummariseAsync(
+        D3ParkingDbContext dbContext,
+        IQueryable<ApplicationUser> accounts,
+        CancellationToken cancellationToken)
+    {
+        var rows = await accounts
             .Select(u => new
             {
                 u.Id,

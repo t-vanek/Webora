@@ -172,7 +172,6 @@
   <data name="Nav_AdminUsers" xml:space="preserve"><value>Správa účtů</value></data>
   <data name="Nav_AdminRoles" xml:space="preserve"><value>Správa práv</value></data>
   <data name="Admin_Loading" xml:space="preserve"><value>Načítání…</value></data>
-  <data name="Admin_Search" xml:space="preserve"><value>Hledat</value></data>
   <data name="Admin_Manage" xml:space="preserve"><value>Spravovat</value></data>
   <data name="Admin_Save" xml:space="preserve"><value>Uložit</value></data>
   <data name="Admin_Cancel" xml:space="preserve"><value>Zrušit</value></data>
@@ -644,6 +643,8 @@
   <data name="Parking_Admin_SweepHint" xml:space="preserve"><value>Označí prošlé nevyužité rezervace jako „nedostavení“ a strhne body. Probíhá i automaticky na pozadí.</value></data>
   <data name="Parking_Admin_SweepResult" xml:space="preserve"><value>Vyřešeno nedostavení: {0}</value></data>
   <data name="Parking_Admin_NoSpots" xml:space="preserve"><value>Zatím nejsou žádná místa.</value></data>
+  <data name="Parking_Admin_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádné místo.</value></data>
+  <data name="Parking_Admin_SearchHint" xml:space="preserve"><value>Hledat podle kódu místa…</value></data>
   <data name="Parking_Admin_State" xml:space="preserve"><value>Stav</value></data>
   <data name="Parking_Admin_Active" xml:space="preserve"><value>Aktivní</value></data>
   <data name="Parking_Admin_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
@@ -1196,6 +1197,7 @@
   <data name="Lot_Today" xml:space="preserve"><value>Dnes</value></data>
   <data name="Lot_NotToday" xml:space="preserve"><value>Zvolen jiný než dnešní den — dlaždice zobrazují rezervace pro daný den, nikoli aktuální stav.</value></data>
   <data name="Lot_SectionUnnamed" xml:space="preserve"><value>Bez sekce</value></data>
+  <data name="Lot_ShowMore" xml:space="preserve"><value>Načíst další místa ({0} z {1})</value></data>
   <data name="Lot_Tab_Board" xml:space="preserve"><value>Plocha</value></data>
   <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytika</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Zavřít</value></data>
@@ -1268,9 +1270,9 @@
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Rezervace přesunuta, držitel informován.</value></data>
   <data name="Lot_Info_Deactivated" xml:space="preserve"><value>Místo bylo vyřazeno z provozu.</value></data>
   <data name="Lot_Info_Activated" xml:space="preserve"><value>Místo bylo vráceno do provozu.</value></data>
-  <data name="Parking_PrevPage" xml:space="preserve"><value>← Předchozí</value></data>
-  <data name="Parking_NextPage" xml:space="preserve"><value>Další →</value></data>
-  <data name="Parking_PageOf" xml:space="preserve"><value>Stránka {0} z {1}</value></data>
+  <data name="Common_PrevPage" xml:space="preserve"><value>← Předchozí</value></data>
+  <data name="Common_NextPage" xml:space="preserve"><value>Další →</value></data>
+  <data name="Common_PageOf" xml:space="preserve"><value>Stránka {0} z {1}</value></data>
   <data name="Lot_State_OfferedFromQueue" xml:space="preserve"><value>Nabídnuto z fronty</value></data>
   <data name="Lot_Stat_ResidentHeld" xml:space="preserve"><value>Rezervováno rezidentům</value></data>
   <data name="Lot_Stat_ActiveSpots" xml:space="preserve"><value>Aktivních míst</value></data>
@@ -1537,6 +1539,10 @@
   <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Opravdu skupinu smazat? Akci nelze vrátit.</value></data>
   <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>Změna se okamžitě promítne do {0} rolí a {1} uživatelům.</value></data>
   <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>Bez skupin</value></data>
+  <data name="Admin_Roles_SearchHint" xml:space="preserve"><value>Hledat roli, skupinu nebo oprávnění…</value></data>
+  <data name="Admin_Roles_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádná role.</value></data>
+  <data name="Admin_Groups_SearchHint" xml:space="preserve"><value>Hledat skupinu nebo oprávnění…</value></data>
+  <data name="Admin_Groups_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádná skupina.</value></data>
   <data name="Admin_Roles_Effective" xml:space="preserve"><value>Výsledná oprávnění</value></data>
   <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Složení role</value></data>
   <data name="Admin_RoleEdit_CompositionIntro" xml:space="preserve"><value>Role se skládá ze skupin oprávnění. Výsledná oprávnění jsou jejich sjednocení.</value></data>
@@ -1583,6 +1589,8 @@
   <data name="Admin_Directory_Assigned" xml:space="preserve"><value>Přiděleno</value></data>
   <data name="Admin_Directory_Remove" xml:space="preserve"><value>Odebrat</value></data>
   <data name="Admin_Directory_Empty" xml:space="preserve"><value>Zatím není namapovaná žádná role z adresáře.</value></data>
+  <data name="Admin_Directory_SearchHint" xml:space="preserve"><value>Hledat roli z adresáře nebo místní roli…</value></data>
+  <data name="Admin_Directory_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádné mapování.</value></data>
   <data name="Admin_Directory_PickRole" xml:space="preserve"><value>Vyberte roli v aplikaci.</value></data>
   <data name="Admin_Directory_Added" xml:space="preserve"><value>Mapování přidáno.</value></data>
   <data name="Admin_Directory_Removed" xml:space="preserve"><value>Mapování odebráno.</value></data>

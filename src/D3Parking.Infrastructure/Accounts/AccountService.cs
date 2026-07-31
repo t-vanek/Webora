@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using D3Parking.Application;
 using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Accounts;
 using D3Parking.Application.Mapping;
@@ -484,15 +485,36 @@ public sealed class AccountService(
             : await TransitionAsync(user, AccountStatus.Active, $"admin:{adminId}", null, AccountAuditEventType.Unblocked, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<AccountAuditEntry>> GetAuditTrailAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<AccountAuditEntry>> GetAuditTrailAsync(
+        Guid userId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var query = dbContext.AccountAuditEvents
-            .AsNoTracking()
-            .Where(e => e.UserId == userId)
-            .OrderByDescending(e => e.OccurredAtUtc);
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
 
-        return await auditMapper.ProjectToEntries(query).ToListAsync(cancellationToken);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var mine = dbContext.AccountAuditEvents.AsNoTracking().Where(e => e.UserId == userId);
+
+        var total = await mine.CountAsync(cancellationToken);
+        if (total == 0)
+        {
+            return PagedResult<AccountAuditEntry>.Empty(size);
+        }
+
+        index = Math.Min(index, (total - 1) / size);
+
+        // Id as a tie-break for the same reason the cross-account trail needs one: a single
+        // operation writes several events on the same tick, and Skip/Take over a tie is not stable.
+        var query = mine
+            .OrderByDescending(e => e.OccurredAtUtc)
+            .ThenByDescending(e => e.Id)
+            .Skip(index * size)
+            .Take(size);
+
+        var items = await auditMapper.ProjectToEntries(query).ToListAsync(cancellationToken);
+        return new PagedResult<AccountAuditEntry>(items, total, index, size);
     }
 
     private async Task<AccountResult> TransitionAsync(

@@ -8,7 +8,13 @@
 
 <div class="perm-editor">
     <div class="perm-editor__bar">
+        @* Immediate: the change event of the underlying web component does not cross the shadow
+           boundary reliably, so the filter did nothing until the field lost focus — on the one
+           screen where a mis-click hands somebody the keys, the search silently not narrowing is
+           worse than not having one. Filtering is in-memory over a fixed catalog, so the delay is
+           short: it debounces the re-render, not a query. *@
         <FluentSearch @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                      Immediate="true" ImmediateDelay="150"
                       Placeholder="@L["Admin_Perms_Search"]" Style="max-width:320px" />
         <span class="perm-editor__summary">
             @L["Admin_Perms_SelectedCount", Selected.Count, Total]
