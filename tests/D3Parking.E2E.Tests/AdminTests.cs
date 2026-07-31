@@ -22,9 +22,27 @@ public class AdminTests : AdminTest
     {
         await Page.GotoAsync("/admin/roles");
         await Expect(Page.Locator(".count-chip")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".role-cards")).ToContainTextAsync("Administrátor");
+        // Scoped to the roles grid: roles and permission groups are two tabs of one page now, both
+        // rendered at once (FluentTabs needs its panels present), so a bare ".role-cards" matches
+        // the groups grid as well.
+        await Expect(Page.Locator(".role-cards--roles")).ToContainTextAsync("Administrátor");
         // Each built-in role states what it is for, which is the point of the card view.
-        await Expect(Page.Locator(".role-cards")).ToContainTextAsync("Správce parkoviště");
+        await Expect(Page.Locator(".role-cards--roles")).ToContainTextAsync("Správce parkoviště");
+    }
+
+    [Test]
+    public async Task Permission_groups_open_on_their_own_tab_and_the_search_spans_both_catalogs()
+    {
+        // The groups route keeps its own identity — same page, other tab.
+        await Pages.GotoInteractiveAsync(Page, "/admin/permission-groups");
+        await Expect(Page.Locator(".role-cards--groups")).ToContainTextAsync("Přístup k parkovišti");
+
+        // A permission typed once is answered on both tabs at the same time, which is the point of
+        // putting the two catalogs together: two roles carry it, and it comes from two groups.
+        await Pages.GotoInteractiveAsync(Page, "/admin/roles?q=ManageSpots");
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex(@"^Role \(2\)$") })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex(@"^Skupiny \(2\)$") })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".role-cards--roles")).ToContainTextAsync("Správce parkoviště");
     }
 
     [Test]

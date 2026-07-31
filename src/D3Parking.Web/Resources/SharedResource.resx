@@ -1539,9 +1539,10 @@
   <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Opravdu skupinu smazat? Akci nelze vrátit.</value></data>
   <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>Změna se okamžitě promítne do {0} rolí a {1} uživatelům.</value></data>
   <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>Bez skupin</value></data>
-  <data name="Admin_Roles_SearchHint" xml:space="preserve"><value>Hledat roli, skupinu nebo oprávnění…</value></data>
+  <data name="Admin_Auth_SearchHint" xml:space="preserve"><value>Hledat roli, skupinu nebo oprávnění…</value></data>
+  <data name="Admin_Auth_Tab_Roles" xml:space="preserve"><value>Role</value></data>
+  <data name="Admin_Auth_Tab_Groups" xml:space="preserve"><value>Skupiny</value></data>
   <data name="Admin_Roles_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádná role.</value></data>
-  <data name="Admin_Groups_SearchHint" xml:space="preserve"><value>Hledat skupinu nebo oprávnění…</value></data>
   <data name="Admin_Groups_NoMatch" xml:space="preserve"><value>Hledání neodpovídá žádná skupina.</value></data>
   <data name="Admin_Roles_Effective" xml:space="preserve"><value>Výsledná oprávnění</value></data>
   <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Složení role</value></data>
