@@ -3808,6 +3808,22 @@ fluent-menu-item:has(> .account-menu-link) {
     .lot-summary__chart { display: none; }
 }
 
+/* Role a skupiny oprávnění jako dva taby jedné stránky. Stejná past jako u plochy parkoviště:
+   fluent-tabs se uvnitř FluentStacku smrskne na šířku obsahu aktivního tabu, protože stack
+   zarovnává děti doleva místo roztažení — karty katalogu by pak dostaly zlomek dostupné šířky. */
+.catalog-tabs {
+    width: 100%;
+}
+
+/* Tělo tabu: přepínač zobrazení a pod ním katalog. Odsazení shora odděluje obsah od lišty tabů. */
+.catalog-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 12px;
+    width: 100%;
+}
+
 /* Serverový pager pod tabulkou: dvě tlačítka a pozice. FluentPaginator se tu nepoužívá —
    ten řídí PaginationState, který nemá hook na změnu stránky (počítá s klientským
    stránkováním nad IQueryable), zatímco tady se stránkuje v SQL. */

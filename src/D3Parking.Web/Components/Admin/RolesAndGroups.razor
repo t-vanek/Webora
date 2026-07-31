@@ -1,0 +1,353 @@
+@* Two routes, one component. The roles catalog and the groups catalog were separate pages, and
+   keeping both paths alive means every bookmark, nav entry, back-link out of the edit forms and
+   deep link keeps working with no redirect machinery — the route decides which tab opens, and
+   switching tabs navigates to the other one. Same trick the oversight queue uses for its retired
+   routes.
+
+   They are one subject: a group is where permission is defined, a role only combines groups. What
+   neither page could do alone is answer "who carries this permission" in one place, which is what
+   the shared filter below is for — it reaches into the permissions on both sides at once, and each
+   tab says how many it matched. *@
+@page "/admin/roles"
+@page "/admin/permission-groups"
+@* Gated on Roles.View alone, deliberately. PermissionGroups.View depends on Roles.View in the
+   catalog, so "groups without roles" is not a state that exists; the groups tab is added on top for
+   whoever holds it. The two permissions stay apart — composing a role must not turn into the same
+   competence as widening what a group grants. *@
+@attribute [HasPermission(Permissions.Roles.View)]
+@rendermode InteractiveServer
+@inject IRoleAdminService RoleAdmin
+@inject IPermissionGroupAdminService Groups
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@Title</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@Title</FluentLabel>
+                @if (_loaded)
+                {
+                    <span class="count-chip">@(OnGroups ? VisibleGroups.Count : VisibleRoles.Count)</span>
+                }
+            </div>
+            <p class="admin-head__intro">@Intro</p>
+        </div>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+            @if (OnGroups)
+            {
+                <AuthorizeView Policy="@PermissionPolicies.For(Permissions.PermissionGroups.Create)" Context="createGroup">
+                    <FluentAnchor Href="admin/permission-groups/create" Appearance="Appearance.Accent">@L["Admin_Groups_Create"]</FluentAnchor>
+                </AuthorizeView>
+            }
+            else
+            {
+                <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Create)" Context="createRole">
+                    <FluentAnchor Href="admin/roles/create" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentAnchor>
+                </AuthorizeView>
+            }
+        </FluentStack>
+    </div>
+
+    @* One box over both catalogs. The counts ride on the tab labels only while it is in use: with no
+       filter they would just repeat the chip above, but the moment something is typed they are the
+       whole point — "three roles and two groups carry this" is one answer living on two tabs. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        <FluentSearch Id="auth-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                      Immediate="true" ImmediateDelay="150"
+                      Placeholder="@L["Admin_Auth_SearchHint"]" Style="max-width:360px" />
+    </FluentStack>
+
+    @* Held back until both catalogs are in, so the tab strip is built once with its final set of
+       children. FluentTabs re-reads its children when they change and snaps the selection back to
+       the first tab — which here would silently throw somebody off the groups tab. *@
+    @if (!_loaded)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else
+    {
+        <FluentTabs @bind-ActiveTabId="_activeTab" OnTabChange="OnTabChanged" Class="catalog-tabs">
+            <FluentTab Id="@RolesTab" Label="@TabLabel(L["Admin_Auth_Tab_Roles"], VisibleRoles.Count)">
+                <div class="catalog-tab">
+                    @* The view switch belongs to this catalog, not to the page: the tab says which
+                       catalog, this says how to draw it. Two levels, two different questions. *@
+                    <div class="view-switch" role="group" aria-label="@L["Admin_Roles_ViewLabel"]">
+                        <button type="button" class="view-switch__btn @(_matrix ? string.Empty : "view-switch__btn--active")"
+                                @onclick="() => _matrix = false" aria-pressed="@(!_matrix)">
+                            @L["Admin_Roles_ViewCards"]
+                        </button>
+                        <button type="button" class="view-switch__btn @(_matrix ? "view-switch__btn--active" : string.Empty)"
+                                @onclick="() => _matrix = true" aria-pressed="@_matrix">
+                            @L["Admin_Roles_ViewMatrix"]
+                        </button>
+                    </div>
+
+                    @if (VisibleRoles.Count == 0)
+                    {
+                        <div class="empty-state">@L["Admin_Roles_NoMatch"]</div>
+                    }
+                    else if (_matrix)
+                    {
+                        <div class="admin-panel role-matrix__wrap">
+                            <table class="role-matrix">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["Admin_Roles_Name"]</th>
+                                        @foreach (var area in Permissions.Areas)
+                                        {
+                                            <th scope="col">@AuthorizationDisplay.AreaName(L, area.Name)</th>
+                                        }
+                                        <th scope="col">@L["Admin_Roles_Users"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var role in VisibleRoles)
+                                    {
+                                        <tr>
+                                            <th scope="row">
+                                                <a href="@($"admin/roles/{role.Id}")">@AuthorizationDisplay.RoleName(L, role.Name)</a>
+                                            </th>
+                                            @foreach (var area in Permissions.Areas)
+                                            {
+                                                var held = area.Permissions.Count(role.Permissions.Contains);
+                                                <td class="@CellClass(held, area.Permissions.Count)"
+                                                    title="@($"{held} / {area.Permissions.Count}")">
+                                                    @(held == 0 ? "—" : $"{held}/{area.Permissions.Count}")
+                                                </td>
+                                            }
+                                            <td>@role.UserCount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        @* Both tab bodies are in the DOM at once (FluentTabs needs them there), so
+                           the grid says which catalog it holds. Without the modifier ".role-cards"
+                           matches twice on one page — one of them hidden — and any selector reaching
+                           for "the cards" is ambiguous. *@
+                        <div class="role-cards role-cards--roles">
+                            @foreach (var role in VisibleRoles)
+                            {
+                                <a class="role-card" href="@($"admin/roles/{role.Id}")">
+                                    <div class="role-card__head">
+                                        <span class="role-card__name">@AuthorizationDisplay.RoleName(L, role.Name)</span>
+                                        @if (role.IsDefault)
+                                        {
+                                            <FluentBadge Appearance="Appearance.Neutral">@L["Admin_Roles_Default"]</FluentBadge>
+                                        }
+                                    </div>
+                                    <p class="role-card__desc">@AuthorizationDisplay.RoleDescription(L, role.Name)</p>
+
+                                    <div class="role-card__caps">
+                                        @if (role.Groups.Count == 0)
+                                        {
+                                            <span class="role-card__none">@L["Admin_Roles_NoGroups"]</span>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var group in role.Groups)
+                                            {
+                                                <span class="tag">@AuthorizationDisplay.GroupName(L, group.Name)</span>
+                                            }
+                                        }
+                                    </div>
+
+                                    <div class="role-card__foot">
+                                        <span>@PluralText.For(L, "Admin_Roles_MemberCount", role.UserCount)</span>
+                                        <span>@PluralText.For(L, "Admin_Roles_PermissionCount", role.Permissions.Count)</span>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </FluentTab>
+
+            @if (_canGroups)
+            {
+                <FluentTab Id="@GroupsTab" Label="@TabLabel(L["Admin_Auth_Tab_Groups"], VisibleGroups.Count)">
+                    <div class="catalog-tab">
+                        @if (VisibleGroups.Count == 0)
+                        {
+                            <div class="empty-state">@L["Admin_Groups_NoMatch"]</div>
+                        }
+                        else
+                        {
+                            <div class="role-cards role-cards--groups">
+                                @foreach (var group in VisibleGroups)
+                                {
+                                    <a class="role-card" href="@($"admin/permission-groups/{group.Id}")">
+                                        <div class="role-card__head">
+                                            <span class="role-card__name">@AuthorizationDisplay.GroupName(L, group.Name)</span>
+                                            @if (group.IsBuiltIn)
+                                            {
+                                                <FluentBadge Appearance="Appearance.Neutral">@L["Admin_Roles_Default"]</FluentBadge>
+                                            }
+                                        </div>
+                                        <p class="role-card__desc">@AuthorizationDisplay.GroupDescription(L, group.Name, group.Description)</p>
+
+                                        <div class="role-card__caps">
+                                            @if (group.Permissions.Count == 0)
+                                            {
+                                                <span class="role-card__none">@L["Admin_Roles_NoPermissions"]</span>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var permission in group.Permissions.Take(HighlightLimit))
+                                                {
+                                                    <span class="tag">@AuthorizationDisplay.PermissionName(L, permission)</span>
+                                                }
+                                                @if (group.Permissions.Count > HighlightLimit)
+                                                {
+                                                    <span class="tag tag--more">@PluralText.For(L, "Admin_Roles_MorePermissions", group.Permissions.Count - HighlightLimit)</span>
+                                                }
+                                            }
+                                        </div>
+
+                                        <div class="role-card__foot">
+                                            <span>@PluralText.For(L, "Admin_Groups_RoleCount", group.RoleCount)</span>
+                                            <span>@PluralText.For(L, "Admin_Roles_PermissionCount", group.Permissions.Count)</span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </div>
+                </FluentTab>
+            }
+        </FluentTabs>
+    }
+</FluentStack>
+
+@code {
+    private const string RolesTab = "tab-roles";
+    private const string GroupsTab = "tab-groups";
+
+    /// <summary>How many of a group's permissions the card names before it starts counting instead.</summary>
+    private const int HighlightLimit = 4;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    /// <summary>
+    /// The search term, carried in the URL. Switching tabs is a navigation to the other route, and a
+    /// route change builds this component afresh — without the term riding along in the query, a
+    /// search would be silently dropped by the very click that follows it to the other catalog.
+    /// It also makes a search linkable, which is the point of a question like "who can do this".
+    /// Public because static SSR does not bind the attribute to private properties.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "q")] public string? Query { get; set; }
+
+    private IReadOnlyList<RoleSummary> _roles = [];
+    private IReadOnlyList<PermissionGroupSummary> _groups = [];
+    private bool _loaded;
+    private bool _canGroups;
+    private bool _matrix;
+    private string? _filter;
+    private string? _activeTab = RolesTab;
+
+    private bool OnGroups => _activeTab == GroupsTab;
+
+    private string Title => OnGroups ? L["Nav_AdminPermissionGroups"] : L["Admin_Roles_Title"];
+
+    private string Intro => OnGroups ? L["Admin_Groups_Intro"] : L["Admin_Roles_Intro"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        _canGroups = state.User.HasClaim(D3ParkingClaimTypes.Permission, Permissions.PermissionGroups.View);
+
+        // Both catalogs, up front. They are administrator-written and small (tens of rows), and the
+        // filter reports across both — fetching the far side only when its tab is opened would mean
+        // its count is missing exactly when somebody is searching for it.
+        _roles = await RoleAdmin.ListAsync();
+        if (_canGroups)
+        {
+            _groups = await Groups.ListAsync();
+        }
+
+        _loaded = true;
+
+        // The route was read before the claim was known, so a groups link had to fall back to roles;
+        // now that it is known, honour it.
+        ApplyRoute();
+    }
+
+    /// <summary>
+    /// The route decides the tab, so a deep link, a nav entry and the back-link out of an edit form
+    /// all land where they say they will.
+    /// </summary>
+    protected override void OnParametersSet() => ApplyRoute();
+
+    private void ApplyRoute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].TrimEnd('/');
+        // A groups link opened by somebody who may not see groups lands on roles rather than
+        // selecting a tab that is not on the strip.
+        var wantsGroups = path.EndsWith("permission-groups", StringComparison.OrdinalIgnoreCase);
+        _activeTab = wantsGroups && _canGroups ? GroupsTab : RolesTab;
+        _filter = Query;
+    }
+
+    private void OnTabChanged(FluentTab tab)
+    {
+        // Navigating rather than just flipping a field is the point: the address bar keeps naming
+        // what is on screen, so a tab can be linked to, reloaded and bookmarked. The search goes
+        // with it — typing does not touch the URL (that would be a history entry per keystroke),
+        // only this crossing does.
+        var route = tab?.Id == GroupsTab ? "admin/permission-groups" : "admin/roles";
+        var query = string.IsNullOrWhiteSpace(_filter)
+            ? string.Empty
+            : $"?q={Uri.EscapeDataString(_filter.Trim())}";
+        Nav.NavigateTo(route + query, replace: true);
+    }
+
+    private string TabLabel(string name, int matched) =>
+        string.IsNullOrWhiteSpace(_filter) ? name : $"{name} ({matched})";
+
+    private IReadOnlyList<RoleSummary> VisibleRoles =>
+        string.IsNullOrWhiteSpace(_filter) ? _roles : _roles.Where(MatchesRole).ToList();
+
+    private IReadOnlyList<PermissionGroupSummary> VisibleGroups =>
+        string.IsNullOrWhiteSpace(_filter) ? _groups : _groups.Where(MatchesGroup).ToList();
+
+    /// <summary>
+    /// Matches on everything the card shows plus the raw identifiers behind it: the stored name as
+    /// well as the localized one (an installation is administered in both), the groups the role is
+    /// made of, and the permissions those grant. Reaching the permissions is the point — "which role
+    /// can do Parking.ManageSpots" is the question this page could not answer.
+    /// </summary>
+    private bool MatchesRole(RoleSummary role)
+    {
+        var term = _filter!.Trim();
+        return Has(role.Name, term)
+            || Has(AuthorizationDisplay.RoleName(L, role.Name), term)
+            || role.Groups.Any(g => Has(g.Name, term) || Has(AuthorizationDisplay.GroupName(L, g.Name), term))
+            || role.Permissions.Any(p => Has(p, term) || Has(AuthorizationDisplay.PermissionName(L, p), term));
+    }
+
+    /// <summary>The same reach on the other side: the bundle's own words, and what it hands out.</summary>
+    private bool MatchesGroup(PermissionGroupSummary group)
+    {
+        var term = _filter!.Trim();
+        return Has(group.Name, term)
+            || Has(AuthorizationDisplay.GroupName(L, group.Name), term)
+            || Has(AuthorizationDisplay.GroupDescription(L, group.Name, group.Description), term)
+            || group.Permissions.Any(p => Has(p, term) || Has(AuthorizationDisplay.PermissionName(L, p), term));
+    }
+
+    private static bool Has(string value, string term) =>
+        value.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+    private static string CellClass(int held, int total) => held switch
+    {
+        0 => "role-matrix__cell",
+        _ when held == total => "role-matrix__cell role-matrix__cell--full",
+        _ => "role-matrix__cell role-matrix__cell--partial",
+    };
+}

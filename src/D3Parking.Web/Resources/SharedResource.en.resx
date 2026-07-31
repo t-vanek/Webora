@@ -1539,9 +1539,10 @@
   <data name="Admin_Groups_DeleteConfirm" xml:space="preserve"><value>Delete this group? This cannot be undone.</value></data>
   <data name="Admin_Groups_BlastRadius" xml:space="preserve"><value>The change reaches {0} roles and {1} users at once.</value></data>
   <data name="Admin_Roles_NoGroups" xml:space="preserve"><value>No groups</value></data>
-  <data name="Admin_Roles_SearchHint" xml:space="preserve"><value>Search role, group or permission…</value></data>
+  <data name="Admin_Auth_SearchHint" xml:space="preserve"><value>Search role, group or permission…</value></data>
+  <data name="Admin_Auth_Tab_Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Admin_Auth_Tab_Groups" xml:space="preserve"><value>Groups</value></data>
   <data name="Admin_Roles_NoMatch" xml:space="preserve"><value>No role matches the search.</value></data>
-  <data name="Admin_Groups_SearchHint" xml:space="preserve"><value>Search group or permission…</value></data>
   <data name="Admin_Groups_NoMatch" xml:space="preserve"><value>No group matches the search.</value></data>
   <data name="Admin_Roles_Effective" xml:space="preserve"><value>Effective permissions</value></data>
   <data name="Admin_RoleEdit_Composition" xml:space="preserve"><value>Role composition</value></data>
