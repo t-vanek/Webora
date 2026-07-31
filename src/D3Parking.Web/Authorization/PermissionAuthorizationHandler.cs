@@ -9,7 +9,7 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        if (context.User.HasClaim(D3ParkingClaimTypes.Permission, requirement.Permission))
+        if (requirement.Permissions.Any(p => context.User.HasClaim(D3ParkingClaimTypes.Permission, p)))
         {
             context.Succeed(requirement);
         }

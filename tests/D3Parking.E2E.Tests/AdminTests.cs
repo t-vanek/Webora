@@ -194,11 +194,38 @@ public class AdminTests : AdminTest
     }
 
     [Test]
-    public async Task Collusion_review_renders_its_content()
+    public async Task Oversight_carries_both_review_queues_as_tabs()
     {
-        // The shared database persists between runs, so flags may legitimately exist: assert the
-        // page renders one of its two states (empty state or the flag grid), not emptiness.
-        await Page.GotoAsync("/admin/parking/collusion");
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/oversight");
+        await Expect(Page.Locator("fluent-tab", new() { HasText = "Neshody obsazenosti" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("fluent-tab", new() { HasText = "Podezřelé dvojice" })).ToBeVisibleAsync();
+
+        // The shared database persists between runs, so rows may legitimately exist: assert the
+        // open queue renders one of its two states (empty state or a grid), not emptiness.
         await Expect(Page.Locator(".empty-state").Or(Page.Locator(".admin-panel")).First).ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task The_retired_collusion_route_still_opens_and_lands_on_its_own_tab()
+    {
+        // Bookmarks and older deep links point at the page the queue used to have to itself.
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/collusion");
+
+        // Each queue's intro is unique to its panel, and FluentTabs hides the panel that is not
+        // open — so this asserts the landing tab, not merely that the page rendered.
+        await Expect(Page.GetByText(new Regex("Páry, jejichž sdílení"))).ToBeVisibleAsync();
+        await Expect(Page.GetByText(new Regex("Řidiči zaznamenali"))).ToBeHiddenAsync();
+    }
+
+    [Test]
+    public async Task Switching_queues_moves_the_address_bar_onto_the_open_one()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/oversight");
+        await Page.Locator("fluent-tab", new() { HasText = "Podezřelé dvojice" }).ClickAsync();
+
+        // The selection has to hold: FluentTabs snaps back to the first tab if a panel's children
+        // are swapped underneath it, and the URL is what makes a queue linkable.
+        await Expect(Page).ToHaveURLAsync(new Regex("/admin/parking/oversight/collusion$"));
+        await Expect(Page.GetByText(new Regex("Páry, jejichž sdílení"))).ToBeVisibleAsync();
     }
 }

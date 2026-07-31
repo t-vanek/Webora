@@ -173,15 +173,17 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Fleet"]</span>
                 </NavLink>
             }
-            @* Mismatches and collusion review used to be reachable only by deep link from another
-               admin page — a reviewer who landed on the home screen had no way to find their queue. *@
-            @if (_canReviewMismatches)
+            @* The review queues used to be reachable only by deep link from another admin page — a
+               reviewer who landed on the home screen had no way to find their work. One entry now,
+               because the queues are one screen; it shows for either permission and the page opens
+               on whichever queue the reviewer can act on. *@
+            @if (_canReviewMismatches || _canReviewCollusion)
             {
-                <NavLink href="admin/parking/mismatches" class="side-nav__item" ActiveClass="side-nav__item--active"
-                         aria-label="@L["Nav_AdminMismatches"]">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.Warning())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span class="side-nav__label">@L["Nav_AdminMismatches"]</span>
-                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Mismatches"]</span>
+                <NavLink href="admin/parking/oversight" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_AdminOversight"]">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ShieldTask())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="side-nav__label">@L["Nav_AdminOversight"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Oversight"]</span>
                 </NavLink>
             }
             @if (_canManageVisitors)
@@ -200,15 +202,6 @@
                     <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_AdminParkingSettings"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Rules"]</span>
-                </NavLink>
-            }
-            @if (_canReviewCollusion)
-            {
-                <NavLink href="admin/parking/collusion" class="side-nav__item" ActiveClass="side-nav__item--active"
-                         aria-label="@L["Nav_AdminCollusion"]">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.ShieldError())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span class="side-nav__label">@L["Nav_AdminCollusion"]</span>
-                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Collusion"]</span>
                 </NavLink>
             }
         }

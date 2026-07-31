@@ -824,14 +824,22 @@
   <data name="Parking_Settings_MaxPairTrustWeight" xml:space="preserve"><value>Strop váhy dvojice v grafu důvěry</value></data>
   <data name="Parking_Settings_CollusionInterval" xml:space="preserve"><value>Interval kontroly (hodin)</value></data>
   <data name="Parking_Settings_CollusionReviewLink" xml:space="preserve"><value>Otevřít revizi podezřelých dvojic →</value></data>
-  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Podezřelé interakce</value></data>
+  <data name="Parking_Oversight_Title" xml:space="preserve"><value>Provozní dohled</value></data>
+  <data name="Parking_Oversight_Intro" xml:space="preserve"><value>Vše, co provoz parkoviště označil k ručnímu posouzení: neshody obsazenosti hlášené řidiči a dvojice, u kterých noční kontrola našla podezřelé sdílení. Číslo v záhlaví říká, kolik případů čeká na rozhodnutí.</value></data>
+  <data name="Parking_Oversight_OpenCases" xml:space="preserve"><value>Případy čekající na rozhodnutí</value></data>
+  <data name="Parking_Oversight_Refresh" xml:space="preserve"><value>Načíst znovu</value></data>
+  <data name="Parking_Oversight_Records" xml:space="preserve"><value>Záznamů</value></data>
+  <data name="Parking_Collusion_Title" xml:space="preserve"><value>Podezřelé dvojice</value></data>
   <data name="Parking_Collusion_Intro" xml:space="preserve"><value>Páry, jejichž sdílení se příliš soustředí na sebe navzájem. Posuď a buď ponech k záznamu, nebo zamítni jako planý poplach.</value></data>
   <data name="Parking_Collusion_Empty" xml:space="preserve"><value>Žádné podezřelé páry.</value></data>
   <data name="Parking_Collusion_Pair" xml:space="preserve"><value>Pár</value></data>
   <data name="Parking_Collusion_Mutual" xml:space="preserve"><value>Vzájemné</value></data>
   <data name="Parking_Collusion_Concentration" xml:space="preserve"><value>Koncentrace</value></data>
+  <data name="Parking_Collusion_DetectedAt" xml:space="preserve"><value>Zjištěno</value></data>
   <data name="Parking_Collusion_Review" xml:space="preserve"><value>Přezkoumáno</value></data>
   <data name="Parking_Collusion_Dismiss" xml:space="preserve"><value>Zamítnout</value></data>
+  <data name="Parking_Collusion_ReviewedInfo" xml:space="preserve"><value>Dvojice je označená jako přezkoumaná a zůstává v záznamu.</value></data>
+  <data name="Parking_Collusion_DismissedInfo" xml:space="preserve"><value>Dvojice byla zamítnuta jako planý poplach; další kontroly ji nechají být.</value></data>
   <data name="Parking_CollusionState_New" xml:space="preserve"><value>Nový</value></data>
   <data name="Parking_CollusionState_Reviewed" xml:space="preserve"><value>Přezkoumán</value></data>
   <data name="Parking_CollusionState_Dismissed" xml:space="preserve"><value>Zamítnut</value></data>
@@ -1132,10 +1140,8 @@
   <data name="Lot_Queue_Refused" xml:space="preserve"><value>Rozložení odmítnuté poptávky</value></data>
   <data name="Nav_AdminAudit" xml:space="preserve"><value>Auditní záznam</value></data>
   <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
-  <data name="Nav_AdminMismatches" xml:space="preserve"><value>Nesrovnalosti</value></data>
-  <data name="Nav_Short_Mismatches" xml:space="preserve"><value>Nesrov.</value></data>
-  <data name="Nav_AdminCollusion" xml:space="preserve"><value>Podezřelé dvojice</value></data>
-  <data name="Nav_Short_Collusion" xml:space="preserve"><value>Dvojice</value></data>
+  <data name="Nav_AdminOversight" xml:space="preserve"><value>Provozní dohled</value></data>
+  <data name="Nav_Short_Oversight" xml:space="preserve"><value>Dohled</value></data>
   <data name="Home_Card_Analytics" xml:space="preserve"><value>Obsazenost, trendy a odmítnutá poptávka</value></data>
   <data name="Home_Card_Audit" xml:space="preserve"><value>Historie změn účtů a oprávnění</value></data>
   <data name="Perm_Parking_View" xml:space="preserve"><value>Zobrazit parkoviště</value></data>

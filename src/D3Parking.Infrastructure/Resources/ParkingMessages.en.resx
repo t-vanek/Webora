@@ -82,7 +82,7 @@
   <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>No-show on a queued spot</value></data>
   <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>You didn't show up for spot {0}, which you claimed from the queue. Heavy penalty: −{1} points, −{2} credits, a temporary queue ban and a reduced next monthly allowance.</value></data>
   <data name="Parking_Notify_Collusion_Title" xml:space="preserve"><value>Suspicious sharing interactions</value></data>
-  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Suspicious interactions).</value></data>
+  <data name="Parking_Notify_Collusion_Body" xml:space="preserve"><value>{0} new suspicious sharing pairs detected. Review them in administration (Operations oversight).</value></data>
   <data name="Fleet_Email_Code_Subject" xml:space="preserve"><value>Vehicle pairing confirmation code</value></data>
   <data name="Fleet_Email_Code_Body" xml:space="preserve"><value>&lt;p&gt;To pair company vehicle &lt;strong&gt;{0}&lt;/strong&gt; with your account, enter this code under My account:&lt;/p&gt;</value></data>
   <data name="Fleet_Email_Code_Deadline" xml:space="preserve"><value>The code is valid only briefly. If you did not request pairing, ignore this email.</value></data>
