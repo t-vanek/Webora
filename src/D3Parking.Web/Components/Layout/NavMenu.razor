@@ -115,22 +115,16 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Users"]</span>
                 </NavLink>
             }
+            @* One entry for both catalogs. Since roles and groups became two tabs of one screen,
+               a second entry pointing at the same page only asked the reader to guess which of the
+               two names holds what they came for — the tab strip answers that in place. *@
             @if (_canAdminRoles)
             {
-                <NavLink href="admin/roles" class="side-nav__item" ActiveClass="side-nav__item--active"
+                <NavLink href="admin/roles" class="@RolesItemClass" ActiveClass="side-nav__item--active"
                          aria-label="@L["Nav_AdminRoles"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.ShieldKeyhole())" Color="Color.Custom" CustomColor="currentColor" />
                     <span class="side-nav__label">@L["Nav_AdminRoles"]</span>
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Roles"]</span>
-                </NavLink>
-            }
-            @if (_canPermissionGroups)
-            {
-                <NavLink href="admin/permission-groups" class="side-nav__item" ActiveClass="side-nav__item--active"
-                         aria-label="@L["Nav_AdminPermissionGroups"]">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.Braces())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span class="side-nav__label">@L["Nav_AdminPermissionGroups"]</span>
-                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_PermissionGroups"]</span>
                 </NavLink>
             }
             @if (_canAdminRoles)
@@ -252,9 +246,16 @@
     private bool _rail;
     private bool _authenticated;
 
+    /// <summary>
+    /// Whether the groups half of the authorization screen is the one on show. The roles entry
+    /// stands for both catalogs, but the groups tab keeps its own route, and NavLink only ever
+    /// matches the href it was handed — without this the menu would show nothing selected on the
+    /// very page it navigated to.
+    /// </summary>
+    private bool _onGroupsRoute;
+
     private bool _canAdminUsers;
     private bool _canAdminRoles;
-    private bool _canPermissionGroups;
     private bool _canAudit;
     private bool _canSettings;
     private bool _canReserve;
@@ -272,6 +273,17 @@
     private bool _canAnyAccess;
     private bool _canAnyLot;
 
+    /// <summary>
+    /// Adds the active fill by hand on the groups route, where NavLink cannot supply it, and leaves
+    /// it to NavLink everywhere else so the class is never written twice onto the same element.
+    /// </summary>
+    private string RolesItemClass =>
+        _onGroupsRoute ? "side-nav__item side-nav__item--active" : "side-nav__item";
+
+    private bool IsGroupsRoute() =>
+        Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].TrimEnd('/')
+            .EndsWith("permission-groups", StringComparison.OrdinalIgnoreCase);
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
     private void CloseDrawer() => _drawerOpen = false;
@@ -287,6 +299,7 @@
         // The island persists across enhanced navigations, so the drawer has to close itself
         // when a link inside it navigates — otherwise it would still cover the new page.
         Nav.LocationChanged += OnLocationChanged;
+        _onGroupsRoute = IsGroupsRoute();
 
         if (AuthState is not null)
         {
@@ -297,7 +310,6 @@
 
             _canAdminUsers = Can(Permissions.Users.View);
             _canAdminRoles = Can(Permissions.Roles.View);
-            _canPermissionGroups = Can(Permissions.PermissionGroups.View);
             _canAudit = Can(Permissions.Audit.View);
             _canSettings = Can(Permissions.Settings.View);
             _canReserve = Can(Permissions.Parking.Reserve);
@@ -310,7 +322,9 @@
             _canManageIncentives = Can(Permissions.Parking.ManageIncentives);
             _canReviewCollusion = Can(Permissions.Parking.ReviewCollusion);
 
-            _canAnyAccess = _canAdminUsers || _canAdminRoles || _canPermissionGroups || _canAudit;
+            // PermissionGroups.View is not asked about: the catalog it opens is gated on Roles.View,
+            // so it can never be the one permission that earns somebody this heading.
+            _canAnyAccess = _canAdminUsers || _canAdminRoles || _canAudit;
             _canAnyLot = _canManageSpots || _canManageFleet || _canReviewMismatches
                 || _canViewAnalytics || _canManageVisitors || _canManageIncentives || _canReviewCollusion;
         }
@@ -352,11 +366,17 @@
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        if (_drawerOpen)
+        // NavLink redraws itself, so the menu only needs a render when something it owns changed:
+        // the drawer covering the new page, or the roles entry's stand-in highlight.
+        var onGroups = IsGroupsRoute();
+        if (!_drawerOpen && onGroups == _onGroupsRoute)
         {
-            _drawerOpen = false;
-            _ = InvokeAsync(StateHasChanged);
+            return;
         }
+
+        _drawerOpen = false;
+        _onGroupsRoute = onGroups;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
