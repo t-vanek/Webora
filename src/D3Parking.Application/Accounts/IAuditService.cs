@@ -12,10 +12,20 @@ namespace D3Parking.Application.Accounts;
 /// </remarks>
 public interface IAuditService
 {
-    Task<IReadOnlyList<AuditLogEntry>> SearchAsync(
+    /// <summary>
+    /// One page of the trail, newest first, narrowed by an optional free-text term and event type.
+    /// </summary>
+    /// <remarks>
+    /// Paged rather than capped: the trail is append-only and the questions asked of it ("who was
+    /// handing out roles in March") are answered by rows that a cap puts out of reach. A capped read
+    /// cannot even say it happened — a full page of results looks the same whether it is the whole
+    /// answer or the first slice of one.
+    /// </remarks>
+    Task<PagedResult<AuditLogEntry>> SearchAsync(
         string? search,
         AccountAuditEventType? type,
-        int limit,
+        int pageIndex,
+        int pageSize,
         CancellationToken cancellationToken = default);
 }
 

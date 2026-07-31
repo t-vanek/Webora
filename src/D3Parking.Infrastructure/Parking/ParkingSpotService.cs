@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using D3Parking.Application;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
@@ -37,6 +38,74 @@ public sealed class ParkingSpotService(
                 s.MonthlyShareAllowance))
             .ToListAsync(cancellationToken);
         return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
+    }
+
+    public async Task<PagedResult<ParkingSpotDto>> ListPageAsync(
+        int pageIndex,
+        int pageSize,
+        string? search = null,
+        string? jumpToCode = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Clamped here, not trusted from the caller: the page size decides how much a single request
+        // can ask the database to materialise (same rule as the booking history's pager).
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var query = dbContext.ParkingSpots.AsNoTracking();
+        var term = search?.Trim();
+        if (!string.IsNullOrEmpty(term))
+        {
+            query = query.Where(s => s.Code.Contains(term));
+        }
+
+        // Natural code order is not a collation any database has (D3-2 before D3-10), so the order is
+        // decided here — but only over the codes. The row itself, whose owner name costs a lookup per
+        // spot, is then read for one page instead of for the whole lot.
+        var ordered = (await query
+                .Select(s => new { s.Id, s.Code })
+                .ToListAsync(cancellationToken))
+            .OrderBy(s => s.Code, SpotCodeComparer.Instance)
+            .ToList();
+
+        var total = ordered.Count;
+        if (total == 0)
+        {
+            return PagedResult<ParkingSpotDto>.Empty(size);
+        }
+
+        // "Show me where this one landed" beats the page the caller was on.
+        if (!string.IsNullOrWhiteSpace(jumpToCode))
+        {
+            var at = ordered.FindIndex(s => string.Equals(s.Code, jumpToCode.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (at >= 0)
+            {
+                index = at / size;
+            }
+        }
+
+        // A page past the end (the spots on it were just deleted away, or the search narrowed) walks
+        // back to the last page that exists rather than rendering an empty table.
+        index = Math.Min(index, (total - 1) / size);
+
+        var pageIds = ordered.Skip(index * size).Take(size).Select(s => s.Id).ToList();
+        var items = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => pageIds.Contains(s.Id))
+            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
+                s.OwnerId == null
+                    ? null
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.MonthlyShareAllowance))
+            .ToListAsync(cancellationToken);
+
+        // An IN (…) read comes back in whatever order the server finds convenient; put the page back
+        // into the code order it was picked in.
+        var byId = items.ToDictionary(i => i.Id);
+        var page = pageIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+
+        return new PagedResult<ParkingSpotDto>(page, total, index, size);
     }
 
     public async Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)

@@ -18,22 +18,31 @@
                 <FluentLabel Typo="Typography.PageTitle">@L["Admin_Audit_Title"]</FluentLabel>
                 @if (_entries is not null)
                 {
-                    <span class="count-chip">@_entries.Count</span>
+                    @* What the filters match, not what this page draws. The chip used to say 200 for
+                       every trail longer than 200, which is the one number it must never say. *@
+                    <span class="count-chip">@_total</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Audit_Intro"]</p>
         </div>
     </div>
 
+    @* Both filters go through FilterAsync, not ReloadAsync: a narrowed trail has its own pages, and
+       page 7 of the old result set means nothing in the new one. *@
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
-        <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
+        @* Immediate: the change event of the underlying web component does not cross the shadow
+           boundary reliably, so a term typed here reached the component only once the field lost
+           focus — measured in the browser, the grid sat on the old result set the whole time. The
+           delay is the debounce; every keystroke is a query. *@
+        <FluentSearch @bind-Value="_search" @bind-Value:after="FilterAsync"
+                      Immediate="true" ImmediateDelay="300"
                       Placeholder="@L["Admin_Audit_SearchHint"]" Style="max-width:320px" />
         <FluentSelect TOption="string"
                       Items="@_typeOptions"
                       OptionValue="@(t => t)"
                       OptionText="@(t => t.Length == 0 ? L["Admin_Audit_AllTypes"] : L[$"Audit_Type_{t}"])"
                       @bind-SelectedOption="_type"
-                      @bind-SelectedOption:after="ReloadAsync"
+                      @bind-SelectedOption:after="FilterAsync"
                       Style="min-width:260px" />
     </FluentStack>
 
@@ -67,16 +76,34 @@
                 <TemplateColumn Title="@L["Admin_UserEdit_AuditDetail"]">@(context.Detail ?? "—")</TemplateColumn>
             </FluentDataGrid>
         </div>
+        @if (_total > PageSize)
+        {
+            <div class="pager">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                              OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                              OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+            </div>
+        }
     }
 </FluentStack>
 
 @code {
-    private const int PageSize = 200;
+    // Paged in SQL. This read used to stop at 200 rows and say nothing about it, which on an
+    // append-only trail means the older half of the history simply had no way to be reached — and
+    // the questions this page exists for ("who was handing out roles in March") are asked of exactly
+    // the rows a cap swallows.
+    private const int PageSize = 50;
 
     private IReadOnlyList<AuditLogEntry>? _entries;
+    private int _pageIndex;
+    private int _total;
     private string? _search;
     private string _type = string.Empty;
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
+
+    private int PageCount => _total == 0 ? 1 : (_total + PageSize - 1) / PageSize;
 
     private readonly string[] _typeOptions =
         [string.Empty, .. Enum.GetNames<AccountAuditEventType>()];
@@ -90,7 +117,24 @@
     private async Task ReloadAsync()
     {
         AccountAuditEventType? type = Enum.TryParse<AccountAuditEventType>(_type, out var parsed) ? parsed : null;
-        _entries = await Audit.SearchAsync(_search, type, PageSize);
+        var page = await Audit.SearchAsync(_search, type, _pageIndex, PageSize);
+        _entries = page.Items;
+        _total = page.TotalCount;
+        // Taken back from the result: the service walks the index back when the page asked for no
+        // longer exists.
+        _pageIndex = page.PageIndex;
+    }
+
+    private async Task FilterAsync()
+    {
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task GoToPageAsync(int pageIndex)
+    {
+        _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
+        await ReloadAsync();
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");

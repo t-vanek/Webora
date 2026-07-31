@@ -17,7 +17,7 @@
                 <FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Title"]</FluentLabel>
                 @if (_roles is not null)
                 {
-                    <span class="count-chip">@_roles.Count</span>
+                    <span class="count-chip">@Visible.Count</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Roles_Intro"]</p>
@@ -42,9 +42,23 @@
         </FluentStack>
     </div>
 
+    @* The catalog is small and read whole — a role list is written by administrators, not by users,
+       so it has no pager. What it lacked was any way to answer "which role carries this permission",
+       which the matrix shows but does not let you find. The filter reaches the role's own name, the
+       groups it is composed of and the permissions those add up to, and it narrows both views. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        <FluentSearch Id="role-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
+                      Immediate="true" ImmediateDelay="150"
+                      Placeholder="@L["Admin_Roles_SearchHint"]" Style="max-width:320px" />
+    </FluentStack>
+
     @if (_roles is null)
     {
         <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (Visible.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Roles_NoMatch"]</div>
     }
     else if (_matrix)
     {
@@ -61,7 +75,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var role in _roles)
+                    @foreach (var role in Visible)
                     {
                         <tr>
                             <th scope="row">
@@ -85,7 +99,7 @@
     else
     {
         <div class="role-cards">
-            @foreach (var role in _roles)
+            @foreach (var role in Visible)
             {
                 <a class="role-card" href="@($"admin/roles/{role.Id}")">
                     <div class="role-card__head">
@@ -124,8 +138,30 @@
 @code {
     private IReadOnlyList<RoleSummary>? _roles;
     private bool _matrix;
+    private string? _filter;
 
     protected override async Task OnInitializedAsync() => _roles = await RoleAdmin.ListAsync();
+
+    private IReadOnlyList<RoleSummary> Visible => _roles is null
+        ? []
+        : string.IsNullOrWhiteSpace(_filter) ? _roles : _roles.Where(Matches).ToList();
+
+    /// <summary>
+    /// Matches on everything the card shows plus the raw identifiers behind it: the stored role name
+    /// as well as its localized one (an installation is administered in both), the groups it is made
+    /// of, and the permissions those grant. Reaching the permissions is the point — "which role can
+    /// do Parking.ManageSpots" is the question this list could not answer.
+    /// </summary>
+    private bool Matches(RoleSummary role)
+    {
+        var term = _filter!.Trim();
+        return Has(role.Name)
+            || Has(AuthorizationDisplay.RoleName(L, role.Name))
+            || role.Groups.Any(g => Has(g.Name) || Has(AuthorizationDisplay.GroupName(L, g.Name)))
+            || role.Permissions.Any(p => Has(p) || Has(AuthorizationDisplay.PermissionName(L, p)));
+
+        bool Has(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string CellClass(int held, int total) => held switch
     {

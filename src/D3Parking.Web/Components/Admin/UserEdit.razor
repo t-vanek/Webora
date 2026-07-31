@@ -187,7 +187,13 @@
             }
         </AuthorizeView>
 
-        <FluentLabel Typo="Typography.Subject">@L["Admin_UserEdit_Audit"]</FluentLabel>
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.Subject">@L["Admin_UserEdit_Audit"]</FluentLabel>
+            @if (_auditTotal > 0)
+            {
+                <span class="count-chip">@_auditTotal</span>
+            }
+        </div>
         @if (_audit.Count == 0)
         {
             <div class="empty-state">@L["Admin_UserEdit_NoAudit"]</div>
@@ -203,6 +209,16 @@
                     <TemplateColumn Title="@L["Admin_UserEdit_AuditDetail"]">@(context.Detail ?? "—")</TemplateColumn>
                 </FluentDataGrid>
             </div>
+            @if (_auditTotal > AuditPageSize)
+            {
+                <div class="pager">
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_auditPageIndex == 0)"
+                                  OnClick="() => GoToAuditPageAsync(_auditPageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                    <span>@L["Common_PageOf", _auditPageIndex + 1, AuditPageCount]</span>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_auditPageIndex >= AuditPageCount - 1)"
+                                  OnClick="() => GoToAuditPageAsync(_auditPageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+                </div>
+            }
         }
     }
 </FluentStack>
@@ -218,7 +234,15 @@
     private bool _canAssignRoles;
     private IReadOnlyList<string> _allRoles = [];
     private HashSet<string> _selectedRoles = new(StringComparer.Ordinal);
+    // Paged in SQL. The unpaged read had no ceiling at all: every sign-in this account has ever
+    // recorded came back, and the grid drew all of them on a screen whose subject is the account,
+    // not its history.
+    private const int AuditPageSize = 20;
     private IReadOnlyList<AccountAuditEntry> _audit = [];
+    private int _auditPageIndex;
+    private int _auditTotal;
+
+    private int AuditPageCount => _auditTotal == 0 ? 1 : (_auditTotal + AuditPageSize - 1) / AuditPageSize;
     private UserHomeDto _home = new(null, null, false);
     private string? _blockReason;
     private bool _confirmDelete;
@@ -256,6 +280,9 @@
             _loadedId = Id;
             _message = _error = null;
             _confirmDelete = false;
+            // The trail belongs to the account, so following a link to another one starts at its
+            // first page rather than wherever the previous account was being read.
+            _auditPageIndex = 0;
             await LoadAsync();
         }
     }
@@ -284,9 +311,18 @@
         {
             _isSelf = _detail.Id == _adminId;
             _selectedRoles = _detail.Roles.ToHashSet(StringComparer.Ordinal);
-            _audit = await AccountService.GetAuditTrailAsync(Id);
+            var audit = await AccountService.GetAuditTrailAsync(Id, _auditPageIndex, AuditPageSize);
+            _audit = audit.Items;
+            _auditTotal = audit.TotalCount;
+            _auditPageIndex = audit.PageIndex;
             _home = await UserLocation.GetHomeAsync(Id);
         }
+    }
+
+    private async Task GoToAuditPageAsync(int pageIndex)
+    {
+        _auditPageIndex = Math.Clamp(pageIndex, 0, AuditPageCount - 1);
+        await LoadAsync();
     }
 
     private async Task SetVerifiedAsync(bool verified)

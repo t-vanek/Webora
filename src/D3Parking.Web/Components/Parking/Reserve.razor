@@ -372,10 +372,10 @@
         {
             <div class="pager">
                 <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex == 0)"
-                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex - 1)">@L["Parking_PrevPage"]</FluentButton>
-                <span>@L["Parking_PageOf", _reservationPageIndex + 1, ReservationPageCount]</span>
+                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                <span>@L["Common_PageOf", _reservationPageIndex + 1, ReservationPageCount]</span>
                 <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex >= ReservationPageCount - 1)"
-                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex + 1)">@L["Parking_NextPage"]</FluentButton>
+                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex + 1)">@L["Common_NextPage"]</FluentButton>
             </div>
         }
     }

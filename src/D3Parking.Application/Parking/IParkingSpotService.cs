@@ -7,6 +7,23 @@ public interface IParkingSpotService
 {
     Task<IReadOnlyList<ParkingSpotDto>> ListAsync(bool includeInactive = true, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One page of the spot catalogue in natural code order, for the administration screen. Inactive
+    /// spots are included — reactivating one is exactly what that screen is for.
+    /// </summary>
+    /// <param name="search">Substring of the code; null or blank lists the whole lot.</param>
+    /// <param name="jumpToCode">
+    /// When set and present in the result set, the page holding that code is returned instead of
+    /// <paramref name="pageIndex"/> — a spot just created lands wherever its code sorts, and a batch
+    /// the admin cannot see is indistinguishable from one that was never created.
+    /// </param>
+    Task<PagedResult<ParkingSpotDto>> ListPageAsync(
+        int pageIndex,
+        int pageSize,
+        string? search = null,
+        string? jumpToCode = null,
+        CancellationToken cancellationToken = default);
+
     Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CreateAsync(string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);
