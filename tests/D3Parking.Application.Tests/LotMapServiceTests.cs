@@ -578,6 +578,40 @@ public class LotMapServiceTests
     }
 
     [Test]
+    public async Task Matching_the_underlay_scales_the_grid_with_the_coordinate_space()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var before = (await service.GetAsync(mapId))!.GridSize;
+
+        // A photograph of a printed plan, small: the map shrinks four-fold and a grid left at its old
+        // number would be four times coarser against the drawing than the one that was chosen — on an
+        // underlay this size that is half a stall, so snapping fights the tracing instead of helping.
+        await service.MatchToBackgroundAsync(mapId, 400, 225);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(map!.Width, Is.EqualTo(400));
+            Assert.That(map.GridSize, Is.EqualTo((int)Math.Round(before / 4d)),
+                "The grid is a length in map units, so it has to travel with them.");
+        });
+    }
+
+    [Test]
+    public async Task Matching_the_underlay_leaves_snapping_switched_off_if_it_was_switched_off()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        await service.UpdateAsync(mapId, "Areál", 1600, 900, 0, 60);
+
+        await service.MatchToBackgroundAsync(mapId, 400, 225);
+
+        Assert.That((await service.GetAsync(mapId))!.GridSize, Is.Zero,
+            "Zero means snapping is off; scaling it back on would be the resize deciding something it was not asked to.");
+    }
+
+    [Test]
     public async Task A_scan_larger_than_the_coordinate_space_shrinks_but_keeps_its_ratio()
     {
         var service = CreateService();

@@ -493,6 +493,19 @@ public sealed class LotMapService(
         }
 
         map.Resize(width, height);
+
+        // The grid is a length in map units, so resizing the coordinate space changes what it means.
+        // Left alone it silently becomes wrong by the scale factor: a 1200-wide map with a grid of 5
+        // matched to a 400-wide photo keeps a grid of 5, which is now three times coarser against the
+        // drawing than the one that was chosen — and on a small underlay that is half a stall, so
+        // snapping fights the tracing instead of helping it. The geometric mean is the one number
+        // that fits a grid applied to both axes when they scale differently. Zero means snapping is
+        // off and must stay off; one is the floor, since a grid of zero would turn it off by rounding.
+        if (map.GridSize > 0)
+        {
+            map.SetGridSize(Math.Max(1, (int)Math.Round(map.GridSize * Math.Sqrt(fx * fy))));
+        }
+
         map.Touch(timeProvider.GetUtcNow());
 
         var shapes = await dbContext.MapShapes.Where(sh => sh.LotMapId == map.Id).ToListAsync(cancellationToken);
