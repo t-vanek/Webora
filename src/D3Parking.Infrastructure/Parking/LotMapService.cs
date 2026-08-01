@@ -448,27 +448,44 @@ public sealed class LotMapService(
             return ParkingResult.Failure("Map_Error_NotFound");
         }
 
-        // The image's own pixels are the coordinate space, shrunk uniformly if the scan is enormous —
-        // the ratio is the whole point, so it must survive that shrink.
-        var scale = Math.Min(1d, (double)LotMap.MaxDimension / Math.Max(imageWidth, imageHeight));
-        var width = Math.Clamp((int)Math.Round(imageWidth * scale), LotMap.MinDimension, LotMap.MaxDimension);
-        var height = Math.Clamp((int)Math.Round(imageHeight * scale), LotMap.MinDimension, LotMap.MaxDimension);
+        await ReshapeCanvasAsync(dbContext, map, imageWidth, imageHeight, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
 
-        var (oldWidth, oldHeight) = (map.Width, map.Height);
-        if (width == oldWidth && height == oldHeight)
+    /// <summary>
+    /// Puts the map into a coordinate space of the given proportions, scaling every shape already on
+    /// it so a drawing keeps sitting where it sat. Returns the factors applied, so a caller placing
+    /// new geometry can land it in the same frame. Nothing is saved here.
+    /// </summary>
+    /// <remarks>
+    /// A rotated rectangle under a non-uniform scale is not exactly a rectangle any more, so its
+    /// extents are scaled per axis and the angle kept — an approximation that only bites when the
+    /// aspect ratio itself changes, which is a correction worth making early and rarely later.
+    /// </remarks>
+    private async Task<(double Fx, double Fy)> ReshapeCanvasAsync(
+        D3ParkingDbContext dbContext,
+        LotMap map,
+        double sourceWidth,
+        double sourceHeight,
+        CancellationToken cancellationToken)
+    {
+        // Shrunk uniformly if the source is enormous — the ratio is the whole point, so it must
+        // survive the shrink.
+        var scale = Math.Min(1d, LotMap.MaxDimension / Math.Max(sourceWidth, sourceHeight));
+        var width = Math.Clamp((int)Math.Round(sourceWidth * scale), LotMap.MinDimension, LotMap.MaxDimension);
+        var height = Math.Clamp((int)Math.Round(sourceHeight * scale), LotMap.MinDimension, LotMap.MaxDimension);
+
+        var (fx, fy) = ((double)width / map.Width, (double)height / map.Height);
+        if (width == map.Width && height == map.Height)
         {
-            return ParkingResult.Success;
+            return (1, 1);
         }
 
         map.Resize(width, height);
         map.Touch(timeProvider.GetUtcNow());
 
-        // Shapes scale with the canvas so a drawing already begun keeps sitting where it sat on the
-        // plan. A rotated rectangle under a non-uniform scale is not exactly a rectangle any more, so
-        // its extents are scaled per axis and the angle kept — an approximation that only bites when
-        // the aspect ratio changes, which is precisely the correction this exists to make early.
-        var (fx, fy) = ((double)width / oldWidth, (double)height / oldHeight);
-        var shapes = await dbContext.MapShapes.Where(sh => sh.LotMapId == mapId).ToListAsync(cancellationToken);
+        var shapes = await dbContext.MapShapes.Where(sh => sh.LotMapId == map.Id).ToListAsync(cancellationToken);
         foreach (var shape in shapes)
         {
             var scaled = new MapRect(shape.X * fx, shape.Y * fy, shape.Width * fx, shape.Height * fy, shape.Rotation)
@@ -481,8 +498,82 @@ public sealed class LotMapService(
             }
         }
 
+        return (fx, fy);
+    }
+
+    public async Task<MapSvgImportResult> ImportSvgAsync(
+        Guid mapId,
+        string svg,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default)
+    {
+        var reading = SvgPlanReader.Read(svg);
+        if (!reading.Succeeded)
+        {
+            return MapSvgImportResult.Failure(reading.ErrorKey!);
+        }
+
+        if (reading.Shapes.Count == 0)
+        {
+            return MapSvgImportResult.Failure("Map_Error_SvgNoShapes");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return MapSvgImportResult.Failure("Map_Error_NotFound");
+        }
+
+        if (await IsFullAsync(dbContext, mapId, reading.Shapes.Count, cancellationToken))
+        {
+            return MapSvgImportResult.Failure("Map_Error_MapFull");
+        }
+
+        // The map takes the drawing's own proportions, and whatever was already on it comes along.
+        // The plan then lands at its native coordinates times the same factor, so an import onto a
+        // half-traced map lines up with what is there instead of on top of it.
+        await ReshapeCanvasAsync(dbContext, map, reading.Width, reading.Height, cancellationToken);
+
+        // Uniform, and the two ratios are equal by construction: the map has just been given the
+        // drawing's proportions. Taking the smaller of the two is what keeps that true after the
+        // clamp to the coordinate space's limits rounds one of them.
+        var scale = Math.Min(map.Width / reading.Width, map.Height / reading.Height);
+
+        var created = new List<MapShape>(reading.Shapes.Count);
+        foreach (var planned in reading.Shapes)
+        {
+            var rect = new MapRect(
+                    planned.Rect.X * scale, planned.Rect.Y * scale,
+                    planned.Rect.Width * scale, planned.Rect.Height * scale,
+                    planned.Rect.Rotation)
+                .Sanitized()
+                .ClampedInto(map.Width, map.Height)
+                .Sanitized();
+            if (!rect.IsValid())
+            {
+                continue;
+            }
+
+            created.Add(new MapShape(mapId, kind, rect, planned.Label));
+        }
+
+        if (created.Count == 0)
+        {
+            return MapSvgImportResult.Failure("Map_Error_SvgNoShapes");
+        }
+
+        dbContext.MapShapes.AddRange(created);
+        map.Touch(timeProvider.GetUtcNow());
         await dbContext.SaveChangesAsync(cancellationToken);
-        return ParkingResult.Success;
+
+        return new MapSvgImportResult(
+            true,
+            created.Count,
+            created.Count(sh => sh.Label is not null),
+            created.Select(sh => sh.Id).ToList(),
+            reading.Warnings,
+            []);
     }
 
     public async Task<MapShapeResult> DuplicateShapesAsync(

@@ -320,7 +320,7 @@
 
                         <hr class="map-panel__rule" />
                         <FluentLabel Typo="Typography.Subject">@L["Map_Background"]</FluentLabel>
-                        <InputFile OnChange="OnBackgroundSelectedAsync" accept="@ImageContentType.AcceptAttribute" class="parking-input" />
+                        <InputFile id="map-background-file" OnChange="OnBackgroundSelectedAsync" accept="@ImageContentType.AcceptAttribute" class="parking-input" />
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
                             <FluentNumberField TValue="int" Value="@_map.BackgroundOpacity" ValueChanged="SetOpacityAsync" Immediate="true"
                                                Min="0" Max="100" Label="@L["Map_Opacity"]" Style="width:110px" />
@@ -340,6 +340,42 @@
                             <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_MatchBackgroundHint"]</FluentLabel>
                         }
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_BackgroundHint"]</FluentLabel>
+
+                        @* Import of an exported plan. The file is parsed and thrown away — that is
+                           why SVG is welcome here and refused as an underlay, where it would be
+                           served back from this origin as a document that can carry script. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Svg"]</FluentLabel>
+                        <FluentSelect TOption="MapShapeKind"
+                                      Items="@ShapeKinds"
+                                      OptionValue="@(k => k.ToString())"
+                                      OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                                      @bind-SelectedOption="_svgKind"
+                                      Label="@L["Map_SvgKind"]" />
+                        <InputFile id="map-svg-file" OnChange="OnSvgSelectedAsync" accept="image/svg+xml,.svg" class="parking-input" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_SvgHint"]</FluentLabel>
+                        @if (_svgReport is { } imported)
+                        {
+                            <div class="batch-preview">
+                                <span><span class="count-chip">@imported.Created</span> @string.Format(L["Map_Svg_Created"], imported.Labelled)</span>
+                                @if (imported.Warnings.NotRectangles > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_NotRectangles"], imported.Warnings.NotRectangles)</span>
+                                }
+                                @if (imported.Warnings.OrphanLabels > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_OrphanLabels"], imported.Warnings.OrphanLabels)</span>
+                                }
+                                @if (imported.Warnings.UnsupportedTransforms > 0)
+                                {
+                                    <span class="batch-preview__bad">@string.Format(L["Map_Svg_Unsupported"], imported.Warnings.UnsupportedTransforms)</span>
+                                }
+                                @if (imported.Warnings.Degenerate > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_Degenerate"], imported.Warnings.Degenerate)</span>
+                                }
+                            </div>
+                        }
 
                         <hr class="map-panel__rule" />
                         <FluentLabel Typo="Typography.Subject">@L["Map_Linking"]</FluentLabel>
@@ -411,6 +447,8 @@
     private ParkingSpotType _bulkType = ParkingSpotType.Standard;
 
     private string? _find;
+    private MapShapeKind _svgKind = MapShapeKind.Spot;
+    private MapSvgImportResult? _svgReport;
     private MapShapeKind _bulkKind = MapShapeKind.Spot;
 
     /// <summary>The alignment buttons, in the order they read on the panel.</summary>
@@ -1264,6 +1302,47 @@
             _error = "Map_Error_BackgroundTooLarge";
         }
     }
+
+    private async Task OnSvgSelectedAsync(InputFileChangeEventArgs e)
+    {
+        if (_map is not { } map)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        _svgReport = null;
+        string svg;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: MaxSvgBytes);
+            using var reader = new StreamReader(stream);
+            svg = await reader.ReadToEndAsync();
+        }
+        catch (IOException)
+        {
+            // OpenReadStream throws this when the file is over the cap — the size limit, not a disk error.
+            _error = "Map_Error_SvgTooLarge";
+            return;
+        }
+
+        var result = await Maps.ImportSvgAsync(map.Id, svg, _svgKind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _svgReport = result;
+        // One step back: an import lays down hundreds of shapes, and finding out it landed wrong
+        // should not mean deleting them by hand.
+        Remember(UndoStep.ForCreated(result.CreatedIds));
+        await ReloadAsync();
+        await InvokeModuleAsync("sync", new { width = _map!.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+    }
+
+    /// <summary>Upper bound on an imported plan. A site plan of five hundred stalls is well under a megabyte.</summary>
+    private const int MaxSvgBytes = 16 * 1024 * 1024;
 
     private async Task ClearBackgroundAsync()
     {

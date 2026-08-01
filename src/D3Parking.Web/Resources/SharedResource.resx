@@ -1744,4 +1744,18 @@
   <data name="Parking_Map_Taken" xml:space="preserve"><value>Obsazené</value></data>
   <data name="Parking_Map_Other" xml:space="preserve"><value>Cizí / mimo areál</value></data>
   <data name="Parking_Map_Hint" xml:space="preserve"><value>Kliknutím na volné stání ho rovnou zarezervujete. Kolečkem přiblížíte, tažením posunete mapu.</value></data>
+  <data name="Map_Svg" xml:space="preserve"><value>Import plánu (SVG)</value></data>
+  <data name="Map_SvgKind" xml:space="preserve"><value>Naimportovat jako</value></data>
+  <data name="Map_SvgHint" xml:space="preserve"><value>Vyexportujte plán areálu z PDF nebo DWG do SVG a nahrajte ho — stání se rozmístí sama a čísla natištěná uvnitř se z nich stanou popisky. Mapa převezme rozměry kresby. Soubor se jen přečte, neukládá se.</value></data>
+  <data name="Map_Svg_Created" xml:space="preserve"><value>vytvořeno stání ({0} s popiskem)</value></data>
+  <data name="Map_Svg_NotRectangles" xml:space="preserve"><value>nepravoúhlých tvarů přeskočeno: {0}</value></data>
+  <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>textů mimo stání (nadpisy, legenda): {0}</value></data>
+  <data name="Map_Svg_Unsupported" xml:space="preserve"><value>nepodporovaných transformací: {0} — tyto tvary mohou být posunuté</value></data>
+  <data name="Map_Svg_Degenerate" xml:space="preserve"><value>tvarů bez plochy přeskočeno: {0}</value></data>
+  <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>Nahraný soubor je prázdný.</value></data>
+  <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>Soubor se nepodařilo přečíst jako XML.</value></data>
+  <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>Soubor není SVG.</value></data>
+  <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>SVG neuvádí viewBox ani rozměry, takže není z čeho určit měřítko.</value></data>
+  <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>V souboru nejsou žádné pravoúhlé tvary, ze kterých by šlo udělat stání.</value></data>
+  <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>Soubor je příliš velký (nejvýše 16 MB).</value></data>
 </root>

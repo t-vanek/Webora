@@ -1744,4 +1744,18 @@
   <data name="Parking_Map_Taken" xml:space="preserve"><value>Taken</value></data>
   <data name="Parking_Map_Other" xml:space="preserve"><value>Someone else's</value></data>
   <data name="Parking_Map_Hint" xml:space="preserve"><value>Click a free stall to book it. Scroll to zoom, drag to move the map.</value></data>
+  <data name="Map_Svg" xml:space="preserve"><value>Import a plan (SVG)</value></data>
+  <data name="Map_SvgKind" xml:space="preserve"><value>Import as</value></data>
+  <data name="Map_SvgHint" xml:space="preserve"><value>Export the site plan from PDF or DWG to SVG and upload it — the stalls place themselves and the numbers printed inside them become labels. The map takes the drawing's dimensions. The file is only read, never stored.</value></data>
+  <data name="Map_Svg_Created" xml:space="preserve"><value>stalls created ({0} with a label)</value></data>
+  <data name="Map_Svg_NotRectangles" xml:space="preserve"><value>non-rectangular shapes skipped: {0}</value></data>
+  <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>text outside any stall (captions, legend): {0}</value></data>
+  <data name="Map_Svg_Unsupported" xml:space="preserve"><value>unsupported transforms: {0} — those shapes may be misplaced</value></data>
+  <data name="Map_Svg_Degenerate" xml:space="preserve"><value>shapes with no area skipped: {0}</value></data>
+  <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>The uploaded file is empty.</value></data>
+  <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>The file could not be read as XML.</value></data>
+  <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>The file is not an SVG.</value></data>
+  <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>The SVG states neither a viewBox nor dimensions, so there is no scale to read.</value></data>
+  <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>The file holds no rectangular shapes that could become stalls.</value></data>
+  <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>The file is too large (16 MB at most).</value></data>
 </root>

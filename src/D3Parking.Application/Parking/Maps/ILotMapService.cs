@@ -127,6 +127,22 @@ public interface ILotMapService
         MapShapeKind kind,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Reads a site plan exported to SVG and lays its stalls onto the map, sizing the map to the
+    /// drawing's own coordinate space. This is the difference between an afternoon of tracing and
+    /// opening a file.
+    /// </summary>
+    /// <remarks>
+    /// The file is parsed and thrown away — never stored, never served back — which is why SVG is
+    /// accepted here and refused as an underlay, where it would come back from this origin as a
+    /// document that can carry script.
+    /// </remarks>
+    Task<MapSvgImportResult> ImportSvgAsync(
+        Guid mapId,
+        string svg,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Renames a shape and/or changes what it represents.</summary>
     Task<ParkingResult> UpdateShapeAsync(
         Guid shapeId,
@@ -200,6 +216,24 @@ public sealed record MapRenumberResult(bool Succeeded, IReadOnlyList<string> Lab
 public sealed record MapKindChangeResult(bool Succeeded, int Changed, int Unlinked, IReadOnlyList<string> Errors)
 {
     public static MapKindChangeResult Failure(params string[] errors) => new(false, 0, 0, errors);
+}
+
+/// <summary>
+/// What an import made of a plan: what it laid down, and — just as important — what it could not
+/// read, so a drawing that arrives forty stalls short says so rather than looking finished.
+/// </summary>
+public sealed record MapSvgImportResult(
+    bool Succeeded,
+    int Created,
+    /// <summary>Of those, the ones that arrived with a number printed in them.</summary>
+    int Labelled,
+    /// <summary>Ids of the created shapes, so the editor can select them and undo the lot.</summary>
+    IReadOnlyList<Guid> CreatedIds,
+    SvgPlanWarnings Warnings,
+    IReadOnlyList<string> Errors)
+{
+    public static MapSvgImportResult Failure(params string[] errors) =>
+        new(false, 0, 0, [], new SvgPlanWarnings(0, 0, 0, 0), errors);
 }
 
 /// <summary>One shape's label, as it is to be written.</summary>

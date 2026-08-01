@@ -257,7 +257,7 @@ public class LotMapEditorTests : AdminTest
     {
         await OpenNewMapAsync();
         // The map starts 1600×900; this plan is 2.2:1, which is the case that traces distorted.
-        await Page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload
+        await Page.Locator("#map-background-file").SetInputFilesAsync(new FilePayload
         {
             Name = "plan.png",
             MimeType = "image/png",
@@ -335,7 +335,44 @@ public class LotMapEditorTests : AdminTest
     private static async Task<double> YOfAsync(ILocator shape) =>
         double.Parse(await shape.GetAttributeAsync("data-y") ?? "0", CultureInfo.InvariantCulture);
 
+    [Test]
+    public async Task Importing_an_exported_plan_lays_its_stalls_down_with_their_numbers()
+    {
+        await OpenNewMapAsync();
+
+        // What a PDF converted to SVG looks like: a positioned group of straight-line paths with the
+        // stall numbers printed inside them. This is the whole point of the importer — a plan of
+        // hundreds arrives as a file rather than as an afternoon of tracing.
+        var stalls = string.Concat(Enumerable.Range(0, 6).Select(i => string.Format(
+            CultureInfo.InvariantCulture,
+            @"<path d=""M {0} 0 L {1} 0 L {1} 30 L {0} 30 Z"" />
+              <text x=""{2}"" y=""18"">{3}</text>",
+            i * 50, (i * 50) + 40, (i * 50) + 20, 700 + i)));
+        var svg = $@"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 1000 500"">
+            <g transform=""translate(100 200)"">{stalls}</g></svg>";
+
+        await Page.Locator("#map-svg-file").SetInputFilesAsync(new FilePayload
+        {
+            Name = "plan.svg",
+            MimeType = "image/svg+xml",
+            Buffer = System.Text.Encoding.UTF8.GetBytes(svg),
+        });
+
+        await Expect(Page.Locator(".map-shape")).ToHaveCountAsync(6);
+        var canvas = Page.Locator(".map-canvas");
+        await Expect(canvas).ToContainTextAsync("700");
+        await Expect(canvas).ToContainTextAsync("705");
+        // The map takes the drawing's own proportions, so 1000×500 arrives as a 2:1 coordinate space.
+        await Expect(canvas).ToHaveAttributeAsync("viewBox", "0 0 1000 500");
+
+        // And the lot of it is one step back, because finding out an import landed wrong should not
+        // mean deleting hundreds of rectangles by hand.
+        await Page.Locator("#map-undo").ClickAsync();
+        await Expect(Page.Locator(".map-shape")).ToHaveCountAsync(0);
+    }
+
     /// <summary>
+    /// A valid 8-bit greyscale PNG of the given size.    /// <summary>
     /// A valid 8-bit greyscale PNG of the given size.    /// <summary>
     /// A valid 8-bit greyscale PNG of the given size. Hand-built because the upload is accepted on
     /// its magic bytes and the browser has to genuinely decode it to report a natural size — a stub

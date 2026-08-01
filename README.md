@@ -520,6 +520,13 @@ Nenapojené stání zůstává na plánu jako kontext.
   kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
   nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
   vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
+- **Import plánu z SVG:** vyexportujte plán areálu z PDF nebo DWG do SVG a nahrajte ho — stání se
+  rozmístí sama, čísla natištěná uvnitř se z nich stanou popisky a mapa převezme rozměry kresby.
+  Rozdíl mezi otevřením souboru a odpolednem obtahování. Co se přečíst nedá (nepravoúhlé tvary,
+  texty mimo stání, nepodporované transformace), se **spočítá a vypíše** — import, který tiše ztratí
+  čtyřicet stání, je horší než ten, který řekne, že je nepřečetl. Soubor se jen přečte a zahodí;
+  neukládá se a nikdy se neservíruje zpět (proto je SVG vítané tady a odmítnuté jako podklad).
+  Naimportované tvary jdou vzít zpět jedním krokem.
 - **Srovnat mapu podle podkladu:** rozměry mapy se převezmou ze skutečných rozměrů skenu, takže se
   plán neroztahuje. Bez toho se kreslí přes zdeformovaný podklad a nic na obrazovce neřekne, jaké
   rozměry měly být zadané. Už nakreslené tvary se přeškálují s ním.

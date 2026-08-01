@@ -324,6 +324,24 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   dalšího nedotazuje) a klik rezervuje. Obsazené stání se kreslí barevně, ale bez `role`
   a `tabindex` — tabstop, který nic neudělá, je horší než žádný.
 
+  **Import z SVG** (`SvgPlanReader`) není obecný renderer a netváří se tak. Hledá jedinou věc, ze
+  které je parkovací plán složený — uzavřené čtyřrohé tvary — ve čtyřech zápisech, kterými je
+  exportéry píšou: `rect`, `polygon`, `polyline` a `path` z rovných úseků. Ten poslední je klíčový:
+  **PDF převedené do SVG nemá v sobě jediný `rect`**, každý obdélník je cesta z `M`/`L`, takže
+  čtečka, která umí jen `rect`, nenajde v nejpravděpodobnějším vstupu vůbec nic.
+
+  Transformace skupin se **skládají** cestou dolů (`SvgTransform`), protože skutečná poloha stání je
+  součin všech skupin nad ním; číst atributy obdélníku a skupiny ignorovat znamená položit každé
+  stání jinam. Čtyři rohy se pak převádějí zpět na `MapRect` — je to inverze `MapRect.Corners`:
+  sousední strany musí svírat pravý úhel a čtvrtý roh přistát tam, kam ho první tři posílají.
+  Popisky se přiřazují podle toho, uvnitř kterého obdélníku text leží, se záložním hledáním
+  nejbližšího do vzdálenosti 0,75 jeho rozměru (některé exporty kotví text na účaří kousek pod
+  rámečkem). Vše, z čeho obdélník nevznikl, se počítá do `SvgPlanWarnings` a vypíše.
+
+  Čtečka je čistá — řetězec dovnitř, obdélníky ven — a vrací nativní souřadnice kresby; vsazení do
+  souřadnicového prostoru mapy je rozhodnutí služby, ne čtečky. DTD zpracování zůstává vypnuté
+  (výchozí), aby naimportovaný soubor nemohl parser přimět něco stáhnout ani rozbalit entitní bombu.
+
   Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
   **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
   pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`
