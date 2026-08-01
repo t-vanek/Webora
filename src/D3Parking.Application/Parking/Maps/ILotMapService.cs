@@ -233,7 +233,7 @@ public sealed record MapSvgImportResult(
     IReadOnlyList<string> Errors)
 {
     public static MapSvgImportResult Failure(params string[] errors) =>
-        new(false, 0, 0, [], new SvgPlanWarnings(0, 0, 0, 0), errors);
+        new(false, 0, 0, [], new SvgPlanWarnings(0, 0, 0, 0, 0), errors);
 }
 
 /// <summary>One shape's label, as it is to be written.</summary>

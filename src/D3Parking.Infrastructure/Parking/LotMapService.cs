@@ -24,18 +24,28 @@ public sealed class LotMapService(
     private const int MaxSpotCodeLength = 32;
 
     /// <summary>
-    /// Upper bound on one import. The JSON comes from an administrator, but "paste a file and get
-    /// an unbounded number of rows" is a footgun whoever authored the file did not intend.
+    /// Upper bound on one JSON import. The file comes from an administrator, but "paste a file and get
+    /// an unbounded number of rows" is a footgun whoever authored the file did not intend. It is the
+    /// per-map cap because an import creates a whole map at once and so never passes through
+    /// <see cref="IsFullAsync"/> — a looser number here would be a way to build a map the editor
+    /// refuses to grow and struggles to open.
     /// </summary>
-    private const int MaxImportShapes = 10_000;
+    private const int MaxImportShapes = MaxShapesPerMap;
 
     /// <summary>
-    /// How many shapes one map may hold. The editor draws every one of them into a single SVG over
-    /// a Blazor circuit, so a drawing that grows past this stops being editable — and the only way
-    /// out of that would be deleting the map. Far above any real site plan (the one this was built
-    /// for is about five hundred), so it is a runaway guard, not a design limit.
+    /// How many shapes one map may hold. The editor draws every one of them into a single SVG over a
+    /// Blazor circuit, so a drawing that grows past what the circuit can repaint stops being editable —
+    /// and the only way out of that would be deleting the map.
     /// </summary>
-    public const int MaxShapesPerMap = 5_000;
+    /// <remarks>
+    /// Measured, not guessed. At 460 shapes — the size of the plan this was built for — selecting a
+    /// single stall round-trips in about 420 ms and the markup is 134 KiB; both scale with the shape
+    /// count, so three times that plan is already a second and a half per click and the far side of
+    /// usable. 1500 leaves real headroom above any site plan we have seen while keeping the worst case
+    /// something an administrator can still work in. It is a runaway guard, not a design limit: a
+    /// campus that genuinely needs more wants a map per lot, which the model already allows.
+    /// </remarks>
+    public const int MaxShapesPerMap = 1_500;
 
     /// <summary>Offset for a duplicate on a map with snapping off, in map units.</summary>
     private const int DefaultDuplicateOffset = 10;

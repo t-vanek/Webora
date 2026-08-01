@@ -117,8 +117,127 @@ public class SvgPlanReaderTests
         Assert.Multiple(() =>
         {
             Assert.That(reading.Shapes, Is.Empty);
-            Assert.That(reading.Warnings.NotRectangles + reading.Warnings.Degenerate, Is.EqualTo(0),
-                "A curve is not a shape the reader ever built a rectangle from, so it is not a rectangle it rejected.");
+            Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(1),
+                "Ink went on the page and no stall came back. Whether the reader got as far as building a rectangle is its own business; what the administrator needs to know is that something was dropped.");
+        });
+    }
+
+    [TestCase(@"<circle cx=""20"" cy=""20"" r=""10"" />")]
+    [TestCase(@"<ellipse cx=""20"" cy=""20"" rx=""10"" ry=""5"" />")]
+    [TestCase(@"<line x1=""0"" y1=""0"" x2=""40"" y2=""0"" />")]
+    public void A_drawn_shape_this_reader_has_no_answer_for_is_still_counted(string body)
+    {
+        var reading = SvgPlanReader.Read(Svg(body));
+
+        Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Something_that_was_never_ink_is_not_counted_as_a_loss()
+    {
+        // A counter that ticks for every <style> and <image> in the file buries the one warning that
+        // matters — forty stalls missing — under noise nobody can act on.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<style>.a{fill:red}</style><image href=""x.png"" width=""10"" height=""10"" />
+              <rect x=""10"" y=""20"" width=""40"" height=""30"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(1));
+            Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(0));
+        });
+    }
+
+    // --- one path, many stalls ---
+
+    [Test]
+    public void Every_subpath_of_one_path_is_its_own_stall()
+    {
+        // A PDF converted to SVG habitually puts a whole row in a single d attribute. Stopping at the
+        // second M reads the first stall and loses the row — silently, which was the worst of it.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<path d=""M 0 0 L 40 0 L 40 30 L 0 30 Z M 50 0 L 90 0 L 90 30 L 50 30 Z
+                        M 100 0 L 140 0 L 140 30 L 100 30 Z"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(3));
+            Assert.That(reading.Shapes.Select(s => s.Rect.X), Is.EqualTo(new[] { 0d, 50d, 100d }));
+            Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void A_relative_move_after_a_close_counts_from_where_the_subpath_began()
+    {
+        // Z returns the pen to the subpath's start, not to wherever the last line ended. Get this
+        // wrong and every stall after the first in a relatively-written path drifts.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<path d=""M 10 20 h 40 v 30 h -40 z m 50 0 h 40 v 30 h -40 z"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(2));
+            Assert.That(reading.Shapes[1].Rect, Is.EqualTo(new MapRectLike(60, 20, 40, 30, 0)).Using(RectComparer));
+        });
+    }
+
+    [Test]
+    public void A_subpath_that_is_not_a_rectangle_costs_only_itself()
+    {
+        var reading = SvgPlanReader.Read(Svg(
+            @"<path d=""M 0 0 L 40 0 L 40 30 L 0 30 Z M 50 0 L 90 5 L 95 35 L 55 30 Z"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(1), "One bad subpath does not condemn the ones beside it.");
+            Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(1));
+        });
+    }
+
+    // --- the same box drawn twice ---
+
+    [Test]
+    public void A_box_emitted_once_filled_and_once_stroked_is_one_stall()
+    {
+        // Converters do this constantly. Two shapes per stall means every count on the map is double
+        // and every click picks whichever copy happens to be on top.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<path d=""M 10 20 L 50 20 L 50 50 L 10 50 Z"" fill=""#ccc"" />
+              <path d=""M 10 20 L 50 20 L 50 50 L 10 50 Z"" fill=""none"" stroke=""#000"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(1));
+            Assert.That(reading.Warnings.Duplicates, Is.EqualTo(1));
+            Assert.That(reading.Warnings.NotRectangles, Is.EqualTo(0), "A duplicate is not a shape that could not be read.");
+        });
+    }
+
+    [Test]
+    public void The_same_box_written_two_different_ways_is_still_one_stall()
+    {
+        var reading = SvgPlanReader.Read(Svg(
+            @"<rect x=""10"" y=""20"" width=""40"" height=""30"" />
+              <polygon points=""10,20 50,20 50,50 10,50"" />"));
+
+        Assert.That(reading.Shapes, Has.Count.EqualTo(1),
+            "Sameness is decided on the geometry that came out, not on which element it came from.");
+    }
+
+    [Test]
+    public void Stalls_that_merely_touch_are_not_treated_as_the_same_stall()
+    {
+        // The guard on the guard: a row is drawn edge to edge, and a dedup with any slack in it would
+        // eat real stalls. Only an exact match — same centre, size and angle — is a duplicate.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<rect x=""0"" y=""0"" width=""40"" height=""30"" /><rect x=""40"" y=""0"" width=""40"" height=""30"" />
+              <rect x=""0"" y=""0"" width=""40"" height=""30.01"" />"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes, Has.Count.EqualTo(3));
+            Assert.That(reading.Warnings.Duplicates, Is.EqualTo(0));
         });
     }
 
@@ -244,6 +363,33 @@ public class SvgPlanReaderTests
             @"<rect x=""10"" y=""20"" width=""40"" height=""30"" /><text><tspan x=""30"" y=""35"">434</tspan></text>"));
 
         Assert.That(reading.Shapes.Single().Label, Is.EqualTo("434"));
+    }
+
+    [Test]
+    public void A_label_positioned_only_by_a_transform_is_found()
+    {
+        // x and y are optional — absent, the glyphs start at the current text position, which for the
+        // outermost element is the origin. A PDF export gives every run its own matrix and writes no
+        // x at all, so refusing these read the plan's shapes perfectly and none of its numbers.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<rect x=""10"" y=""20"" width=""40"" height=""30"" /><text transform=""translate(30 35)"">428</text>"));
+
+        Assert.That(reading.Shapes.Single().Label, Is.EqualTo("428"));
+    }
+
+    [Test]
+    public void A_span_with_no_position_of_its_own_stays_where_its_text_element_put_it()
+    {
+        // The reason the text subtree is walked in one piece: read the span on its own and it falls
+        // back to the origin, which lands it in the top-left corner of the drawing instead of its stall.
+        var reading = SvgPlanReader.Read(Svg(
+            @"<rect x=""10"" y=""20"" width=""40"" height=""30"" /><text x=""30"" y=""35""><tspan>428</tspan></text>"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reading.Shapes.Single().Label, Is.EqualTo("428"));
+            Assert.That(reading.Warnings.OrphanLabels, Is.EqualTo(0));
+        });
     }
 
     [Test]

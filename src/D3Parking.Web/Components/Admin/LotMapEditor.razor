@@ -374,6 +374,10 @@
                                 {
                                     <span class="batch-preview__dup">@string.Format(L["Map_Svg_Degenerate"], imported.Warnings.Degenerate)</span>
                                 }
+                                @if (imported.Warnings.Duplicates > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_Duplicates"], imported.Warnings.Duplicates)</span>
+                                }
                             </div>
                         }
 

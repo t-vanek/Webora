@@ -1752,6 +1752,7 @@
   <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>textů mimo stání (nadpisy, legenda): {0}</value></data>
   <data name="Map_Svg_Unsupported" xml:space="preserve"><value>nepodporovaných transformací: {0} — tyto tvary mohou být posunuté</value></data>
   <data name="Map_Svg_Degenerate" xml:space="preserve"><value>tvarů bez plochy přeskočeno: {0}</value></data>
+  <data name="Map_Svg_Duplicates" xml:space="preserve"><value>shodných obdélníků sloučeno: {0}</value></data>
   <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>Nahraný soubor je prázdný.</value></data>
   <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>Soubor se nepodařilo přečíst jako XML.</value></data>
   <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>Soubor není SVG.</value></data>

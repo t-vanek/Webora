@@ -1752,6 +1752,7 @@
   <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>text outside any stall (captions, legend): {0}</value></data>
   <data name="Map_Svg_Unsupported" xml:space="preserve"><value>unsupported transforms: {0} — those shapes may be misplaced</value></data>
   <data name="Map_Svg_Degenerate" xml:space="preserve"><value>shapes with no area skipped: {0}</value></data>
+  <data name="Map_Svg_Duplicates" xml:space="preserve"><value>identical rectangles merged: {0}</value></data>
   <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>The uploaded file is empty.</value></data>
   <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>The file could not be read as XML.</value></data>
   <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>The file is not an SVG.</value></data>

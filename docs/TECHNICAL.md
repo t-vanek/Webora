@@ -303,6 +303,14 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   `MapShapeOrder.Reading`: pásy shora, v pásu zleva, s tolerancí půl typické výšky tvaru, takže
   jedna funkce zvládne řadu, sloupec i blok, aniž by se musela ptát, co bylo nakresleno.
 
+  **Strop na velikost mapy je změřený, ne odhadnutý.** `MaxShapesPerMap` je 1500. Na plánu, pro
+  který se to stavělo — 460 stání — trvá výběr jednoho stání kolem 420 ms a značka má 134 KiB;
+  obojí roste s počtem tvarů, takže trojnásobek toho plánu je už vteřina a půl na klik. Editor
+  kreslí každý tvar do jediného SVG přes Blazor circuit a mapa, která přeroste to, co circuit stihne
+  překreslit, se nedá editovat — a jediná cesta ven by bylo ji smazat. Stejné číslo platí i pro
+  import z JSON (`MaxImportShapes`), protože ten zakládá celou mapu naráz, a tedy kolem kontroly
+  kapacity projde bokem. Areál, který skutečně potřebuje víc, chce mapu na parkoviště; model to umí.
+
   Dotazy nad tvary **musí mít určené pořadí**. Bez `ORDER BY` vrací SQL Server, co se mu zrovna
   hodí, a duplikace pak vracela kopie v pořadí závislém na zvoleném plánu — v izolaci test prošel,
   v celé sadě padal. `Layered` i `DuplicateShapesAsync` proto řadí přes `MapShapeOrder`; vedlejším
@@ -330,13 +338,35 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   **PDF převedené do SVG nemá v sobě jediný `rect`**, každý obdélník je cesta z `M`/`L`, takže
   čtečka, která umí jen `rect`, nenajde v nejpravděpodobnějším vstupu vůbec nic.
 
+  Tři vlastnosti reálných exportů rozhodují o tom, jestli import uspěje, nebo tiše přijde o půlku
+  plánu:
+
+  - **Jedna cesta, mnoho stání.** Konvertory běžně nacpou celou řadu do jediného `d` jako
+    posloupnost podcest. `SvgPathPoints` proto vrací **seznam podcest**, ne jeden bod za druhým —
+    každé `M` uzavírá předchozí a začíná další, `Z` vrací pero na začátek podcesty (na čemž závisí
+    relativní `m` hned za ním). Číst cestu jako jeden tvar znamená vzít první stání a o zbytek řady
+    přijít.
+  - **Text bez `x` a `y`.** Atributy jsou nepovinné a výchozí je aktuální textová pozice; export
+    z PDF umisťuje každý běh vlastní maticí a `x` nenapíše vůbec. Podstrom `text`/`tspan` se proto
+    prochází vcelku, aby span bez vlastní pozice zdědil pozici svého `text` a neskončil v levém
+    horním rohu kresby.
+  - **Týž obdélník dvakrát.** Výplň a obrys téže cesty přijdou jako dva tvary. Shodné obdélníky —
+    shodné na střed, rozměr i úhel v úložné přesnosti, což žádná dvě skutečná stání nejsou — se
+    slučují a počítají do `Duplicates`; bez toho je každý počet na mapě dvojnásobný.
+
   Transformace skupin se **skládají** cestou dolů (`SvgTransform`), protože skutečná poloha stání je
   součin všech skupin nad ním; číst atributy obdélníku a skupiny ignorovat znamená položit každé
   stání jinam. Čtyři rohy se pak převádějí zpět na `MapRect` — je to inverze `MapRect.Corners`:
   sousední strany musí svírat pravý úhel a čtvrtý roh přistát tam, kam ho první tři posílají.
   Popisky se přiřazují podle toho, uvnitř kterého obdélníku text leží, se záložním hledáním
   nejbližšího do vzdálenosti 0,75 jeho rozměru (některé exporty kotví text na účaří kousek pod
-  rámečkem). Vše, z čeho obdélník nevznikl, se počítá do `SvgPlanWarnings` a vypíše.
+  rámečkem).
+
+  Vše, z čeho obdélník nevznikl, se počítá do `SvgPlanWarnings` a vypíše — a počítá se **i to, co
+  čtečka odmítla dřív, než se k obdélníku vůbec dostala** (křivka, kružnice, cesta s obloukem).
+  Čítač, který zůstane na nule, zatímco tvary mizí, je horší než žádný: import, který přijde
+  o čtyřicet stání, musí to říct. Naopak `style`, `image` a další neinkoustové elementy se
+  nepočítají, aby jediné varování, na které jde reagovat, nezapadlo v šumu.
 
   Čtečka je čistá — řetězec dovnitř, obdélníky ven — a vrací nativní souřadnice kresby; vsazení do
   souřadnicového prostoru mapy je rozhodnutí služby, ne čtečky. DTD zpracování zůstává vypnuté

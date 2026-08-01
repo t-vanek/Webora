@@ -340,16 +340,18 @@ public class LotMapEditorTests : AdminTest
     {
         await OpenNewMapAsync();
 
-        // What a PDF converted to SVG looks like: a positioned group of straight-line paths with the
-        // stall numbers printed inside them. This is the whole point of the importer — a plan of
-        // hundreds arrives as a file rather than as an afternoon of tracing.
-        var stalls = string.Concat(Enumerable.Range(0, 6).Select(i => string.Format(
+        // What a PDF converted to SVG actually looks like, in every awkward detail: the whole row is
+        // one path with a subpath per stall, and each number is positioned by its own matrix with no
+        // x or y anywhere. Written the tidy way this test proves far less than it appears to — read
+        // one subpath per path and it still finds a stall; require x on text and it still finds a
+        // number. This is the whole point of the importer, so it is fed the real thing.
+        var row = string.Concat(Enumerable.Range(0, 6).Select(i => string.Format(
+            CultureInfo.InvariantCulture, "M {0} 0 L {1} 0 L {1} 30 L {0} 30 Z ", i * 50, (i * 50) + 40)));
+        var numbers = string.Concat(Enumerable.Range(0, 6).Select(i => string.Format(
             CultureInfo.InvariantCulture,
-            @"<path d=""M {0} 0 L {1} 0 L {1} 30 L {0} 30 Z"" />
-              <text x=""{2}"" y=""18"">{3}</text>",
-            i * 50, (i * 50) + 40, (i * 50) + 20, 700 + i)));
+            @"<text transform=""translate({0} 18)"">{1}</text>", (i * 50) + 20, 700 + i)));
         var svg = $@"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 1000 500"">
-            <g transform=""translate(100 200)"">{stalls}</g></svg>";
+            <g transform=""translate(100 200)""><path d=""{row}"" />{numbers}</g></svg>";
 
         await Page.Locator("#map-svg-file").SetInputFilesAsync(new FilePayload
         {
@@ -372,8 +374,6 @@ public class LotMapEditorTests : AdminTest
     }
 
     /// <summary>
-    /// A valid 8-bit greyscale PNG of the given size.    /// <summary>
-    /// A valid 8-bit greyscale PNG of the given size.    /// <summary>
     /// A valid 8-bit greyscale PNG of the given size. Hand-built because the upload is accepted on
     /// its magic bytes and the browser has to genuinely decode it to report a natural size — a stub
     /// would pass neither check.

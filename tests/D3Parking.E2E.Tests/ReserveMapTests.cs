@@ -145,8 +145,9 @@ public class ReserveMapTests : AdminTest
         await link.ClickAsync();
         await Expect(Page.Locator(".map-canvas")).ToHaveAttributeAsync("data-tool", "select");
 
-        var canvas = await Page.Locator(".map-canvas").BoundingBoxAsync();
-        await DrawAsync(canvas!, 0.25f, 0.3f, 0.4f, 0.5f);
+        var canvas = await Page.Locator(".map-canvas").BoundingBoxAsync()
+            ?? throw new InvalidOperationException("The map canvas has no box to draw in.");
+        await DrawAsync(canvas, 0.25f, 0.3f, 0.4f, 0.5f);
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Výběr$") }).ClickAsync();
         await Expect(Page.Locator(".map-canvas")).ToHaveAttributeAsync("data-tool", "select");
         await Page.Locator(".map-shape").First.ClickAsync();

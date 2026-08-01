@@ -5,14 +5,16 @@ namespace D3Parking.Application.Parking.Maps;
 
 /// <summary>What an import could not make sense of, so the count is stated rather than the loss hidden.</summary>
 public sealed record SvgPlanWarnings(
-    /// <summary>Closed shapes that are not rectangles — kerbs, arrows, anything curved.</summary>
+    /// <summary>Drawn shapes that are not rectangles — kerbs, arrows, circles, anything curved.</summary>
     int NotRectangles,
     /// <summary>Rectangles with no area. Hairlines and artefacts of the export.</summary>
     int Degenerate,
     /// <summary>Transforms the reader does not implement (the skews, which un-rectangle a rectangle).</summary>
     int UnsupportedTransforms,
     /// <summary>Text that sits inside no rectangle and near none — building names, captions, legends.</summary>
-    int OrphanLabels);
+    int OrphanLabels,
+    /// <summary>Rectangles dropped for standing exactly on one already read — see the reader's remarks.</summary>
+    int Duplicates);
 
 /// <summary>The geometry read out of an exported plan, in the drawing's own coordinates.</summary>
 public sealed record SvgPlanReading(
@@ -25,7 +27,7 @@ public sealed record SvgPlanReading(
     public bool Succeeded => ErrorKey is null;
 
     public static SvgPlanReading Failure(string errorKey) =>
-        new(0, 0, [], new SvgPlanWarnings(0, 0, 0, 0), errorKey);
+        new(0, 0, [], new SvgPlanWarnings(0, 0, 0, 0, 0), errorKey);
 }
 
 /// <summary>
@@ -36,10 +38,16 @@ public sealed record SvgPlanReading(
 /// This is not a general SVG renderer and does not pretend to be. It looks for the one thing a
 /// parking plan is made of — closed four-cornered shapes — in the four ways exporters write them
 /// (<c>rect</c>, <c>polygon</c>, <c>polyline</c>, and a <c>path</c> of straight lines, which is what
-/// a PDF converted to SVG produces for everything). Group transforms are composed on the way down,
-/// because a stall's real position is the product of every group above it. Everything it cannot make
-/// a rectangle of is counted and reported, never quietly dropped: an import that silently loses forty
-/// stalls is worse than one that refuses.
+/// a PDF converted to SVG produces for everything, often packing a whole row of stalls into one path
+/// as separate subpaths). Group transforms are composed on the way down, because a stall's real
+/// position is the product of every group above it. Everything it cannot make a rectangle of is
+/// counted and reported, never quietly dropped: an import that silently loses forty stalls is worse
+/// than one that refuses, and a counter that stays at zero while shapes vanish is worse still.
+///
+/// One thing is dropped on purpose and counted separately: a rectangle standing exactly on one
+/// already read. Converters routinely emit the same box twice, once filled and once stroked, and
+/// stacking two shapes per stall would double every number on the map. Exactly is meant literally —
+/// same centre, size and angle to storage precision — which no two real stalls ever are.
 ///
 /// The numbers come back in the drawing's own coordinates. Fitting them into a map's coordinate space
 /// is the caller's decision, not the reader's.
@@ -55,6 +63,14 @@ public static class SvgPlanReader
     /// <summary>Elements whose contents are definitions or clipping, never part of the drawing.</summary>
     private static readonly HashSet<string> Ignored =
         ["defs", "clipPath", "mask", "symbol", "marker", "pattern", "metadata", "title", "desc"];
+
+    /// <summary>
+    /// Elements that put ink on the page. One of these that yields no rectangle is a loss and has to
+    /// be counted; anything outside this set (a <c>style</c>, a <c>filter</c>, an <c>image</c>) was
+    /// never a stall and counting it would drown the real warnings in noise.
+    /// </summary>
+    private static readonly HashSet<string> Graphical =
+        ["rect", "polygon", "polyline", "path", "circle", "ellipse", "line"];
 
     /// <summary>Upper bound on one file, so a pathological export cannot be walked forever.</summary>
     public const int MaxShapes = 20_000;
@@ -91,10 +107,12 @@ public static class SvgPlanReader
         }
 
         var rects = new List<MapRect>();
+        var seen = new HashSet<MapRect>();
         var labels = new List<(string Text, double X, double Y)>();
         var notRectangles = 0;
         var degenerate = 0;
         var unsupported = 0;
+        var duplicates = 0;
 
         Walk(root, rootTransform);
 
@@ -122,66 +140,109 @@ public static class SvgPlanReader
                     continue;
                 }
 
+                if (name is "text")
+                {
+                    // The whole text subtree at once: a tspan inherits its parent's position when it
+                    // states none, which the generic walk has no way to pass down.
+                    ReadText(child, transform, 0, 0);
+                    continue;
+                }
+
                 if (rects.Count >= MaxShapes)
                 {
                     continue;
                 }
 
-                if (name is "text" or "tspan")
+                var subpaths = Subpaths(child, name);
+                if (subpaths is null || subpaths.Count == 0)
                 {
-                    ReadText(child, transform);
-                    // A tspan may carry its own position inside a positioned text; walk in for it.
-                    Walk(child, transform);
+                    // A drawn element that gave up nothing readable — a circle, a bezier kerb, a path
+                    // this reader cannot follow. Silence here is what made the count lie.
+                    if (Graphical.Contains(name))
+                    {
+                        notRectangles++;
+                    }
+
                     continue;
                 }
 
-                var points = Corners(child, name);
-                if (points is null)
+                foreach (var subpath in subpaths)
                 {
-                    continue;
-                }
+                    if (rects.Count >= MaxShapes)
+                    {
+                        break;
+                    }
 
-                // Into the drawing's coordinates before anything is measured: a rectangle inside a
-                // rotated group is only a rotated rectangle once its group's transform is applied.
-                var placed = Array.ConvertAll(points, p => transform.Apply(p.X, p.Y));
-                var rect = RectangleFrom(placed);
-                if (rect is null)
-                {
-                    notRectangles++;
-                }
-                else if (rect.Value.Width <= 0 || rect.Value.Height <= 0)
-                {
-                    degenerate++;
-                }
-                else
-                {
-                    rects.Add(rect.Value);
+                    var points = Quad(subpath);
+                    if (points is null)
+                    {
+                        notRectangles++;
+                        continue;
+                    }
+
+                    // Into the drawing's coordinates before anything is measured: a rectangle inside a
+                    // rotated group is only a rotated rectangle once its group's transform is applied.
+                    var placed = Array.ConvertAll(points, p => transform.Apply(p.X, p.Y));
+                    var rect = RectangleFrom(placed);
+                    if (rect is null)
+                    {
+                        notRectangles++;
+                    }
+                    else if (rect.Value.Width <= 0 || rect.Value.Height <= 0)
+                    {
+                        degenerate++;
+                    }
+                    else if (!seen.Add(rect.Value))
+                    {
+                        duplicates++;
+                    }
+                    else
+                    {
+                        rects.Add(rect.Value);
+                    }
                 }
             }
         }
 
-        void ReadText(XElement element, SvgTransform transform)
+        void ReadText(XElement element, SvgTransform transform, double inheritedX, double inheritedY)
         {
-            // Only the element's own text, not its descendants': a tspan is walked in its own right,
+            // x and y are optional: absent, the glyphs start at the current text position, which for
+            // the outermost element is the origin. Converters that place every run by its own matrix —
+            // what a PDF export produces — write no x at all, and refusing those lost every number on
+            // the plan while the shapes came through fine.
+            var x = SvgNumbers.Single((string?)element.Attribute("x")) ?? inheritedX;
+            var y = SvgNumbers.Single((string?)element.Attribute("y")) ?? inheritedY;
+
+            // Only the element's own text, not its descendants': a tspan is read in its own right,
             // and taking both would name the same stall twice.
             var text = string.Concat(element.Nodes().OfType<XText>().Select(t => t.Value)).Trim();
-            if (text.Length == 0)
+            if (text.Length > 0 && labels.Count < MaxShapes)
             {
-                return;
+                var (px, py) = transform.Apply(x, y);
+                labels.Add((text, px, py));
             }
 
-            var x = SvgNumbers.Single((string?)element.Attribute("x"));
-            var y = SvgNumbers.Single((string?)element.Attribute("y"));
-            if (x is null || y is null)
+            foreach (var child in element.Elements())
             {
-                return;
-            }
+                if (Ignored.Contains(child.Name.LocalName))
+                {
+                    continue;
+                }
 
-            var (px, py) = transform.Apply(x.Value, y.Value);
-            labels.Add((text, px, py));
+                var local = SvgTransform.Parse((string?)child.Attribute("transform"), out var bad);
+                if (bad)
+                {
+                    unsupported++;
+                }
+
+                ReadText(child, transform.Compose(local), x, y);
+            }
         }
 
-        (double X, double Y)[]? Corners(XElement element, string name)
+        // The candidate outlines an element draws, in its own coordinates — one per subpath, because a
+        // converter thinks nothing of putting a whole row of stalls in a single "d". Null when the
+        // element draws nothing this reader can follow.
+        IReadOnlyList<IReadOnlyList<(double X, double Y)>>? Subpaths(XElement element, string name)
         {
             switch (name)
             {
@@ -191,18 +252,15 @@ public static class SvgPlanReader
                     var y = SvgNumbers.Single((string?)element.Attribute("y")) ?? 0;
                     var w = SvgNumbers.Single((string?)element.Attribute("width")) ?? 0;
                     var h = SvgNumbers.Single((string?)element.Attribute("height")) ?? 0;
-                    return [(x, y), (x + w, y), (x + w, y + h), (x, y + h)];
+                    return [new[] { (x, y), (x + w, y), (x + w, y + h), (x, y + h) }];
                 }
 
                 case "polygon":
                 case "polyline":
-                {
-                    var numbers = SvgNumbers.Parse((string?)element.Attribute("points"));
-                    return Quad(Pairs(numbers));
-                }
+                    return [Pairs(SvgNumbers.Parse((string?)element.Attribute("points")))];
 
                 case "path":
-                    return Quad(SvgPathPoints.Read((string?)element.Attribute("d")));
+                    return SvgPathPoints.Read((string?)element.Attribute("d"));
 
                 default:
                     return null;
@@ -212,7 +270,11 @@ public static class SvgPlanReader
         var (shapes, orphans) = Attach(rects, labels);
 
         return new SvgPlanReading(
-            width, height, shapes, new SvgPlanWarnings(notRectangles, degenerate, unsupported, orphans), null);
+            width,
+            height,
+            shapes,
+            new SvgPlanWarnings(notRectangles, degenerate, unsupported, orphans, duplicates),
+            null);
     }
 
     /// <summary>
