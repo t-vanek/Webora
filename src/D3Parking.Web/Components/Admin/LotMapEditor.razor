@@ -265,7 +265,7 @@
                                       OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_bulkType"
                                       Label="@L["Map_BulkSpotType"]" />
-                        <FluentButton Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
+                        <FluentButton Id="map-create-spots" Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_CreateSpotsHint"]</FluentLabel>
 
                         @* Lining up. Alignment is only ever new positions, so it goes down the same

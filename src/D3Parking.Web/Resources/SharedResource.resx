@@ -1734,4 +1734,8 @@
   <data name="Map_BulkKindApply" xml:space="preserve"><value>Použít</value></data>
   <data name="Map_BulkKindDone" xml:space="preserve"><value>Změněno tvarů: {0}.</value></data>
   <data name="Map_BulkKindDoneUnlinked" xml:space="preserve"><value>Změněno tvarů: {0}. Zrušeno napojení na místa: {1} — na parkovací místo lze napojit jen stání.</value></data>
+  <data name="Lot_View" xml:space="preserve"><value>Zobrazení plochy</value></data>
+  <data name="Lot_View_Grid" xml:space="preserve"><value>Mřížka</value></data>
+  <data name="Lot_View_Map" xml:space="preserve"><value>Mapa</value></data>
+  <data name="Lot_Map_Label" xml:space="preserve"><value>Mapa parkoviště se stavem míst</value></data>
 </root>

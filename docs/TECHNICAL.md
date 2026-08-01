@@ -308,6 +308,17 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   v celé sadě padal. `Layered` i `DuplicateShapesAsync` proto řadí přes `MapShapeOrder`; vedlejším
   přínosem je, že pořadí v DOMu zhruba odpovídá tomu, jak mapu čte oko.
 
+  **Zobrazení mapy je vlastní komponenta** (`LotMapView.razor`), sdílená záměrně: plocha správce
+  a později rezervace pro řidiče se ptají téže kresby na totéž a liší se jen tím, co znamená klik
+  a které stavy barví — obojí je parametr. Modul editoru se v ní spouští v režimu `readOnly`, kde
+  přináší jen zoom kolečkem a posun tažením.
+
+  Ten režim se dvěma věcem vyhýbá schválně, protože obě zabíjejí klik na tvar (což je obyčejný
+  Blazor handler): `setPointerCapture` přesměruje následné události včetně `click` na zachycující
+  element, takže by klik dorazil na `<svg>` místo na `<g>`, a `preventDefault` na `pointerdown`
+  podle specifikace Pointer Events potlačí kompatibilní myší události. Posun funguje i bez
+  zachycení; označování textu při tažení řeší `user-select` ve stylu.
+
   Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
   **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
   pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`

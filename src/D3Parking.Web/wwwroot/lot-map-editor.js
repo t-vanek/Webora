@@ -159,7 +159,7 @@ function setSelection(ids) {
     }
 
     drawOverlay();
-    state.dotNet.invokeMethodAsync('OnSelectionChanged', Array.from(wanted)).catch(() => undefined);
+    state.dotNet?.invokeMethodAsync('OnSelectionChanged', Array.from(wanted)).catch(() => undefined);
 }
 
 // --- overlay: úchyty a gumička ---
@@ -171,6 +171,10 @@ function clearOverlay() {
 }
 
 function drawOverlay() {
+    if (state.readOnly || !state.overlay) {
+        return;
+    }
+
     clearOverlay();
     if (state.tool !== 'select') {
         return;
@@ -267,7 +271,7 @@ function onPointerDown(event) {
 
     // Prostřední tlačítko posouvá plátno v každém nástroji — jinak by se při kreslení muselo
     // pořád přepínat zpět na ruku.
-    if (event.button === 1 || state.tool === 'pan') {
+    if (state.readOnly || event.button === 1 || state.tool === 'pan') {
         state.drag = { kind: 'pan', origin: { x: event.clientX, y: event.clientY }, view: { ...state.view } };
     } else if (handle && handle.dataset.role === 'rotate') {
         const node = shapeNode(selectedIds()[0]);
@@ -318,13 +322,25 @@ function onPointerDown(event) {
         }
     }
 
+    state.moved = false;
+
+    // Režim prohlížení sahá na událost co nejméně, protože klik na stání je obyčejný Blazor handler
+    // na tvaru a dvě obvyklé věci ho umí zabít:
+    //   - setPointerCapture přesměruje další události včetně click na zachycující element, takže by
+    //     klik dorazil na <svg> a ne na <g>, kterému patří,
+    //   - preventDefault na pointerdown podle specifikace potlačí i kompatibilní myší události.
+    // Posun plátna funguje i bez zachycení, jen skončí, když ukazatel opustí plátno; označování
+    // textu při tažení řeší CSS (user-select).
+    if (state.readOnly) {
+        return;
+    }
+
     try {
         state.svg.setPointerCapture(event.pointerId);
     } catch {
         // Zachycení ukazatele je jen pohodlí (tažení mimo plátno); bez něj gesto funguje dál.
     }
 
-    state.moved = false;
     // preventDefault níže potlačí i výchozí zaostření, takže se plátno musí zaostřit ručně — jinak
     // na něj klávesové zkratky (Delete, šipky, Ctrl+Z) nedosáhnou, dokud na něj někdo netabuje.
     state.svg.focus({ preventScroll: true });
@@ -457,7 +473,9 @@ function onPointerUp(event) {
     const drag = state.drag;
     state.drag = null;
     try {
-        state.svg.releasePointerCapture(event.pointerId);
+        if (!state.readOnly) {
+            state.svg.releasePointerCapture(event.pointerId);
+        }
     } catch {
         // Ukazatel už mohl být uvolněn (např. při ztrátě fokusu) — na výsledku gesta to nic nemění.
     }
@@ -550,7 +568,7 @@ function onWheel(event) {
 }
 
 function onKeyDown(event) {
-    if (!state || event.target !== state.svg) {
+    if (!state || state.readOnly || event.target !== state.svg) {
         return;
     }
 
@@ -626,6 +644,9 @@ export function attach(svg, dotNet, options) {
         svg,
         dotNet,
         overlay: svg.querySelector('.map-overlay'),
+        // Režim prohlížení: mapa se jen posouvá a přibližuje. Výběr a klikání na tvary si v něm
+        // řeší Blazor sám (je to obyčejný klik, ne gesto), takže tady nemá co obsluhovat.
+        readOnly: options.readOnly === true,
         tool: options.tool ?? 'select',
         grid: options.grid ?? 0,
         natural,

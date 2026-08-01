@@ -433,7 +433,9 @@ public class LotMapEditorTests : AdminTest
         // which is how a cold circuit dropping the typed name was diagnosed in the first place.
         // The timeout is generous: the first map of a run pays for the cold EF query behind the list.
         var link = Page.GetByRole(AriaRole.Link, new() { Name = name });
-        var complaint = Page.Locator("fluent-message-bar");
+        // FluentMessageBar renders a div with this class, not a <fluent-message-bar> element; the
+        // tag name never matched, so this diagnostic quietly did nothing until it was checked.
+        var complaint = Page.Locator(".fluent-messagebar-message");
         var appeared = await Task.WhenAny(
             link.WaitForAsync(new() { Timeout = 30_000 }),
             complaint.WaitForAsync(new() { Timeout = 30_000 }));

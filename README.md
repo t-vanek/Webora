@@ -545,6 +545,11 @@ Nenapojené stání zůstává na plánu jako kontext.
   které by zůstaly venku po zmenšení mapy. Jinak by nešly kliknout ani najet a byly by ztracené.
 - **Publikace:** publikovaná je vždy nejvýš jedna mapa — obrazovky pro řidiče se ptají na „tu" mapu
   a dvě odpovědi by znamenaly, že záleží na pořadí řádků. Rozpracovaná mapa se ven nedostane.
+- **Na ploše dashboardu:** publikovaná mapa se dá zapnout na `/admin/parking/dashboard` přepínačem
+  **Mřížka / Mapa**. Stání nesou tytéž barvy stavu jako dlaždice a klik otevře stejný postranní
+  detail — přepnutí pohledu tedy není přeučení. Cizí stání, budovy a komunikace se kreslí tlumeně
+  jako kontext a klikat na ně nejde. Přepínač se nabízí, teprve když je nějaká mapa publikovaná;
+  dokud se plán obtahuje, je mřížka poctivější odpověď.
 - **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se
   v cílové databázi obnoví jedním kliknutím na *Napojit podle popisků*).
 

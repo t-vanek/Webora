@@ -517,9 +517,15 @@ public sealed class LotMapService(
             return MapShapeResult.Failure("Map_Error_MapFull");
         }
 
-        // Offset by the selection's own grid step so the copies land clear of the originals and can be
-        // grabbed straight away, rather than exactly on top where the click would hit the wrong one.
-        var offset = map.GridSize > 0 ? map.GridSize * 2 : DefaultDuplicateOffset;
+        // Offset by a quarter of the selection's smaller side, never less than a grid step. Tied to
+        // the shapes rather than to the grid: a grid step is a handful of units, and on a stall two
+        // hundred units wide that puts the copy all but exactly on top of the original — where the
+        // next click lands on whichever the browser decides is on top.
+        var bounds = originals.Select(sh => sh.Rect.Bounds()).ToList();
+        var extent = Math.Min(
+            bounds.Max(b => b.MaxX) - bounds.Min(b => b.MinX),
+            bounds.Max(b => b.MaxY) - bounds.Min(b => b.MinY));
+        var offset = Math.Max(map.GridSize > 0 ? map.GridSize : DefaultDuplicateOffset, Math.Round(extent / 4));
 
         // Reading order, so duplicating a row hands the copies back in the order the row reads. A
         // query without an ORDER BY returns whatever the server finds convenient, which makes the

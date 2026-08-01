@@ -1734,4 +1734,8 @@
   <data name="Map_BulkKindApply" xml:space="preserve"><value>Apply</value></data>
   <data name="Map_BulkKindDone" xml:space="preserve"><value>Shapes changed: {0}.</value></data>
   <data name="Map_BulkKindDoneUnlinked" xml:space="preserve"><value>Shapes changed: {0}. Spot links dropped: {1} — only a stall can stand for a parking spot.</value></data>
+  <data name="Lot_View" xml:space="preserve"><value>Board view</value></data>
+  <data name="Lot_View_Grid" xml:space="preserve"><value>Grid</value></data>
+  <data name="Lot_View_Map" xml:space="preserve"><value>Map</value></data>
+  <data name="Lot_Map_Label" xml:space="preserve"><value>Lot map with the state of each spot</value></data>
 </root>

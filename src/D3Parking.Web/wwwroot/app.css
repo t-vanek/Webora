@@ -4142,3 +4142,115 @@ fluent-menu-item:has(> .account-menu-link) {
         outline: 2px solid var(--accent-fill-rest, #0f6cbd);
         outline-offset: 1px;
     }
+
+/* --- Mapa parkoviště jen ke čtení (plocha dashboardu, později rezervace) --- */
+
+.map-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.map-view__tools {
+    display: flex;
+    gap: 8px;
+}
+
+.map-view__canvas {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--neutral-stroke-rest, #e6e6e6);
+    border-radius: 12px;
+    background: var(--neutral-layer-2, #fafafa);
+    /* Tažení patří posunu mapy, ne rolování stránky. Označování textu se tu potlačuje stylem,
+       protože v režimu prohlížení modul záměrně nevolá preventDefault — to by zabilo i klik. */
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
+
+.map-view__shape polygon {
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.map-view__shape text {
+    font-size: 9px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: var(--neutral-foreground-rest, #242424);
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Kontext: budovy, komunikace a cizí stání. Tlumené, aby nekonkurovaly tomu, co je naše, ale
+   viditelné — řada obdélníků v prázdnu neřekne řidiči nic o tom, kudy jít. */
+.map-view__shape--Building polygon {
+    fill: var(--neutral-fill-rest, #d6d6d6);
+    fill-opacity: .5;
+    stroke: var(--neutral-stroke-strong-rest, #8a8a8a);
+}
+
+.map-view__shape--Aisle polygon {
+    fill: var(--brand-sherpa-soft);
+    fill-opacity: .1;
+    stroke: none;
+}
+
+.map-view__shape--Spot polygon,
+.map-view__shape--Label polygon {
+    fill: var(--neutral-fill-rest, #e9e9e9);
+    fill-opacity: .35;
+    stroke: var(--neutral-stroke-rest, #cfcfcf);
+}
+
+.map-view__shape--Building text,
+.map-view__shape--Aisle text,
+.map-view__shape--Spot text,
+.map-view__shape--Label text {
+    fill: var(--neutral-foreground-hint, #8a8a8a);
+}
+
+/* Naše stání. Barvy jsou tytéž, které nesou dlaždice plochy — mapa a mřížka musí mluvit stejnou
+   řečí, jinak je přepnutí pohledu přeučení. */
+.map-view__shape--spot {
+    cursor: pointer;
+}
+
+    .map-view__shape--spot polygon {
+        stroke-width: 1.5;
+    }
+
+    .map-view__shape--spot:hover polygon {
+        fill-opacity: .85;
+    }
+
+    .map-view__shape--spot:focus-visible {
+        outline: none;
+    }
+
+        .map-view__shape--spot:focus-visible polygon {
+            stroke: var(--accent-fill-rest, #0f6cbd);
+            stroke-width: 3;
+        }
+
+.map-view__shape.is-selected polygon {
+    stroke: var(--accent-fill-rest, #0f6cbd);
+    stroke-width: 3;
+}
+
+.map-view__state--Free polygon { fill: var(--brand-green); fill-opacity: .55; stroke: var(--brand-green-deep); }
+.map-view__state--Booked polygon { fill: var(--warning-rest, #f7a900); fill-opacity: .55; stroke: var(--warning-rest, #f7a900); }
+.map-view__state--Occupied polygon { fill: var(--error-rest, #d13438); fill-opacity: .55; stroke: var(--error-rest, #d13438); }
+.map-view__state--ResidentShared polygon { fill: var(--brand-green-deep); fill-opacity: .55; stroke: var(--brand-green-deep); }
+.map-view__state--ResidentHeld polygon { fill: var(--brand-sherpa-soft); fill-opacity: .4; stroke: var(--brand-sherpa-soft); }
+.map-view__state--VisitorBooked polygon { fill: var(--brand-violet-deep); fill-opacity: .5; stroke: var(--brand-violet-deep); }
+.map-view__state--OfferedFromQueue polygon { fill: var(--accent-fill-rest, #0f6cbd); fill-opacity: .5; stroke: var(--accent-fill-rest, #0f6cbd); }
+
+.map-view__state--Inactive polygon {
+    fill: var(--neutral-fill-rest, #d6d6d6);
+    fill-opacity: .5;
+    stroke: var(--neutral-foreground-hint, #9a9a9a);
+    stroke-dasharray: 3 2;
+}
