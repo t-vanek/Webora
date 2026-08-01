@@ -222,6 +222,7 @@ app.MapHub<NotificationsHub>(NotificationsHub.Path);
 app.MapNotificationApi();
 app.MapCalendarApi();
 app.MapMismatchPhotoApi();
+app.MapLotMapApi();
 app.MapExternalSignInApi();
 app.MapScimApi();
 

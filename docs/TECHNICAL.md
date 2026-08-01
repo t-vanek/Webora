@@ -263,6 +263,26 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   unikátní; mrtvé subscriptions se mažou při 404/410 od push služby). Přihlášení zařízení řeší
   přepínač ve zvonečku (`push.js` + `PUT/DELETE /api/notifications/push/subscription`); service
   worker OS notifikaci potlačí, když je aplikace zrovna viditelná. Konfigurace: [VAPID klíče](#konfigurace).
+- **Editor mapy parkoviště:** kreslení běží celé v prohlížeči (`wwwroot/lot-map-editor.js`, ES modul
+  načítaný jen na `/admin/parking/map`), Blazor vlastní model a ukládání. Tažení, změna velikosti,
+  otáčení, výběr rámečkem i zoom se odehrávají nad DOMem lokálně; na server jde až **výsledek
+  gesta** jednou dávkou (`MoveShapesAsync`) — po SignalR by jinak šly desítky zpráv za sekundu
+  a plán o pěti stech tvarech by byl nepoužitelný. Dělba je stálá: Blazor vykresluje `<g class="map-shape">`
+  s geometrií v `data-*` atributech a nechává prázdné `<g class="map-overlay">`, do kterého JS kreslí
+  úchyty a gumičku — Blazor o těch uzlech neví, takže mu je překreslení nesmaže. Modul zpětně hlásí
+  aktivní nástroj v `data-tool` na plátně, což je i jediný spolehlivý signál pro E2E testy, že gesto
+  bude interpretováno správným nástrojem.
+
+  Geometrie je `MapRect` — obdélník plus úhel, ne polygon (zdůvodnění v XML komentáři typu).
+  Souřadnice se do SVG **musí** formátovat invariantně; česká desetinná čárka v atributu `points` je
+  rozbitý polygon, ne detail zaokrouhlení. Server každý příchozí obdélník sanitizuje a validuje
+  (`Sanitized()`/`IsValid()`) — čísla přicházejí z tažení myší v prohlížeči, takže NaN se nesmí
+  dostat do databáze; dávka se ověřuje celá předem, aby tažení nepřistálo z poloviny.
+
+  Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
+  **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
+  pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`
+  v jedné transakci.
 - **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
   v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.

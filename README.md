@@ -42,6 +42,7 @@ vyhrazeného místa) a penalizují nedostavení se.
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
   - [Provozní dohled](#provozní-dohled)
   - [Plocha parkoviště pro správce](#plocha-parkoviště-pro-správce)
+  - [Mapa parkoviště](#mapa-parkoviště)
   - [Údržba na pozadí](#údržba-na-pozadí)
   - [Role a oprávnění](#role-a-oprávnění)
 - [Technická dokumentace](docs/TECHNICAL.md)
@@ -488,6 +489,42 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
   v počtu rezervací, aby osmihodinová rezervace nesplynula s jedním tikem. Denní křivka škáluje
   k **dnešní** kapacitě — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní
   jmenovatel by byl vymyšlený.
+
+</details>
+
+### Mapa parkoviště
+
+<details>
+<summary>Editor, ve kterém se plán areálu nakreslí a jeho stání se napojí na parkovací místa</summary>
+
+`/admin/parking/map` (`Parking.ManageSpots`) je kreslicí nástroj: vznikne v něm plán areálu tak, jak
+skutečně vypadá, a jeho obdélníky se napojí na parkovací místa z katalogu.
+
+Mapa záměrně **není totéž co parkoviště**. Kreslí se celý areál včetně stání, která patří někomu
+jinému — řidič potřebuje vidět, že jeho 434 je uprostřed řady, ne osamoceně v prázdnu. Které
+z nakreslených stání je doopravdy rezervovatelné, rozhoduje napojení na místo, jedno po druhém.
+Nenapojené stání zůstává na plánu jako kontext.
+
+- **Podklad:** sken oficiálního plánu se nahraje pod kresbu a obtáhne se podle něj; průhlednost je
+  nastavitelná. Je to pomůcka při kreslení, ne součást výstupu.
+- **Nástroje:** výběr (tažení, změna velikosti za osm úchytů, otáčení za rameno), kreslení a posun
+  plátna. Mřížka přichytává, Shift drží při otáčení násobky 15°, Delete maže výběr a šipky ho
+  posouvají po mřížce. Kolečko přibližuje k ukazateli.
+- **Řada:** jedno obtažené stání se zopakuje do celé řady — zadá se, kolik jich má být, mezera
+  a směr. Číslování pokračuje z popisku zdroje (`428` → `429`, `430`…) včetně případného odsazení
+  nulami. Řada se posouvá **po vlastní ose stání**, takže natočená řada zůstane natočená. Tohle je
+  ta věc, díky které je obtažení plánu o čtyřech stech stáních práce na odpoledne.
+- **Napojení:** *Napojit podle popisků* sváže každé dosud nenapojené stání, jehož popisek odpovídá
+  kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
+  nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
+  vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
+- **Publikace:** publikovaná je vždy nejvýš jedna mapa — obrazovky pro řidiče se ptají na „tu" mapu
+  a dvě odpovědi by znamenaly, že záleží na pořadí řádků. Rozpracovaná mapa se ven nedostane.
+- **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se
+  v cílové databázi obnoví jedním kliknutím na *Napojit podle popisků*).
+
+Geometrie tvaru je **obdélník s úhlem**, ne volný polygon: každé stání na plánu obdélník je, včetně
+těch ve vějíři, a pět čísel místo proměnného seznamu bodů dělá úchyty i aritmetiku řady přesnými.
 
 </details>
 

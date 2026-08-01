@@ -1,0 +1,813 @@
+@page "/admin/parking/map"
+@page "/admin/parking/map/{MapId:guid}"
+@attribute [HasPermission(Permissions.Parking.ManageSpots)]
+@rendermode InteractiveServer
+@using System.Globalization
+@using D3Parking.Application.Parking.Maps
+@using D3Parking.Domain.Parking.Maps
+@implements IAsyncDisposable
+@inject ILotMapService Maps
+@inject IParkingSpotService Spots
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Map_Title"]</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="admin-head__titles">
+        <div class="admin-head__title-row">
+            <FluentLabel Typo="Typography.PageTitle">@L["Map_Title"]</FluentLabel>
+            @if (_map is not null)
+            {
+                <span class="count-chip">@_map.Shapes.Count</span>
+            }
+        </div>
+        <p class="admin-head__intro">@L["Map_Intro"]</p>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
+    }
+
+    @if (_map is null)
+    {
+        @* The chooser. Also where a map is created, because a new one is nothing but a name and a
+           coordinate space — there is no wizard worth opening for two numbers. *@
+        <div class="form-panel">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentLabel Typo="Typography.Subject">@L["Map_New"]</FluentLabel>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentTextField Id="map-name" Immediate="true" @bind-Value="_newName" Label="@L["Map_Name"]" Placeholder="@L["Map_NamePlaceholder"]" />
+                    <FluentNumberField TValue="int" @bind-Value="_newWidth" Min="@LotMap.MinDimension.ToString()" Label="@L["Map_Width"]" Style="width:120px" />
+                    <FluentNumberField TValue="int" @bind-Value="_newHeight" Min="@LotMap.MinDimension.ToString()" Label="@L["Map_Height"]" Style="width:120px" />
+                    <FluentButton Id="map-create" Appearance="Appearance.Accent" OnClick="CreateMapAsync">@L["Map_Create"]</FluentButton>
+                </FluentStack>
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_SizeHint"]</FluentLabel>
+            </FluentStack>
+        </div>
+
+        <div class="form-panel">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <FluentLabel Typo="Typography.Subject">@L["Map_Import"]</FluentLabel>
+                <FluentTextArea @bind-Value="_importJson" Rows="4" Style="width:100%; max-width:520px" Label="@L["Map_ImportJson"]" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentTextField @bind-Value="_importName" Label="@L["Map_ImportName"]" />
+                    <FluentButton Appearance="Appearance.Outline" OnClick="ImportAsync">@L["Map_ImportRun"]</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </div>
+
+        @if (_maps.Count == 0)
+        {
+            <FluentLabel Typo="Typography.Body">@L["Map_None"]</FluentLabel>
+        }
+        else
+        {
+            <div class="admin-panel">
+                <FluentDataGrid Items="@_maps.AsQueryable()" TGridItem="LotMapSummaryDto" GridTemplateColumns="1.5fr 1fr 1fr 1fr auto">
+                    <TemplateColumn Title="@L["Map_Name"]">
+                        <FluentAnchor Href="@($"/admin/parking/map/{context.Id}")" Appearance="Appearance.Hypertext">@context.Name</FluentAnchor>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@L["Map_Size"]">@context.Width × @context.Height</TemplateColumn>
+                    <TemplateColumn Title="@L["Map_Shapes"]">@context.ShapeCount (@context.LinkedCount @L["Map_Linked"])</TemplateColumn>
+                    <TemplateColumn Title="@L["Map_State"]">
+                        @if (context.IsPublished)
+                        {
+                            <span class="state-pill state-pill--on">@L["Map_Published"]</span>
+                        }
+                        else
+                        {
+                            <span class="state-pill state-pill--off">@L["Map_Draft"]</span>
+                        }
+                    </TemplateColumn>
+                    <TemplateColumn Align="Align.End">
+                        <FluentButton Appearance="Appearance.Stealth" OnClick="() => DeleteMapAsync(context.Id)">@L["Map_Delete"]</FluentButton>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </div>
+        }
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+            <FluentAnchor Href="/admin/parking/map" Appearance="Appearance.Hypertext">← @L["Map_BackToList"]</FluentAnchor>
+            <FluentLabel Typo="Typography.H5">@_map.Name</FluentLabel>
+            @if (_map.IsPublished)
+            {
+                <span class="state-pill state-pill--on">@L["Map_Published"]</span>
+            }
+        </FluentStack>
+
+        @* Toolbar. The tool decides what a drag on empty canvas does; everything else on the bar is
+           a view setting, which is why none of it touches the model. *@
+        <div class="map-toolbar">
+            <div class="map-toolbar__group" role="group" aria-label="@L["Map_Tools"]">
+                @foreach (var tool in Tools)
+                {
+                    <FluentButton Appearance="@(_tool == tool ? Appearance.Accent : Appearance.Outline)"
+                                  OnClick="() => SetToolAsync(tool)"
+                                  aria-pressed="@(_tool == tool ? "true" : "false")">@L[$"Map_Tool_{tool}"]</FluentButton>
+                }
+            </div>
+
+            <div class="map-toolbar__group">
+                <FluentSelect TOption="MapShapeKind"
+                              Items="@ShapeKinds"
+                              OptionValue="@(k => k.ToString())"
+                              OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                              @bind-SelectedOption="_drawKind"
+                              Label="@L["Map_DrawKind"]" Style="width:150px" />
+                <FluentNumberField TValue="int" Value="@_map.GridSize" ValueChanged="SetGridAsync" Immediate="true"
+                                   Min="0" Max="500" Label="@L["Map_Grid"]" Style="width:90px" />
+            </div>
+
+            <div class="map-toolbar__group">
+                <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(1.25)" aria-label="@L["Map_ZoomIn"]">＋</FluentButton>
+                <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(0.8)" aria-label="@L["Map_ZoomOut"]">－</FluentButton>
+                <FluentButton Appearance="Appearance.Outline" OnClick="ResetViewAsync">@L["Map_FitView"]</FluentButton>
+            </div>
+
+            <div class="map-toolbar__group">
+                <FluentButton Appearance="@(_map.IsPublished ? Appearance.Outline : Appearance.Accent)" OnClick="TogglePublishedAsync">
+                    @L[_map.IsPublished ? "Map_Unpublish" : "Map_Publish"]
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Outline" OnClick="ExportAsync">@L["Map_Export"]</FluentButton>
+            </div>
+        </div>
+
+        <div class="map-split">
+            <div class="map-split__canvas">
+                @* tabindex so the canvas takes focus and the keyboard shortcuts (Delete, arrows,
+                   Escape) reach it; the JS module listens on this element, not on the document. *@
+                <svg class="map-canvas map-canvas--@_tool" @ref="_canvasRef" tabindex="0"
+                     viewBox="@($"0 0 {_map.Width} {_map.Height}")"
+                     role="application" aria-label="@L["Map_CanvasLabel"]">
+                    @if (_map.HasBackground)
+                    {
+                        @* The traced-over site plan. Never receives the pointer: a click on it must
+                           start a marquee or a new rectangle, not select the picture. *@
+                        <image href="@($"/api/parking/maps/{_map.Id}/background?v={_backgroundVersion}")"
+                               x="0" y="0" width="@Inv(_map.Width)" height="@Inv(_map.Height)"
+                               opacity="@Inv(_map.BackgroundOpacity / 100d)"
+                               preserveAspectRatio="none" pointer-events="none" />
+                    }
+
+                    @foreach (var shape in _map.Shapes)
+                    {
+                        <g @key="shape.Id"
+                           class="map-shape map-shape--@shape.Kind @(shape.ParkingSpotId is null ? "map-shape--unlinked" : "map-shape--linked") @(_selected.Contains(shape.Id) ? "is-selected" : null)"
+                           data-id="@shape.Id" data-x="@Inv(shape.X)" data-y="@Inv(shape.Y)"
+                           data-w="@Inv(shape.Width)" data-h="@Inv(shape.Height)" data-rot="@Inv(shape.Rotation)">
+                            <polygon points="@shape.Rect.ToSvgPoints()" />
+                            @if (!string.IsNullOrEmpty(shape.Label))
+                            {
+                                <SvgLabel X="@Inv(shape.Rect.CentreX)" Y="@Inv(shape.Rect.CentreY)"
+                                          Transform="@RotateAbout(shape)" Text="@shape.Label" />
+                            }
+                        </g>
+                    }
+
+                    @* Left empty on purpose: the JS module draws the handles and the marquee in here.
+                       Blazor renders no children for it, so its diff never touches what JS put inside. *@
+                    <g class="map-overlay"></g>
+                </svg>
+                <p class="map-hint">@L["Map_CanvasHint"]</p>
+            </div>
+
+            <aside class="map-split__side" aria-live="polite">
+                @if (_selected.Count == 1 && SelectedShape is { } picked)
+                {
+                    <div class="admin-panel map-panel">
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Shape"]</FluentLabel>
+                        <FluentTextField Id="shape-label" Immediate="true" ImmediateDelay="400" Value="@picked.Label"
+                                         ValueChanged="@(v => RelabelAsync(picked, v))" Label="@L["Map_Label"]" />
+                        <FluentSelect TOption="MapShapeKind"
+                                      Items="@ShapeKinds"
+                                      OptionValue="@(k => k.ToString())"
+                                      OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                                      Value="@picked.Kind.ToString()"
+                                      ValueChanged="@(v => ChangeKindAsync(picked, v))"
+                                      Label="@L["Map_Kind"]" />
+
+                        @if (picked.Kind == MapShapeKind.Spot)
+                        {
+                            <FluentSelect TOption="string"
+                                          Items="@SpotOptions"
+                                          OptionValue="@(id => id)"
+                                          OptionText="@(id => SpotLabel(id))"
+                                          Value="@(picked.ParkingSpotId?.ToString() ?? string.Empty)"
+                                          ValueChanged="@(v => LinkAsync(picked, v))"
+                                          Label="@L["Map_LinkedSpot"]" />
+                            @if (picked.LabelMismatch)
+                            {
+                                <FluentLabel Typo="Typography.Body" Color="Color.Warning" Style="font-size:12px">
+                                    @string.Format(L["Map_LabelMismatch"], picked.Label, picked.SpotCode)
+                                </FluentLabel>
+                            }
+                        }
+
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">
+                            @string.Format(L["Map_Geometry"], Inv(picked.X), Inv(picked.Y), Inv(picked.Width), Inv(picked.Height), Inv(picked.Rotation))
+                        </FluentLabel>
+
+                        @* The row tool: the one thing that makes tracing a site plan of hundreds of
+                           stalls finish in an afternoon. It repeats this rectangle along its own axis
+                           and carries the numbering on from its label. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Row"]</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentNumberField Id="row-count" TValue="int" @bind-Value="_rowCount" Immediate="true" Min="2"
+                                               Max="@MapRowPlan.MaxRowLength.ToString()" Label="@L["Map_RowCount"]" Style="width:100px" />
+                            <FluentNumberField TValue="double" @bind-Value="_rowGap" Immediate="true" Label="@L["Map_RowGap"]" Style="width:100px" />
+                            <FluentNumberField TValue="int" @bind-Value="_rowStep" Immediate="true" Label="@L["Map_RowStep"]" Style="width:100px" />
+                        </FluentStack>
+                        <FluentSelect TOption="RowDirection"
+                                      Items="@Directions"
+                                      OptionValue="@(d => d.ToString())"
+                                      OptionText="@(d => L[$"Map_Dir_{d}"].Value)"
+                                      @bind-SelectedOption="_rowDirection"
+                                      Label="@L["Map_RowDirection"]" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@RowPreview(picked)</FluentLabel>
+                        <FluentButton Id="map-row" Appearance="Appearance.Accent" OnClick="() => AddRowAsync(picked)">@L["Map_RowCreate"]</FluentButton>
+                    </div>
+                }
+                else if (_selected.Count > 1)
+                {
+                    <div class="admin-panel map-panel">
+                        <FluentLabel Typo="Typography.Subject">@string.Format(L["Map_SelectedCount"], _selected.Count)</FluentLabel>
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@SpotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
+                                      @bind-SelectedOption="_bulkType"
+                                      Label="@L["Map_BulkSpotType"]" />
+                        <FluentButton Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_CreateSpotsHint"]</FluentLabel>
+                    </div>
+                }
+                else
+                {
+                    <div class="admin-panel map-panel">
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Properties"]</FluentLabel>
+                        <FluentTextField Immediate="true" @bind-Value="_editName" Label="@L["Map_Name"]" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentNumberField TValue="int" @bind-Value="_editWidth" Min="@LotMap.MinDimension.ToString()" Label="@L["Map_Width"]" Style="width:110px" />
+                            <FluentNumberField TValue="int" @bind-Value="_editHeight" Min="@LotMap.MinDimension.ToString()" Label="@L["Map_Height"]" Style="width:110px" />
+                        </FluentStack>
+                        <FluentButton Appearance="Appearance.Accent" OnClick="SaveMapAsync">@L["Map_Save"]</FluentButton>
+
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Background"]</FluentLabel>
+                        <InputFile OnChange="OnBackgroundSelectedAsync" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="parking-input" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentNumberField TValue="int" Value="@_map.BackgroundOpacity" ValueChanged="SetOpacityAsync" Immediate="true"
+                                               Min="0" Max="100" Label="@L["Map_Opacity"]" Style="width:110px" />
+                            @if (_map.HasBackground)
+                            {
+                                <FluentButton Appearance="Appearance.Stealth" OnClick="ClearBackgroundAsync">@L["Map_BackgroundClear"]</FluentButton>
+                            }
+                        </FluentStack>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_BackgroundHint"]</FluentLabel>
+
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Linking"]</FluentLabel>
+                        <FluentButton Appearance="Appearance.Accent" OnClick="AutoLinkAsync">@L["Map_AutoLink"]</FluentButton>
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_AutoLinkHint"]</FluentLabel>
+                        @if (_autoLink is { } report)
+                        {
+                            <div class="batch-preview">
+                                <span><span class="count-chip">@report.Linked</span> @L["Map_AutoLink_Linked"]</span>
+                                @if (report.UnmatchedLabels.Count > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_AutoLink_NoSpot"], report.UnmatchedLabels.Count, Sample(report.UnmatchedLabels))</span>
+                                }
+                                @if (report.UnmatchedCodes.Count > 0)
+                                {
+                                    <span class="batch-preview__bad">@string.Format(L["Map_AutoLink_NoShape"], report.UnmatchedCodes.Count, Sample(report.UnmatchedCodes))</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (_selected.Count > 0)
+                {
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="DeleteSelectedAsync">@L["Map_DeleteShapes"]</FluentButton>
+                }
+
+                @if (_exported is not null)
+                {
+                    <div class="admin-panel map-panel">
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Export"]</FluentLabel>
+                        <FluentTextArea Value="@_exported" ReadOnly="true" Rows="8" Style="width:100%" />
+                    </div>
+                }
+            </aside>
+        </div>
+    }
+</FluentStack>
+
+@code {
+    [Parameter]
+    public Guid? MapId { get; set; }
+
+    private static readonly string[] Tools = ["select", "draw", "pan"];
+    private static readonly MapShapeKind[] ShapeKinds = Enum.GetValues<MapShapeKind>();
+    private static readonly RowDirection[] Directions = Enum.GetValues<RowDirection>();
+    private static readonly ParkingSpotType[] SpotTypes = Enum.GetValues<ParkingSpotType>();
+
+    private IReadOnlyList<LotMapSummaryDto> _maps = [];
+    private LotMapDetailDto? _map;
+    private IReadOnlyList<ParkingSpotDto> _spots = [];
+
+    private readonly HashSet<Guid> _selected = [];
+    private string _tool = "select";
+    private MapShapeKind _drawKind = MapShapeKind.Spot;
+
+    private int _rowCount = 10;
+    private double _rowGap = 1;
+    private int _rowStep = 1;
+    private RowDirection _rowDirection = RowDirection.Right;
+    private ParkingSpotType _bulkType = ParkingSpotType.Standard;
+
+    private string? _newName;
+    private int _newWidth = 1600;
+    private int _newHeight = 900;
+    private string? _editName;
+    private int _editWidth;
+    private int _editHeight;
+    private string? _importJson;
+    private string? _importName;
+    private string? _exported;
+    private MapAutoLinkResult? _autoLink;
+
+    /// <summary>Bumped on every background change so the browser refetches rather than showing the old scan.</summary>
+    private int _backgroundVersion;
+
+    private string? _error;
+    private string? _info;
+
+    private ElementReference _canvasRef;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<LotMapEditor>? _selfRef;
+
+    /// <summary>Set once the module is attached to this canvas, so a re-render syncs instead of re-attaching.</summary>
+    private Guid _attachedTo;
+
+    private MapShapeDto? SelectedShape =>
+        _selected.Count == 1 ? _map?.Shapes.FirstOrDefault(s => s.Id == _selected.First()) : null;
+
+    private IEnumerable<string> SpotOptions => new[] { string.Empty }.Concat(_spots.Select(s => s.Id.ToString()));
+
+    /// <summary>Invariant formatting. SVG parses "12.5", never the "12,5" a Czech UI culture would write.</summary>
+    private static string Inv(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string Inv(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string? RotateAbout(MapShapeDto shape) =>
+        shape.Rotation == 0
+            ? null
+            : $"rotate({Inv(shape.Rotation)} {Inv(shape.Rect.CentreX)} {Inv(shape.Rect.CentreY)})";
+
+    private static string Sample(IReadOnlyList<string> values) =>
+        values.Count <= 9 ? string.Join(", ", values) : string.Join(", ", values.Take(8)) + " … " + values[^1];
+
+    private string SpotLabel(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return L["Map_NoSpot"];
+        }
+
+        var spot = _spots.FirstOrDefault(s => s.Id.ToString() == id);
+        return spot is null ? id : spot.Code;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (MapId is { } id)
+        {
+            _map = await Maps.GetAsync(id);
+            if (_map is null)
+            {
+                // The map was deleted in another tab; the chooser is the only honest place to land.
+                Navigation.NavigateTo("/admin/parking/map");
+                return;
+            }
+
+            _editName = _map.Name;
+            _editWidth = _map.Width;
+            _editHeight = _map.Height;
+            if (_spots.Count == 0)
+            {
+                _spots = await Spots.ListAsync();
+            }
+
+            // A shape that is gone must not stay selected — the panel would edit a ghost.
+            _selected.RemoveWhere(s => _map.Shapes.All(shape => shape.Id != s));
+        }
+        else
+        {
+            _map = null;
+            _maps = await Maps.ListAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_map is null)
+        {
+            // Left the editor for the chooser: the module still holds the old canvas element.
+            if (_attachedTo != Guid.Empty)
+            {
+                await InvokeModuleAsync("detach");
+                _attachedTo = Guid.Empty;
+            }
+
+            return;
+        }
+
+        // Absolute, not "./": the specifier resolves against the current document URL, and this page
+        // is also served at /admin/parking/map/{id}, where a relative path points at a directory that
+        // does not exist. The route with an id is the one the editor actually runs on.
+        _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/lot-map-editor.js");
+        _selfRef ??= DotNetObjectReference.Create(this);
+
+        if (_attachedTo != _map.Id)
+        {
+            _attachedTo = _map.Id;
+            await _module.InvokeVoidAsync("attach", _canvasRef, _selfRef,
+                new { width = _map.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+        }
+        else
+        {
+            // Every render: the shape nodes were just replaced, so the handles have to be drawn over
+            // the new ones and the tool/grid the module caches may have changed under it.
+            await _module.InvokeVoidAsync("sync",
+                new { width = _map.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+        }
+    }
+
+    private async Task InvokeModuleAsync(string method, params object?[] args)
+    {
+        if (_module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.InvokeVoidAsync(method, args);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away mid-call; there is no canvas left to talk to.
+        }
+    }
+
+    // --- callbacks from the editor module ---
+
+    [JSInvokable]
+    public async Task OnShapeDrawn(double x, double y, double width, double height)
+    {
+        _error = _info = null;
+        var result = await Maps.AddShapeAsync(_map!.Id, _drawKind, new MapRect(x, y, width, height, 0), null);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+        else
+        {
+            // Selected straight away: the next thing anyone does with a fresh rectangle is name it
+            // or repeat it into a row, and both live in the panel that selection opens.
+            _selected.Clear();
+            foreach (var shape in result.Shapes)
+            {
+                _selected.Add(shape.Id);
+            }
+        }
+
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnShapesMoved(ShapeGeometryUpdate[] updates)
+    {
+        var result = await Maps.MoveShapesAsync(_map!.Id, updates);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        // Re-read rather than patching in place: the server sanitizes the geometry it stored, and the
+        // canvas must show what was saved, not what the browser proposed.
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task OnSelectionChanged(Guid[] ids)
+    {
+        _selected.Clear();
+        foreach (var id in ids)
+        {
+            _selected.Add(id);
+        }
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task OnDeleteRequested(Guid[] ids)
+    {
+        await DeleteShapesAsync(ids);
+    }
+
+    // --- commands ---
+
+    private async Task SetToolAsync(string tool)
+    {
+        _tool = tool;
+        if (tool != "select")
+        {
+            _selected.Clear();
+            await InvokeModuleAsync("select", Array.Empty<Guid>());
+        }
+    }
+
+    private Task ZoomAsync(double factor) => InvokeModuleAsync("zoom", factor);
+
+    private Task ResetViewAsync() => InvokeModuleAsync("resetView");
+
+    private async Task SetGridAsync(int grid)
+    {
+        await SaveMapPropertiesAsync(_map!.Name, _map.Width, _map.Height, grid, _map.BackgroundOpacity);
+    }
+
+    private async Task SetOpacityAsync(int opacity)
+    {
+        await SaveMapPropertiesAsync(_map!.Name, _map.Width, _map.Height, _map.GridSize, opacity);
+    }
+
+    private Task SaveMapAsync() =>
+        SaveMapPropertiesAsync(_editName ?? string.Empty, _editWidth, _editHeight, _map!.GridSize, _map.BackgroundOpacity);
+
+    private async Task SaveMapPropertiesAsync(string name, int width, int height, int grid, int opacity)
+    {
+        _error = _info = null;
+        var result = await Maps.UpdateAsync(_map!.Id, name, width, height, grid, opacity);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task CreateMapAsync()
+    {
+        _error = _info = null;
+        var result = await Maps.CreateAsync(_newName ?? string.Empty, _newWidth, _newHeight);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _newName = null;
+        await ReloadAsync();
+    }
+
+    private async Task DeleteMapAsync(Guid id)
+    {
+        _error = _info = null;
+        var result = await Maps.DeleteAsync(id);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task TogglePublishedAsync()
+    {
+        _error = _info = null;
+        var result = await Maps.SetPublishedAsync(_map!.Id, !_map.IsPublished);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task RelabelAsync(MapShapeDto shape, string? label)
+    {
+        var result = await Maps.UpdateShapeAsync(shape.Id, label, shape.Kind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ChangeKindAsync(MapShapeDto shape, string? kindValue)
+    {
+        if (!Enum.TryParse<MapShapeKind>(kindValue, out var kind) || kind == shape.Kind)
+        {
+            return;
+        }
+
+        var result = await Maps.UpdateShapeAsync(shape.Id, shape.Label, kind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task LinkAsync(MapShapeDto shape, string? spotId)
+    {
+        _error = _info = null;
+        Guid? id = Guid.TryParse(spotId, out var parsed) ? parsed : null;
+        var result = await Maps.LinkSpotAsync(shape.Id, id);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        await ReloadAsync();
+    }
+
+    private string RowPreview(MapShapeDto shape)
+    {
+        var expansion = MapRowPlan.Expand(shape.Rect, shape.Label, _rowCount, _rowGap, _rowDirection, _rowStep);
+        if (!expansion.Succeeded)
+        {
+            return L[expansion.ErrorKey!];
+        }
+
+        var labels = expansion.Shapes.Select(s => s.Label).Where(l => !string.IsNullOrEmpty(l)).ToList();
+        return labels.Count == 0
+            ? L["Map_RowNoLabels"]
+            : string.Format(L["Map_RowPreview"], expansion.Shapes.Count - 1, Sample(labels!));
+    }
+
+    private async Task AddRowAsync(MapShapeDto shape)
+    {
+        _error = _info = null;
+        var result = await Maps.AddRowAsync(
+            _map!.Id, new MapRowRequest(shape.Id, _rowCount, _rowGap, _rowDirection, _rowStep));
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _info = string.Format(L["Map_RowCreated"], result.Shapes.Count);
+        // Selecting the last of the new row leaves the tool aimed at continuing it, which is what
+        // tracing a plan actually looks like: draw one, repeat, move on to the next row.
+        _selected.Clear();
+        if (result.Shapes.Count > 0)
+        {
+            _selected.Add(result.Shapes[^1].Id);
+        }
+
+        await ReloadAsync();
+        await InvokeModuleAsync("select", _selected.ToArray());
+    }
+
+    private Task DeleteSelectedAsync() => DeleteShapesAsync(_selected.ToArray());
+
+    private async Task DeleteShapesAsync(Guid[] ids)
+    {
+        if (ids.Length == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Maps.DeleteShapesAsync(_map!.Id, ids);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        _selected.Clear();
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    private async Task AutoLinkAsync()
+    {
+        _error = _info = null;
+        _autoLink = await Maps.AutoLinkAsync(_map!.Id);
+        await ReloadAsync();
+    }
+
+    private async Task CreateSpotsAsync()
+    {
+        _error = _info = null;
+        var result = await Maps.CreateSpotsFromShapesAsync(_map!.Id, _selected.ToArray(), _bulkType);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _info = string.Format(L["Map_SpotsCreated"], result.CreatedCount, result.LinkedToExisting.Count, result.UnlabelledCount);
+        _spots = await Spots.ListAsync();
+        await ReloadAsync();
+    }
+
+    private async Task OnBackgroundSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = _info = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: LotMap.MaxBackgroundBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var result = await Maps.SetBackgroundAsync(_map!.Id, buffer.ToArray(), e.File.ContentType);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+                return;
+            }
+
+            _backgroundVersion++;
+            await ReloadAsync();
+        }
+        catch (IOException)
+        {
+            // Thrown by OpenReadStream when the file is over the cap — the size limit, not a disk error.
+            _error = "Map_Error_BackgroundTooLarge";
+        }
+    }
+
+    private async Task ClearBackgroundAsync()
+    {
+        _error = _info = null;
+        var result = await Maps.ClearBackgroundAsync(_map!.Id);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+
+        _backgroundVersion++;
+        await ReloadAsync();
+    }
+
+    private async Task ExportAsync()
+    {
+        _exported = await Maps.ExportAsync(_map!.Id);
+    }
+
+    private async Task ImportAsync()
+    {
+        _error = _info = null;
+        var result = await Maps.ImportAsync(_importName ?? string.Empty, _importJson ?? string.Empty);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _importJson = _importName = null;
+        await ReloadAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            await InvokeModuleAsync("detach");
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already torn down — the module went with it.
+            }
+        }
+
+        _selfRef?.Dispose();
+    }
+}

@@ -1599,4 +1599,97 @@
   <data name="Nav_Section_Access" xml:space="preserve"><value>Users and permissions</value></data>
   <data name="Nav_Section_Lot" xml:space="preserve"><value>Lot administration</value></data>
   <data name="Nav_Section_System" xml:space="preserve"><value>System</value></data>
+  <data name="Nav_AdminMap" xml:space="preserve"><value>Lot map</value></data>
+  <data name="Nav_Short_Map" xml:space="preserve"><value>Map</value></data>
+  <data name="Map_Title" xml:space="preserve"><value>Lot map</value></data>
+  <data name="Map_Intro" xml:space="preserve"><value>Draw the site plan: trace the stalls over a scan, name them and link them to parking spots. Rectangles left unlinked stay on the plan as context.</value></data>
+  <data name="Map_New" xml:space="preserve"><value>New map</value></data>
+  <data name="Map_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Map_NamePlaceholder" xml:space="preserve"><value>D3 site</value></data>
+  <data name="Map_Width" xml:space="preserve"><value>Width</value></data>
+  <data name="Map_Height" xml:space="preserve"><value>Height</value></data>
+  <data name="Map_Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Map_SizeHint" xml:space="preserve"><value>The size is the drawing's coordinate space, not pixels. Match the aspect ratio of your site plan — the on-screen size does not matter, the map always fills the panel width.</value></data>
+  <data name="Map_Import" xml:space="preserve"><value>Import a map</value></data>
+  <data name="Map_ImportJson" xml:space="preserve"><value>Exported JSON</value></data>
+  <data name="Map_ImportName" xml:space="preserve"><value>Name for the new map</value></data>
+  <data name="Map_ImportRun" xml:space="preserve"><value>Import</value></data>
+  <data name="Map_None" xml:space="preserve"><value>No maps yet.</value></data>
+  <data name="Map_Size" xml:space="preserve"><value>Size</value></data>
+  <data name="Map_Shapes" xml:space="preserve"><value>Shapes</value></data>
+  <data name="Map_Linked" xml:space="preserve"><value>linked</value></data>
+  <data name="Map_State" xml:space="preserve"><value>State</value></data>
+  <data name="Map_Published" xml:space="preserve"><value>Published</value></data>
+  <data name="Map_Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="Map_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Map_BackToList" xml:space="preserve"><value>Back to the map list</value></data>
+  <data name="Map_Tools" xml:space="preserve"><value>Tools</value></data>
+  <data name="Map_Tool_select" xml:space="preserve"><value>Select</value></data>
+  <data name="Map_Tool_draw" xml:space="preserve"><value>Draw</value></data>
+  <data name="Map_Tool_pan" xml:space="preserve"><value>Pan</value></data>
+  <data name="Map_DrawKind" xml:space="preserve"><value>Draw as</value></data>
+  <data name="Map_Grid" xml:space="preserve"><value>Grid</value></data>
+  <data name="Map_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="Map_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="Map_FitView" xml:space="preserve"><value>Whole map</value></data>
+  <data name="Map_Publish" xml:space="preserve"><value>Publish</value></data>
+  <data name="Map_Unpublish" xml:space="preserve"><value>Unpublish</value></data>
+  <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Map_CanvasLabel" xml:space="preserve"><value>Map drawing canvas</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Drag to draw or move, scroll to zoom, middle-drag to pan. Shift adds to the selection and snaps rotation to 15°. Delete removes the selection, arrow keys nudge it by one grid step.</value></data>
+  <data name="Map_Shape" xml:space="preserve"><value>Shape</value></data>
+  <data name="Map_Label" xml:space="preserve"><value>Label</value></data>
+  <data name="Map_Kind" xml:space="preserve"><value>Kind</value></data>
+  <data name="Map_Kind_Spot" xml:space="preserve"><value>Stall</value></data>
+  <data name="Map_Kind_Building" xml:space="preserve"><value>Building</value></data>
+  <data name="Map_Kind_Aisle" xml:space="preserve"><value>Lane</value></data>
+  <data name="Map_Kind_Label" xml:space="preserve"><value>Text</value></data>
+  <data name="Map_LinkedSpot" xml:space="preserve"><value>Linked spot</value></data>
+  <data name="Map_NoSpot" xml:space="preserve"><value>— not linked —</value></data>
+  <data name="Map_LabelMismatch" xml:space="preserve"><value>Label “{0}” does not match the linked spot's code “{1}”.</value></data>
+  <data name="Map_Geometry" xml:space="preserve"><value>x {0}, y {1} · {2} × {3} · {4}°</value></data>
+  <data name="Map_Row" xml:space="preserve"><value>Row</value></data>
+  <data name="Map_RowCount" xml:space="preserve"><value>Total</value></data>
+  <data name="Map_RowGap" xml:space="preserve"><value>Gap</value></data>
+  <data name="Map_RowStep" xml:space="preserve"><value>Number step</value></data>
+  <data name="Map_RowDirection" xml:space="preserve"><value>Direction</value></data>
+  <data name="Map_Dir_Right" xml:space="preserve"><value>Right</value></data>
+  <data name="Map_Dir_Left" xml:space="preserve"><value>Left</value></data>
+  <data name="Map_Dir_Down" xml:space="preserve"><value>Down</value></data>
+  <data name="Map_Dir_Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Map_RowPreview" xml:space="preserve"><value>Adds {0} stalls: {1}</value></data>
+  <data name="Map_RowNoLabels" xml:space="preserve"><value>The source shape has no numbered label — the new stalls will be created unnamed.</value></data>
+  <data name="Map_RowCreate" xml:space="preserve"><value>Create the row</value></data>
+  <data name="Map_RowCreated" xml:space="preserve"><value>Created {0} stalls.</value></data>
+  <data name="Map_SelectedCount" xml:space="preserve"><value>Shapes selected: {0}</value></data>
+  <data name="Map_BulkSpotType" xml:space="preserve"><value>Type of the created spots</value></data>
+  <data name="Map_CreateSpots" xml:space="preserve"><value>Create parking spots</value></data>
+  <data name="Map_CreateSpotsHint" xml:space="preserve"><value>Turns the selected stalls' labels into real parking spots and links each shape to its spot. A label that already names a spot is linked to it instead, so running this again is safe.</value></data>
+  <data name="Map_SpotsCreated" xml:space="preserve"><value>Created {0} spots, linked to existing: {1}, skipped for want of a label: {2}.</value></data>
+  <data name="Map_Properties" xml:space="preserve"><value>Map properties</value></data>
+  <data name="Map_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Map_Background" xml:space="preserve"><value>Underlay</value></data>
+  <data name="Map_Opacity" xml:space="preserve"><value>Opacity</value></data>
+  <data name="Map_BackgroundClear" xml:space="preserve"><value>Remove the underlay</value></data>
+  <data name="Map_BackgroundHint" xml:space="preserve"><value>Upload a scan of the site plan and trace the stalls over it. The underlay is a drawing aid — it is not drawn under the published map for drivers.</value></data>
+  <data name="Map_Linking" xml:space="preserve"><value>Linking to spots</value></data>
+  <data name="Map_AutoLink" xml:space="preserve"><value>Link by label</value></data>
+  <data name="Map_AutoLinkHint" xml:space="preserve"><value>Links every still-unlinked stall whose label matches a parking spot code.</value></data>
+  <data name="Map_AutoLink_Linked" xml:space="preserve"><value>linked</value></data>
+  <data name="Map_AutoLink_NoSpot" xml:space="preserve"><value>no spot with that code: {0} ({1})</value></data>
+  <data name="Map_AutoLink_NoShape" xml:space="preserve"><value>spots with no stall drawn: {0} ({1})</value></data>
+  <data name="Map_DeleteShapes" xml:space="preserve"><value>Delete the selected shapes</value></data>
+  <data name="Map_Error_NameRequired" xml:space="preserve"><value>Enter a map name.</value></data>
+  <data name="Map_Error_DuplicateName" xml:space="preserve"><value>A map with this name already exists.</value></data>
+  <data name="Map_Error_NotFound" xml:space="preserve"><value>The map was not found.</value></data>
+  <data name="Map_Error_ShapeGeometry" xml:space="preserve"><value>The shape's geometry is out of range.</value></data>
+  <data name="Map_Error_ShapeNotFound" xml:space="preserve"><value>The shape was not found.</value></data>
+  <data name="Map_Error_RowLength" xml:space="preserve"><value>A row must hold between 1 and 200 stalls.</value></data>
+  <data name="Map_Error_RowGap" xml:space="preserve"><value>The gap between stalls is not a valid number.</value></data>
+  <data name="Map_Error_BatchTooLarge" xml:space="preserve"><value>At most 1000 shapes can be moved at once.</value></data>
+  <data name="Map_Error_BackgroundEmpty" xml:space="preserve"><value>The uploaded file is empty.</value></data>
+  <data name="Map_Error_BackgroundTooLarge" xml:space="preserve"><value>The underlay is too large (12 MB at most).</value></data>
+  <data name="Map_Error_LinkNotASpotShape" xml:space="preserve"><value>Only a shape of kind Stall can be linked to a parking spot.</value></data>
+  <data name="Map_Error_SpotAlreadyDrawn" xml:space="preserve"><value>This parking spot is already drawn on the map by another shape.</value></data>
+  <data name="Map_Error_ImportUnreadable" xml:space="preserve"><value>The supplied JSON could not be read.</value></data>
 </root>

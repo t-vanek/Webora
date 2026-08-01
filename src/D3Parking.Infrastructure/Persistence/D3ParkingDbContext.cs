@@ -7,6 +7,7 @@ using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
+using D3Parking.Domain.Parking.Maps;
 using D3Parking.Domain.Settings;
 using D3Parking.Infrastructure.Identity;
 
@@ -74,6 +75,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     public DbSet<SpotDefectReport> SpotDefectReports => Set<SpotDefectReport>();
 
     public DbSet<SpotDefectPhoto> SpotDefectPhotos => Set<SpotDefectPhoto>();
+
+    public DbSet<LotMap> LotMaps => Set<LotMap>();
+
+    public DbSet<MapShape> MapShapes => Set<MapShape>();
 
     public DbSet<OversightCase> OversightCases => Set<OversightCase>();
 
@@ -360,6 +365,44 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // FirstOrDefault, so duplicate ownership would make those flows nondeterministic.
             // AssignOwnerAsync checks first; the filtered unique index is the backstop.
             spot.HasIndex(s => s.OwnerId).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
+        });
+
+        builder.Entity<LotMap>(map =>
+        {
+            map.ToTable("LotMaps");
+            map.HasKey(m => m.Id);
+            map.Property(m => m.Name).HasMaxLength(128).IsRequired();
+            map.Property(m => m.BackgroundContentType).HasMaxLength(64);
+            map.HasIndex(m => m.Name).IsUnique();
+            // At most one published map: the driver-facing screens ask for "the" map, and a second
+            // published row would make the answer depend on row order. The service unpublishes the
+            // others in the same transaction; this is the backstop.
+            map.HasIndex(m => m.IsPublished).IsUnique().HasFilter("[IsPublished] = 1");
+        });
+
+        builder.Entity<MapShape>(shape =>
+        {
+            shape.ToTable("MapShapes");
+            shape.HasKey(s => s.Id);
+            shape.Property(s => s.Kind).HasConversion<string>().HasMaxLength(16);
+            shape.Property(s => s.Label).HasMaxLength(MapShape.MaxLabelLength);
+            shape.HasIndex(s => s.LotMapId);
+            // One rectangle per spot, so "where is 434" has exactly one answer. Filtered because the
+            // unlinked shapes — most of a site plan, which draws other tenants' stalls as context —
+            // are all null and must not collide with each other.
+            shape.HasIndex(s => s.ParkingSpotId).IsUnique().HasFilter("[ParkingSpotId] IS NOT NULL");
+
+            shape.HasOne<LotMap>()
+                .WithMany()
+                .HasForeignKey(s => s.LotMapId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Retiring a spot must not silently delete the rectangle that drew it — the shape stays
+            // and simply goes back to being unlinked context, which is what the plan still shows.
+            shape.HasOne<ParkingSpot>()
+                .WithMany()
+                .HasForeignKey(s => s.ParkingSpotId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<SpotRelease>(release =>
