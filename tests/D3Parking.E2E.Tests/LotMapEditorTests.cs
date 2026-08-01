@@ -104,6 +104,81 @@ public class LotMapEditorTests : AdminTest
         await Expect(Page.Locator(".map-shape").First).ToHaveClassAsync(new Regex("map-shape--linked"));
     }
 
+    [Test]
+    public async Task Deleting_with_the_keyboard_and_undoing_it_brings_the_row_back()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.15f, 0.2f, 0.25f, 0.4f);
+
+        var shapes = Page.Locator(".map-shape");
+        await Expect(shapes).ToHaveCountAsync(1);
+
+        await SelectToolAsync("Výběr", "select");
+        await shapes.First.ClickAsync();
+        await FillAsync("fluent-text-field#shape-label", "500");
+        await Expect(Page.Locator(".map-canvas")).ToContainTextAsync("500");
+        await FillAsync("fluent-number-field#row-count", "4");
+        await Page.Locator("#map-row").ClickAsync();
+        await Expect(shapes).ToHaveCountAsync(4);
+
+        // Select the lot and delete it with the keyboard. Clicking a shape has to focus the canvas
+        // for this to reach the module at all — the pointer handler calls preventDefault, which
+        // suppresses the default focus, so it focuses by hand.
+        await shapes.First.ClickAsync();
+        await Page.Keyboard.PressAsync("Control+a");
+        await shapes.Nth(1).ClickAsync(new() { Modifiers = [KeyboardModifier.Shift] });
+        await Page.Keyboard.PressAsync("Delete");
+        await Expect(shapes).ToHaveCountAsync(2);
+
+        // Undo puts them back — geometry, labels and all.
+        await Page.Locator("#map-undo").ClickAsync();
+        await Expect(shapes).ToHaveCountAsync(4);
+        await Expect(Page.Locator(".map-canvas")).ToContainTextAsync("503");
+
+        // And it is in the database, not only on screen.
+        await Pages.GotoInteractiveAsync(Page, Page.Url);
+        await Expect(Page.Locator(".map-shape")).ToHaveCountAsync(4);
+    }
+
+    [Test]
+    public async Task A_shape_cannot_be_dragged_off_the_canvas_and_lost()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.7f, 0.7f, 0.8f, 0.85f);
+
+        var shape = Page.Locator(".map-shape").First;
+        await Expect(shape).ToHaveCountAsync(1);
+
+        // Drag hard past the bottom-right corner. The server clamps and the canvas is corrected to
+        // what was stored, so the rectangle is still on the map and still selectable.
+        await SelectToolAsync("Výběr", "select");
+        var box = await shape.BoundingBoxAsync();
+        var canvas = await Page.Locator(".map-canvas").BoundingBoxAsync();
+        await DragAsync(
+            box!.X + (box.Width / 2), box.Y + (box.Height / 2),
+            canvas!.X + canvas.Width + 300, canvas.Y + canvas.Height + 300);
+
+        // Waits rather than reads: the browser commits the dragged position locally and the server's
+        // clamped answer arrives a round trip later. The invariant is what is asserted — the shape
+        // lies wholly within the map's 1600×900 coordinate space — not one particular pixel.
+        await Expect(shape).ToHaveCountAsync(1);
+        await Page.WaitForFunctionAsync(
+            """
+            () => {
+                const g = document.querySelector('.map-shape');
+                if (!g) return false;
+                const n = (k) => parseFloat(g.dataset[k]);
+                return n('x') >= 0 && n('y') >= 0
+                    && n('x') + n('w') <= 1600.5 && n('y') + n('h') <= 900.5;
+            }
+            """);
+
+        Assert.That(await XOfAsync(shape), Is.LessThanOrEqualTo(1600),
+            "A shape dragged past the edge must stay on the map, or it can never be clicked again.");
+    }
+
     /// <summary>
     /// Switches tool and waits until the editor module has taken it. The button's own pressed state
     /// only says the server knows; data-tool is written by the module that handles the drag, so a

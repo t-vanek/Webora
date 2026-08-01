@@ -99,8 +99,10 @@ const shapeNodes = () => Array.from(state.svg.querySelectorAll('.map-shape'));
 
 const shapeNode = (id) => state.svg.querySelector(`.map-shape[data-id="${CSS.escape(id)}"]`);
 
+// Vrací null, když uzel nenese použitelnou geometrii. NaN by doputoval na server, ten odmítne
+// celou dávku a padlo by i tažení, které bylo jinak v pořádku — proto se takový tvar přeskočí.
 function readRect(node) {
-    return {
+    const rect = {
         id: node.dataset.id,
         x: parseFloat(node.dataset.x),
         y: parseFloat(node.dataset.y),
@@ -108,6 +110,8 @@ function readRect(node) {
         h: parseFloat(node.dataset.h),
         rot: parseFloat(node.dataset.rot) || 0,
     };
+
+    return [rect.x, rect.y, rect.w, rect.h, rect.rot].every(Number.isFinite) ? rect : null;
 }
 
 // Živý náhled: přepíše jen polygon a pozici popisku, data-atributy zůstanou původní až do
@@ -169,11 +173,11 @@ function drawOverlay() {
     }
 
     const node = shapeNode(ids[0]);
-    if (!node) {
+    const rect = node && readRect(node);
+    if (!rect) {
         return;
     }
 
-    const rect = readRect(node);
     const size = HANDLE_PX * unitsPerPixel();
     const cx = rect.x + rect.w / 2;
     const cy = rect.y + rect.h / 2;
@@ -256,7 +260,11 @@ function onPointerDown(event) {
         state.drag = { kind: 'pan', origin: { x: event.clientX, y: event.clientY }, view: { ...state.view } };
     } else if (handle && handle.dataset.role === 'rotate') {
         const node = shapeNode(selectedIds()[0]);
-        const rect = readRect(node);
+        const rect = node && readRect(node);
+        if (!rect) {
+            return;
+        }
+
         state.drag = {
             kind: 'rotate',
             node,
@@ -267,7 +275,12 @@ function onPointerDown(event) {
         state.drag.startAngle = angleTo(state.drag.centre, point) - rect.rot;
     } else if (handle) {
         const node = shapeNode(selectedIds()[0]);
-        state.drag = { kind: 'resize', node, start: readRect(node), handle: handle.dataset.handle, origin: point };
+        const start = node && readRect(node);
+        if (!start) {
+            return;
+        }
+
+        state.drag = { kind: 'resize', node, start, handle: handle.dataset.handle, origin: point };
     } else if (state.tool === 'draw') {
         state.drag = { kind: 'draw', origin: { x: snap(point.x), y: snap(point.y) } };
     } else if (shape) {
@@ -279,8 +292,14 @@ function onPointerDown(event) {
             return;
         }
 
-        const nodes = selectedIds().map(shapeNode).filter(Boolean);
-        state.drag = { kind: 'move', origin: point, nodes, starts: nodes.map(readRect) };
+        const movable = selectedIds().map(shapeNode).filter(Boolean)
+            .map((n) => ({ node: n, rect: readRect(n) })).filter((m) => m.rect);
+        state.drag = {
+            kind: 'move',
+            origin: point,
+            nodes: movable.map((m) => m.node),
+            starts: movable.map((m) => m.rect),
+        };
     } else {
         state.drag = { kind: 'marquee', origin: point, additive: event.shiftKey, base: event.shiftKey ? selectedIds() : [] };
         if (!event.shiftKey) {
@@ -288,8 +307,16 @@ function onPointerDown(event) {
         }
     }
 
-    state.svg.setPointerCapture(event.pointerId);
+    try {
+        state.svg.setPointerCapture(event.pointerId);
+    } catch {
+        // Zachycení ukazatele je jen pohodlí (tažení mimo plátno); bez něj gesto funguje dál.
+    }
+
     state.moved = false;
+    // preventDefault níže potlačí i výchozí zaostření, takže se plátno musí zaostřit ručně — jinak
+    // na něj klávesové zkratky (Delete, šipky, Ctrl+Z) nedosáhnou, dokud na něj někdo netabuje.
+    state.svg.focus({ preventScroll: true });
     event.preventDefault();
 }
 
@@ -304,7 +331,14 @@ function onPointerMove(event) {
     state.moved = true;
 
     if (drag.kind === 'pan') {
-        const scale = state.view.w / state.svg.clientWidth;
+        const width = state.svg.clientWidth;
+        if (!width) {
+            // Plátno je zrovna skryté (šířka 0) — přepočet by dal Infinity, viewBox by skončil
+            // jako NaN a kresba by zmizela.
+            return;
+        }
+
+        const scale = state.view.w / width;
         state.view.x = drag.view.x - (event.clientX - drag.origin.x) * scale;
         state.view.y = drag.view.y - (event.clientY - drag.origin.y) * scale;
         applyView();
@@ -337,7 +371,12 @@ function onPointerMove(event) {
         marquee(drag.origin, point);
         const box = normalize(drag.origin, point);
         const hit = shapeNodes().filter((node) => {
-            const b = bounds(readRect(node));
+            const rect = readRect(node);
+            if (!rect) {
+                return false;
+            }
+
+            const b = bounds(rect);
             return b.minX < box.x + box.w && b.maxX > box.x && b.minY < box.y + box.h && b.maxY > box.y;
         }).map((node) => node.dataset.id);
         const wanted = new Set([...drag.base, ...hit]);
@@ -457,8 +496,11 @@ const payload = (id, r) => ({
 });
 
 function push(updates) {
-    if (updates.length > 0) {
-        state.dotNet.invokeMethodAsync('OnShapesMoved', updates).catch(() => undefined);
+    // Poslední pojistka: jediné NaN v dávce znamená, že server odmítne celý posun, takže se sem
+    // nesmí dostat ani omylem.
+    const clean = updates.filter((u) => [u.x, u.y, u.width, u.height, u.rotation].every(Number.isFinite));
+    if (clean.length > 0) {
+        state.dotNet.invokeMethodAsync('OnShapesMoved', clean).catch(() => undefined);
     }
 }
 
@@ -494,6 +536,12 @@ function onKeyDown(event) {
         return;
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        state.dotNet.invokeMethodAsync('OnUndoRequested').catch(() => undefined);
+        event.preventDefault();
+        return;
+    }
+
     if (event.key === 'Escape') {
         setSelection([]);
         event.preventDefault();
@@ -516,7 +564,7 @@ function onKeyDown(event) {
         return;
     }
 
-    const nodes = selectedIds().map(shapeNode).filter(Boolean);
+    const nodes = selectedIds().map(shapeNode).filter(Boolean).filter((n) => readRect(n));
     if (nodes.length === 0) {
         return;
     }

@@ -128,6 +128,14 @@
             </div>
 
             <div class="map-toolbar__group">
+                @* Also Ctrl+Z on the canvas. The button is here because the shortcut only reaches the
+                   editor while the canvas has focus, and the moment anyone needs undo most is right
+                   after clicking something else. *@
+                <FluentButton Id="map-undo" Appearance="Appearance.Outline" Disabled="@(_undo.Count == 0)"
+                              OnClick="UndoAsync">↶ @L["Map_Undo"]</FluentButton>
+            </div>
+
+            <div class="map-toolbar__group">
                 <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(1.25)" aria-label="@L["Map_ZoomIn"]">＋</FluentButton>
                 <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(0.8)" aria-label="@L["Map_ZoomOut"]">－</FluentButton>
                 <FluentButton Appearance="Appearance.Outline" OnClick="ResetViewAsync">@L["Map_FitView"]</FluentButton>
@@ -264,7 +272,7 @@
 
                         <hr class="map-panel__rule" />
                         <FluentLabel Typo="Typography.Subject">@L["Map_Background"]</FluentLabel>
-                        <InputFile OnChange="OnBackgroundSelectedAsync" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="parking-input" />
+                        <InputFile OnChange="OnBackgroundSelectedAsync" accept="@ImageContentType.AcceptAttribute" class="parking-input" />
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
                             <FluentNumberField TValue="int" Value="@_map.BackgroundOpacity" ValueChanged="SetOpacityAsync" Immediate="true"
                                                Min="0" Max="100" Label="@L["Map_Opacity"]" Style="width:110px" />
@@ -406,6 +414,14 @@
                 return;
             }
 
+            if (_undoMapId != _map.Id)
+            {
+                // The history is a session over one drawing; carrying it across maps would let an
+                // undo delete shapes on a map that never created them.
+                _undo.Clear();
+                _undoMapId = _map.Id;
+            }
+
             _editName = _map.Name;
             _editWidth = _map.Width;
             _editHeight = _map.Height;
@@ -477,12 +493,21 @@
     }
 
     // --- callbacks from the editor module ---
+    //
+    // Every one of these can land after the editor has moved on: a gesture finishing while the admin
+    // navigates back to the list leaves the call in flight with no map behind it. They all check, so
+    // a late callback is a no-op rather than a NullReferenceException that takes the circuit down.
 
     [JSInvokable]
     public async Task OnShapeDrawn(double x, double y, double width, double height)
     {
+        if (_map is not { } map)
+        {
+            return;
+        }
+
         _error = _info = null;
-        var result = await Maps.AddShapeAsync(_map!.Id, _drawKind, new MapRect(x, y, width, height, 0), null);
+        var result = await Maps.AddShapeAsync(map.Id, _drawKind, new MapRect(x, y, width, height, 0), null);
         if (!result.Succeeded)
         {
             _error = result.Errors.FirstOrDefault();
@@ -496,6 +521,8 @@
             {
                 _selected.Add(shape.Id);
             }
+
+            Remember(UndoStep.ForCreated(result.Shapes.Select(sh => sh.Id).ToList()));
         }
 
         await ReloadAsync();
@@ -505,15 +532,35 @@
     [JSInvokable]
     public async Task OnShapesMoved(ShapeGeometryUpdate[] updates)
     {
-        var result = await Maps.MoveShapesAsync(_map!.Id, updates);
+        if (_map is not { } map)
+        {
+            return;
+        }
+
+        // Captured before the write: this is what undo puts back, and it is the only moment the old
+        // geometry still exists anywhere.
+        var previous = GeometryOf(updates.Select(u => u.ShapeId));
+
+        var result = await Maps.MoveShapesAsync(map.Id, updates);
         if (!result.Succeeded)
         {
             _error = result.Errors.FirstOrDefault();
+            // The browser is showing a position the server refused; only a re-read tells the truth.
+            await ReloadAsync();
+            StateHasChanged();
+            return;
         }
 
-        // Re-read rather than patching in place: the server sanitizes the geometry it stored, and the
-        // canvas must show what was saved, not what the browser proposed.
-        await ReloadAsync();
+        if (previous.Count > 0)
+        {
+            Remember(UndoStep.ForMoved(previous));
+        }
+
+        // Patched in place rather than re-read: a drag on a five-hundred-shape plan would otherwise
+        // re-query and re-render the whole drawing every time a rectangle is nudged. The values come
+        // from the service, so this still shows what was stored — clamping included — not what the
+        // browser proposed.
+        ApplyGeometry(result.Stored);
         StateHasChanged();
     }
 
@@ -534,6 +581,126 @@
     public async Task OnDeleteRequested(Guid[] ids)
     {
         await DeleteShapesAsync(ids);
+    }
+
+    [JSInvokable]
+    public async Task OnUndoRequested()
+    {
+        await UndoAsync();
+    }
+
+    // --- undo ---
+    //
+    // Bounded and in-memory: it is the tracing session's safety net, not a document history. It
+    // covers the three things that lose work — a drag, a shape or row appearing, and a deletion —
+    // because those are the ones that take a plan apart faster than they can be put back by hand.
+    // Editing a label or a link is one visible field on one shape and is left out on purpose.
+
+    private const int MaxUndoSteps = 50;
+
+    private readonly List<UndoStep> _undo = [];
+
+    /// <summary>Which map the history belongs to, so opening another one starts a fresh one.</summary>
+    private Guid _undoMapId;
+
+    private sealed record UndoStep(
+        IReadOnlyList<ShapeGeometryUpdate> Geometry,
+        IReadOnlyList<Guid> Created,
+        IReadOnlyList<MapShapeRestore> Deleted)
+    {
+        public static UndoStep ForMoved(IReadOnlyList<ShapeGeometryUpdate> previous) => new(previous, [], []);
+
+        public static UndoStep ForCreated(IReadOnlyList<Guid> ids) => new([], ids, []);
+
+        public static UndoStep ForDeleted(IReadOnlyList<MapShapeRestore> shapes) => new([], [], shapes);
+    }
+
+    private void Remember(UndoStep step)
+    {
+        _undo.Add(step);
+        if (_undo.Count > MaxUndoSteps)
+        {
+            _undo.RemoveAt(0);
+        }
+    }
+
+    private async Task UndoAsync()
+    {
+        if (_map is not { } map || _undo.Count == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var step = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+
+        if (step.Geometry.Count > 0)
+        {
+            var result = await Maps.MoveShapesAsync(map.Id, step.Geometry);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+
+        if (step.Created.Count > 0)
+        {
+            var result = await Maps.DeleteShapesAsync(map.Id, step.Created);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+
+        if (step.Deleted.Count > 0)
+        {
+            var result = await Maps.RestoreShapesAsync(map.Id, step.Deleted);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+
+        _selected.Clear();
+        await ReloadAsync();
+        await InvokeModuleAsync("select", Array.Empty<Guid>());
+        StateHasChanged();
+    }
+
+    /// <summary>The geometry the named shapes have right now — the "before" an undo step restores.</summary>
+    private List<ShapeGeometryUpdate> GeometryOf(IEnumerable<Guid> ids)
+    {
+        if (_map is not { } map)
+        {
+            return [];
+        }
+
+        var wanted = ids.ToHashSet();
+        return map.Shapes
+            .Where(s => wanted.Contains(s.Id))
+            .Select(s => new ShapeGeometryUpdate(s.Id, s.X, s.Y, s.Width, s.Height, s.Rotation))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Rewrites the geometry of the named shapes on the in-memory board. Cheaper than a re-read and
+    /// exact, because the values are the ones the service just stored.
+    /// </summary>
+    private void ApplyGeometry(IReadOnlyList<ShapeGeometryUpdate> stored)
+    {
+        if (_map is not { } map || stored.Count == 0)
+        {
+            return;
+        }
+
+        var byId = stored.ToDictionary(s => s.ShapeId);
+        var shapes = map.Shapes
+            .Select(s => byId.TryGetValue(s.Id, out var moved)
+                ? s with { X = moved.X, Y = moved.Y, Width = moved.Width, Height = moved.Height, Rotation = moved.Rotation }
+                : s)
+            .ToList();
+        _map = map with { Shapes = shapes };
     }
 
     // --- commands ---
@@ -594,6 +761,21 @@
     private async Task DeleteMapAsync(Guid id)
     {
         _error = _info = null;
+
+        // The only irreversible action in the editor: the shapes go with the map by cascade and undo
+        // does not reach across a deleted drawing. Everything else is a keystroke away from coming
+        // back, so this is the one place worth interrupting for.
+        var summary = _maps.FirstOrDefault(m => m.Id == id);
+        if (summary is { ShapeCount: > 0 })
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm",
+                string.Format(L["Map_DeleteConfirm"], summary.Name, summary.ShapeCount));
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
         var result = await Maps.DeleteAsync(id);
         if (!result.Succeeded)
         {
@@ -681,6 +863,7 @@
         }
 
         _info = string.Format(L["Map_RowCreated"], result.Shapes.Count);
+        Remember(UndoStep.ForCreated(result.Shapes.Select(sh => sh.Id).ToList()));
         // Selecting the last of the new row leaves the tool aimed at continuing it, which is what
         // tracing a plan actually looks like: draw one, repeat, move on to the next row.
         _selected.Clear();
@@ -697,16 +880,27 @@
 
     private async Task DeleteShapesAsync(Guid[] ids)
     {
-        if (ids.Length == 0)
+        if (_map is not { } map || ids.Length == 0)
         {
             return;
         }
 
         _error = _info = null;
-        var result = await Maps.DeleteShapesAsync(_map!.Id, ids);
+        // Snapshotted before the delete: after it, the only copy of those rectangles is this list.
+        var wanted = ids.ToHashSet();
+        var removed = map.Shapes
+            .Where(s => wanted.Contains(s.Id))
+            .Select(s => new MapShapeRestore(s.Kind, s.Rect, s.Label, s.ParkingSpotId))
+            .ToList();
+
+        var result = await Maps.DeleteShapesAsync(map.Id, ids);
         if (!result.Succeeded)
         {
             _error = result.Errors.FirstOrDefault();
+        }
+        else if (removed.Count > 0)
+        {
+            Remember(UndoStep.ForDeleted(removed));
         }
 
         _selected.Clear();
@@ -732,6 +926,11 @@
         }
 
         _info = string.Format(L["Map_SpotsCreated"], result.CreatedCount, result.LinkedToExisting.Count, result.UnlabelledCount);
+        if (result.TooLongLabels.Count > 0)
+        {
+            _info += " " + string.Format(L["Map_SpotsTooLong"], result.TooLongLabels.Count, Sample(result.TooLongLabels));
+        }
+
         _spots = await Spots.ListAsync();
         await ReloadAsync();
     }
@@ -744,7 +943,7 @@
             await using var stream = e.File.OpenReadStream(maxAllowedSize: LotMap.MaxBackgroundBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            var result = await Maps.SetBackgroundAsync(_map!.Id, buffer.ToArray(), e.File.ContentType);
+            var result = await Maps.SetBackgroundAsync(_map!.Id, buffer.ToArray());
             if (!result.Succeeded)
             {
                 _error = result.Errors.FirstOrDefault();

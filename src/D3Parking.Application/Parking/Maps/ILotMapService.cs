@@ -41,8 +41,12 @@ public interface ILotMapService
 
     Task<ParkingResult> DeleteAsync(Guid mapId, CancellationToken cancellationToken = default);
 
-    /// <summary>Stores the site-plan scan traced over in the editor.</summary>
-    Task<ParkingResult> SetBackgroundAsync(Guid mapId, byte[] content, string contentType, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Stores the site-plan scan traced over in the editor. The content type is not a parameter on
+    /// purpose — it is detected from the bytes (see <see cref="ImageContentType"/>), because what is
+    /// stored is what the endpoint serves back from this origin.
+    /// </summary>
+    Task<ParkingResult> SetBackgroundAsync(Guid mapId, byte[] content, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> ClearBackgroundAsync(Guid mapId, CancellationToken cancellationToken = default);
 
@@ -71,16 +75,28 @@ public interface ILotMapService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Commits the geometry of everything a drag touched, in one transaction. Ids not on the map are
-    /// ignored rather than failing the batch — a stale editor must not be able to move another map's
-    /// shapes, and a shape deleted in another tab should not sink the drag that is landing.
+    /// Commits the geometry of everything a drag touched, in one transaction, and hands back what was
+    /// actually stored — the rectangles may have been clamped back onto the map, and the canvas has to
+    /// show that rather than the browser's proposal. Ids not on the map are ignored rather than
+    /// failing the batch: a stale editor must not be able to move another map's shapes, and a shape
+    /// deleted in another tab should not sink the drag that is landing.
     /// </summary>
-    Task<ParkingResult> MoveShapesAsync(
+    Task<MapMoveResult> MoveShapesAsync(
         Guid mapId,
         IReadOnlyList<ShapeGeometryUpdate> updates,
         CancellationToken cancellationToken = default);
 
     Task<ParkingResult> DeleteShapesAsync(Guid mapId, IReadOnlyList<Guid> shapeIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts deleted shapes back — what undo is built on. The restored shapes get fresh ids (the old
+    /// rows are gone), and a spot link is re-established only where the spot is still free, so
+    /// undoing a delete can never steal a rectangle somebody drew in the meantime.
+    /// </summary>
+    Task<MapShapeResult> RestoreShapesAsync(
+        Guid mapId,
+        IReadOnlyList<MapShapeRestore> shapes,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Binds a shape to a spot, or clears the binding when spotId is null.</summary>
     Task<ParkingResult> LinkSpotAsync(Guid shapeId, Guid? spotId, CancellationToken cancellationToken = default);
@@ -109,6 +125,9 @@ public interface ILotMapService
     Task<ParkingResult> ImportAsync(string name, string json, CancellationToken cancellationToken = default);
 }
 
+/// <summary>One shape to put back, as it was before it was deleted.</summary>
+public sealed record MapShapeRestore(MapShapeKind Kind, MapRect Rect, string? Label, Guid? ParkingSpotId);
+
 /// <summary>A map's traced-over site plan, streamed to the editor.</summary>
 public sealed record MapBackgroundDto(byte[] Content, string ContentType);
 
@@ -121,4 +140,15 @@ public sealed record MapShapeResult(bool Succeeded, IReadOnlyList<MapShapeDto> S
     public static MapShapeResult Success(IReadOnlyList<MapShapeDto> shapes) => new(true, shapes, []);
 
     public static MapShapeResult Failure(params string[] errors) => new(false, [], errors);
+}
+
+/// <summary>
+/// Outcome of a geometry batch: the geometry as stored, so the canvas can be corrected in place
+/// without re-reading the whole drawing after every drag.
+/// </summary>
+public sealed record MapMoveResult(bool Succeeded, IReadOnlyList<ShapeGeometryUpdate> Stored, IReadOnlyList<string> Errors)
+{
+    public static MapMoveResult Success(IReadOnlyList<ShapeGeometryUpdate> stored) => new(true, stored, []);
+
+    public static MapMoveResult Failure(params string[] errors) => new(false, [], errors);
 }

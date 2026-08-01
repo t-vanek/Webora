@@ -20,6 +20,23 @@ public sealed class LotMapService(
     /// <summary>Upper bound on one geometry batch: the largest selection a drag can reasonably carry.</summary>
     private const int MaxBatchUpdates = 1_000;
 
+    /// <summary>Mirrors the ParkingSpots.Code column config in D3ParkingDbContext.</summary>
+    private const int MaxSpotCodeLength = 32;
+
+    /// <summary>
+    /// Upper bound on one import. The JSON comes from an administrator, but "paste a file and get
+    /// an unbounded number of rows" is a footgun whoever authored the file did not intend.
+    /// </summary>
+    private const int MaxImportShapes = 10_000;
+
+    /// <summary>
+    /// How many shapes one map may hold. The editor draws every one of them into a single SVG over
+    /// a Blazor circuit, so a drawing that grows past this stops being editable — and the only way
+    /// out of that would be deleting the map. Far above any real site plan (the one this was built
+    /// for is about five hundred), so it is a runaway guard, not a design limit.
+    /// </summary>
+    public const int MaxShapesPerMap = 5_000;
+
     private static readonly JsonSerializerOptions ExportJson = new() { WriteIndented = true };
 
     public async Task<IReadOnlyList<LotMapSummaryDto>> ListAsync(CancellationToken cancellationToken = default)
@@ -132,7 +149,17 @@ public sealed class LotMapService(
         }
 
         dbContext.LotMaps.Add(new LotMap(trimmed, width, height, timeProvider.GetUtcNow()));
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // A concurrent create took the name between the check and the save; the unique index is
+            // the last line of defence, and the caller wants the same message either way.
+            return ParkingResult.Failure("Map_Error_DuplicateName");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -163,12 +190,38 @@ public sealed class LotMapService(
             return ParkingResult.Failure("Map_Error_DuplicateName");
         }
 
+        var wasSmaller = width < map.Width || height < map.Height;
         map.Rename(trimmed);
         map.Resize(width, height);
         map.SetGridSize(gridSize);
         map.SetBackgroundOpacity(backgroundOpacity);
         map.Touch(timeProvider.GetUtcNow());
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Making the map smaller would otherwise leave whatever sat beyond the new edge off the
+        // canvas: unclickable, unreachable by zoom, and invisible. Sliding those shapes back in is
+        // the only outcome that keeps the drawing editable.
+        if (wasSmaller)
+        {
+            var shapes = await dbContext.MapShapes.Where(s => s.LotMapId == mapId).ToListAsync(cancellationToken);
+            foreach (var shape in shapes)
+            {
+                var clamped = shape.Rect.ClampedInto(map.Width, map.Height);
+                if (clamped != shape.Rect)
+                {
+                    shape.SetRect(clamped);
+                }
+            }
+        }
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            return ParkingResult.Failure("Map_Error_DuplicateName");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -225,7 +278,7 @@ public sealed class LotMapService(
         return ParkingResult.Success;
     }
 
-    public async Task<ParkingResult> SetBackgroundAsync(Guid mapId, byte[] content, string contentType, CancellationToken cancellationToken = default)
+    public async Task<ParkingResult> SetBackgroundAsync(Guid mapId, byte[] content, CancellationToken cancellationToken = default)
     {
         if (content.Length == 0)
         {
@@ -237,6 +290,14 @@ public sealed class LotMapService(
             return ParkingResult.Failure("Map_Error_BackgroundTooLarge");
         }
 
+        // The type comes from the bytes, never from the upload. What is stored here is what the
+        // endpoint later serves back from this application's own origin.
+        var detected = ImageContentType.Detect(content);
+        if (detected is null)
+        {
+            return ParkingResult.Failure("Map_Error_BackgroundNotAnImage");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
         if (map is null)
@@ -244,7 +305,7 @@ public sealed class LotMapService(
             return ParkingResult.Failure("Map_Error_NotFound");
         }
 
-        map.SetBackground(content, contentType);
+        map.SetBackground(content, detected);
         map.Touch(timeProvider.GetUtcNow());
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
@@ -298,7 +359,12 @@ public sealed class LotMapService(
             return MapShapeResult.Failure("Map_Error_NotFound");
         }
 
-        var shape = new MapShape(mapId, kind, sane, label);
+        if (await IsFullAsync(dbContext, mapId, 1, cancellationToken))
+        {
+            return MapShapeResult.Failure("Map_Error_MapFull");
+        }
+
+        var shape = new MapShape(mapId, kind, sane.ClampedInto(map.Width, map.Height).Sanitized(), label);
         dbContext.MapShapes.Add(shape);
         map.Touch(timeProvider.GetUtcNow());
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -329,13 +395,21 @@ public sealed class LotMapService(
         }
 
         // Index 0 is the source, which already exists — everything after it is what the row adds.
+        // Clamped as it goes: a row that runs off the edge stacks up against it rather than laying
+        // stalls down where nobody can ever click them again.
         var created = expansion.Shapes.Skip(1)
-            .Select(planned => new MapShape(mapId, source.Kind, planned.Rect, planned.Label))
+            .Select(planned => new MapShape(
+                mapId, source.Kind, planned.Rect.ClampedInto(map.Width, map.Height).Sanitized(), planned.Label))
             .ToList();
 
         if (created.Count == 0)
         {
             return MapShapeResult.Success([]);
+        }
+
+        if (await IsFullAsync(dbContext, mapId, created.Count, cancellationToken))
+        {
+            return MapShapeResult.Failure("Map_Error_MapFull");
         }
 
         dbContext.MapShapes.AddRange(created);
@@ -364,19 +438,19 @@ public sealed class LotMapService(
         return ParkingResult.Success;
     }
 
-    public async Task<ParkingResult> MoveShapesAsync(
+    public async Task<MapMoveResult> MoveShapesAsync(
         Guid mapId,
         IReadOnlyList<ShapeGeometryUpdate> updates,
         CancellationToken cancellationToken = default)
     {
         if (updates.Count == 0)
         {
-            return ParkingResult.Success;
+            return MapMoveResult.Success([]);
         }
 
         if (updates.Count > MaxBatchUpdates)
         {
-            return ParkingResult.Failure("Map_Error_BatchTooLarge");
+            return MapMoveResult.Failure("Map_Error_BatchTooLarge");
         }
 
         // Validated before anything is loaded: these numbers came from a pointer drag in a browser, and
@@ -387,26 +461,37 @@ public sealed class LotMapService(
             var rect = update.ToRect().Sanitized();
             if (!rect.IsValid())
             {
-                return ParkingResult.Failure("Map_Error_ShapeGeometry");
+                return MapMoveResult.Failure("Map_Error_ShapeGeometry");
             }
 
             wanted[update.ShapeId] = rect;
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return MapMoveResult.Failure("Map_Error_NotFound");
+        }
+
         var ids = wanted.Keys.ToList();
         var shapes = await dbContext.MapShapes
             .Where(s => s.LotMapId == mapId && ids.Contains(s.Id))
             .ToListAsync(cancellationToken);
 
+        var stored = new List<ShapeGeometryUpdate>(shapes.Count);
         foreach (var shape in shapes)
         {
-            shape.SetRect(wanted[shape.Id]);
+            shape.SetRect(wanted[shape.Id].ClampedInto(map.Width, map.Height).Sanitized());
+            stored.Add(new ShapeGeometryUpdate(shape.Id, shape.X, shape.Y, shape.Width, shape.Height, shape.Rotation));
         }
 
-        await TouchMapAsync(dbContext, mapId, cancellationToken);
+        map.Touch(timeProvider.GetUtcNow());
         await dbContext.SaveChangesAsync(cancellationToken);
-        return ParkingResult.Success;
+
+        // What was stored, not what was asked for: the geometry may have been clamped back onto the
+        // map, and the canvas has to show the truth rather than the browser's proposal.
+        return MapMoveResult.Success(stored);
     }
 
     public async Task<ParkingResult> DeleteShapesAsync(Guid mapId, IReadOnlyList<Guid> shapeIds, CancellationToken cancellationToken = default)
@@ -431,6 +516,82 @@ public sealed class LotMapService(
         await TouchMapAsync(dbContext, mapId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
+    }
+
+    public async Task<MapShapeResult> RestoreShapesAsync(
+        Guid mapId,
+        IReadOnlyList<MapShapeRestore> shapes,
+        CancellationToken cancellationToken = default)
+    {
+        if (shapes.Count == 0)
+        {
+            return MapShapeResult.Success([]);
+        }
+
+        if (shapes.Count > MaxBatchUpdates)
+        {
+            return MapShapeResult.Failure("Map_Error_BatchTooLarge");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return MapShapeResult.Failure("Map_Error_NotFound");
+        }
+
+        // Which spots are still undrawn, and which still exist at all. A restore must not resurrect a
+        // link to a spot that has since been retired or drawn by somebody else's rectangle — the
+        // shape comes back either way, just unlinked.
+        var wanted = shapes.Where(s => s.ParkingSpotId is not null).Select(s => s.ParkingSpotId!.Value).Distinct().ToList();
+        var free = new HashSet<Guid>();
+        if (wanted.Count > 0)
+        {
+            var live = await dbContext.ParkingSpots.Where(s => wanted.Contains(s.Id)).Select(s => s.Id).ToListAsync(cancellationToken);
+            var drawn = await dbContext.MapShapes
+                .Where(s => s.ParkingSpotId != null && wanted.Contains(s.ParkingSpotId!.Value))
+                .Select(s => s.ParkingSpotId!.Value)
+                .ToListAsync(cancellationToken);
+            free = live.Except(drawn).ToHashSet();
+        }
+
+        var restored = new List<MapShape>(shapes.Count);
+        foreach (var wantedShape in shapes)
+        {
+            var rect = wantedShape.Rect.Sanitized().ClampedInto(map.Width, map.Height).Sanitized();
+            if (!rect.IsValid())
+            {
+                continue;
+            }
+
+            var shape = new MapShape(mapId, wantedShape.Kind, rect, wantedShape.Label);
+            if (wantedShape.Kind == MapShapeKind.Spot
+                && wantedShape.ParkingSpotId is { } spotId
+                && free.Remove(spotId))
+            {
+                shape.LinkSpot(spotId);
+            }
+
+            restored.Add(shape);
+        }
+
+        if (restored.Count == 0)
+        {
+            return MapShapeResult.Success([]);
+        }
+
+        dbContext.MapShapes.AddRange(restored);
+        map.Touch(timeProvider.GetUtcNow());
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            return MapShapeResult.Failure("Map_Error_SpotAlreadyDrawn");
+        }
+
+        return MapShapeResult.Success(restored.Select(ToDto).ToList());
     }
 
     public async Task<ParkingResult> LinkSpotAsync(Guid shapeId, Guid? spotId, CancellationToken cancellationToken = default)
@@ -466,7 +627,16 @@ public sealed class LotMapService(
 
         shape.LinkSpot(spotId);
         await TouchMapAsync(dbContext, shape.LotMapId, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // Another editor drew the same spot between the check above and this save.
+            return ParkingResult.Failure("Map_Error_SpotAlreadyDrawn");
+        }
+
         return ParkingResult.Success;
     }
 
@@ -550,7 +720,7 @@ public sealed class LotMapService(
     {
         if (shapeIds.Count == 0)
         {
-            return new MapSpotCreationResult(true, 0, [], 0, []);
+            return new MapSpotCreationResult(true, 0, [], 0, [], []);
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -580,6 +750,7 @@ public sealed class LotMapService(
         var created = 0;
         var unlabelled = 0;
         var linkedToExisting = new List<string>();
+        var tooLong = new List<string>();
 
         foreach (var shape in shapes)
         {
@@ -592,6 +763,14 @@ public sealed class LotMapService(
             if (string.IsNullOrEmpty(label))
             {
                 unlabelled++;
+                continue;
+            }
+
+            // A shape label may be longer than a spot code column. Reported rather than truncated:
+            // silently renaming somebody's stall to a prefix of itself is worse than refusing it.
+            if (label.Length > MaxSpotCodeLength)
+            {
+                tooLong.Add(label);
                 continue;
             }
 
@@ -617,13 +796,23 @@ public sealed class LotMapService(
         }
 
         await TouchMapAsync(dbContext, mapId, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
+            // Somebody created a spot with one of these codes, or drew one of these spots, while
+            // this ran. Nothing committed; re-running picks up their work and links to it.
+            return MapSpotCreationResult.Failure("Map_Error_SpotsRaced");
+        }
 
         return new MapSpotCreationResult(
             true,
             created,
             linkedToExisting.OrderBy(c => c, SpotCodeComparer.Instance).ToList(),
             unlabelled,
+            tooLong.OrderBy(c => c, SpotCodeComparer.Instance).ToList(),
             []);
     }
 
@@ -677,13 +866,21 @@ public sealed class LotMapService(
             return ParkingResult.Failure("Map_Error_DuplicateName");
         }
 
+        if ((payload.Shapes?.Count ?? 0) > MaxImportShapes)
+        {
+            return ParkingResult.Failure("Map_Error_ImportTooLarge");
+        }
+
         var map = new LotMap(mapName, payload.Width, payload.Height, timeProvider.GetUtcNow());
         map.SetGridSize(payload.GridSize);
         dbContext.LotMaps.Add(map);
 
         foreach (var shape in payload.Shapes ?? [])
         {
-            var rect = new MapRect(shape.X, shape.Y, shape.Width, shape.Height, shape.Rotation).Sanitized();
+            var rect = new MapRect(shape.X, shape.Y, shape.Width, shape.Height, shape.Rotation)
+                .Sanitized()
+                .ClampedInto(map.Width, map.Height)
+                .Sanitized();
             if (!rect.IsValid())
             {
                 // One unusable rectangle is not a reason to refuse the other four hundred.
@@ -699,6 +896,10 @@ public sealed class LotMapService(
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }
+
+    /// <summary>Whether adding <paramref name="adding"/> more shapes would push the map past its cap.</summary>
+    private static async Task<bool> IsFullAsync(D3ParkingDbContext dbContext, Guid mapId, int adding, CancellationToken cancellationToken) =>
+        await dbContext.MapShapes.CountAsync(s => s.LotMapId == mapId, cancellationToken) + adding > MaxShapesPerMap;
 
     /// <summary>
     /// Stamps the map as edited without loading it. Every shape write goes through here, so "last

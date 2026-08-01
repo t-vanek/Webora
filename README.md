@@ -506,7 +506,9 @@ z nakreslených stání je doopravdy rezervovatelné, rozhoduje napojení na mí
 Nenapojené stání zůstává na plánu jako kontext.
 
 - **Podklad:** sken oficiálního plánu se nahraje pod kresbu a obtáhne se podle něj; průhlednost je
-  nastavitelná. Je to pomůcka při kreslení, ne součást výstupu.
+  nastavitelná. Je to pomůcka při kreslení, ne součást výstupu. Přijímá se **PNG, JPEG a WebP** —
+  formát se pozná z obsahu souboru, ne z toho, co o sobě tvrdí. SVG záměrně ne: je to dokument
+  s možností nést skript a servírovat ho zpátky ze stejné adresy by byla bezpečnostní díra.
 - **Nástroje:** výběr (tažení, změna velikosti za osm úchytů, otáčení za rameno), kreslení a posun
   plátna. Mřížka přichytává, Shift drží při otáčení násobky 15°, Delete maže výběr a šipky ho
   posouvají po mřížce. Kolečko přibližuje k ukazateli.
@@ -518,6 +520,11 @@ Nenapojené stání zůstává na plánu jako kontext.
   kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
   nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
   vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
+- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady i smazání výběru se dají vzít zpět, padesát
+  kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
+  nesváží s místem, které mezitím nakreslil někdo jiný. Historie patří jedné mapě a jednomu sezení.
+- **Tvar neuteče z mapy:** obdélník tažený za okraj se vrátí zpátky na plochu, stejně jako tvary,
+  které by zůstaly venku po zmenšení mapy. Jinak by nešly kliknout ani najet a byly by ztracené.
 - **Publikace:** publikovaná je vždy nejvýš jedna mapa — obrazovky pro řidiče se ptají na „tu" mapu
   a dvě odpovědi by znamenaly, že záleží na pořadí řádků. Rozpracovaná mapa se ven nedostane.
 - **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se

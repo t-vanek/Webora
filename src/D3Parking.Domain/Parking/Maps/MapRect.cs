@@ -78,6 +78,35 @@ public readonly record struct MapRect(double X, double Y, double Width, double H
     public MapRect MovedBy(double dx, double dy) => this with { X = X + dx, Y = Y + dy };
 
     /// <summary>
+    /// The same rectangle slid back onto a map of the given size, measured by its bounding box so a
+    /// rotated shape stays wholly visible. Position only — a shape is never resized to fit, and one
+    /// larger than the map pins to the top-left corner and overflows rather than being squashed.
+    /// </summary>
+    /// <remarks>
+    /// This is what stops work from being lost. Without it a shape dragged past the edge, or left
+    /// outside after the map is made smaller, is off the canvas: it cannot be clicked, the zoom is
+    /// bounded so it cannot be scrolled to, and nothing on screen says it is still there.
+    /// </remarks>
+    public MapRect ClampedInto(double width, double height)
+    {
+        var (minX, minY, maxX, maxY) = Bounds();
+
+        var dx = maxX > width ? width - maxX : 0;
+        if (minX + dx < 0)
+        {
+            dx = -minX;
+        }
+
+        var dy = maxY > height ? height - maxY : 0;
+        if (minY + dy < 0)
+        {
+            dy = -minY;
+        }
+
+        return dx == 0 && dy == 0 ? this : MovedBy(dx, dy);
+    }
+
+    /// <summary>
     /// The same rectangle with a non-negative width and height. A drag that went up and to the left
     /// produces negative extents, and every consumer downstream — corners, bounds, the renderer —
     /// would otherwise have to cope with an inside-out box.

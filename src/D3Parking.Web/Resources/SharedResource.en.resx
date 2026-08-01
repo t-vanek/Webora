@@ -1692,4 +1692,11 @@
   <data name="Map_Error_LinkNotASpotShape" xml:space="preserve"><value>Only a shape of kind Stall can be linked to a parking spot.</value></data>
   <data name="Map_Error_SpotAlreadyDrawn" xml:space="preserve"><value>This parking spot is already drawn on the map by another shape.</value></data>
   <data name="Map_Error_ImportUnreadable" xml:space="preserve"><value>The supplied JSON could not be read.</value></data>
+  <data name="Map_Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Map_DeleteConfirm" xml:space="preserve"><value>Delete the map “{0}” and the {1} shapes drawn on it? This cannot be undone.</value></data>
+  <data name="Map_SpotsTooLong" xml:space="preserve"><value>Labels too long to be a spot code: {0} ({1}).</value></data>
+  <data name="Map_Error_BackgroundNotAnImage" xml:space="preserve"><value>The uploaded file is not a PNG, JPEG or WebP image.</value></data>
+  <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>The supplied JSON holds too many shapes (10,000 at most).</value></data>
+  <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Somebody created a spot with one of these codes, or drew it, while this ran. Try again — their work is picked up.</value></data>
+  <data name="Map_Error_MapFull" xml:space="preserve"><value>The map is full — the editor cannot carry more than 5,000 shapes. Split the plan across several maps.</value></data>
 </root>

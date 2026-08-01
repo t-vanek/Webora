@@ -269,6 +269,87 @@ public class MapGeometryTests
         });
     }
 
+    // --- clamping into the map ---
+
+    [Test]
+    public void A_shape_dragged_past_the_edge_is_slid_back_onto_the_map()
+    {
+        var clamped = new MapRect(1580, 890, 40, 30, 0).ClampedInto(1600, 900);
+
+        Assert.That(clamped, Is.EqualTo(new MapRect(1560, 870, 40, 30, 0)),
+            "Off the canvas is unreachable: it cannot be clicked and the zoom is bounded, so it is lost work.");
+    }
+
+    [Test]
+    public void A_shape_dragged_off_the_top_left_is_pulled_back_too()
+    {
+        Assert.That(new MapRect(-30, -20, 40, 30, 0).ClampedInto(1600, 900), Is.EqualTo(new MapRect(0, 0, 40, 30, 0)));
+    }
+
+    [Test]
+    public void A_shape_already_inside_the_map_is_left_exactly_as_it_was()
+    {
+        var rect = new MapRect(100, 100, 40, 30, 17);
+
+        Assert.That(rect.ClampedInto(1600, 900), Is.EqualTo(rect));
+    }
+
+    [Test]
+    public void Clamping_measures_the_rotated_bounding_box_so_a_turned_shape_stays_whole()
+    {
+        // A 20×10 box at 45° spans ~21.2 each way, so its corner pokes out well before its own x does.
+        var clamped = new MapRect(0, 0, 20, 10, 45).ClampedInto(1600, 900);
+        var (minX, minY, _, _) = clamped.Bounds();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(minX, Is.EqualTo(0).Within(Tolerance));
+            Assert.That(minY, Is.EqualTo(0).Within(Tolerance));
+        });
+    }
+
+    [Test]
+    public void A_shape_larger_than_the_map_pins_to_the_corner_rather_than_being_squashed()
+    {
+        var clamped = new MapRect(-50, -50, 400, 300, 0).ClampedInto(200, 150);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((clamped.X, clamped.Y), Is.EqualTo((0d, 0d)));
+            Assert.That((clamped.Width, clamped.Height), Is.EqualTo((400d, 300d)),
+                "Clamping moves a shape; it never resizes one behind the author's back.");
+        });
+    }
+
+    // --- what an uploaded underlay is allowed to be ---
+
+    [Test]
+    public void The_raster_formats_are_recognised_by_their_own_bytes()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ImageContentType.Detect([0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0]),
+                Is.EqualTo(ImageContentType.Png));
+            Assert.That(ImageContentType.Detect([0xFF, 0xD8, 0xFF, 0xE0, 0, 0]), Is.EqualTo(ImageContentType.Jpeg));
+            Assert.That(ImageContentType.Detect("RIFF\0\0\0\0WEBPVP8 "u8), Is.EqualTo(ImageContentType.Webp));
+        });
+    }
+
+    [Test]
+    public void An_upload_that_is_not_one_of_those_formats_is_refused()
+    {
+        Assert.Multiple(() =>
+        {
+            // The one that matters: HTML stored as an "image" and served back from this origin is
+            // stored cross-site scripting, whatever the upload claimed its content type was.
+            Assert.That(ImageContentType.Detect("<html><script>alert(1)</script>"u8), Is.Null);
+            // SVG is an image and would trace beautifully — and carries script, so it stays out.
+            Assert.That(ImageContentType.Detect("<svg xmlns=\"http://www.w3.org/2000/svg\">"u8), Is.Null);
+            Assert.That(ImageContentType.Detect([]), Is.Null);
+            Assert.That(ImageContentType.Detect([0x89, (byte)'P']), Is.Null);
+        });
+    }
+
     /// <summary>Pins the thread culture for one test, so the invariant-formatting assertion means something.</summary>
     private sealed class CultureScope : IDisposable
     {

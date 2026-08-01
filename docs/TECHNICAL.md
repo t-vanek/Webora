@@ -279,6 +279,24 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   (`Sanitized()`/`IsValid()`) — čísla přicházejí z tažení myší v prohlížeči, takže NaN se nesmí
   dostat do databáze; dávka se ověřuje celá předem, aby tažení nepřistálo z poloviny.
 
+  **Podklad mapy se určuje z bajtů, ne z hlavičky.** Deklarovaný content type přichází z uploadu,
+  tedy od útočníka, a co se uloží, to endpoint servíruje zpátky ze stejné origin — uložené HTML
+  vydávané za obrázek by bylo stored XSS. `ImageContentType.Detect` proto čte magic bytes a povoluje
+  jen PNG/JPEG/WebP; uloží se detekovaný typ a odpověď nese `X-Content-Type-Options: nosniff`.
+  SVG je vynechané schválně, byť by jako podklad bylo nejlepší: je to dokument nesoucí skript.
+
+  **Geometrie se ořezává do souřadnic mapy** (`MapRect.ClampedInto`, měřeno přes obálku, takže
+  natočený tvar zůstane celý uvnitř) při kreslení, posunu, tvorbě řady, importu i při zmenšení mapy.
+  Bez toho skončí tvar mimo plátno: nejde kliknout, zoom je omezený, takže na něj nejde ani najet —
+  je to tichá ztráta práce. Tvar se přitom nikdy nezmenšuje, jen posouvá; větší než mapa se přisadí
+  do rohu. `MoveShapesAsync` proto vrací **uloženou** geometrii a editor si jí opraví plátno na
+  místě — místo přenačtení celé kresby po každém tažení.
+
+  Historie **Zpět** je v komponentě, ne v databázi: bounded seznam inverzních kroků (posun, vznik,
+  smazání) vázaný na jednu mapu. Vrácení smazaných tvarů zakládá nové řádky (staré jsou pryč)
+  a napojení na místo obnovuje jen tam, kde je místo pořád volné — undo nesmí ukrást obdélník,
+  který mezitím nakreslil někdo jiný.
+
   Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
   **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
   pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`

@@ -99,7 +99,9 @@ public sealed record MapSpotCreationResult(
     IReadOnlyList<string> LinkedToExisting,
     /// <summary>Shapes skipped because they carry no label to name a spot after.</summary>
     int UnlabelledCount,
+    /// <summary>Labels refused because they are longer than a spot code may be — reported, never truncated.</summary>
+    IReadOnlyList<string> TooLongLabels,
     IReadOnlyList<string> Errors)
 {
-    public static MapSpotCreationResult Failure(params string[] errors) => new(false, 0, [], 0, errors);
+    public static MapSpotCreationResult Failure(params string[] errors) => new(false, 0, [], 0, [], errors);
 }

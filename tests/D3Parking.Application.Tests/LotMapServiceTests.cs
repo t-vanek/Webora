@@ -381,6 +381,169 @@ public class LotMapServiceTests
         Assert.That(second.Errors, Does.Contain("Map_Error_DuplicateName"));
     }
 
+    // --- robustness: nothing may end up unreachable, unreadable or unrecoverable ---
+
+    [Test]
+    public async Task A_move_past_the_edge_is_clamped_back_and_the_stored_geometry_comes_home()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var shape = await AddShapeAsync(service, mapId, new MapRect(0, 0, 40, 30, 0), "1");
+
+        var result = await service.MoveShapesAsync(mapId, [new ShapeGeometryUpdate(shape, 5_000, 5_000, 40, 30, 0)]);
+
+        var stored = result.Stored.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That((stored.X, stored.Y), Is.EqualTo((1560d, 870d)),
+                "A shape dropped off the canvas cannot be clicked and the zoom cannot reach it.");
+        });
+    }
+
+    [Test]
+    public async Task Making_the_map_smaller_slides_the_shapes_beyond_the_new_edge_back_in()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        await AddShapeAsync(service, mapId, new MapRect(1500, 800, 40, 30, 0), "1");
+
+        await service.UpdateAsync(mapId, "Areál", 800, 600, 5, 50);
+
+        var shape = (await service.GetAsync(mapId))!.Shapes.Single();
+        Assert.That((shape.X, shape.Y), Is.EqualTo((760d, 570d)),
+            "Shrinking the map must not orphan whatever sat beyond the new edge.");
+    }
+
+    [Test]
+    public async Task A_row_that_runs_off_the_edge_stacks_against_it_instead_of_laying_stalls_nowhere()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var source = await AddShapeAsync(service, mapId, new MapRect(1400, 100, 100, 50, 0), "1");
+
+        var result = await service.AddRowAsync(mapId, new MapRowRequest(source, 6, 0, RowDirection.Right));
+
+        Assert.That(result.Shapes.Select(sh => sh.X), Is.All.LessThanOrEqualTo(1500),
+            "Every stall stays on the map, even where the row asked for more room than there is.");
+    }
+
+    [Test]
+    public async Task An_underlay_is_taken_from_its_own_bytes_and_anything_else_is_refused()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        var html = await service.SetBackgroundAsync(mapId, "<html><script>alert(1)</script>"u8.ToArray());
+        var png = await service.SetBackgroundAsync(mapId, [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2]);
+
+        var stored = await service.GetBackgroundAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(html.Errors, Does.Contain("Map_Error_BackgroundNotAnImage"),
+                "Whatever is stored here is served back from this origin; a document would be stored XSS.");
+            Assert.That(png.Succeeded, Is.True);
+            Assert.That(stored!.ContentType, Is.EqualTo(ImageContentType.Png));
+        });
+    }
+
+    [Test]
+    public async Task A_label_too_long_to_be_a_spot_code_is_reported_rather_than_truncated()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var tooLong = new string('X', 40);
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), tooLong);
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "428");
+
+        var result = await service.CreateSpotsFromShapesAsync(mapId, [a, b], ParkingSpotType.Standard);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CreatedCount, Is.EqualTo(1), "The usable one is still created.");
+            Assert.That(result.TooLongLabels, Is.EqualTo(new[] { tooLong }),
+                "Silently renaming somebody's stall to a prefix of itself is worse than refusing it.");
+        });
+    }
+
+    [Test]
+    public async Task Restoring_deleted_shapes_brings_back_their_geometry_labels_and_links()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var shape = await AddShapeAsync(service, mapId, new MapRect(10, 20, 40, 30, 45), "428");
+        var spotId = await CreateSpotAsync("428");
+        await service.LinkSpotAsync(shape, spotId);
+
+        await service.DeleteShapesAsync(mapId, [shape]);
+        var restored = await service.RestoreShapesAsync(mapId,
+            [new MapShapeRestore(MapShapeKind.Spot, new MapRect(10, 20, 40, 30, 45), "428", spotId)]);
+
+        var back = (await service.GetAsync(mapId))!.Shapes.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored.Succeeded, Is.True);
+            Assert.That(back.Label, Is.EqualTo("428"));
+            Assert.That((back.X, back.Y, back.Rotation), Is.EqualTo((10d, 20d, 45d)));
+            Assert.That(back.ParkingSpotId, Is.EqualTo(spotId));
+        });
+    }
+
+    [Test]
+    public async Task Restoring_never_steals_a_spot_that_was_drawn_in_the_meantime()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var spotId = await CreateSpotAsync("428");
+        var original = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "428");
+        await service.LinkSpotAsync(original, spotId);
+        await service.DeleteShapesAsync(mapId, [original]);
+
+        // Somebody redraws 428 before the undo lands.
+        var replacement = await AddShapeAsync(service, mapId, new MapRect(60, 0, 20, 10, 0), "428");
+        await service.LinkSpotAsync(replacement, spotId);
+
+        var restored = await service.RestoreShapesAsync(mapId,
+            [new MapShapeRestore(MapShapeKind.Spot, new MapRect(0, 0, 20, 10, 0), "428", spotId)]);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored.Succeeded, Is.True, "The rectangle comes back either way.");
+            Assert.That(map!.Shapes.Single(sh => sh.Id == replacement).ParkingSpotId, Is.EqualTo(spotId));
+            Assert.That(restored.Shapes.Single().ParkingSpotId, Is.Null, "It just comes back unlinked.");
+        });
+    }
+
+    [Test]
+    public async Task Restoring_a_shape_whose_spot_is_gone_brings_the_rectangle_back_unlinked()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        var restored = await service.RestoreShapesAsync(mapId,
+            [new MapShapeRestore(MapShapeKind.Spot, new MapRect(0, 0, 20, 10, 0), "428", Guid.NewGuid())]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored.Succeeded, Is.True);
+            Assert.That(restored.Shapes.Single().ParkingSpotId, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Import_refuses_a_payload_with_more_shapes_than_any_plan_has()
+    {
+        var service = CreateService();
+        var shapes = string.Join(",", Enumerable.Repeat(
+            """{"Kind":"Spot","Label":"1","X":0,"Y":0,"Width":10,"Height":10,"Rotation":0}""", 10_001));
+        var json = $$"""{"Version":1,"Name":"X","Width":1600,"Height":900,"GridSize":5,"Shapes":[{{shapes}}]}""";
+
+        var result = await service.ImportAsync("Kopie", json);
+
+        Assert.That(result.Errors, Does.Contain("Map_Error_ImportTooLarge"));
+    }
+
     private LotMapService CreateService() => new(new TestDbContextFactory(_options), new FixedTimeProvider(Now));
 
     private static async Task<Guid> CreateMapAsync(LotMapService service, string name)
