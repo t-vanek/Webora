@@ -1711,4 +1711,27 @@
   <data name="Map_RenumberNothing" xml:space="preserve"><value>The starting label does not end in a number, so there is nothing to count from.</value></data>
   <data name="Map_Error_RenumberStart" xml:space="preserve"><value>Enter the label to count from.</value></data>
   <data name="Map_Error_BackgroundSizeUnknown" xml:space="preserve"><value>The underlay's dimensions could not be read.</value></data>
+  <data name="Map_FindHint" xml:space="preserve"><value>Find a label</value></data>
+  <data name="Map_FindNothing" xml:space="preserve"><value>There is no “{0}” on this map.</value></data>
+  <data name="Map_Align" xml:space="preserve"><value>Align</value></data>
+  <data name="Map_Align_Left" xml:space="preserve"><value>Align left</value></data>
+  <data name="Map_Align_Left_Short" xml:space="preserve"><value>⇤</value></data>
+  <data name="Map_Align_CentreX" xml:space="preserve"><value>Align centre horizontally</value></data>
+  <data name="Map_Align_CentreX_Short" xml:space="preserve"><value>↔</value></data>
+  <data name="Map_Align_Right" xml:space="preserve"><value>Align right</value></data>
+  <data name="Map_Align_Right_Short" xml:space="preserve"><value>⇥</value></data>
+  <data name="Map_Align_DistributeX" xml:space="preserve"><value>Distribute evenly across</value></data>
+  <data name="Map_Align_DistributeX_Short" xml:space="preserve"><value>⇹</value></data>
+  <data name="Map_Align_Top" xml:space="preserve"><value>Align top</value></data>
+  <data name="Map_Align_Top_Short" xml:space="preserve"><value>⤒</value></data>
+  <data name="Map_Align_MiddleY" xml:space="preserve"><value>Align middle vertically</value></data>
+  <data name="Map_Align_MiddleY_Short" xml:space="preserve"><value>↕</value></data>
+  <data name="Map_Align_Bottom" xml:space="preserve"><value>Align bottom</value></data>
+  <data name="Map_Align_Bottom_Short" xml:space="preserve"><value>⤓</value></data>
+  <data name="Map_Align_DistributeY" xml:space="preserve"><value>Distribute evenly down</value></data>
+  <data name="Map_Align_DistributeY_Short" xml:space="preserve"><value>⤢</value></data>
+  <data name="Map_BulkKind" xml:space="preserve"><value>Change kind to</value></data>
+  <data name="Map_BulkKindApply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Map_BulkKindDone" xml:space="preserve"><value>Shapes changed: {0}.</value></data>
+  <data name="Map_BulkKindDoneUnlinked" xml:space="preserve"><value>Shapes changed: {0}. Spot links dropped: {1} — only a stall can stand for a parking spot.</value></data>
 </root>

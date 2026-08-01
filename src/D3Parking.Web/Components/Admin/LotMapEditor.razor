@@ -138,6 +138,14 @@
             </div>
 
             <div class="map-toolbar__group">
+                @* On a plan of five hundred shapes "where is 434?" has no answer but scanning by eye.
+                   Selects every match and moves the view onto them. *@
+                <FluentSearch Id="map-find" @bind-Value="_find" @bind-Value:after="FindAsync"
+                              Immediate="true" ImmediateDelay="300"
+                              Placeholder="@L["Map_FindHint"]" Style="width:150px" />
+            </div>
+
+            <div class="map-toolbar__group">
                 <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(1.25)" aria-label="@L["Map_ZoomIn"]">＋</FluentButton>
                 <FluentButton Appearance="Appearance.Outline" OnClick="() => ZoomAsync(0.8)" aria-label="@L["Map_ZoomOut"]">－</FluentButton>
                 <FluentButton Appearance="Appearance.Outline" OnClick="ResetViewAsync">@L["Map_FitView"]</FluentButton>
@@ -260,6 +268,29 @@
                         <FluentButton Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_CreateSpotsHint"]</FluentLabel>
 
+                        @* Lining up. Alignment is only ever new positions, so it goes down the same
+                           path a drag takes and inherits its clamping and its undo step. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Align"]</FluentLabel>
+                        <div class="map-align">
+                            @foreach (var (mode, key) in Alignments)
+                            {
+                                <FluentButton Appearance="Appearance.Outline" OnClick="() => AlignAsync(mode)"
+                                              Title="@L[key]" aria-label="@L[key]">@L[$"{key}_Short"]</FluentButton>
+                            }
+                        </div>
+
+                        <hr class="map-panel__rule" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentSelect TOption="MapShapeKind"
+                                          Items="@ShapeKinds"
+                                          OptionValue="@(k => k.ToString())"
+                                          OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                                          @bind-SelectedOption="_bulkKind"
+                                          Label="@L["Map_BulkKind"]" Style="width:150px" />
+                            <FluentButton Id="map-bulk-kind" Appearance="Appearance.Outline" OnClick="SetKindAsync">@L["Map_BulkKindApply"]</FluentButton>
+                        </FluentStack>
+
                         @* Renumbering. A row traced perfectly and started one out is otherwise
                            thirteen labels retyped by hand. Order is how the selection reads —
                            bands from the top, each band from the left — which the reverse box
@@ -320,7 +351,15 @@
                                 <span><span class="count-chip">@report.Linked</span> @L["Map_AutoLink_Linked"]</span>
                                 @if (report.UnmatchedLabels.Count > 0)
                                 {
-                                    <span class="batch-preview__dup">@string.Format(L["Map_AutoLink_NoSpot"], report.UnmatchedLabels.Count, Sample(report.UnmatchedLabels))</span>
+                                    @* Clickable: the report used to name what was left over and give
+                                       no way to go and look at it. *@
+                                    <span class="batch-preview__dup">
+                                        @string.Format(L["Map_AutoLink_NoSpot"], report.UnmatchedLabels.Count, string.Empty)
+                                        @foreach (var label in report.UnmatchedLabels.Take(12))
+                                        {
+                                            <button type="button" class="map-find-link" @onclick="() => FindLabelAsync(label)">@label</button>
+                                        }
+                                    </span>
                                 }
                                 @if (report.UnmatchedCodes.Count > 0)
                                 {
@@ -370,6 +409,22 @@
     private int _rowStep = 1;
     private RowDirection _rowDirection = RowDirection.Right;
     private ParkingSpotType _bulkType = ParkingSpotType.Standard;
+
+    private string? _find;
+    private MapShapeKind _bulkKind = MapShapeKind.Spot;
+
+    /// <summary>The alignment buttons, in the order they read on the panel.</summary>
+    private static readonly (MapAlignment Mode, string Key)[] Alignments =
+    [
+        (MapAlignment.Left, "Map_Align_Left"),
+        (MapAlignment.CentreX, "Map_Align_CentreX"),
+        (MapAlignment.Right, "Map_Align_Right"),
+        (MapAlignment.DistributeX, "Map_Align_DistributeX"),
+        (MapAlignment.Top, "Map_Align_Top"),
+        (MapAlignment.MiddleY, "Map_Align_MiddleY"),
+        (MapAlignment.Bottom, "Map_Align_Bottom"),
+        (MapAlignment.DistributeY, "Map_Align_DistributeY"),
+    ];
 
     private string _renumberFrom = "1";
     private int _renumberStep = 1;
@@ -931,6 +986,98 @@
 
         await ReloadAsync();
         await InvokeModuleAsync("select", _selected.ToArray());
+    }
+
+    private async Task FindAsync()
+    {
+        if (_map is not { } map)
+        {
+            return;
+        }
+
+        var term = _find?.Trim();
+        if (string.IsNullOrEmpty(term))
+        {
+            return;
+        }
+
+        // Exact match first, then anything containing the term: typing "43" while looking for 43
+        // should land on 43 rather than on the first of 430–439.
+        var hits = map.Shapes
+            .Where(sh => string.Equals(sh.Label, term, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (hits.Count == 0)
+        {
+            hits = map.Shapes
+                .Where(sh => sh.Label is not null && sh.Label.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (hits.Count == 0)
+        {
+            _info = string.Format(L["Map_FindNothing"], term);
+            return;
+        }
+
+        _info = null;
+        _selected.Clear();
+        foreach (var shape in hits)
+        {
+            _selected.Add(shape.Id);
+        }
+
+        var ids = _selected.ToArray();
+        await InvokeModuleAsync("select", ids);
+        await InvokeModuleAsync("reveal", ids);
+        StateHasChanged();
+    }
+
+    private async Task FindLabelAsync(string label)
+    {
+        _find = label;
+        await FindAsync();
+    }
+
+    private async Task AlignAsync(MapAlignment mode)
+    {
+        if (_map is not { } map || _selected.Count < 2)
+        {
+            return;
+        }
+
+        var selected = map.Shapes.Where(sh => _selected.Contains(sh.Id)).ToList();
+        var moved = MapAlign.Apply(selected, sh => sh.Rect, mode);
+        if (moved.Count == 0)
+        {
+            return;
+        }
+
+        // Down the same path a drag takes: MoveShapesAsync clamps, stores and hands back the result,
+        // and OnShapesMoved records the undo step. Alignment needs none of that a second time.
+        await OnShapesMoved(moved
+            .Select(m => new ShapeGeometryUpdate(m.Shape.Id, m.Rect.X, m.Rect.Y, m.Rect.Width, m.Rect.Height, m.Rect.Rotation))
+            .ToArray());
+    }
+
+    private async Task SetKindAsync()
+    {
+        if (_map is not { } map || _selected.Count == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Maps.SetKindAsync(map.Id, _selected.ToArray(), _bulkKind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _info = result.Unlinked > 0
+            ? string.Format(L["Map_BulkKindDoneUnlinked"], result.Changed, result.Unlinked)
+            : string.Format(L["Map_BulkKindDone"], result.Changed);
+        await ReloadAsync();
     }
 
     private Task DuplicateSelectedAsync() => DuplicateAsync(_selected.ToArray());

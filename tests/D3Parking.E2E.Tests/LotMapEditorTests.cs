@@ -272,7 +272,71 @@ public class LotMapEditorTests : AdminTest
         await Expect(Page.Locator(".map-canvas")).ToHaveAttributeAsync("viewBox", "0 0 220 100");
     }
 
+    [Test]
+    public async Task Finding_a_label_selects_it_and_brings_the_view_onto_it()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.05f, 0.2f, 0.12f, 0.4f);
+
+        var shapes = Page.Locator(".map-shape");
+        await SelectToolAsync("Výběr", "select");
+        await shapes.First.ClickAsync();
+        await FillAsync("fluent-text-field#shape-label", "601");
+        await Expect(Page.Locator(".map-canvas")).ToContainTextAsync("601");
+        await FillAsync("fluent-number-field#row-count", "6");
+        await Page.Locator("#map-row").ClickAsync();
+        await Expect(shapes).ToHaveCountAsync(6);
+
+        var wholeMap = await Page.Locator(".map-canvas").GetAttributeAsync("viewBox");
+        await FillAsync("fluent-search#map-find", "605");
+
+        // Exactly the one asked for, and the view moved onto it — the point being that on a real
+        // plan the shape would be one of five hundred and nowhere near the middle.
+        await Expect(Page.Locator(".map-shape.is-selected")).ToHaveCountAsync(1);
+        await Expect(Page.Locator(".map-canvas")).Not.ToHaveAttributeAsync("viewBox", wholeMap!);
+    }
+
+    [Test]
+    public async Task Aligning_a_ragged_pair_lines_them_up_and_undo_puts_them_back()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.1f, 0.2f, 0.2f, 0.35f);
+        await DrawOnCanvasAsync(0.3f, 0.5f, 0.4f, 0.65f);
+
+        var shapes = Page.Locator(".map-shape");
+        await Expect(shapes).ToHaveCountAsync(2);
+
+        await SelectToolAsync("Výběr", "select");
+        await shapes.First.ClickAsync();
+        await Page.Keyboard.PressAsync("Control+a");
+        await Expect(Page.Locator(".map-shape.is-selected")).ToHaveCountAsync(2);
+
+        // DOM order is by shape kind, not by position, so neither node is reliably the upper one —
+        // the assertion is about the pair, not about which is which.
+        var top = Math.Min(await YOfAsync(shapes.First), await YOfAsync(shapes.Nth(1)));
+        var lower = Math.Max(await YOfAsync(shapes.First), await YOfAsync(shapes.Nth(1)));
+        Assert.That(lower, Is.GreaterThan(top), "The two were drawn ragged on purpose.");
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Zarovnat nahoru" }).ClickAsync();
+
+        // Both sit on the topmost edge. Aligning goes down the same path a drag does, so the values
+        // being here at all also proves they were stored rather than only previewed.
+        var expected = top.ToString(CultureInfo.InvariantCulture);
+        await Expect(shapes.First).ToHaveAttributeAsync("data-y", expected);
+        await Expect(shapes.Nth(1)).ToHaveAttributeAsync("data-y", expected);
+
+        // …and it picks up the undo step that path records, so the ragged pair comes back.
+        await Page.Locator("#map-undo").ClickAsync();
+        await Expect(Page.Locator($".map-shape[data-y='{lower.ToString(CultureInfo.InvariantCulture)}']")).ToHaveCountAsync(1);
+    }
+
+    private static async Task<double> YOfAsync(ILocator shape) =>
+        double.Parse(await shape.GetAttributeAsync("data-y") ?? "0", CultureInfo.InvariantCulture);
+
     /// <summary>
+    /// A valid 8-bit greyscale PNG of the given size.    /// <summary>
     /// A valid 8-bit greyscale PNG of the given size. Hand-built because the upload is accepted on
     /// its magic bytes and the browser has to genuinely decode it to report a natural size — a stub
     /// would pass neither check.

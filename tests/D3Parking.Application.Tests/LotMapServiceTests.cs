@@ -703,6 +703,57 @@ public class LotMapServiceTests
         Assert.That(map!.Shapes.OrderBy(sh => sh.X).Select(sh => sh.Label), Is.EqualTo(new[] { "A", "B" }));
     }
 
+    [Test]
+    public async Task Changing_a_selections_kind_reports_the_spot_links_it_costs()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var linked = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "428");
+        var plain = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "429");
+        await service.LinkSpotAsync(linked, await CreateSpotAsync("428"));
+
+        var result = await service.SetKindAsync(mapId, [linked, plain], MapShapeKind.Aisle);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Changed, Is.EqualTo(2));
+            Assert.That(result.Unlinked, Is.EqualTo(1),
+                "Turning stalls into lanes unlinks their spots, and quietly is what that must not be.");
+            Assert.That(map!.Shapes.All(sh => sh.Kind == MapShapeKind.Aisle), Is.True);
+            Assert.That(map.Shapes.All(sh => sh.ParkingSpotId is null), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Changing_kind_to_stall_costs_no_links_because_there_were_none_to_lose()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var shape = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "X", MapShapeKind.Building);
+
+        var result = await service.SetKindAsync(mapId, [shape], MapShapeKind.Spot);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Changed, Is.EqualTo(1));
+            Assert.That(result.Unlinked, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task Shapes_already_of_the_wanted_kind_are_not_counted_as_changed()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "1");
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "2", MapShapeKind.Aisle);
+
+        var result = await service.SetKindAsync(mapId, [a, b], MapShapeKind.Aisle);
+
+        Assert.That(result.Changed, Is.EqualTo(1));
+    }
+
     private LotMapService CreateService() => new(new TestDbContextFactory(_options), new FixedTimeProvider(Now));
 
     private static async Task<Guid> CreateMapAsync(LotMapService service, string name)

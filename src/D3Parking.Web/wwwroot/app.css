@@ -4119,3 +4119,26 @@ fluent-menu-item:has(> .account-menu-link) {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* Mřížka zarovnávacích tlačítek: dvě řady po čtyřech (vodorovná osa, pak svislá). */
+.map-align {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+/* Popisek z reportu napojení, který na tvar najede. Vypadá jako odkaz, protože jím je. */
+.map-find-link {
+    border: 0;
+    background: none;
+    padding: 0 4px;
+    font: inherit;
+    color: var(--accent-fill-rest, #0f6cbd);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+    .map-find-link:focus-visible {
+        outline: 2px solid var(--accent-fill-rest, #0f6cbd);
+        outline-offset: 1px;
+    }

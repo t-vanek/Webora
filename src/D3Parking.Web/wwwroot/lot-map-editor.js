@@ -693,6 +693,44 @@ export function zoom(factor) {
     applyView();
 }
 
+// Najede na zadané tvary: viewBox se nastaví na jejich obálku s rezervou. Bez toho nemá otázka
+// „kde je 434?" na mapě o pěti stech tvarech jinou odpověď než očima.
+export function reveal(ids) {
+    if (!state || !ids || ids.length === 0) {
+        return;
+    }
+
+    const wanted = new Set(ids);
+    const boxes = shapeNodes()
+        .filter((node) => wanted.has(node.dataset.id))
+        .map(readRect)
+        .filter(Boolean)
+        .map(bounds);
+
+    if (boxes.length === 0) {
+        return;
+    }
+
+    const minX = Math.min(...boxes.map((b) => b.minX));
+    const minY = Math.min(...boxes.map((b) => b.minY));
+    const maxX = Math.max(...boxes.map((b) => b.maxX));
+    const maxY = Math.max(...boxes.map((b) => b.maxY));
+
+    // Rezerva kolem, ať je vidět i okolí — samotný tvar bez kontextu neřekne, kde na plánu je.
+    // Spodní mez drží poměr stran plátna, aby zoom nešel do absurdna u jednoho malého stání.
+    const padding = Math.max((maxX - minX) * 0.6, (maxY - minY) * 0.6, state.natural.w / 40);
+    const width = Math.min(state.natural.w, Math.max(maxX - minX + padding, state.natural.w / 20));
+    const height = state.natural.h * (width / state.natural.w);
+
+    state.view = {
+        x: (minX + maxX) / 2 - width / 2,
+        y: (minY + maxY) / 2 - height / 2,
+        w: width,
+        h: height,
+    };
+    applyView();
+}
+
 export function resetView() {
     if (state) {
         state.view = { x: 0, y: 0, w: state.natural.w, h: state.natural.h };

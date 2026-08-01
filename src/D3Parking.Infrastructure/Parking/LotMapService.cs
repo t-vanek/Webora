@@ -127,15 +127,24 @@ public sealed class LotMapService(
             Layered(shapes));
     }
 
-    /// <summary>Painter's order: context first, stalls over it, captions last.</summary>
+    /// <summary>
+    /// Painter's order: context first, stalls over it, captions last — and within each layer, the
+    /// order the shapes read. The layering is what makes the drawing legible; the reading order makes
+    /// the result deterministic (a query with no ORDER BY does not promise one) and puts the DOM in
+    /// roughly the order somebody looking at the map would go through it.
+    /// </summary>
     private static List<MapShapeDto> Layered(IEnumerable<MapShapeDto> shapes) =>
-        shapes.OrderBy(s => s.Kind switch
-        {
-            MapShapeKind.Building => 0,
-            MapShapeKind.Aisle => 1,
-            MapShapeKind.Spot => 2,
-            _ => 3,
-        }).ToList();
+        shapes
+            .GroupBy(s => s.Kind switch
+            {
+                MapShapeKind.Building => 0,
+                MapShapeKind.Aisle => 1,
+                MapShapeKind.Spot => 2,
+                _ => 3,
+            })
+            .OrderBy(g => g.Key)
+            .SelectMany(g => MapShapeOrder.Reading(g.ToList(), s => s.Rect))
+            .ToList();
 
     public async Task<ParkingResult> CreateAsync(string name, int width, int height, CancellationToken cancellationToken = default)
     {
@@ -511,7 +520,11 @@ public sealed class LotMapService(
         // Offset by the selection's own grid step so the copies land clear of the originals and can be
         // grabbed straight away, rather than exactly on top where the click would hit the wrong one.
         var offset = map.GridSize > 0 ? map.GridSize * 2 : DefaultDuplicateOffset;
-        var copies = originals
+
+        // Reading order, so duplicating a row hands the copies back in the order the row reads. A
+        // query without an ORDER BY returns whatever the server finds convenient, which makes the
+        // result of this call quietly depend on the plan it happened to pick.
+        var copies = MapShapeOrder.Reading(originals, sh => sh.Rect)
             .Select(sh => new MapShape(
                 mapId,
                 sh.Kind,
@@ -610,6 +623,52 @@ public sealed class LotMapService(
         await TouchMapAsync(dbContext, mapId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
+    }
+
+    public async Task<MapKindChangeResult> SetKindAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default)
+    {
+        if (shapeIds.Count == 0)
+        {
+            return new MapKindChangeResult(true, 0, 0, []);
+        }
+
+        if (shapeIds.Count > MaxBatchUpdates)
+        {
+            return MapKindChangeResult.Failure("Map_Error_BatchTooLarge");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var ids = shapeIds.ToList();
+        var shapes = await dbContext.MapShapes
+            .Where(sh => sh.LotMapId == mapId && ids.Contains(sh.Id))
+            .ToListAsync(cancellationToken);
+
+        var changed = 0;
+        var unlinked = 0;
+        foreach (var shape in shapes.Where(sh => sh.Kind != kind))
+        {
+            // ChangeKind clears the spot link for anything that is not a stall; counting it here is
+            // what lets the editor say so rather than leaving it to be noticed later.
+            if (shape.IsLinked && kind != MapShapeKind.Spot)
+            {
+                unlinked++;
+            }
+
+            shape.ChangeKind(kind);
+            changed++;
+        }
+
+        if (changed > 0)
+        {
+            await TouchMapAsync(dbContext, mapId, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return new MapKindChangeResult(true, changed, unlinked, []);
     }
 
     public async Task<ParkingResult> UpdateShapeAsync(

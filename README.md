@@ -530,6 +530,14 @@ Nenapojené stání zůstává na plánu jako kontext.
 - **Přečíslovat výběr:** popisky se přiřadí v pořadí čtení — pásy shora, v pásu zleva — od zadaného
   čísla a s volitelným krokem; zaškrtávátko obrátí pořadí pro sloupce číslované opačně. Řada
   obtažená správně, ale začínající o jedna vedle, se tím spraví jedním krokem místo třinácti přepisů.
+- **Najít popisek:** políčko v liště vybere všechna stání s daným popiskem a najede na ně. Bez toho
+  nemá otázka „kde je 434?" na plánu o pěti stech tvarech jinou odpověď než hledání očima. Popisky
+  ve výpisu z auto-linku jsou klikací a vedou na totéž.
+- **Zarovnat a rozmístit:** vybraná stání se srovnají na společnou hranu nebo osu, případně
+  rozmístí rovnoměrně mezi krajní dva. Tvary se jen posouvají, nikdy nemění velikost, a měří se
+  podle skutečně zabrané plochy — takže i natočené stání se srovná tak, jak vypadá.
+- **Hromadná změna druhu:** deset obdélníků najednou na Komunikaci. Kolik to stálo napojení na
+  místa, se vypíše — napojit lze jen stání, takže změna druhu je ruší.
 - **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady, duplikát, smazání výběru i hromadné
   přečíslování se dají vzít zpět, padesát kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
   nesváží s místem, které mezitím nakreslil někdo jiný. Historie patří jedné mapě a jednomu sezení.

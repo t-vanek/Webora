@@ -430,6 +430,96 @@ public class MapGeometryTests
         Assert.That(ordered[0].X, Is.EqualTo(0));
     }
 
+    // --- alignment ---
+
+    private static IReadOnlyList<MapRect> Aligned(MapAlignment mode, params MapRect[] shapes)
+    {
+        var moved = MapAlign.Apply(shapes, r => r, mode).ToDictionary(m => m.Shape, m => m.Rect);
+        return shapes.Select(s => moved.TryGetValue(s, out var r) ? r : s).ToList();
+    }
+
+    [Test]
+    public void Aligning_left_brings_every_shape_to_the_leftmost_edge()
+    {
+        var result = Aligned(MapAlignment.Left, new MapRect(30, 0, 20, 10, 0), new MapRect(5, 40, 20, 10, 0));
+
+        Assert.That(result.Select(r => r.X), Is.All.EqualTo(5));
+    }
+
+    [Test]
+    public void Aligning_right_lines_up_the_far_edges_not_the_near_ones()
+    {
+        var result = Aligned(MapAlignment.Right, new MapRect(0, 0, 20, 10, 0), new MapRect(0, 40, 50, 10, 0));
+
+        Assert.That(result.Select(r => r.X + r.Width), Is.All.EqualTo(50),
+            "Shapes of different widths line up by the edge asked for, not by their corners.");
+    }
+
+    [Test]
+    public void Aligning_to_the_middle_uses_the_selections_extents_not_the_average_shape()
+    {
+        // Two small shapes bunched left and one wide one right: averaging the shapes' own centres
+        // would drag the line towards the pair.
+        var result = Aligned(MapAlignment.MiddleY,
+            new MapRect(0, 0, 10, 10, 0), new MapRect(20, 0, 10, 10, 0), new MapRect(40, 0, 10, 90, 0));
+
+        Assert.That(result.Select(r => r.Y + (r.Height / 2)), Is.All.EqualTo(45));
+    }
+
+    [Test]
+    public void Distributing_spaces_the_middle_shapes_and_leaves_the_outer_two_alone()
+    {
+        var result = Aligned(MapAlignment.DistributeX,
+            new MapRect(0, 0, 10, 10, 0), new MapRect(20, 0, 10, 10, 0), new MapRect(90, 0, 10, 10, 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].X, Is.EqualTo(0), "The outermost two anchor the spacing.");
+            Assert.That(result[2].X, Is.EqualTo(90));
+            Assert.That(result[1].X, Is.EqualTo(45), "The middle one lands halfway between their centres.");
+        });
+    }
+
+    [Test]
+    public void Distributing_fewer_than_three_shapes_changes_nothing()
+    {
+        var moved = MapAlign.Apply(
+            new[] { new MapRect(0, 0, 10, 10, 0), new MapRect(50, 0, 10, 10, 0) }, r => r, MapAlignment.DistributeX);
+
+        Assert.That(moved, Is.Empty, "Two shapes are evenly spaced by definition.");
+    }
+
+    [Test]
+    public void Aligning_one_shape_or_none_changes_nothing()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(MapAlign.Apply(new[] { new MapRect(3, 3, 10, 10, 0) }, r => r, MapAlignment.Left), Is.Empty);
+            Assert.That(MapAlign.Apply(Array.Empty<MapRect>(), r => r, MapAlignment.Top), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Alignment_measures_a_rotated_shape_by_what_it_actually_occupies()
+    {
+        // A 20×10 stall turned 45° reaches ~5.6 further left than its own x says, so aligning it with
+        // an upright neighbour has to account for that or the two will not look aligned at all.
+        var turned = new MapRect(40, 0, 20, 10, 45);
+        var result = Aligned(MapAlignment.Left, new MapRect(0, 40, 20, 10, 0), turned);
+
+        var (minX, _, _, _) = result[1].Bounds();
+        Assert.That(minX, Is.EqualTo(0).Within(0.01));
+    }
+
+    [Test]
+    public void Alignment_moves_shapes_and_never_resizes_them()
+    {
+        var result = Aligned(MapAlignment.Right, new MapRect(0, 0, 20, 10, 0), new MapRect(0, 40, 50, 30, 0));
+
+        Assert.That(result.Select(r => (r.Width, r.Height)), Is.EqualTo(new[] { (20d, 10d), (50d, 30d) }),
+            "A row that has been aligned is still the row that was drawn.");
+    }
+
     /// <summary>Pins the thread culture for one test, so the invariant-formatting assertion means something.</summary>
     private sealed class CultureScope : IDisposable
     {

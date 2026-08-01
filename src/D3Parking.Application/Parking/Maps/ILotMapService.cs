@@ -116,6 +116,17 @@ public interface ILotMapService
         IReadOnlyList<MapShapeLabel> labels,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Changes what a whole selection represents. Reports how many links it broke: only a stall shape
+    /// may stand for a spot, so turning ten of them into lanes quietly unlinks ten spots, and quietly
+    /// is exactly what that must not be.
+    /// </summary>
+    Task<MapKindChangeResult> SetKindAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Renames a shape and/or changes what it represents.</summary>
     Task<ParkingResult> UpdateShapeAsync(
         Guid shapeId,
@@ -183,6 +194,12 @@ public sealed record MapRenumberResult(bool Succeeded, IReadOnlyList<string> Lab
     public static MapRenumberResult Success(IReadOnlyList<string> labels) => new(true, labels, []);
 
     public static MapRenumberResult Failure(params string[] errors) => new(false, [], errors);
+}
+
+/// <summary>Outcome of a bulk kind change: how many shapes changed, and how many spot links it cost.</summary>
+public sealed record MapKindChangeResult(bool Succeeded, int Changed, int Unlinked, IReadOnlyList<string> Errors)
+{
+    public static MapKindChangeResult Failure(params string[] errors) => new(false, 0, 0, errors);
 }
 
 /// <summary>One shape's label, as it is to be written.</summary>

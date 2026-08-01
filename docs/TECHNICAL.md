@@ -297,6 +297,17 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   a napojení na místo obnovuje jen tam, kde je místo pořád volné — undo nesmí ukrást obdélník,
   který mezitím nakreslil někdo jiný.
 
+  **Zarovnání nemá vlastní cestu do databáze.** `MapAlign` je čistá funkce, která vrací jen nové
+  pozice, a editor je posílá `MoveShapesAsync` — toutéž cestou jako tažení. Ořezání do mapy i krok
+  do historie Zpět tím dostane zadarmo a nemůže se s nimi rozejít. Pořadí pro přečíslování řeší
+  `MapShapeOrder.Reading`: pásy shora, v pásu zleva, s tolerancí půl typické výšky tvaru, takže
+  jedna funkce zvládne řadu, sloupec i blok, aniž by se musela ptát, co bylo nakresleno.
+
+  Dotazy nad tvary **musí mít určené pořadí**. Bez `ORDER BY` vrací SQL Server, co se mu zrovna
+  hodí, a duplikace pak vracela kopie v pořadí závislém na zvoleném plánu — v izolaci test prošel,
+  v celé sadě padal. `Layered` i `DuplicateShapesAsync` proto řadí přes `MapShapeOrder`; vedlejším
+  přínosem je, že pořadí v DOMu zhruba odpovídá tomu, jak mapu čte oko.
+
   Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
   **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
   pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`
