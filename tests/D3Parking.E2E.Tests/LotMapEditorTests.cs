@@ -127,11 +127,10 @@ public class LotMapEditorTests : AdminTest
         // suppresses the default focus, so it focuses by hand.
         await shapes.First.ClickAsync();
         await Page.Keyboard.PressAsync("Control+a");
-        await shapes.Nth(1).ClickAsync(new() { Modifiers = [KeyboardModifier.Shift] });
         await Page.Keyboard.PressAsync("Delete");
-        await Expect(shapes).ToHaveCountAsync(2);
+        await Expect(shapes).ToHaveCountAsync(0);
 
-        // Undo puts them back — geometry, labels and all.
+        // Undo puts the whole row back — geometry, labels and all.
         await Page.Locator("#map-undo").ClickAsync();
         await Expect(shapes).ToHaveCountAsync(4);
         await Expect(Page.Locator(".map-canvas")).ToContainTextAsync("503");
@@ -179,7 +178,170 @@ public class LotMapEditorTests : AdminTest
             "A shape dragged past the edge must stay on the map, or it can never be clicked again.");
     }
 
+    [Test]
+    public async Task Clicking_in_draw_mode_stamps_a_rectangle_of_the_last_size_used()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.1f, 0.1f, 0.2f, 0.3f);
+
+        var shapes = Page.Locator(".map-shape");
+        await Expect(shapes).ToHaveCountAsync(1);
+        var width = await AttrAsync(shapes.First, "data-w");
+        var height = await AttrAsync(shapes.First, "data-h");
+
+        // A plain click, no drag: on a plan where every stall is the same size, this is the
+        // difference between clicking the row out and redrawing every rectangle by hand.
+        var canvas = await Page.Locator(".map-canvas").BoundingBoxAsync();
+        await Page.Mouse.ClickAsync(canvas!.X + (canvas.Width * 0.6f), canvas.Y + (canvas.Height * 0.6f));
+
+        await Expect(shapes).ToHaveCountAsync(2);
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await AttrAsync(shapes.Nth(1), "data-w"), Is.EqualTo(width));
+            Assert.That(await AttrAsync(shapes.Nth(1), "data-h"), Is.EqualTo(height));
+        });
+    }
+
+    [Test]
+    public async Task Duplicating_with_the_keyboard_copies_the_selection_clear_of_it()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.15f, 0.2f, 0.3f, 0.45f);
+
+        var shapes = Page.Locator(".map-shape");
+        await Expect(shapes).ToHaveCountAsync(1);
+
+        await SelectToolAsync("Výběr", "select");
+        await shapes.First.ClickAsync();
+        await Page.Keyboard.PressAsync("Control+d");
+
+        await Expect(shapes).ToHaveCountAsync(2);
+        var first = await XOfAsync(shapes.First);
+        var second = await XOfAsync(shapes.Nth(1));
+        Assert.That(first, Is.Not.EqualTo(second),
+            "A copy exactly on top of the original means the next click grabs the wrong one.");
+    }
+
+    [Test]
+    public async Task Renumbering_a_selected_row_counts_along_it()
+    {
+        await OpenNewMapAsync();
+        await SelectToolAsync("Kreslit", "draw");
+        await DrawOnCanvasAsync(0.1f, 0.2f, 0.18f, 0.4f);
+
+        var shapes = Page.Locator(".map-shape");
+        await SelectToolAsync("Výběr", "select");
+        await shapes.First.ClickAsync();
+        await FillAsync("fluent-text-field#shape-label", "1");
+        await Expect(Page.Locator(".map-canvas")).ToContainTextAsync("1");
+        await FillAsync("fluent-number-field#row-count", "4");
+        await Page.Locator("#map-row").ClickAsync();
+        await Expect(shapes).ToHaveCountAsync(4);
+
+        // Numbered from one and it should have been 428: the whole row, retyped by hand, is what
+        // this replaces.
+        await shapes.First.ClickAsync();
+        await Page.Keyboard.PressAsync("Control+a");
+        await FillAsync("fluent-text-field#renumber-from", "428");
+        await Page.Locator("#map-renumber").ClickAsync();
+
+        var canvas = Page.Locator(".map-canvas");
+        await Expect(canvas).ToContainTextAsync("428");
+        await Expect(canvas).ToContainTextAsync("431");
+    }
+
+    [Test]
+    public async Task Matching_the_map_to_the_underlay_takes_the_scans_own_proportions()
+    {
+        await OpenNewMapAsync();
+        // The map starts 1600×900; this plan is 2.2:1, which is the case that traces distorted.
+        await Page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload
+        {
+            Name = "plan.png",
+            MimeType = "image/png",
+            Buffer = GrayPng(220, 100),
+        });
+
+        await Expect(Page.Locator("#map-match")).ToBeVisibleAsync();
+        await Page.Locator("#map-match").ClickAsync();
+
+        // The natural size is read in the browser and handed to the server, so this proves the whole
+        // chain: upload accepted by content sniffing, served back, decoded, measured, map resized.
+        await Expect(Page.Locator(".map-canvas")).ToHaveAttributeAsync("viewBox", "0 0 220 100");
+    }
+
     /// <summary>
+    /// A valid 8-bit greyscale PNG of the given size. Hand-built because the upload is accepted on
+    /// its magic bytes and the browser has to genuinely decode it to report a natural size — a stub
+    /// would pass neither check.
+    /// </summary>
+    private static byte[] GrayPng(int width, int height)
+    {
+        var raw = new byte[height * (width + 1)];
+        for (var row = 0; row < height; row++)
+        {
+            // Leading filter byte per scanline (0 = none); the pixels stay black.
+            raw[row * (width + 1)] = 0;
+        }
+
+        using var compressed = new MemoryStream();
+        using (var zlib = new System.IO.Compression.ZLibStream(compressed, System.IO.Compression.CompressionMode.Compress, leaveOpen: true))
+        {
+            zlib.Write(raw);
+        }
+
+        using var png = new MemoryStream();
+        png.Write([0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A]);
+
+        var ihdr = new byte[13];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(ihdr.AsSpan(0), width);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(ihdr.AsSpan(4), height);
+        ihdr[8] = 8;  // bit depth
+        ihdr[9] = 0;  // colour type: greyscale
+        WriteChunk(png, "IHDR"u8, ihdr);
+        WriteChunk(png, "IDAT"u8, compressed.ToArray());
+        WriteChunk(png, "IEND"u8, []);
+        return png.ToArray();
+    }
+
+    private static void WriteChunk(Stream stream, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+    {
+        Span<byte> length = stackalloc byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        stream.Write(length);
+
+        var payload = new byte[type.Length + data.Length];
+        type.CopyTo(payload);
+        data.CopyTo(payload.AsSpan(type.Length));
+        stream.Write(payload);
+
+        Span<byte> crc = stackalloc byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(crc, Crc32(payload));
+        stream.Write(crc);
+    }
+
+    /// <summary>CRC-32/ISO-HDLC, which is what a PNG chunk carries.</summary>
+    private static uint Crc32(ReadOnlySpan<byte> data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in data)
+        {
+            crc ^= b;
+            for (var i = 0; i < 8; i++)
+            {
+                crc = (crc >> 1) ^ (0xEDB88320u & (uint)-(crc & 1));
+            }
+        }
+
+        return ~crc;
+    }
+
+    private static async Task<string?> AttrAsync(ILocator locator, string name) => await locator.GetAttributeAsync(name);
+
+    /// <summary>
+    /// Switches tool and waits until the editor module has taken it.    /// <summary>
     /// Switches tool and waits until the editor module has taken it. The button's own pressed state
     /// only says the server knows; data-tool is written by the module that handles the drag, so a
     /// gesture fired after this cannot be interpreted by the tool that was active before.
@@ -201,13 +363,23 @@ public class LotMapEditorTests : AdminTest
         await Page.WaitForFunctionAsync("() => customElements.get('fluent-text-field') !== undefined");
         await FillAsync("fluent-text-field#map-name", name);
         await Page.Locator("#map-create").ClickAsync();
-        // Surfaces the real reason when the create is refused, instead of a timeout on the link.
-        await Expect(Page.Locator("fluent-message-bar")).ToHaveCountAsync(0);
 
-        // Generous: the first map of the run pays for the cold EF query behind the list, on top of
-        // whatever the app was still warming up when the circuit attached.
+        // Either the map shows up in the list or the page says why not. Racing the two turns a
+        // refused create from a thirty-second mystery timeout into the message that explains it —
+        // which is how a cold circuit dropping the typed name was diagnosed in the first place.
+        // The timeout is generous: the first map of a run pays for the cold EF query behind the list.
         var link = Page.GetByRole(AriaRole.Link, new() { Name = name });
-        await Expect(link).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        var complaint = Page.Locator("fluent-message-bar");
+        var appeared = await Task.WhenAny(
+            link.WaitForAsync(new() { Timeout = 30_000 }),
+            complaint.WaitForAsync(new() { Timeout = 30_000 }));
+
+        if (await complaint.CountAsync() > 0)
+        {
+            Assert.Fail($"Creating the map was refused: {await complaint.First.InnerTextAsync()}");
+        }
+
+        await appeared;
         await link.ClickAsync();
         await Expect(Page.Locator(".map-canvas")).ToBeVisibleAsync();
         // The module attaches on the first render after the canvas exists; without it every drag

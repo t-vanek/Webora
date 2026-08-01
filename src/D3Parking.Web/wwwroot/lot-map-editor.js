@@ -147,6 +147,17 @@ const selectedIds = () => shapeNodes().filter((n) => n.classList.contains('is-se
 function setSelection(ids) {
     const wanted = new Set(ids);
     shapeNodes().forEach((node) => node.classList.toggle('is-selected', wanted.has(node.dataset.id)));
+
+    // Vybrat jedno stání a přepnout na kreslení znamená „chci další takové" — klik pak položí kopii
+    // jeho rozměru. Bez toho se každá další řada musí natáhnout ručně na stejnou velikost.
+    if (wanted.size === 1) {
+        const node = shapeNode([...wanted][0]);
+        const rect = node && readRect(node);
+        if (rect) {
+            state.lastSize = { w: rect.w, h: rect.h, rot: rect.rot };
+        }
+    }
+
     drawOverlay();
     state.dotNet.invokeMethodAsync('OnSelectionChanged', Array.from(wanted)).catch(() => undefined);
 }
@@ -458,8 +469,15 @@ function onPointerUp(event) {
     if (drag.kind === 'draw') {
         clearOverlay();
         if (drag.rect && drag.rect.w >= 1 && drag.rect.h >= 1) {
+            state.lastSize = { w: drag.rect.w, h: drag.rect.h, rot: 0 };
             state.dotNet.invokeMethodAsync('OnShapeDrawn', drag.rect.x, drag.rect.y, drag.rect.w, drag.rect.h)
                 .catch(() => undefined);
+        } else if (state.lastSize) {
+            // Kliknutí bez tažení položí obdélník poslední použité velikosti, vystředěný na ukazatel.
+            // Na plánu, kde jsou všechna stání stejná, je to rozdíl mezi klikáním a překreslováním.
+            const { w, h } = state.lastSize;
+            state.dotNet.invokeMethodAsync('OnShapeDrawn',
+                snap(drag.origin.x - w / 2), snap(drag.origin.y - h / 2), w, h).catch(() => undefined);
         }
 
         return;
@@ -542,19 +560,32 @@ function onKeyDown(event) {
         return;
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+        state.dotNet.invokeMethodAsync('OnDuplicateRequested').catch(() => undefined);
+        // Bez toho by prohlížeč otevřel dialog záložky.
+        event.preventDefault();
+        return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+        setSelection(shapeNodes().map((n) => n.dataset.id));
+        event.preventDefault();
+        return;
+    }
+
     if (event.key === 'Escape') {
         setSelection([]);
         event.preventDefault();
         return;
     }
 
+    // Příkazy nad výběrem nenesou seznam id. Výběr je totiž na dvou místech — třídy v DOMu a
+    // _selected na serveru — a číst ho tady z DOMu znamená číst uzly, které Blazor může zrovna
+    // přepisovat překreslením po předchozím OnSelectionChanged. Zprávy po okruhu chodí v pořadí,
+    // takže serverová kopie odpovídá stavu v okamžiku stisku a je jediná spolehlivá.
     if (event.key === 'Delete' || event.key === 'Backspace') {
-        const ids = selectedIds();
-        if (ids.length > 0) {
-            state.dotNet.invokeMethodAsync('OnDeleteRequested', ids).catch(() => undefined);
-            event.preventDefault();
-        }
-
+        state.dotNet.invokeMethodAsync('OnDeleteRequested').catch(() => undefined);
+        event.preventDefault();
         return;
     }
 
@@ -682,4 +713,15 @@ export function detach() {
     svg.removeEventListener('wheel', handlers.wheel);
     svg.removeEventListener('keydown', handlers.key);
     state = null;
+}
+
+// Přirozené rozměry nahraného podkladu. Prohlížeč je jediný, kdo je zná, a bez nich se plán
+// roztahuje na rozměry, které někdo odhadl při zakládání mapy.
+export function measureImage(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = () => resolve({ width: 0, height: 0 });
+        img.src = url;
+    });
 }

@@ -350,6 +350,86 @@ public class MapGeometryTests
         });
     }
 
+    // --- reading order, which renumbering counts along ---
+
+    private static MapRect At(double x, double y) => new(x, y, 20, 10, 0);
+
+    [Test]
+    public void A_horizontal_row_reads_left_to_right_whatever_order_it_was_drawn_in()
+    {
+        var shapes = new[] { At(60, 0), At(0, 0), At(30, 0) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r);
+
+        Assert.That(ordered.Select(r => r.X), Is.EqualTo(new[] { 0d, 30d, 60d }));
+    }
+
+    [Test]
+    public void A_vertical_column_reads_top_to_bottom()
+    {
+        var shapes = new[] { At(0, 40), At(0, 0), At(0, 20) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r);
+
+        Assert.That(ordered.Select(r => r.Y), Is.EqualTo(new[] { 0d, 20d, 40d }));
+    }
+
+    [Test]
+    public void A_block_reads_in_bands_from_the_top_each_band_from_the_left()
+    {
+        // Two rows of two, handed over in a deliberately jumbled order.
+        var shapes = new[] { At(30, 40), At(0, 0), At(30, 0), At(0, 40) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r);
+
+        Assert.That(ordered.Select(r => (r.X, r.Y)),
+            Is.EqualTo(new[] { (0d, 0d), (30d, 0d), (0d, 40d), (30d, 40d) }));
+    }
+
+    [Test]
+    public void Shapes_a_little_out_of_line_still_count_as_one_band()
+    {
+        // Traced by hand over a scan, a row is never pixel-perfect; a couple of units of wobble must
+        // not split it into a band each and scramble the numbering.
+        var shapes = new[] { At(0, 0), At(30, 2), At(60, -1) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r);
+
+        Assert.That(ordered.Select(r => r.X), Is.EqualTo(new[] { 0d, 30d, 60d }));
+    }
+
+    [Test]
+    public void Reversing_runs_the_order_the_other_way()
+    {
+        var shapes = new[] { At(0, 0), At(30, 0), At(60, 0) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r, reverse: true);
+
+        Assert.That(ordered.Select(r => r.X), Is.EqualTo(new[] { 60d, 30d, 0d }));
+    }
+
+    [Test]
+    public void One_shape_or_none_is_returned_untouched()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(MapShapeOrder.Reading(Array.Empty<MapRect>(), r => r), Is.Empty);
+            Assert.That(MapShapeOrder.Reading(new[] { At(5, 5) }, r => r).Single().X, Is.EqualTo(5));
+        });
+    }
+
+    [Test]
+    public void Ordering_uses_the_rotated_bounding_box_centre()
+    {
+        // A stall turned 90° occupies a different footprint than its unrotated extents suggest; the
+        // band it belongs to has to be judged on where it actually sits.
+        var shapes = new[] { new MapRect(100, 0, 20, 10, 90), new MapRect(0, 0, 20, 10, 90) };
+
+        var ordered = MapShapeOrder.Reading(shapes, r => r);
+
+        Assert.That(ordered[0].X, Is.EqualTo(0));
+    }
+
     /// <summary>Pins the thread culture for one test, so the invariant-formatting assertion means something.</summary>
     private sealed class CultureScope : IDisposable
     {

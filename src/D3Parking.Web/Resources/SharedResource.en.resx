@@ -1636,7 +1636,7 @@
   <data name="Map_Unpublish" xml:space="preserve"><value>Unpublish</value></data>
   <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
   <data name="Map_CanvasLabel" xml:space="preserve"><value>Map drawing canvas</value></data>
-  <data name="Map_CanvasHint" xml:space="preserve"><value>Drag to draw or move, scroll to zoom, middle-drag to pan. Shift adds to the selection and snaps rotation to 15°. Delete removes the selection, arrow keys nudge it by one grid step.</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Drag to draw or move, scroll to zoom, middle-drag to pan. Shift adds to the selection and snaps rotation to 15°. Delete removes the selection, arrows nudge it by one grid step, Ctrl+A selects all, Ctrl+D duplicates and Ctrl+Z undoes. In draw mode a plain click drops a rectangle of the last size used.</value></data>
   <data name="Map_Shape" xml:space="preserve"><value>Shape</value></data>
   <data name="Map_Label" xml:space="preserve"><value>Label</value></data>
   <data name="Map_Kind" xml:space="preserve"><value>Kind</value></data>
@@ -1699,4 +1699,16 @@
   <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>The supplied JSON holds too many shapes (10,000 at most).</value></data>
   <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Somebody created a spot with one of these codes, or drew it, while this ran. Try again — their work is picked up.</value></data>
   <data name="Map_Error_MapFull" xml:space="preserve"><value>The map is full — the editor cannot carry more than 5,000 shapes. Split the plan across several maps.</value></data>
+  <data name="Map_Duplicate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Map_MatchBackground" xml:space="preserve"><value>Match the map to the underlay</value></data>
+  <data name="Map_MatchBackgroundHint" xml:space="preserve"><value>Sets the map's size from the scan's own dimensions so the plan is not stretched. Shapes already drawn are scaled with it. Best done right after uploading the underlay.</value></data>
+  <data name="Map_MatchBackgroundDone" xml:space="preserve"><value>Map matched to {0} × {1}.</value></data>
+  <data name="Map_Renumber" xml:space="preserve"><value>Renumber</value></data>
+  <data name="Map_RenumberFrom" xml:space="preserve"><value>Start at</value></data>
+  <data name="Map_RenumberReverse" xml:space="preserve"><value>Reverse the order</value></data>
+  <data name="Map_RenumberRun" xml:space="preserve"><value>Renumber the selection</value></data>
+  <data name="Map_RenumberDone" xml:space="preserve"><value>Renumbered {0} shapes: {1}</value></data>
+  <data name="Map_RenumberNothing" xml:space="preserve"><value>The starting label does not end in a number, so there is nothing to count from.</value></data>
+  <data name="Map_Error_RenumberStart" xml:space="preserve"><value>Enter the label to count from.</value></data>
+  <data name="Map_Error_BackgroundSizeUnknown" xml:space="preserve"><value>The underlay's dimensions could not be read.</value></data>
 </root>

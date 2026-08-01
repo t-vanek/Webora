@@ -1636,7 +1636,7 @@
   <data name="Map_Unpublish" xml:space="preserve"><value>Zrušit publikaci</value></data>
   <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
   <data name="Map_CanvasLabel" xml:space="preserve"><value>Kreslicí plátno mapy</value></data>
-  <data name="Map_CanvasHint" xml:space="preserve"><value>Tažením kreslíte nebo posouváte, kolečkem přibližujete, prostředním tlačítkem posouváte plátno. Shift přidává do výběru a při otáčení drží násobky 15°. Delete maže výběr, šipky ho posouvají o mřížku.</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Tažením kreslíte nebo posouváte, kolečkem přibližujete, prostředním tlačítkem posouváte plátno. Shift přidává do výběru a při otáčení drží násobky 15°. Delete maže výběr, šipky ho posouvají o mřížku, Ctrl+A vybere vše, Ctrl+D duplikuje a Ctrl+Z vrací zpět. V režimu kreslení položí kliknutí obdélník poslední použité velikosti.</value></data>
   <data name="Map_Shape" xml:space="preserve"><value>Tvar</value></data>
   <data name="Map_Label" xml:space="preserve"><value>Popisek</value></data>
   <data name="Map_Kind" xml:space="preserve"><value>Druh</value></data>
@@ -1699,4 +1699,16 @@
   <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>Vstupní JSON obsahuje příliš mnoho tvarů (nejvýše 10 000).</value></data>
   <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Někdo mezitím založil místo se stejným kódem nebo je nakreslil. Zkuste to znovu — proběhlé změny se načtou.</value></data>
   <data name="Map_Error_MapFull" xml:space="preserve"><value>Mapa je plná — víc než 5 000 tvarů editor neunese. Rozdělte plán na víc map.</value></data>
+  <data name="Map_Duplicate" xml:space="preserve"><value>Duplikovat</value></data>
+  <data name="Map_MatchBackground" xml:space="preserve"><value>Srovnat mapu podle podkladu</value></data>
+  <data name="Map_MatchBackgroundHint" xml:space="preserve"><value>Nastaví rozměry mapy podle skutečných rozměrů skenu, aby se plán neroztahoval. Nakreslené tvary se přeškálují s ním. Nejlepší je udělat to hned po nahrání podkladu.</value></data>
+  <data name="Map_MatchBackgroundDone" xml:space="preserve"><value>Mapa srovnána na {0} × {1}.</value></data>
+  <data name="Map_Renumber" xml:space="preserve"><value>Přečíslovat</value></data>
+  <data name="Map_RenumberFrom" xml:space="preserve"><value>Začít od</value></data>
+  <data name="Map_RenumberReverse" xml:space="preserve"><value>Obrátit pořadí</value></data>
+  <data name="Map_RenumberRun" xml:space="preserve"><value>Přečíslovat výběr</value></data>
+  <data name="Map_RenumberDone" xml:space="preserve"><value>Přečíslováno {0} tvarů: {1}</value></data>
+  <data name="Map_RenumberNothing" xml:space="preserve"><value>Výchozí popisek nekončí číslem, takže není z čeho počítat.</value></data>
+  <data name="Map_Error_RenumberStart" xml:space="preserve"><value>Zadejte popisek, od kterého se má číslovat.</value></data>
+  <data name="Map_Error_BackgroundSizeUnknown" xml:space="preserve"><value>Rozměry podkladu se nepodařilo zjistit.</value></data>
 </root>

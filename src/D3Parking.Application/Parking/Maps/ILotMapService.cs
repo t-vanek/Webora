@@ -67,6 +67,55 @@ public interface ILotMapService
     /// </summary>
     Task<MapShapeResult> AddRowAsync(Guid mapId, MapRowRequest request, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Resizes the map's coordinate space to the proportions of the uploaded underlay, scaling every
+    /// shape with it so a drawing already begun keeps its place on the plan.
+    /// </summary>
+    /// <remarks>
+    /// Without this the underlay is stretched to whatever two numbers were typed when the map was
+    /// created, and nothing on screen says what they should have been — so the plan is traced
+    /// distorted. The natural pixel size of the image is the answer, and it is the browser that
+    /// knows it.
+    /// </remarks>
+    Task<ParkingResult> MatchToBackgroundAsync(
+        Guid mapId,
+        int imageWidth,
+        int imageHeight,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Copies the given shapes, offset clear of the originals, and hands the copies back selected.
+    /// This is what makes the second row of a double bay cheap: select the first, duplicate, drag.
+    /// Labels are carried over as they are — renumbering is its own step, and guessing here would
+    /// silently rename stalls.
+    /// </summary>
+    Task<MapShapeResult> DuplicateShapesAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Relabels a selection in reading order, counting from <paramref name="firstLabel"/>. The
+    /// rescue for a row traced perfectly and numbered one out — otherwise thirteen labels retyped
+    /// by hand.
+    /// </summary>
+    Task<MapRenumberResult> RenumberShapesAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        string firstLabel,
+        int step,
+        bool reverse,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes a set of labels as given. Exists so a renumbering can be undone: the previous labels
+    /// are put back exactly, without a sequence being re-derived from them.
+    /// </summary>
+    Task<ParkingResult> SetLabelsAsync(
+        Guid mapId,
+        IReadOnlyList<MapShapeLabel> labels,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Renames a shape and/or changes what it represents.</summary>
     Task<ParkingResult> UpdateShapeAsync(
         Guid shapeId,
@@ -124,6 +173,20 @@ public interface ILotMapService
     /// <summary>Creates a map from exported JSON. Always a new map — import never overwrites one.</summary>
     Task<ParkingResult> ImportAsync(string name, string json, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Outcome of a renumbering: the labels as applied, in the order they were applied, so the editor can
+/// say what happened without re-reading the map.
+/// </summary>
+public sealed record MapRenumberResult(bool Succeeded, IReadOnlyList<string> Labels, IReadOnlyList<string> Errors)
+{
+    public static MapRenumberResult Success(IReadOnlyList<string> labels) => new(true, labels, []);
+
+    public static MapRenumberResult Failure(params string[] errors) => new(false, [], errors);
+}
+
+/// <summary>One shape's label, as it is to be written.</summary>
+public sealed record MapShapeLabel(Guid ShapeId, string? Label);
 
 /// <summary>One shape to put back, as it was before it was deleted.</summary>
 public sealed record MapShapeRestore(MapShapeKind Kind, MapRect Rect, string? Label, Guid? ParkingSpotId);

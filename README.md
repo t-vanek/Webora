@@ -520,8 +520,18 @@ Nenapojené stání zůstává na plánu jako kontext.
   kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
   nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
   vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
-- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady i smazání výběru se dají vzít zpět, padesát
-  kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
+- **Srovnat mapu podle podkladu:** rozměry mapy se převezmou ze skutečných rozměrů skenu, takže se
+  plán neroztahuje. Bez toho se kreslí přes zdeformovaný podklad a nic na obrazovce neřekne, jaké
+  rozměry měly být zadané. Už nakreslené tvary se přeškálují s ním.
+- **Razítko a duplikát:** v režimu kreslení položí **kliknutí** (bez tažení) obdélník poslední
+  použité velikosti — a „poslední" je i rozměr právě vybraného stání, takže se dá jedno obtáhnout
+  a zbytek naklikat. **Ctrl+D** zkopíruje výběr vedle originálu; z hotové řady tak vznikne dvojřada
+  jedním hmatem.
+- **Přečíslovat výběr:** popisky se přiřadí v pořadí čtení — pásy shora, v pásu zleva — od zadaného
+  čísla a s volitelným krokem; zaškrtávátko obrátí pořadí pro sloupce číslované opačně. Řada
+  obtažená správně, ale začínající o jedna vedle, se tím spraví jedním krokem místo třinácti přepisů.
+- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady, duplikát, smazání výběru i hromadné
+  přečíslování se dají vzít zpět, padesát kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
   nesváží s místem, které mezitím nakreslil někdo jiný. Historie patří jedné mapě a jednomu sezení.
 - **Tvar neuteče z mapy:** obdélník tažený za okraj se vrátí zpátky na plochu, stejně jako tvary,
   které by zůstaly venku po zmenšení mapy. Jinak by nešly kliknout ani najet a byly by ztracené.

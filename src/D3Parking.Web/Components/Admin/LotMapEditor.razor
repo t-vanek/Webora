@@ -133,6 +133,8 @@
                    after clicking something else. *@
                 <FluentButton Id="map-undo" Appearance="Appearance.Outline" Disabled="@(_undo.Count == 0)"
                               OnClick="UndoAsync">↶ @L["Map_Undo"]</FluentButton>
+                <FluentButton Id="map-duplicate" Appearance="Appearance.Outline" Disabled="@(_selected.Count == 0)"
+                              OnClick="DuplicateSelectedAsync">@L["Map_Duplicate"]</FluentButton>
             </div>
 
             <div class="map-toolbar__group">
@@ -257,6 +259,21 @@
                                       Label="@L["Map_BulkSpotType"]" />
                         <FluentButton Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_CreateSpotsHint"]</FluentLabel>
+
+                        @* Renumbering. A row traced perfectly and started one out is otherwise
+                           thirteen labels retyped by hand. Order is how the selection reads —
+                           bands from the top, each band from the left — which the reverse box
+                           flips for the columns numbered the other way. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Renumber"]</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentTextField Id="renumber-from" Immediate="true" @bind-Value="_renumberFrom"
+                                             Label="@L["Map_RenumberFrom"]" Style="width:120px" />
+                            <FluentNumberField Id="renumber-step" TValue="int" @bind-Value="_renumberStep" Immediate="true"
+                                               Label="@L["Map_RowStep"]" Style="width:100px" />
+                        </FluentStack>
+                        <FluentCheckbox @bind-Value="_renumberReverse">@L["Map_RenumberReverse"]</FluentCheckbox>
+                        <FluentButton Id="map-renumber" Appearance="Appearance.Outline" OnClick="RenumberAsync">@L["Map_RenumberRun"]</FluentButton>
                     </div>
                 }
                 else
@@ -281,6 +298,16 @@
                                 <FluentButton Appearance="Appearance.Stealth" OnClick="ClearBackgroundAsync">@L["Map_BackgroundClear"]</FluentButton>
                             }
                         </FluentStack>
+                        @if (_map.HasBackground)
+                        {
+                            @* The underlay is stretched onto whatever coordinate space the map was
+                               created with, and nothing on screen says what that should have been.
+                               This reads the scan's own pixels and makes the map match. *@
+                            <FluentButton Id="map-match" Appearance="Appearance.Accent" OnClick="MatchBackgroundAsync">
+                                @L["Map_MatchBackground"]
+                            </FluentButton>
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_MatchBackgroundHint"]</FluentLabel>
+                        }
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_BackgroundHint"]</FluentLabel>
 
                         <hr class="map-panel__rule" />
@@ -343,6 +370,10 @@
     private int _rowStep = 1;
     private RowDirection _rowDirection = RowDirection.Right;
     private ParkingSpotType _bulkType = ParkingSpotType.Standard;
+
+    private string _renumberFrom = "1";
+    private int _renumberStep = 1;
+    private bool _renumberReverse;
 
     private string? _newName;
     private int _newWidth = 1600;
@@ -577,16 +608,29 @@
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Deletes what is selected. The module deliberately sends no ids: the selection exists both as
+    /// classes in the DOM and as <see cref="_selected"/> here, and reading it from the DOM at keypress
+    /// time can catch nodes Blazor is part-way through re-rendering. Circuit messages arrive in
+    /// order, so this copy is the selection as it stood when the key went down.
+    /// </summary>
     [JSInvokable]
-    public async Task OnDeleteRequested(Guid[] ids)
+    public async Task OnDeleteRequested()
     {
-        await DeleteShapesAsync(ids);
+        await DeleteShapesAsync(_selected.ToArray());
     }
 
     [JSInvokable]
     public async Task OnUndoRequested()
     {
         await UndoAsync();
+    }
+
+    /// <summary>Duplicates what is selected. Takes its ids from the server's copy, like the delete above.</summary>
+    [JSInvokable]
+    public async Task OnDuplicateRequested()
+    {
+        await DuplicateAsync(_selected.ToArray());
     }
 
     // --- undo ---
@@ -606,13 +650,17 @@
     private sealed record UndoStep(
         IReadOnlyList<ShapeGeometryUpdate> Geometry,
         IReadOnlyList<Guid> Created,
-        IReadOnlyList<MapShapeRestore> Deleted)
+        IReadOnlyList<MapShapeRestore> Deleted,
+        IReadOnlyList<MapShapeLabel> Labels)
     {
-        public static UndoStep ForMoved(IReadOnlyList<ShapeGeometryUpdate> previous) => new(previous, [], []);
+        public static UndoStep ForMoved(IReadOnlyList<ShapeGeometryUpdate> previous) => new(previous, [], [], []);
 
-        public static UndoStep ForCreated(IReadOnlyList<Guid> ids) => new([], ids, []);
+        public static UndoStep ForCreated(IReadOnlyList<Guid> ids) => new([], ids, [], []);
 
-        public static UndoStep ForDeleted(IReadOnlyList<MapShapeRestore> shapes) => new([], [], shapes);
+        public static UndoStep ForDeleted(IReadOnlyList<MapShapeRestore> shapes) => new([], [], shapes, []);
+
+        /// <summary>A bulk relabelling. One shape's label is a visible field; a whole row's is work.</summary>
+        public static UndoStep ForRelabelled(IReadOnlyList<MapShapeLabel> previous) => new([], [], [], previous);
     }
 
     private void Remember(UndoStep step)
@@ -656,6 +704,15 @@
         if (step.Deleted.Count > 0)
         {
             var result = await Maps.RestoreShapesAsync(map.Id, step.Deleted);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+
+        if (step.Labels.Count > 0)
+        {
+            var result = await Maps.SetLabelsAsync(map.Id, step.Labels);
             if (!result.Succeeded)
             {
                 _error = result.Errors.FirstOrDefault();
@@ -875,6 +932,107 @@
         await ReloadAsync();
         await InvokeModuleAsync("select", _selected.ToArray());
     }
+
+    private Task DuplicateSelectedAsync() => DuplicateAsync(_selected.ToArray());
+
+    private async Task DuplicateAsync(Guid[] ids)
+    {
+        if (_map is not { } map || ids.Length == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Maps.DuplicateShapesAsync(map.Id, ids);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        // The copies become the selection: they are what gets dragged into place next, and leaving
+        // the originals selected would move the wrong row.
+        _selected.Clear();
+        foreach (var shape in result.Shapes)
+        {
+            _selected.Add(shape.Id);
+        }
+
+        Remember(UndoStep.ForCreated(result.Shapes.Select(sh => sh.Id).ToList()));
+        await ReloadAsync();
+        await InvokeModuleAsync("select", _selected.ToArray());
+        StateHasChanged();
+    }
+
+    private async Task RenumberAsync()
+    {
+        if (_map is not { } map || _selected.Count == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        // Captured first: after the write there is no record of what the row used to be called.
+        var previous = map.Shapes
+            .Where(sh => _selected.Contains(sh.Id))
+            .Select(sh => new MapShapeLabel(sh.Id, sh.Label))
+            .ToList();
+
+        var result = await Maps.RenumberShapesAsync(
+            map.Id, _selected.ToArray(), _renumberFrom, _renumberStep, _renumberReverse);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        Remember(UndoStep.ForRelabelled(previous));
+        _info = result.Labels.Count == 0
+            ? L["Map_RenumberNothing"]
+            : string.Format(L["Map_RenumberDone"], result.Labels.Count, Sample(result.Labels));
+        await ReloadAsync();
+    }
+
+    private async Task MatchBackgroundAsync()
+    {
+        if (_map is not { } map || _module is null)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var url = $"/api/parking/maps/{map.Id}/background?v={_backgroundVersion}";
+        MeasuredImage? measured;
+        try
+        {
+            measured = await _module.InvokeAsync<MeasuredImage>("measureImage", url);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+
+        if (measured is not { Width: > 0, Height: > 0 })
+        {
+            _error = "Map_Error_BackgroundSizeUnknown";
+            return;
+        }
+
+        var result = await Maps.MatchToBackgroundAsync(map.Id, measured.Width, measured.Height);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        await ReloadAsync();
+        // The coordinate space changed under the module, so its view has to be rebuilt around it.
+        await InvokeModuleAsync("sync", new { width = _map!.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+        _info = string.Format(L["Map_MatchBackgroundDone"], _map.Width, _map.Height);
+    }
+
+    /// <summary>The underlay's natural pixel size, as the browser reports it.</summary>
+    private sealed record MeasuredImage(int Width, int Height);
 
     private Task DeleteSelectedAsync() => DeleteShapesAsync(_selected.ToArray());
 
