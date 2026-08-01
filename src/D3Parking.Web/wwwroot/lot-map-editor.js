@@ -147,8 +147,19 @@ const selectedIds = () => shapeNodes().filter((n) => n.classList.contains('is-se
 function setSelection(ids) {
     const wanted = new Set(ids);
     shapeNodes().forEach((node) => node.classList.toggle('is-selected', wanted.has(node.dataset.id)));
+
+    // Vybrat jedno stání a přepnout na kreslení znamená „chci další takové" — klik pak položí kopii
+    // jeho rozměru. Bez toho se každá další řada musí natáhnout ručně na stejnou velikost.
+    if (wanted.size === 1) {
+        const node = shapeNode([...wanted][0]);
+        const rect = node && readRect(node);
+        if (rect) {
+            state.lastSize = { w: rect.w, h: rect.h, rot: rect.rot };
+        }
+    }
+
     drawOverlay();
-    state.dotNet.invokeMethodAsync('OnSelectionChanged', Array.from(wanted)).catch(() => undefined);
+    state.dotNet?.invokeMethodAsync('OnSelectionChanged', Array.from(wanted)).catch(() => undefined);
 }
 
 // --- overlay: úchyty a gumička ---
@@ -160,6 +171,10 @@ function clearOverlay() {
 }
 
 function drawOverlay() {
+    if (state.readOnly || !state.overlay) {
+        return;
+    }
+
     clearOverlay();
     if (state.tool !== 'select') {
         return;
@@ -256,7 +271,7 @@ function onPointerDown(event) {
 
     // Prostřední tlačítko posouvá plátno v každém nástroji — jinak by se při kreslení muselo
     // pořád přepínat zpět na ruku.
-    if (event.button === 1 || state.tool === 'pan') {
+    if (state.readOnly || event.button === 1 || state.tool === 'pan') {
         state.drag = { kind: 'pan', origin: { x: event.clientX, y: event.clientY }, view: { ...state.view } };
     } else if (handle && handle.dataset.role === 'rotate') {
         const node = shapeNode(selectedIds()[0]);
@@ -307,13 +322,25 @@ function onPointerDown(event) {
         }
     }
 
+    state.moved = false;
+
+    // Režim prohlížení sahá na událost co nejméně, protože klik na stání je obyčejný Blazor handler
+    // na tvaru a dvě obvyklé věci ho umí zabít:
+    //   - setPointerCapture přesměruje další události včetně click na zachycující element, takže by
+    //     klik dorazil na <svg> a ne na <g>, kterému patří,
+    //   - preventDefault na pointerdown podle specifikace potlačí i kompatibilní myší události.
+    // Posun plátna funguje i bez zachycení, jen skončí, když ukazatel opustí plátno; označování
+    // textu při tažení řeší CSS (user-select).
+    if (state.readOnly) {
+        return;
+    }
+
     try {
         state.svg.setPointerCapture(event.pointerId);
     } catch {
         // Zachycení ukazatele je jen pohodlí (tažení mimo plátno); bez něj gesto funguje dál.
     }
 
-    state.moved = false;
     // preventDefault níže potlačí i výchozí zaostření, takže se plátno musí zaostřit ručně — jinak
     // na něj klávesové zkratky (Delete, šipky, Ctrl+Z) nedosáhnou, dokud na něj někdo netabuje.
     state.svg.focus({ preventScroll: true });
@@ -446,7 +473,9 @@ function onPointerUp(event) {
     const drag = state.drag;
     state.drag = null;
     try {
-        state.svg.releasePointerCapture(event.pointerId);
+        if (!state.readOnly) {
+            state.svg.releasePointerCapture(event.pointerId);
+        }
     } catch {
         // Ukazatel už mohl být uvolněn (např. při ztrátě fokusu) — na výsledku gesta to nic nemění.
     }
@@ -458,8 +487,15 @@ function onPointerUp(event) {
     if (drag.kind === 'draw') {
         clearOverlay();
         if (drag.rect && drag.rect.w >= 1 && drag.rect.h >= 1) {
+            state.lastSize = { w: drag.rect.w, h: drag.rect.h, rot: 0 };
             state.dotNet.invokeMethodAsync('OnShapeDrawn', drag.rect.x, drag.rect.y, drag.rect.w, drag.rect.h)
                 .catch(() => undefined);
+        } else if (state.lastSize) {
+            // Kliknutí bez tažení položí obdélník poslední použité velikosti, vystředěný na ukazatel.
+            // Na plánu, kde jsou všechna stání stejná, je to rozdíl mezi klikáním a překreslováním.
+            const { w, h } = state.lastSize;
+            state.dotNet.invokeMethodAsync('OnShapeDrawn',
+                snap(drag.origin.x - w / 2), snap(drag.origin.y - h / 2), w, h).catch(() => undefined);
         }
 
         return;
@@ -532,12 +568,25 @@ function onWheel(event) {
 }
 
 function onKeyDown(event) {
-    if (!state || event.target !== state.svg) {
+    if (!state || state.readOnly || event.target !== state.svg) {
         return;
     }
 
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         state.dotNet.invokeMethodAsync('OnUndoRequested').catch(() => undefined);
+        event.preventDefault();
+        return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+        state.dotNet.invokeMethodAsync('OnDuplicateRequested').catch(() => undefined);
+        // Bez toho by prohlížeč otevřel dialog záložky.
+        event.preventDefault();
+        return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+        setSelection(shapeNodes().map((n) => n.dataset.id));
         event.preventDefault();
         return;
     }
@@ -548,13 +597,13 @@ function onKeyDown(event) {
         return;
     }
 
+    // Příkazy nad výběrem nenesou seznam id. Výběr je totiž na dvou místech — třídy v DOMu a
+    // _selected na serveru — a číst ho tady z DOMu znamená číst uzly, které Blazor může zrovna
+    // přepisovat překreslením po předchozím OnSelectionChanged. Zprávy po okruhu chodí v pořadí,
+    // takže serverová kopie odpovídá stavu v okamžiku stisku a je jediná spolehlivá.
     if (event.key === 'Delete' || event.key === 'Backspace') {
-        const ids = selectedIds();
-        if (ids.length > 0) {
-            state.dotNet.invokeMethodAsync('OnDeleteRequested', ids).catch(() => undefined);
-            event.preventDefault();
-        }
-
+        state.dotNet.invokeMethodAsync('OnDeleteRequested').catch(() => undefined);
+        event.preventDefault();
         return;
     }
 
@@ -595,6 +644,9 @@ export function attach(svg, dotNet, options) {
         svg,
         dotNet,
         overlay: svg.querySelector('.map-overlay'),
+        // Režim prohlížení: mapa se jen posouvá a přibližuje. Výběr a klikání na tvary si v něm
+        // řeší Blazor sám (je to obyčejný klik, ne gesto), takže tady nemá co obsluhovat.
+        readOnly: options.readOnly === true,
         tool: options.tool ?? 'select',
         grid: options.grid ?? 0,
         natural,
@@ -662,6 +714,44 @@ export function zoom(factor) {
     applyView();
 }
 
+// Najede na zadané tvary: viewBox se nastaví na jejich obálku s rezervou. Bez toho nemá otázka
+// „kde je 434?" na mapě o pěti stech tvarech jinou odpověď než očima.
+export function reveal(ids) {
+    if (!state || !ids || ids.length === 0) {
+        return;
+    }
+
+    const wanted = new Set(ids);
+    const boxes = shapeNodes()
+        .filter((node) => wanted.has(node.dataset.id))
+        .map(readRect)
+        .filter(Boolean)
+        .map(bounds);
+
+    if (boxes.length === 0) {
+        return;
+    }
+
+    const minX = Math.min(...boxes.map((b) => b.minX));
+    const minY = Math.min(...boxes.map((b) => b.minY));
+    const maxX = Math.max(...boxes.map((b) => b.maxX));
+    const maxY = Math.max(...boxes.map((b) => b.maxY));
+
+    // Rezerva kolem, ať je vidět i okolí — samotný tvar bez kontextu neřekne, kde na plánu je.
+    // Spodní mez drží poměr stran plátna, aby zoom nešel do absurdna u jednoho malého stání.
+    const padding = Math.max((maxX - minX) * 0.6, (maxY - minY) * 0.6, state.natural.w / 40);
+    const width = Math.min(state.natural.w, Math.max(maxX - minX + padding, state.natural.w / 20));
+    const height = state.natural.h * (width / state.natural.w);
+
+    state.view = {
+        x: (minX + maxX) / 2 - width / 2,
+        y: (minY + maxY) / 2 - height / 2,
+        w: width,
+        h: height,
+    };
+    applyView();
+}
+
 export function resetView() {
     if (state) {
         state.view = { x: 0, y: 0, w: state.natural.w, h: state.natural.h };
@@ -682,4 +772,15 @@ export function detach() {
     svg.removeEventListener('wheel', handlers.wheel);
     svg.removeEventListener('keydown', handlers.key);
     state = null;
+}
+
+// Přirozené rozměry nahraného podkladu. Prohlížeč je jediný, kdo je zná, a bez nich se plán
+// roztahuje na rozměry, které někdo odhadl při zakládání mapy.
+export function measureImage(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = () => resolve({ width: 0, height: 0 });
+        img.src = url;
+    });
 }

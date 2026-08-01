@@ -1636,7 +1636,7 @@
   <data name="Map_Unpublish" xml:space="preserve"><value>Unpublish</value></data>
   <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
   <data name="Map_CanvasLabel" xml:space="preserve"><value>Map drawing canvas</value></data>
-  <data name="Map_CanvasHint" xml:space="preserve"><value>Drag to draw or move, scroll to zoom, middle-drag to pan. Shift adds to the selection and snaps rotation to 15°. Delete removes the selection, arrow keys nudge it by one grid step.</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Drag to draw or move, scroll to zoom, middle-drag to pan. Shift adds to the selection and snaps rotation to 15°. Delete removes the selection, arrows nudge it by one grid step, Ctrl+A selects all, Ctrl+D duplicates and Ctrl+Z undoes. In draw mode a plain click drops a rectangle of the last size used.</value></data>
   <data name="Map_Shape" xml:space="preserve"><value>Shape</value></data>
   <data name="Map_Label" xml:space="preserve"><value>Label</value></data>
   <data name="Map_Kind" xml:space="preserve"><value>Kind</value></data>
@@ -1699,4 +1699,64 @@
   <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>The supplied JSON holds too many shapes (10,000 at most).</value></data>
   <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Somebody created a spot with one of these codes, or drew it, while this ran. Try again — their work is picked up.</value></data>
   <data name="Map_Error_MapFull" xml:space="preserve"><value>The map is full — the editor cannot carry more than 5,000 shapes. Split the plan across several maps.</value></data>
+  <data name="Map_Duplicate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Map_MatchBackground" xml:space="preserve"><value>Match the map to the underlay</value></data>
+  <data name="Map_MatchBackgroundHint" xml:space="preserve"><value>Sets the map's size from the scan's own dimensions so the plan is not stretched. Shapes already drawn are scaled with it. Best done right after uploading the underlay.</value></data>
+  <data name="Map_MatchBackgroundDone" xml:space="preserve"><value>Map matched to {0} × {1}.</value></data>
+  <data name="Map_Renumber" xml:space="preserve"><value>Renumber</value></data>
+  <data name="Map_RenumberFrom" xml:space="preserve"><value>Start at</value></data>
+  <data name="Map_RenumberReverse" xml:space="preserve"><value>Reverse the order</value></data>
+  <data name="Map_RenumberRun" xml:space="preserve"><value>Renumber the selection</value></data>
+  <data name="Map_RenumberDone" xml:space="preserve"><value>Renumbered {0} shapes: {1}</value></data>
+  <data name="Map_RenumberNothing" xml:space="preserve"><value>The starting label does not end in a number, so there is nothing to count from.</value></data>
+  <data name="Map_Error_RenumberStart" xml:space="preserve"><value>Enter the label to count from.</value></data>
+  <data name="Map_Error_BackgroundSizeUnknown" xml:space="preserve"><value>The underlay's dimensions could not be read.</value></data>
+  <data name="Map_FindHint" xml:space="preserve"><value>Find a label</value></data>
+  <data name="Map_FindNothing" xml:space="preserve"><value>There is no “{0}” on this map.</value></data>
+  <data name="Map_Align" xml:space="preserve"><value>Align</value></data>
+  <data name="Map_Align_Left" xml:space="preserve"><value>Align left</value></data>
+  <data name="Map_Align_Left_Short" xml:space="preserve"><value>⇤</value></data>
+  <data name="Map_Align_CentreX" xml:space="preserve"><value>Align centre horizontally</value></data>
+  <data name="Map_Align_CentreX_Short" xml:space="preserve"><value>↔</value></data>
+  <data name="Map_Align_Right" xml:space="preserve"><value>Align right</value></data>
+  <data name="Map_Align_Right_Short" xml:space="preserve"><value>⇥</value></data>
+  <data name="Map_Align_DistributeX" xml:space="preserve"><value>Distribute evenly across</value></data>
+  <data name="Map_Align_DistributeX_Short" xml:space="preserve"><value>⇹</value></data>
+  <data name="Map_Align_Top" xml:space="preserve"><value>Align top</value></data>
+  <data name="Map_Align_Top_Short" xml:space="preserve"><value>⤒</value></data>
+  <data name="Map_Align_MiddleY" xml:space="preserve"><value>Align middle vertically</value></data>
+  <data name="Map_Align_MiddleY_Short" xml:space="preserve"><value>↕</value></data>
+  <data name="Map_Align_Bottom" xml:space="preserve"><value>Align bottom</value></data>
+  <data name="Map_Align_Bottom_Short" xml:space="preserve"><value>⤓</value></data>
+  <data name="Map_Align_DistributeY" xml:space="preserve"><value>Distribute evenly down</value></data>
+  <data name="Map_Align_DistributeY_Short" xml:space="preserve"><value>⤢</value></data>
+  <data name="Map_BulkKind" xml:space="preserve"><value>Change kind to</value></data>
+  <data name="Map_BulkKindApply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Map_BulkKindDone" xml:space="preserve"><value>Shapes changed: {0}.</value></data>
+  <data name="Map_BulkKindDoneUnlinked" xml:space="preserve"><value>Shapes changed: {0}. Spot links dropped: {1} — only a stall can stand for a parking spot.</value></data>
+  <data name="Lot_View" xml:space="preserve"><value>Board view</value></data>
+  <data name="Lot_View_Grid" xml:space="preserve"><value>Grid</value></data>
+  <data name="Lot_View_Map" xml:space="preserve"><value>Map</value></data>
+  <data name="Lot_Map_Label" xml:space="preserve"><value>Lot map with the state of each spot</value></data>
+  <data name="Parking_View_List" xml:space="preserve"><value>List</value></data>
+  <data name="Parking_Map_Label" xml:space="preserve"><value>Lot map with the free spots</value></data>
+  <data name="Parking_Map_Free" xml:space="preserve"><value>Free</value></data>
+  <data name="Parking_Map_Taken" xml:space="preserve"><value>Taken</value></data>
+  <data name="Parking_Map_Other" xml:space="preserve"><value>Someone else's</value></data>
+  <data name="Parking_Map_Hint" xml:space="preserve"><value>Click a free stall to book it. Scroll to zoom, drag to move the map.</value></data>
+  <data name="Map_Svg" xml:space="preserve"><value>Import a plan (SVG)</value></data>
+  <data name="Map_SvgKind" xml:space="preserve"><value>Import as</value></data>
+  <data name="Map_SvgHint" xml:space="preserve"><value>Export the site plan from PDF or DWG to SVG and upload it — the stalls place themselves and the numbers printed inside them become labels. The map takes the drawing's dimensions. The file is only read, never stored.</value></data>
+  <data name="Map_Svg_Created" xml:space="preserve"><value>stalls created ({0} with a label)</value></data>
+  <data name="Map_Svg_NotRectangles" xml:space="preserve"><value>non-rectangular shapes skipped: {0}</value></data>
+  <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>text outside any stall (captions, legend): {0}</value></data>
+  <data name="Map_Svg_Unsupported" xml:space="preserve"><value>unsupported transforms: {0} — those shapes may be misplaced</value></data>
+  <data name="Map_Svg_Degenerate" xml:space="preserve"><value>shapes with no area skipped: {0}</value></data>
+  <data name="Map_Svg_Duplicates" xml:space="preserve"><value>identical rectangles merged: {0}</value></data>
+  <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>The uploaded file is empty.</value></data>
+  <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>The file could not be read as XML.</value></data>
+  <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>The file is not an SVG.</value></data>
+  <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>The SVG states neither a viewBox nor dimensions, so there is no scale to read.</value></data>
+  <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>The file holds no rectangular shapes that could become stalls.</value></data>
+  <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>The file is too large (16 MB at most).</value></data>
 </root>

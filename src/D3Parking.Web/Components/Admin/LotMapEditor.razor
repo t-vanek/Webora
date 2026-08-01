@@ -133,6 +133,16 @@
                    after clicking something else. *@
                 <FluentButton Id="map-undo" Appearance="Appearance.Outline" Disabled="@(_undo.Count == 0)"
                               OnClick="UndoAsync">↶ @L["Map_Undo"]</FluentButton>
+                <FluentButton Id="map-duplicate" Appearance="Appearance.Outline" Disabled="@(_selected.Count == 0)"
+                              OnClick="DuplicateSelectedAsync">@L["Map_Duplicate"]</FluentButton>
+            </div>
+
+            <div class="map-toolbar__group">
+                @* On a plan of five hundred shapes "where is 434?" has no answer but scanning by eye.
+                   Selects every match and moves the view onto them. *@
+                <FluentSearch Id="map-find" @bind-Value="_find" @bind-Value:after="FindAsync"
+                              Immediate="true" ImmediateDelay="300"
+                              Placeholder="@L["Map_FindHint"]" Style="width:150px" />
             </div>
 
             <div class="map-toolbar__group">
@@ -255,8 +265,46 @@
                                       OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_bulkType"
                                       Label="@L["Map_BulkSpotType"]" />
-                        <FluentButton Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
+                        <FluentButton Id="map-create-spots" Appearance="Appearance.Accent" OnClick="CreateSpotsAsync">@L["Map_CreateSpots"]</FluentButton>
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_CreateSpotsHint"]</FluentLabel>
+
+                        @* Lining up. Alignment is only ever new positions, so it goes down the same
+                           path a drag takes and inherits its clamping and its undo step. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Align"]</FluentLabel>
+                        <div class="map-align">
+                            @foreach (var (mode, key) in Alignments)
+                            {
+                                <FluentButton Appearance="Appearance.Outline" OnClick="() => AlignAsync(mode)"
+                                              Title="@L[key]" aria-label="@L[key]">@L[$"{key}_Short"]</FluentButton>
+                            }
+                        </div>
+
+                        <hr class="map-panel__rule" />
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentSelect TOption="MapShapeKind"
+                                          Items="@ShapeKinds"
+                                          OptionValue="@(k => k.ToString())"
+                                          OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                                          @bind-SelectedOption="_bulkKind"
+                                          Label="@L["Map_BulkKind"]" Style="width:150px" />
+                            <FluentButton Id="map-bulk-kind" Appearance="Appearance.Outline" OnClick="SetKindAsync">@L["Map_BulkKindApply"]</FluentButton>
+                        </FluentStack>
+
+                        @* Renumbering. A row traced perfectly and started one out is otherwise
+                           thirteen labels retyped by hand. Order is how the selection reads —
+                           bands from the top, each band from the left — which the reverse box
+                           flips for the columns numbered the other way. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Renumber"]</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                            <FluentTextField Id="renumber-from" Immediate="true" @bind-Value="_renumberFrom"
+                                             Label="@L["Map_RenumberFrom"]" Style="width:120px" />
+                            <FluentNumberField Id="renumber-step" TValue="int" @bind-Value="_renumberStep" Immediate="true"
+                                               Label="@L["Map_RowStep"]" Style="width:100px" />
+                        </FluentStack>
+                        <FluentCheckbox @bind-Value="_renumberReverse">@L["Map_RenumberReverse"]</FluentCheckbox>
+                        <FluentButton Id="map-renumber" Appearance="Appearance.Outline" OnClick="RenumberAsync">@L["Map_RenumberRun"]</FluentButton>
                     </div>
                 }
                 else
@@ -272,7 +320,7 @@
 
                         <hr class="map-panel__rule" />
                         <FluentLabel Typo="Typography.Subject">@L["Map_Background"]</FluentLabel>
-                        <InputFile OnChange="OnBackgroundSelectedAsync" accept="@ImageContentType.AcceptAttribute" class="parking-input" />
+                        <InputFile id="map-background-file" OnChange="OnBackgroundSelectedAsync" accept="@ImageContentType.AcceptAttribute" class="parking-input" />
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
                             <FluentNumberField TValue="int" Value="@_map.BackgroundOpacity" ValueChanged="SetOpacityAsync" Immediate="true"
                                                Min="0" Max="100" Label="@L["Map_Opacity"]" Style="width:110px" />
@@ -281,7 +329,57 @@
                                 <FluentButton Appearance="Appearance.Stealth" OnClick="ClearBackgroundAsync">@L["Map_BackgroundClear"]</FluentButton>
                             }
                         </FluentStack>
+                        @if (_map.HasBackground)
+                        {
+                            @* The underlay is stretched onto whatever coordinate space the map was
+                               created with, and nothing on screen says what that should have been.
+                               This reads the scan's own pixels and makes the map match. *@
+                            <FluentButton Id="map-match" Appearance="Appearance.Accent" OnClick="MatchBackgroundAsync">
+                                @L["Map_MatchBackground"]
+                            </FluentButton>
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_MatchBackgroundHint"]</FluentLabel>
+                        }
                         <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_BackgroundHint"]</FluentLabel>
+
+                        @* Import of an exported plan. The file is parsed and thrown away — that is
+                           why SVG is welcome here and refused as an underlay, where it would be
+                           served back from this origin as a document that can carry script. *@
+                        <hr class="map-panel__rule" />
+                        <FluentLabel Typo="Typography.Subject">@L["Map_Svg"]</FluentLabel>
+                        <FluentSelect TOption="MapShapeKind"
+                                      Items="@ShapeKinds"
+                                      OptionValue="@(k => k.ToString())"
+                                      OptionText="@(k => L[$"Map_Kind_{k}"].Value)"
+                                      @bind-SelectedOption="_svgKind"
+                                      Label="@L["Map_SvgKind"]" />
+                        <InputFile id="map-svg-file" OnChange="OnSvgSelectedAsync" accept="image/svg+xml,.svg" class="parking-input" />
+                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Map_SvgHint"]</FluentLabel>
+                        @if (_svgReport is { } imported)
+                        {
+                            <div class="batch-preview">
+                                <span><span class="count-chip">@imported.Created</span> @string.Format(L["Map_Svg_Created"], imported.Labelled)</span>
+                                @if (imported.Warnings.NotRectangles > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_NotRectangles"], imported.Warnings.NotRectangles)</span>
+                                }
+                                @if (imported.Warnings.OrphanLabels > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_OrphanLabels"], imported.Warnings.OrphanLabels)</span>
+                                }
+                                @if (imported.Warnings.UnsupportedTransforms > 0)
+                                {
+                                    <span class="batch-preview__bad">@string.Format(L["Map_Svg_Unsupported"], imported.Warnings.UnsupportedTransforms)</span>
+                                }
+                                @if (imported.Warnings.Degenerate > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_Degenerate"], imported.Warnings.Degenerate)</span>
+                                }
+                                @if (imported.Warnings.Duplicates > 0)
+                                {
+                                    <span class="batch-preview__dup">@string.Format(L["Map_Svg_Duplicates"], imported.Warnings.Duplicates)</span>
+                                }
+                            </div>
+                        }
 
                         <hr class="map-panel__rule" />
                         <FluentLabel Typo="Typography.Subject">@L["Map_Linking"]</FluentLabel>
@@ -293,7 +391,15 @@
                                 <span><span class="count-chip">@report.Linked</span> @L["Map_AutoLink_Linked"]</span>
                                 @if (report.UnmatchedLabels.Count > 0)
                                 {
-                                    <span class="batch-preview__dup">@string.Format(L["Map_AutoLink_NoSpot"], report.UnmatchedLabels.Count, Sample(report.UnmatchedLabels))</span>
+                                    @* Clickable: the report used to name what was left over and give
+                                       no way to go and look at it. *@
+                                    <span class="batch-preview__dup">
+                                        @string.Format(L["Map_AutoLink_NoSpot"], report.UnmatchedLabels.Count, string.Empty)
+                                        @foreach (var label in report.UnmatchedLabels.Take(12))
+                                        {
+                                            <button type="button" class="map-find-link" @onclick="() => FindLabelAsync(label)">@label</button>
+                                        }
+                                    </span>
                                 }
                                 @if (report.UnmatchedCodes.Count > 0)
                                 {
@@ -343,6 +449,28 @@
     private int _rowStep = 1;
     private RowDirection _rowDirection = RowDirection.Right;
     private ParkingSpotType _bulkType = ParkingSpotType.Standard;
+
+    private string? _find;
+    private MapShapeKind _svgKind = MapShapeKind.Spot;
+    private MapSvgImportResult? _svgReport;
+    private MapShapeKind _bulkKind = MapShapeKind.Spot;
+
+    /// <summary>The alignment buttons, in the order they read on the panel.</summary>
+    private static readonly (MapAlignment Mode, string Key)[] Alignments =
+    [
+        (MapAlignment.Left, "Map_Align_Left"),
+        (MapAlignment.CentreX, "Map_Align_CentreX"),
+        (MapAlignment.Right, "Map_Align_Right"),
+        (MapAlignment.DistributeX, "Map_Align_DistributeX"),
+        (MapAlignment.Top, "Map_Align_Top"),
+        (MapAlignment.MiddleY, "Map_Align_MiddleY"),
+        (MapAlignment.Bottom, "Map_Align_Bottom"),
+        (MapAlignment.DistributeY, "Map_Align_DistributeY"),
+    ];
+
+    private string _renumberFrom = "1";
+    private int _renumberStep = 1;
+    private bool _renumberReverse;
 
     private string? _newName;
     private int _newWidth = 1600;
@@ -577,16 +705,29 @@
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Deletes what is selected. The module deliberately sends no ids: the selection exists both as
+    /// classes in the DOM and as <see cref="_selected"/> here, and reading it from the DOM at keypress
+    /// time can catch nodes Blazor is part-way through re-rendering. Circuit messages arrive in
+    /// order, so this copy is the selection as it stood when the key went down.
+    /// </summary>
     [JSInvokable]
-    public async Task OnDeleteRequested(Guid[] ids)
+    public async Task OnDeleteRequested()
     {
-        await DeleteShapesAsync(ids);
+        await DeleteShapesAsync(_selected.ToArray());
     }
 
     [JSInvokable]
     public async Task OnUndoRequested()
     {
         await UndoAsync();
+    }
+
+    /// <summary>Duplicates what is selected. Takes its ids from the server's copy, like the delete above.</summary>
+    [JSInvokable]
+    public async Task OnDuplicateRequested()
+    {
+        await DuplicateAsync(_selected.ToArray());
     }
 
     // --- undo ---
@@ -606,13 +747,17 @@
     private sealed record UndoStep(
         IReadOnlyList<ShapeGeometryUpdate> Geometry,
         IReadOnlyList<Guid> Created,
-        IReadOnlyList<MapShapeRestore> Deleted)
+        IReadOnlyList<MapShapeRestore> Deleted,
+        IReadOnlyList<MapShapeLabel> Labels)
     {
-        public static UndoStep ForMoved(IReadOnlyList<ShapeGeometryUpdate> previous) => new(previous, [], []);
+        public static UndoStep ForMoved(IReadOnlyList<ShapeGeometryUpdate> previous) => new(previous, [], [], []);
 
-        public static UndoStep ForCreated(IReadOnlyList<Guid> ids) => new([], ids, []);
+        public static UndoStep ForCreated(IReadOnlyList<Guid> ids) => new([], ids, [], []);
 
-        public static UndoStep ForDeleted(IReadOnlyList<MapShapeRestore> shapes) => new([], [], shapes);
+        public static UndoStep ForDeleted(IReadOnlyList<MapShapeRestore> shapes) => new([], [], shapes, []);
+
+        /// <summary>A bulk relabelling. One shape's label is a visible field; a whole row's is work.</summary>
+        public static UndoStep ForRelabelled(IReadOnlyList<MapShapeLabel> previous) => new([], [], [], previous);
     }
 
     private void Remember(UndoStep step)
@@ -656,6 +801,15 @@
         if (step.Deleted.Count > 0)
         {
             var result = await Maps.RestoreShapesAsync(map.Id, step.Deleted);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
+        }
+
+        if (step.Labels.Count > 0)
+        {
+            var result = await Maps.SetLabelsAsync(map.Id, step.Labels);
             if (!result.Succeeded)
             {
                 _error = result.Errors.FirstOrDefault();
@@ -876,6 +1030,199 @@
         await InvokeModuleAsync("select", _selected.ToArray());
     }
 
+    private async Task FindAsync()
+    {
+        if (_map is not { } map)
+        {
+            return;
+        }
+
+        var term = _find?.Trim();
+        if (string.IsNullOrEmpty(term))
+        {
+            return;
+        }
+
+        // Exact match first, then anything containing the term: typing "43" while looking for 43
+        // should land on 43 rather than on the first of 430–439.
+        var hits = map.Shapes
+            .Where(sh => string.Equals(sh.Label, term, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (hits.Count == 0)
+        {
+            hits = map.Shapes
+                .Where(sh => sh.Label is not null && sh.Label.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (hits.Count == 0)
+        {
+            _info = string.Format(L["Map_FindNothing"], term);
+            return;
+        }
+
+        _info = null;
+        _selected.Clear();
+        foreach (var shape in hits)
+        {
+            _selected.Add(shape.Id);
+        }
+
+        var ids = _selected.ToArray();
+        await InvokeModuleAsync("select", ids);
+        await InvokeModuleAsync("reveal", ids);
+        StateHasChanged();
+    }
+
+    private async Task FindLabelAsync(string label)
+    {
+        _find = label;
+        await FindAsync();
+    }
+
+    private async Task AlignAsync(MapAlignment mode)
+    {
+        if (_map is not { } map || _selected.Count < 2)
+        {
+            return;
+        }
+
+        var selected = map.Shapes.Where(sh => _selected.Contains(sh.Id)).ToList();
+        var moved = MapAlign.Apply(selected, sh => sh.Rect, mode);
+        if (moved.Count == 0)
+        {
+            return;
+        }
+
+        // Down the same path a drag takes: MoveShapesAsync clamps, stores and hands back the result,
+        // and OnShapesMoved records the undo step. Alignment needs none of that a second time.
+        await OnShapesMoved(moved
+            .Select(m => new ShapeGeometryUpdate(m.Shape.Id, m.Rect.X, m.Rect.Y, m.Rect.Width, m.Rect.Height, m.Rect.Rotation))
+            .ToArray());
+    }
+
+    private async Task SetKindAsync()
+    {
+        if (_map is not { } map || _selected.Count == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Maps.SetKindAsync(map.Id, _selected.ToArray(), _bulkKind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _info = result.Unlinked > 0
+            ? string.Format(L["Map_BulkKindDoneUnlinked"], result.Changed, result.Unlinked)
+            : string.Format(L["Map_BulkKindDone"], result.Changed);
+        await ReloadAsync();
+    }
+
+    private Task DuplicateSelectedAsync() => DuplicateAsync(_selected.ToArray());
+
+    private async Task DuplicateAsync(Guid[] ids)
+    {
+        if (_map is not { } map || ids.Length == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var result = await Maps.DuplicateShapesAsync(map.Id, ids);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        // The copies become the selection: they are what gets dragged into place next, and leaving
+        // the originals selected would move the wrong row.
+        _selected.Clear();
+        foreach (var shape in result.Shapes)
+        {
+            _selected.Add(shape.Id);
+        }
+
+        Remember(UndoStep.ForCreated(result.Shapes.Select(sh => sh.Id).ToList()));
+        await ReloadAsync();
+        await InvokeModuleAsync("select", _selected.ToArray());
+        StateHasChanged();
+    }
+
+    private async Task RenumberAsync()
+    {
+        if (_map is not { } map || _selected.Count == 0)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        // Captured first: after the write there is no record of what the row used to be called.
+        var previous = map.Shapes
+            .Where(sh => _selected.Contains(sh.Id))
+            .Select(sh => new MapShapeLabel(sh.Id, sh.Label))
+            .ToList();
+
+        var result = await Maps.RenumberShapesAsync(
+            map.Id, _selected.ToArray(), _renumberFrom, _renumberStep, _renumberReverse);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        Remember(UndoStep.ForRelabelled(previous));
+        _info = result.Labels.Count == 0
+            ? L["Map_RenumberNothing"]
+            : string.Format(L["Map_RenumberDone"], result.Labels.Count, Sample(result.Labels));
+        await ReloadAsync();
+    }
+
+    private async Task MatchBackgroundAsync()
+    {
+        if (_map is not { } map || _module is null)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        var url = $"/api/parking/maps/{map.Id}/background?v={_backgroundVersion}";
+        MeasuredImage? measured;
+        try
+        {
+            measured = await _module.InvokeAsync<MeasuredImage>("measureImage", url);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+
+        if (measured is not { Width: > 0, Height: > 0 })
+        {
+            _error = "Map_Error_BackgroundSizeUnknown";
+            return;
+        }
+
+        var result = await Maps.MatchToBackgroundAsync(map.Id, measured.Width, measured.Height);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        await ReloadAsync();
+        // The coordinate space changed under the module, so its view has to be rebuilt around it.
+        await InvokeModuleAsync("sync", new { width = _map!.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+        _info = string.Format(L["Map_MatchBackgroundDone"], _map.Width, _map.Height);
+    }
+
+    /// <summary>The underlay's natural pixel size, as the browser reports it.</summary>
+    private sealed record MeasuredImage(int Width, int Height);
+
     private Task DeleteSelectedAsync() => DeleteShapesAsync(_selected.ToArray());
 
     private async Task DeleteShapesAsync(Guid[] ids)
@@ -959,6 +1306,47 @@
             _error = "Map_Error_BackgroundTooLarge";
         }
     }
+
+    private async Task OnSvgSelectedAsync(InputFileChangeEventArgs e)
+    {
+        if (_map is not { } map)
+        {
+            return;
+        }
+
+        _error = _info = null;
+        _svgReport = null;
+        string svg;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: MaxSvgBytes);
+            using var reader = new StreamReader(stream);
+            svg = await reader.ReadToEndAsync();
+        }
+        catch (IOException)
+        {
+            // OpenReadStream throws this when the file is over the cap — the size limit, not a disk error.
+            _error = "Map_Error_SvgTooLarge";
+            return;
+        }
+
+        var result = await Maps.ImportSvgAsync(map.Id, svg, _svgKind);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _svgReport = result;
+        // One step back: an import lays down hundreds of shapes, and finding out it landed wrong
+        // should not mean deleting them by hand.
+        Remember(UndoStep.ForCreated(result.CreatedIds));
+        await ReloadAsync();
+        await InvokeModuleAsync("sync", new { width = _map!.Width, height = _map.Height, tool = _tool, grid = _map.GridSize });
+    }
+
+    /// <summary>Upper bound on an imported plan. A site plan of five hundred stalls is well under a megabyte.</summary>
+    private const int MaxSvgBytes = 16 * 1024 * 1024;
 
     private async Task ClearBackgroundAsync()
     {

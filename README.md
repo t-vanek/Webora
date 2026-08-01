@@ -520,13 +520,48 @@ Nenapojené stání zůstává na plánu jako kontext.
   kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
   nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
   vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
-- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady i smazání výběru se dají vzít zpět, padesát
-  kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
+- **Import plánu z SVG:** vyexportujte plán areálu z PDF nebo DWG do SVG a nahrajte ho — stání se
+  rozmístí sama, čísla natištěná uvnitř se z nich stanou popisky a mapa převezme rozměry kresby.
+  Rozdíl mezi otevřením souboru a odpolednem obtahování. Co se přečíst nedá (nepravoúhlé tvary,
+  texty mimo stání, nepodporované transformace), se **spočítá a vypíše** — import, který tiše ztratí
+  čtyřicet stání, je horší než ten, který řekne, že je nepřečetl. Soubor se jen přečte a zahodí;
+  neukládá se a nikdy se neservíruje zpět (proto je SVG vítané tady a odmítnuté jako podklad).
+  Naimportované tvary jdou vzít zpět jedním krokem.
+- **Srovnat mapu podle podkladu:** rozměry mapy se převezmou ze skutečných rozměrů skenu, takže se
+  plán neroztahuje. Bez toho se kreslí přes zdeformovaný podklad a nic na obrazovce neřekne, jaké
+  rozměry měly být zadané. Už nakreslené tvary se přeškálují s ním.
+- **Razítko a duplikát:** v režimu kreslení položí **kliknutí** (bez tažení) obdélník poslední
+  použité velikosti — a „poslední" je i rozměr právě vybraného stání, takže se dá jedno obtáhnout
+  a zbytek naklikat. **Ctrl+D** zkopíruje výběr vedle originálu; z hotové řady tak vznikne dvojřada
+  jedním hmatem.
+- **Přečíslovat výběr:** popisky se přiřadí v pořadí čtení — pásy shora, v pásu zleva — od zadaného
+  čísla a s volitelným krokem; zaškrtávátko obrátí pořadí pro sloupce číslované opačně. Řada
+  obtažená správně, ale začínající o jedna vedle, se tím spraví jedním krokem místo třinácti přepisů.
+- **Najít popisek:** políčko v liště vybere všechna stání s daným popiskem a najede na ně. Bez toho
+  nemá otázka „kde je 434?" na plánu o pěti stech tvarech jinou odpověď než hledání očima. Popisky
+  ve výpisu z auto-linku jsou klikací a vedou na totéž.
+- **Zarovnat a rozmístit:** vybraná stání se srovnají na společnou hranu nebo osu, případně
+  rozmístí rovnoměrně mezi krajní dva. Tvary se jen posouvají, nikdy nemění velikost, a měří se
+  podle skutečně zabrané plochy — takže i natočené stání se srovná tak, jak vypadá.
+- **Hromadná změna druhu:** deset obdélníků najednou na Komunikaci. Kolik to stálo napojení na
+  místa, se vypíše — napojit lze jen stání, takže změna druhu je ruší.
+- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady, duplikát, smazání výběru i hromadné
+  přečíslování se dají vzít zpět, padesát kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
   nesváží s místem, které mezitím nakreslil někdo jiný. Historie patří jedné mapě a jednomu sezení.
 - **Tvar neuteče z mapy:** obdélník tažený za okraj se vrátí zpátky na plochu, stejně jako tvary,
   které by zůstaly venku po zmenšení mapy. Jinak by nešly kliknout ani najet a byly by ztracené.
 - **Publikace:** publikovaná je vždy nejvýš jedna mapa — obrazovky pro řidiče se ptají na „tu" mapu
   a dvě odpovědi by znamenaly, že záleží na pořadí řádků. Rozpracovaná mapa se ven nedostane.
+- **Na ploše dashboardu:** publikovaná mapa se dá zapnout na `/admin/parking/dashboard` přepínačem
+  **Mřížka / Mapa**. Stání nesou tytéž barvy stavu jako dlaždice a klik otevře stejný postranní
+  detail — přepnutí pohledu tedy není přeučení. Cizí stání, budovy a komunikace se kreslí tlumeně
+  jako kontext a klikat na ně nejde. Přepínač se nabízí, teprve když je nějaká mapa publikovaná;
+  dokud se plán obtahuje, je mřížka poctivější odpověď.
+- **V rezervaci pro řidiče:** po vyhledání volných míst se dá výsledek přepnout ze seznamu na
+  **mapu** a rezervovat kliknutím přímo na stání. Volná jsou zelená a klikatelná, naše obsazená
+  šedá (ale nakreslená — „naše, ale obsazené" a „cizí" jsou jiné odpovědi) a cizí zůstávají
+  kontextem. Seznam se nikdy neschovává: je to, co funguje na telefonu, co přečte čtečka obrazovky
+  a co zbyde, když je kresba špatně.
 - **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se
   v cílové databázi obnoví jedním kliknutím na *Napojit podle popisků*).
 

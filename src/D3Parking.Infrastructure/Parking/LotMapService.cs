@@ -24,18 +24,31 @@ public sealed class LotMapService(
     private const int MaxSpotCodeLength = 32;
 
     /// <summary>
-    /// Upper bound on one import. The JSON comes from an administrator, but "paste a file and get
-    /// an unbounded number of rows" is a footgun whoever authored the file did not intend.
+    /// Upper bound on one JSON import. The file comes from an administrator, but "paste a file and get
+    /// an unbounded number of rows" is a footgun whoever authored the file did not intend. It is the
+    /// per-map cap because an import creates a whole map at once and so never passes through
+    /// <see cref="IsFullAsync"/> — a looser number here would be a way to build a map the editor
+    /// refuses to grow and struggles to open.
     /// </summary>
-    private const int MaxImportShapes = 10_000;
+    private const int MaxImportShapes = MaxShapesPerMap;
 
     /// <summary>
-    /// How many shapes one map may hold. The editor draws every one of them into a single SVG over
-    /// a Blazor circuit, so a drawing that grows past this stops being editable — and the only way
-    /// out of that would be deleting the map. Far above any real site plan (the one this was built
-    /// for is about five hundred), so it is a runaway guard, not a design limit.
+    /// How many shapes one map may hold. The editor draws every one of them into a single SVG over a
+    /// Blazor circuit, so a drawing that grows past what the circuit can repaint stops being editable —
+    /// and the only way out of that would be deleting the map.
     /// </summary>
-    public const int MaxShapesPerMap = 5_000;
+    /// <remarks>
+    /// Measured, not guessed. At 460 shapes — the size of the plan this was built for — selecting a
+    /// single stall round-trips in about 420 ms and the markup is 134 KiB; both scale with the shape
+    /// count, so three times that plan is already a second and a half per click and the far side of
+    /// usable. 1500 leaves real headroom above any site plan we have seen while keeping the worst case
+    /// something an administrator can still work in. It is a runaway guard, not a design limit: a
+    /// campus that genuinely needs more wants a map per lot, which the model already allows.
+    /// </remarks>
+    public const int MaxShapesPerMap = 1_500;
+
+    /// <summary>Offset for a duplicate on a map with snapping off, in map units.</summary>
+    private const int DefaultDuplicateOffset = 10;
 
     private static readonly JsonSerializerOptions ExportJson = new() { WriteIndented = true };
 
@@ -124,15 +137,24 @@ public sealed class LotMapService(
             Layered(shapes));
     }
 
-    /// <summary>Painter's order: context first, stalls over it, captions last.</summary>
+    /// <summary>
+    /// Painter's order: context first, stalls over it, captions last — and within each layer, the
+    /// order the shapes read. The layering is what makes the drawing legible; the reading order makes
+    /// the result deterministic (a query with no ORDER BY does not promise one) and puts the DOM in
+    /// roughly the order somebody looking at the map would go through it.
+    /// </summary>
     private static List<MapShapeDto> Layered(IEnumerable<MapShapeDto> shapes) =>
-        shapes.OrderBy(s => s.Kind switch
-        {
-            MapShapeKind.Building => 0,
-            MapShapeKind.Aisle => 1,
-            MapShapeKind.Spot => 2,
-            _ => 3,
-        }).ToList();
+        shapes
+            .GroupBy(s => s.Kind switch
+            {
+                MapShapeKind.Building => 0,
+                MapShapeKind.Aisle => 1,
+                MapShapeKind.Spot => 2,
+                _ => 3,
+            })
+            .OrderBy(g => g.Key)
+            .SelectMany(g => MapShapeOrder.Reading(g.ToList(), s => s.Rect))
+            .ToList();
 
     public async Task<ParkingResult> CreateAsync(string name, int width, int height, CancellationToken cancellationToken = default)
     {
@@ -416,6 +438,344 @@ public sealed class LotMapService(
         map.Touch(timeProvider.GetUtcNow());
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapShapeResult.Success(created.Select(ToDto).ToList());
+    }
+
+    public async Task<ParkingResult> MatchToBackgroundAsync(
+        Guid mapId,
+        int imageWidth,
+        int imageHeight,
+        CancellationToken cancellationToken = default)
+    {
+        if (imageWidth <= 0 || imageHeight <= 0)
+        {
+            return ParkingResult.Failure("Map_Error_BackgroundSizeUnknown");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return ParkingResult.Failure("Map_Error_NotFound");
+        }
+
+        await ReshapeCanvasAsync(dbContext, map, imageWidth, imageHeight, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    /// <summary>
+    /// Puts the map into a coordinate space of the given proportions, scaling every shape already on
+    /// it so a drawing keeps sitting where it sat. Returns the factors applied, so a caller placing
+    /// new geometry can land it in the same frame. Nothing is saved here.
+    /// </summary>
+    /// <remarks>
+    /// A rotated rectangle under a non-uniform scale is not exactly a rectangle any more, so its
+    /// extents are scaled per axis and the angle kept — an approximation that only bites when the
+    /// aspect ratio itself changes, which is a correction worth making early and rarely later.
+    /// </remarks>
+    private async Task<(double Fx, double Fy)> ReshapeCanvasAsync(
+        D3ParkingDbContext dbContext,
+        LotMap map,
+        double sourceWidth,
+        double sourceHeight,
+        CancellationToken cancellationToken)
+    {
+        // Shrunk uniformly if the source is enormous — the ratio is the whole point, so it must
+        // survive the shrink.
+        var scale = Math.Min(1d, LotMap.MaxDimension / Math.Max(sourceWidth, sourceHeight));
+        var width = Math.Clamp((int)Math.Round(sourceWidth * scale), LotMap.MinDimension, LotMap.MaxDimension);
+        var height = Math.Clamp((int)Math.Round(sourceHeight * scale), LotMap.MinDimension, LotMap.MaxDimension);
+
+        var (fx, fy) = ((double)width / map.Width, (double)height / map.Height);
+        if (width == map.Width && height == map.Height)
+        {
+            return (1, 1);
+        }
+
+        map.Resize(width, height);
+        map.Touch(timeProvider.GetUtcNow());
+
+        var shapes = await dbContext.MapShapes.Where(sh => sh.LotMapId == map.Id).ToListAsync(cancellationToken);
+        foreach (var shape in shapes)
+        {
+            var scaled = new MapRect(shape.X * fx, shape.Y * fy, shape.Width * fx, shape.Height * fy, shape.Rotation)
+                .Sanitized()
+                .ClampedInto(width, height)
+                .Sanitized();
+            if (scaled.IsValid())
+            {
+                shape.SetRect(scaled);
+            }
+        }
+
+        return (fx, fy);
+    }
+
+    public async Task<MapSvgImportResult> ImportSvgAsync(
+        Guid mapId,
+        string svg,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default)
+    {
+        var reading = SvgPlanReader.Read(svg);
+        if (!reading.Succeeded)
+        {
+            return MapSvgImportResult.Failure(reading.ErrorKey!);
+        }
+
+        if (reading.Shapes.Count == 0)
+        {
+            return MapSvgImportResult.Failure("Map_Error_SvgNoShapes");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return MapSvgImportResult.Failure("Map_Error_NotFound");
+        }
+
+        if (await IsFullAsync(dbContext, mapId, reading.Shapes.Count, cancellationToken))
+        {
+            return MapSvgImportResult.Failure("Map_Error_MapFull");
+        }
+
+        // The map takes the drawing's own proportions, and whatever was already on it comes along.
+        // The plan then lands at its native coordinates times the same factor, so an import onto a
+        // half-traced map lines up with what is there instead of on top of it.
+        await ReshapeCanvasAsync(dbContext, map, reading.Width, reading.Height, cancellationToken);
+
+        // Uniform, and the two ratios are equal by construction: the map has just been given the
+        // drawing's proportions. Taking the smaller of the two is what keeps that true after the
+        // clamp to the coordinate space's limits rounds one of them.
+        var scale = Math.Min(map.Width / reading.Width, map.Height / reading.Height);
+
+        var created = new List<MapShape>(reading.Shapes.Count);
+        foreach (var planned in reading.Shapes)
+        {
+            var rect = new MapRect(
+                    planned.Rect.X * scale, planned.Rect.Y * scale,
+                    planned.Rect.Width * scale, planned.Rect.Height * scale,
+                    planned.Rect.Rotation)
+                .Sanitized()
+                .ClampedInto(map.Width, map.Height)
+                .Sanitized();
+            if (!rect.IsValid())
+            {
+                continue;
+            }
+
+            created.Add(new MapShape(mapId, kind, rect, planned.Label));
+        }
+
+        if (created.Count == 0)
+        {
+            return MapSvgImportResult.Failure("Map_Error_SvgNoShapes");
+        }
+
+        dbContext.MapShapes.AddRange(created);
+        map.Touch(timeProvider.GetUtcNow());
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new MapSvgImportResult(
+            true,
+            created.Count,
+            created.Count(sh => sh.Label is not null),
+            created.Select(sh => sh.Id).ToList(),
+            reading.Warnings,
+            []);
+    }
+
+    public async Task<MapShapeResult> DuplicateShapesAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (shapeIds.Count == 0)
+        {
+            return MapShapeResult.Success([]);
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var map = await dbContext.LotMaps.FirstOrDefaultAsync(m => m.Id == mapId, cancellationToken);
+        if (map is null)
+        {
+            return MapShapeResult.Failure("Map_Error_NotFound");
+        }
+
+        var ids = shapeIds.ToList();
+        var originals = await dbContext.MapShapes.AsNoTracking()
+            .Where(sh => sh.LotMapId == mapId && ids.Contains(sh.Id))
+            .ToListAsync(cancellationToken);
+
+        if (originals.Count == 0)
+        {
+            return MapShapeResult.Success([]);
+        }
+
+        if (await IsFullAsync(dbContext, mapId, originals.Count, cancellationToken))
+        {
+            return MapShapeResult.Failure("Map_Error_MapFull");
+        }
+
+        // Offset by a quarter of the selection's smaller side, never less than a grid step. Tied to
+        // the shapes rather than to the grid: a grid step is a handful of units, and on a stall two
+        // hundred units wide that puts the copy all but exactly on top of the original — where the
+        // next click lands on whichever the browser decides is on top.
+        var bounds = originals.Select(sh => sh.Rect.Bounds()).ToList();
+        var extent = Math.Min(
+            bounds.Max(b => b.MaxX) - bounds.Min(b => b.MinX),
+            bounds.Max(b => b.MaxY) - bounds.Min(b => b.MinY));
+        var offset = Math.Max(map.GridSize > 0 ? map.GridSize : DefaultDuplicateOffset, Math.Round(extent / 4));
+
+        // Reading order, so duplicating a row hands the copies back in the order the row reads. A
+        // query without an ORDER BY returns whatever the server finds convenient, which makes the
+        // result of this call quietly depend on the plan it happened to pick.
+        var copies = MapShapeOrder.Reading(originals, sh => sh.Rect)
+            .Select(sh => new MapShape(
+                mapId,
+                sh.Kind,
+                sh.Rect.MovedBy(offset, offset).Sanitized().ClampedInto(map.Width, map.Height).Sanitized(),
+                sh.Label))
+            .Where(sh => sh.Rect.IsValid())
+            .ToList();
+
+        // No spot link is copied: a spot is drawn by exactly one rectangle, and a duplicate is a
+        // second rectangle. Auto-link will not claim it either, since the original still holds it.
+        dbContext.MapShapes.AddRange(copies);
+        map.Touch(timeProvider.GetUtcNow());
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapShapeResult.Success(copies.Select(ToDto).ToList());
+    }
+
+    public async Task<MapRenumberResult> RenumberShapesAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        string firstLabel,
+        int step,
+        bool reverse,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(firstLabel))
+        {
+            return MapRenumberResult.Failure("Map_Error_RenumberStart");
+        }
+
+        if (shapeIds.Count == 0)
+        {
+            return MapRenumberResult.Success([]);
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var ids = shapeIds.ToList();
+        var shapes = await dbContext.MapShapes
+            .Where(sh => sh.LotMapId == mapId && ids.Contains(sh.Id))
+            .ToListAsync(cancellationToken);
+
+        if (shapes.Count == 0)
+        {
+            return MapRenumberResult.Success([]);
+        }
+
+        var ordered = MapShapeOrder.Reading(shapes, sh => sh.Rect, reverse);
+        var labels = new List<string>(ordered.Count);
+        string? label = firstLabel.Trim();
+
+        foreach (var shape in ordered)
+        {
+            if (label is null)
+            {
+                // The start had no trailing number, so there is no second label to give. The first
+                // shape is still named; the rest keep whatever they had.
+                break;
+            }
+
+            shape.Relabel(label);
+            labels.Add(label);
+            label = MapLabelSequence.Next(label, step);
+        }
+
+        await TouchMapAsync(dbContext, mapId, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapRenumberResult.Success(labels);
+    }
+
+    public async Task<ParkingResult> SetLabelsAsync(
+        Guid mapId,
+        IReadOnlyList<MapShapeLabel> labels,
+        CancellationToken cancellationToken = default)
+    {
+        if (labels.Count == 0)
+        {
+            return ParkingResult.Success;
+        }
+
+        if (labels.Count > MaxBatchUpdates)
+        {
+            return ParkingResult.Failure("Map_Error_BatchTooLarge");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var wanted = labels.GroupBy(l => l.ShapeId).ToDictionary(g => g.Key, g => g.Last().Label);
+        var ids = wanted.Keys.ToList();
+        var shapes = await dbContext.MapShapes
+            .Where(sh => sh.LotMapId == mapId && ids.Contains(sh.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var shape in shapes)
+        {
+            shape.Relabel(wanted[shape.Id]);
+        }
+
+        await TouchMapAsync(dbContext, mapId, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<MapKindChangeResult> SetKindAsync(
+        Guid mapId,
+        IReadOnlyList<Guid> shapeIds,
+        MapShapeKind kind,
+        CancellationToken cancellationToken = default)
+    {
+        if (shapeIds.Count == 0)
+        {
+            return new MapKindChangeResult(true, 0, 0, []);
+        }
+
+        if (shapeIds.Count > MaxBatchUpdates)
+        {
+            return MapKindChangeResult.Failure("Map_Error_BatchTooLarge");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var ids = shapeIds.ToList();
+        var shapes = await dbContext.MapShapes
+            .Where(sh => sh.LotMapId == mapId && ids.Contains(sh.Id))
+            .ToListAsync(cancellationToken);
+
+        var changed = 0;
+        var unlinked = 0;
+        foreach (var shape in shapes.Where(sh => sh.Kind != kind))
+        {
+            // ChangeKind clears the spot link for anything that is not a stall; counting it here is
+            // what lets the editor say so rather than leaving it to be noticed later.
+            if (shape.IsLinked && kind != MapShapeKind.Spot)
+            {
+                unlinked++;
+            }
+
+            shape.ChangeKind(kind);
+            changed++;
+        }
+
+        if (changed > 0)
+        {
+            await TouchMapAsync(dbContext, mapId, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return new MapKindChangeResult(true, changed, unlinked, []);
     }
 
     public async Task<ParkingResult> UpdateShapeAsync(

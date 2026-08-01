@@ -2,7 +2,9 @@
 @attribute [HasPermission(Permissions.Parking.Reserve)]
 @rendermode InteractiveServer
 @using System.Globalization
+@using D3Parking.Application.Parking.Maps
 @inject IReservationService Reservations
+@inject ILotMapService Maps
 @inject IParkingSettingsService ParkingSettings
 @inject IResidentSpotService ResidentSpots
 @inject IUserLocationService UserLocation
@@ -167,7 +169,7 @@
                 <label>@L["Parking_To"]</label>
                 <input type="time" @bind="_endTime" @bind:after="InvalidateSearch" class="parking-input" />
             </div>
-            <FluentButton Appearance="Appearance.Accent" OnClick="FindAvailableAsync">@L["Parking_Find"]</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="() => FindAvailableAsync()">@L["Parking_Find"]</FluentButton>
         </div>
 
         @if (_quote is not null)
@@ -200,8 +202,51 @@
 
     @if (_available is not null)
     {
-        <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
-        @if (_available.Count == 0)
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
+            <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
+            @* Offered only once a plan is published. The list is never taken away: it is what works
+               on a phone, what a screen reader reads, and what is left when the drawing is wrong. *@
+            @if (_map is not null)
+            {
+                <div class="map-toolbar__group" role="group" aria-label="@L["Lot_View"]">
+                    <FluentButton Id="reserve-view-list" Appearance="@(_mapView ? Appearance.Outline : Appearance.Accent)"
+                                  aria-pressed="@(_mapView ? "false" : "true")"
+                                  OnClick="() => _mapView = false">@L["Parking_View_List"]</FluentButton>
+                    <FluentButton Id="reserve-view-map" Appearance="@(_mapView ? Appearance.Accent : Appearance.Outline)"
+                                  aria-pressed="@(_mapView ? "true" : "false")"
+                                  OnClick="() => _mapView = true">@L["Lot_View_Map"]</FluentButton>
+                </div>
+            }
+        </FluentStack>
+
+        @if (_mapView && _map is not null)
+        {
+            <div class="map-legend">
+                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--free"></span>@L["Parking_Map_Free"]</span>
+                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--taken"></span>@L["Parking_Map_Taken"]</span>
+                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--other"></span>@L["Parking_Map_Other"]</span>
+            </div>
+            <LotMapView Map="_map"
+                        StateOf="MapStateOf"
+                        TitleOf="MapTitleOf"
+                        Interactive="MapInteractive"
+                        OnSpotSelected="ReserveAsync"
+                        AriaLabel="@L["Parking_Map_Label"]"
+                        ZoomInLabel="@L["Map_ZoomIn"]"
+                        ZoomOutLabel="@L["Map_ZoomOut"]"
+                        FitLabel="@L["Map_FitView"]" />
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Parking_Map_Hint"]</FluentLabel>
+            @if (_available.Count == 0)
+            {
+                @* The way out of a full lot has to be on this view too, or switching to the map
+                   quietly hides it. *@
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
+                    <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
+                    <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+                </FluentStack>
+            }
+        }
+        else if (_available.Count == 0)
         {
             <div class="empty-state">
                 <FluentIcon Value="@(new Icons.Regular.Size32.VehicleCar())" Color="Color.Neutral" />
@@ -484,6 +529,73 @@
         var home = UserLocation.GetHomeAsync(_userId);
         await Task.WhenAll(home, ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
         _distanceKm = home.Result.Verified ? home.Result.DistanceKm : null;
+
+        // The published plan, if there is one. Geometry only — which stalls are free comes from the
+        // search, so this is read once and never again.
+        _map = await Maps.GetPublishedAsync();
+    }
+
+    /// <summary>The published drawing of the lot, or null while nobody has published one.</summary>
+    private LotMapDetailDto? _map;
+
+    /// <summary>Whether the results are shown as the plan rather than as cards.</summary>
+    private bool _mapView;
+
+    /// <summary>
+    /// What the last search found, by spot — the map's whole notion of "free". Rebuilt whenever the
+    /// list it comes from is replaced, rather than invalidated by hand: the search is cleared from
+    /// three different places, and a lookup that has to be remembered at each of them is a lookup
+    /// that will one day colour the map with the previous window.
+    /// </summary>
+    private HashSet<Guid> AvailableIds
+    {
+        get
+        {
+            if (!ReferenceEquals(_availableIdsSource, _available))
+            {
+                _availableIdsSource = _available;
+                _availableIds = _available?.Select(s => s.Id).ToHashSet() ?? [];
+            }
+
+            return _availableIds;
+        }
+    }
+
+    private IReadOnlyList<ParkingSpotDto>? _availableIdsSource;
+    private HashSet<Guid> _availableIds = [];
+
+    /// <summary>
+    /// Every shape the map draws for a spot is one of ours — that is what the link means — so the
+    /// only question left is whether the search found it free for the window that was asked about.
+    /// The stalls of other tenants have no link and never reach here; they stay context.
+    /// </summary>
+    private string? MapStateOf(Guid spotId) => AvailableIds.Contains(spotId) ? "Free" : "Taken";
+
+    /// <summary>
+    /// Only what is free can be booked, and only under the same conditions the list's button obeys:
+    /// nothing in flight, and the window affordable.
+    /// </summary>
+    private bool MapInteractive(Guid spotId) =>
+        AvailableIds.Contains(spotId) && !_actionBusy && (_quote is null || _quote.Affordable);
+
+    private string MapTitleOf(Guid spotId)
+    {
+        // The code and type come off the shape itself (the map denormalizes them), so a stall that
+        // is taken — and therefore absent from the search — can still say what it is.
+        var shape = _map?.Shapes.FirstOrDefault(sh => sh.ParkingSpotId == spotId);
+        var parts = new List<string> { shape?.SpotCode ?? shape?.Label ?? string.Empty };
+        if (shape?.SpotType is { } type)
+        {
+            parts.Add(L[$"Parking_SpotType_{type}"].Value);
+        }
+
+        parts.Add(L[AvailableIds.Contains(spotId) ? "Parking_Map_Free" : "Parking_Map_Taken"].Value);
+        if (AvailableIds.Contains(spotId) && _quote is not null)
+        {
+            parts.Add($"{_quote.Cost} {L["Parking_Credits"]}");
+        }
+
+        return string.Join(" · ", parts.Where(p => p.Length > 0));
     }
 
     private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
@@ -547,7 +659,7 @@
                 await ReloadReservationsAsync();
                 if (_available is not null)
                 {
-                    await FindAvailableAsync();
+                    await FindAvailableAsync(keepMessages: true);
                 }
             }
             else
@@ -675,7 +787,7 @@
                 await ReloadReservationsAsync();
                 if (_available is not null)
                 {
-                    await FindAvailableAsync();
+                    await FindAvailableAsync(keepMessages: true);
                 }
             }
             else
@@ -689,9 +801,19 @@
         }
     }
 
-    private async Task FindAvailableAsync()
+    /// <param name="keepMessages">
+    /// Set when this is a refresh after an action that has just announced itself. A search the driver
+    /// asked for clears what is on screen — a stale error about the previous window must not outlive
+    /// it — but the same call is also how five different actions refresh the results afterwards, and
+    /// clearing there wiped every one of their confirmations before it could be read.
+    /// </param>
+    private async Task FindAvailableAsync(bool keepMessages = false)
     {
-        _error = _info = null;
+        if (!keepMessages)
+        {
+            _error = _info = null;
+        }
+
         if (End <= Start)
         {
             _error = "Parking_Error_InvalidWindow";
@@ -718,7 +840,7 @@
             if (result.Succeeded)
             {
                 _info = "Parking_Reserved";
-                await FindAvailableAsync();
+                await FindAvailableAsync(keepMessages: true);
                 await ReloadReservationsAsync();
             }
             else
@@ -814,7 +936,7 @@
             await ReloadReservationsAsync();
             if (_available is not null)
             {
-                await FindAvailableAsync();
+                await FindAvailableAsync(keepMessages: true);
             }
         }
         finally
@@ -858,7 +980,7 @@
                 await ReloadReservationsAsync();
                 if (_available is not null)
                 {
-                    await FindAvailableAsync();
+                    await FindAvailableAsync(keepMessages: true);
                 }
             }
             else

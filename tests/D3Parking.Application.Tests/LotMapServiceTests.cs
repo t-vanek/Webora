@@ -544,6 +544,363 @@ public class LotMapServiceTests
         Assert.That(result.Errors, Does.Contain("Map_Error_ImportTooLarge"));
     }
 
+    // --- tracing aids: match to underlay, duplicate, renumber ---
+
+    [Test]
+    public async Task Matching_the_underlay_takes_the_maps_proportions_from_the_scan()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        // A plan far wider than the 16:9 the map was created with — the case that traces distorted.
+        await service.MatchToBackgroundAsync(mapId, 2200, 1000);
+
+        var map = await service.GetAsync(mapId);
+        Assert.That((map!.Width, map.Height), Is.EqualTo((2200, 1000)));
+    }
+
+    [Test]
+    public async Task Matching_the_underlay_scales_a_drawing_already_begun_so_it_keeps_its_place()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        // Dead centre of a 1600×900 map.
+        await AddShapeAsync(service, mapId, new MapRect(800, 450, 40, 30, 0), "1");
+
+        await service.MatchToBackgroundAsync(mapId, 3200, 1800);
+
+        var shape = (await service.GetAsync(mapId))!.Shapes.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That((shape.X, shape.Y), Is.EqualTo((1600d, 900d)), "Still dead centre.");
+            Assert.That((shape.Width, shape.Height), Is.EqualTo((80d, 60d)), "And still the same size relative to the plan.");
+        });
+    }
+
+    [Test]
+    public async Task A_scan_larger_than_the_coordinate_space_shrinks_but_keeps_its_ratio()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        await service.MatchToBackgroundAsync(mapId, 400_000, 200_000);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(map!.Width, Is.EqualTo(LotMap.MaxDimension));
+            Assert.That((double)map.Width / map.Height, Is.EqualTo(2).Within(0.01),
+                "The ratio is the whole point of matching; it has to survive the shrink.");
+        });
+    }
+
+    [Test]
+    public async Task Duplicating_copies_the_selection_clear_of_the_originals()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "428");
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "429");
+
+        var result = await service.DuplicateShapesAsync(mapId, [a, b]);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Shapes, Has.Count.EqualTo(2));
+            Assert.That(map!.Shapes, Has.Count.EqualTo(4));
+            Assert.That(result.Shapes.Select(sh => sh.Label), Is.EqualTo(new[] { "428", "429" }),
+                "A duplicate keeps its label; renaming a stall behind the author's back is renumbering's job.");
+            Assert.That(result.Shapes.All(sh => sh.X > 0 && sh.Y > 0), Is.True,
+                "Copies land clear of the originals, or the next click hits the wrong one.");
+        });
+    }
+
+    [Test]
+    public async Task A_duplicate_never_carries_the_spot_link_across()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var shape = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "428");
+        await service.LinkSpotAsync(shape, await CreateSpotAsync("428"));
+
+        var result = await service.DuplicateShapesAsync(mapId, [shape]);
+
+        Assert.That(result.Shapes.Single().ParkingSpotId, Is.Null,
+            "A spot is drawn by exactly one rectangle; a copy is a second rectangle.");
+    }
+
+    [Test]
+    public async Task Renumbering_counts_along_the_row_in_reading_order()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        // Created out of order on purpose: position decides the numbering, not creation order.
+        var third = await AddShapeAsync(service, mapId, new MapRect(60, 0, 20, 10, 0), "x");
+        var first = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "y");
+        var second = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "z");
+
+        var result = await service.RenumberShapesAsync(mapId, [third, first, second], "428", 1, reverse: false);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Labels, Is.EqualTo(new[] { "428", "429", "430" }));
+            Assert.That(map!.Shapes.Single(sh => sh.Id == first).Label, Is.EqualTo("428"));
+            Assert.That(map.Shapes.Single(sh => sh.Id == third).Label, Is.EqualTo("430"));
+        });
+    }
+
+    [Test]
+    public async Task Renumbering_can_run_the_other_way_for_a_column_numbered_upwards()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var top = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), null);
+        var bottom = await AddShapeAsync(service, mapId, new MapRect(0, 40, 20, 10, 0), null);
+
+        await service.RenumberShapesAsync(mapId, [top, bottom], "13", 1, reverse: true);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(map!.Shapes.Single(sh => sh.Id == bottom).Label, Is.EqualTo("13"));
+            Assert.That(map.Shapes.Single(sh => sh.Id == top).Label, Is.EqualTo("14"));
+        });
+    }
+
+    [Test]
+    public async Task Renumbering_from_a_label_with_no_number_names_the_first_and_stops()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "keep-me");
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "keep-me-too");
+
+        var result = await service.RenumberShapesAsync(mapId, [a, b], "VISITOR", 1, reverse: false);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Labels, Is.EqualTo(new[] { "VISITOR" }));
+            Assert.That(map!.Shapes.Single(sh => sh.Id == b).Label, Is.EqualTo("keep-me-too"),
+                "There is no second label to give, so the rest keep what they had.");
+        });
+    }
+
+    [Test]
+    public async Task The_previous_labels_can_be_written_straight_back_which_is_how_undo_works()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "A");
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "B");
+        await service.RenumberShapesAsync(mapId, [a, b], "1", 1, reverse: false);
+
+        await service.SetLabelsAsync(mapId, [new MapShapeLabel(a, "A"), new MapShapeLabel(b, "B")]);
+
+        var map = await service.GetAsync(mapId);
+        Assert.That(map!.Shapes.OrderBy(sh => sh.X).Select(sh => sh.Label), Is.EqualTo(new[] { "A", "B" }));
+    }
+
+    [Test]
+    public async Task Changing_a_selections_kind_reports_the_spot_links_it_costs()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var linked = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "428");
+        var plain = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "429");
+        await service.LinkSpotAsync(linked, await CreateSpotAsync("428"));
+
+        var result = await service.SetKindAsync(mapId, [linked, plain], MapShapeKind.Aisle);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Changed, Is.EqualTo(2));
+            Assert.That(result.Unlinked, Is.EqualTo(1),
+                "Turning stalls into lanes unlinks their spots, and quietly is what that must not be.");
+            Assert.That(map!.Shapes.All(sh => sh.Kind == MapShapeKind.Aisle), Is.True);
+            Assert.That(map.Shapes.All(sh => sh.ParkingSpotId is null), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Changing_kind_to_stall_costs_no_links_because_there_were_none_to_lose()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var shape = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "X", MapShapeKind.Building);
+
+        var result = await service.SetKindAsync(mapId, [shape], MapShapeKind.Spot);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Changed, Is.EqualTo(1));
+            Assert.That(result.Unlinked, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task Shapes_already_of_the_wanted_kind_are_not_counted_as_changed()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var a = await AddShapeAsync(service, mapId, new MapRect(0, 0, 20, 10, 0), "1");
+        var b = await AddShapeAsync(service, mapId, new MapRect(30, 0, 20, 10, 0), "2", MapShapeKind.Aisle);
+
+        var result = await service.SetKindAsync(mapId, [a, b], MapShapeKind.Aisle);
+
+        Assert.That(result.Changed, Is.EqualTo(1));
+    }
+
+    // --- importing an exported plan ---
+
+    private static string PlanSvg(int stalls, double width = 1000, double height = 500)
+    {
+        var body = string.Concat(Enumerable.Range(0, stalls).Select(i =>
+            System.Globalization.CultureInfo.InvariantCulture switch
+            {
+                var c => string.Format(c,
+                    @"<rect x=""{0}"" y=""100"" width=""40"" height=""30"" /><text x=""{1}"" y=""115"">{2}</text>",
+                    i * 50, (i * 50) + 20, 428 + i),
+            }));
+
+        return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+            @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 {0} {1}"">{2}</svg>", width, height, body);
+    }
+
+    [Test]
+    public async Task Importing_a_plan_lays_down_its_stalls_with_their_numbers()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        var result = await service.ImportSvgAsync(mapId, PlanSvg(8), MapShapeKind.Spot);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Created, Is.EqualTo(8));
+            Assert.That(result.Labelled, Is.EqualTo(8));
+            Assert.That(map!.Shapes.Select(sh => sh.Label).Order(),
+                Is.EqualTo(new[] { "428", "429", "430", "431", "432", "433", "434", "435" }));
+        });
+    }
+
+    [Test]
+    public async Task Importing_gives_the_map_the_drawings_own_proportions()
+    {
+        var service = CreateService();
+        // Created 16:9; the plan is 2:1, which is the mismatch that traces distorted.
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        await service.ImportSvgAsync(mapId, PlanSvg(2, width: 1000, height: 500), MapShapeKind.Spot);
+
+        var map = await service.GetAsync(mapId);
+        Assert.That((double)map!.Width / map.Height, Is.EqualTo(2).Within(0.01));
+    }
+
+    [Test]
+    public async Task An_imported_plan_lands_beside_what_was_already_traced_rather_than_on_top_of_it()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        // Dead centre of the 1600×900 the map starts as.
+        await AddShapeAsync(service, mapId, new MapRect(800, 450, 40, 30, 0), "existing");
+
+        await service.ImportSvgAsync(mapId, PlanSvg(2, width: 1000, height: 500), MapShapeKind.Spot);
+
+        var map = await service.GetAsync(mapId);
+        var kept = map!.Shapes.Single(sh => sh.Label == "existing");
+        Assert.Multiple(() =>
+        {
+            Assert.That(map.Shapes, Has.Count.EqualTo(3));
+            Assert.That(kept.X / map.Width, Is.EqualTo(0.5).Within(0.01),
+                "The shape that was there keeps its place on the plan when the canvas is reshaped under it.");
+        });
+    }
+
+    [Test]
+    public async Task Imported_shapes_take_the_kind_they_were_asked_for()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        await service.ImportSvgAsync(mapId, PlanSvg(3), MapShapeKind.Building);
+
+        var map = await service.GetAsync(mapId);
+        Assert.That(map!.Shapes.Select(sh => sh.Kind), Is.All.EqualTo(MapShapeKind.Building));
+    }
+
+    [Test]
+    public async Task An_import_reports_what_it_could_not_read_rather_than_dropping_it_quietly()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var svg = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 1000 500"">
+            <rect x=""0"" y=""0"" width=""40"" height=""30"" />
+            <polygon points=""100,0 140,5 145,35 105,30"" />
+            <text x=""900"" y=""400"">ADMINISTRATIVNÍ BUDOVA</text></svg>";
+
+        var result = await service.ImportSvgAsync(mapId, svg, MapShapeKind.Spot);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Created, Is.EqualTo(1));
+            Assert.That(result.Warnings.NotRectangles, Is.EqualTo(1));
+            Assert.That(result.Warnings.OrphanLabels, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task An_unreadable_file_is_refused_by_name_and_changes_nothing()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        var result = await service.ImportSvgAsync(mapId, "<svg><rect", MapShapeKind.Spot);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Errors, Does.Contain("Map_Error_SvgUnreadable"));
+            Assert.That(map!.Shapes, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task A_drawing_with_nothing_rectangular_in_it_is_refused_rather_than_reported_as_empty_success()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+        var svg = @"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 100 100"">
+            <circle cx=""50"" cy=""50"" r=""20"" /></svg>";
+
+        var result = await service.ImportSvgAsync(mapId, svg, MapShapeKind.Spot);
+
+        Assert.That(result.Errors, Does.Contain("Map_Error_SvgNoShapes"));
+    }
+
+    [Test]
+    public async Task The_created_shapes_come_back_so_the_import_can_be_undone()
+    {
+        var service = CreateService();
+        var mapId = await CreateMapAsync(service, "Areál");
+
+        var result = await service.ImportSvgAsync(mapId, PlanSvg(5), MapShapeKind.Spot);
+        await service.DeleteShapesAsync(mapId, result.CreatedIds);
+
+        var map = await service.GetAsync(mapId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CreatedIds, Has.Count.EqualTo(5));
+            Assert.That(map!.Shapes, Is.Empty, "An import lays down hundreds of shapes; it has to be one step to take back.");
+        });
+    }
+
     private LotMapService CreateService() => new(new TestDbContextFactory(_options), new FixedTimeProvider(Now));
 
     private static async Task<Guid> CreateMapAsync(LotMapService service, string name)

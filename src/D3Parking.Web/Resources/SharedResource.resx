@@ -1636,7 +1636,7 @@
   <data name="Map_Unpublish" xml:space="preserve"><value>Zrušit publikaci</value></data>
   <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
   <data name="Map_CanvasLabel" xml:space="preserve"><value>Kreslicí plátno mapy</value></data>
-  <data name="Map_CanvasHint" xml:space="preserve"><value>Tažením kreslíte nebo posouváte, kolečkem přibližujete, prostředním tlačítkem posouváte plátno. Shift přidává do výběru a při otáčení drží násobky 15°. Delete maže výběr, šipky ho posouvají o mřížku.</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Tažením kreslíte nebo posouváte, kolečkem přibližujete, prostředním tlačítkem posouváte plátno. Shift přidává do výběru a při otáčení drží násobky 15°. Delete maže výběr, šipky ho posouvají o mřížku, Ctrl+A vybere vše, Ctrl+D duplikuje a Ctrl+Z vrací zpět. V režimu kreslení položí kliknutí obdélník poslední použité velikosti.</value></data>
   <data name="Map_Shape" xml:space="preserve"><value>Tvar</value></data>
   <data name="Map_Label" xml:space="preserve"><value>Popisek</value></data>
   <data name="Map_Kind" xml:space="preserve"><value>Druh</value></data>
@@ -1699,4 +1699,64 @@
   <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>Vstupní JSON obsahuje příliš mnoho tvarů (nejvýše 10 000).</value></data>
   <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Někdo mezitím založil místo se stejným kódem nebo je nakreslil. Zkuste to znovu — proběhlé změny se načtou.</value></data>
   <data name="Map_Error_MapFull" xml:space="preserve"><value>Mapa je plná — víc než 5 000 tvarů editor neunese. Rozdělte plán na víc map.</value></data>
+  <data name="Map_Duplicate" xml:space="preserve"><value>Duplikovat</value></data>
+  <data name="Map_MatchBackground" xml:space="preserve"><value>Srovnat mapu podle podkladu</value></data>
+  <data name="Map_MatchBackgroundHint" xml:space="preserve"><value>Nastaví rozměry mapy podle skutečných rozměrů skenu, aby se plán neroztahoval. Nakreslené tvary se přeškálují s ním. Nejlepší je udělat to hned po nahrání podkladu.</value></data>
+  <data name="Map_MatchBackgroundDone" xml:space="preserve"><value>Mapa srovnána na {0} × {1}.</value></data>
+  <data name="Map_Renumber" xml:space="preserve"><value>Přečíslovat</value></data>
+  <data name="Map_RenumberFrom" xml:space="preserve"><value>Začít od</value></data>
+  <data name="Map_RenumberReverse" xml:space="preserve"><value>Obrátit pořadí</value></data>
+  <data name="Map_RenumberRun" xml:space="preserve"><value>Přečíslovat výběr</value></data>
+  <data name="Map_RenumberDone" xml:space="preserve"><value>Přečíslováno {0} tvarů: {1}</value></data>
+  <data name="Map_RenumberNothing" xml:space="preserve"><value>Výchozí popisek nekončí číslem, takže není z čeho počítat.</value></data>
+  <data name="Map_Error_RenumberStart" xml:space="preserve"><value>Zadejte popisek, od kterého se má číslovat.</value></data>
+  <data name="Map_Error_BackgroundSizeUnknown" xml:space="preserve"><value>Rozměry podkladu se nepodařilo zjistit.</value></data>
+  <data name="Map_FindHint" xml:space="preserve"><value>Najít popisek</value></data>
+  <data name="Map_FindNothing" xml:space="preserve"><value>Popisek „{0}“ na mapě není.</value></data>
+  <data name="Map_Align" xml:space="preserve"><value>Zarovnat</value></data>
+  <data name="Map_Align_Left" xml:space="preserve"><value>Zarovnat doleva</value></data>
+  <data name="Map_Align_Left_Short" xml:space="preserve"><value>⇤</value></data>
+  <data name="Map_Align_CentreX" xml:space="preserve"><value>Zarovnat na střed vodorovně</value></data>
+  <data name="Map_Align_CentreX_Short" xml:space="preserve"><value>↔</value></data>
+  <data name="Map_Align_Right" xml:space="preserve"><value>Zarovnat doprava</value></data>
+  <data name="Map_Align_Right_Short" xml:space="preserve"><value>⇥</value></data>
+  <data name="Map_Align_DistributeX" xml:space="preserve"><value>Rozmístit rovnoměrně vodorovně</value></data>
+  <data name="Map_Align_DistributeX_Short" xml:space="preserve"><value>⇹</value></data>
+  <data name="Map_Align_Top" xml:space="preserve"><value>Zarovnat nahoru</value></data>
+  <data name="Map_Align_Top_Short" xml:space="preserve"><value>⤒</value></data>
+  <data name="Map_Align_MiddleY" xml:space="preserve"><value>Zarovnat na střed svisle</value></data>
+  <data name="Map_Align_MiddleY_Short" xml:space="preserve"><value>↕</value></data>
+  <data name="Map_Align_Bottom" xml:space="preserve"><value>Zarovnat dolů</value></data>
+  <data name="Map_Align_Bottom_Short" xml:space="preserve"><value>⤓</value></data>
+  <data name="Map_Align_DistributeY" xml:space="preserve"><value>Rozmístit rovnoměrně svisle</value></data>
+  <data name="Map_Align_DistributeY_Short" xml:space="preserve"><value>⤢</value></data>
+  <data name="Map_BulkKind" xml:space="preserve"><value>Změnit druh na</value></data>
+  <data name="Map_BulkKindApply" xml:space="preserve"><value>Použít</value></data>
+  <data name="Map_BulkKindDone" xml:space="preserve"><value>Změněno tvarů: {0}.</value></data>
+  <data name="Map_BulkKindDoneUnlinked" xml:space="preserve"><value>Změněno tvarů: {0}. Zrušeno napojení na místa: {1} — na parkovací místo lze napojit jen stání.</value></data>
+  <data name="Lot_View" xml:space="preserve"><value>Zobrazení plochy</value></data>
+  <data name="Lot_View_Grid" xml:space="preserve"><value>Mřížka</value></data>
+  <data name="Lot_View_Map" xml:space="preserve"><value>Mapa</value></data>
+  <data name="Lot_Map_Label" xml:space="preserve"><value>Mapa parkoviště se stavem míst</value></data>
+  <data name="Parking_View_List" xml:space="preserve"><value>Seznam</value></data>
+  <data name="Parking_Map_Label" xml:space="preserve"><value>Mapa parkoviště s volnými místy</value></data>
+  <data name="Parking_Map_Free" xml:space="preserve"><value>Volné</value></data>
+  <data name="Parking_Map_Taken" xml:space="preserve"><value>Obsazené</value></data>
+  <data name="Parking_Map_Other" xml:space="preserve"><value>Cizí / mimo areál</value></data>
+  <data name="Parking_Map_Hint" xml:space="preserve"><value>Kliknutím na volné stání ho rovnou zarezervujete. Kolečkem přiblížíte, tažením posunete mapu.</value></data>
+  <data name="Map_Svg" xml:space="preserve"><value>Import plánu (SVG)</value></data>
+  <data name="Map_SvgKind" xml:space="preserve"><value>Naimportovat jako</value></data>
+  <data name="Map_SvgHint" xml:space="preserve"><value>Vyexportujte plán areálu z PDF nebo DWG do SVG a nahrajte ho — stání se rozmístí sama a čísla natištěná uvnitř se z nich stanou popisky. Mapa převezme rozměry kresby. Soubor se jen přečte, neukládá se.</value></data>
+  <data name="Map_Svg_Created" xml:space="preserve"><value>vytvořeno stání ({0} s popiskem)</value></data>
+  <data name="Map_Svg_NotRectangles" xml:space="preserve"><value>nepravoúhlých tvarů přeskočeno: {0}</value></data>
+  <data name="Map_Svg_OrphanLabels" xml:space="preserve"><value>textů mimo stání (nadpisy, legenda): {0}</value></data>
+  <data name="Map_Svg_Unsupported" xml:space="preserve"><value>nepodporovaných transformací: {0} — tyto tvary mohou být posunuté</value></data>
+  <data name="Map_Svg_Degenerate" xml:space="preserve"><value>tvarů bez plochy přeskočeno: {0}</value></data>
+  <data name="Map_Svg_Duplicates" xml:space="preserve"><value>shodných obdélníků sloučeno: {0}</value></data>
+  <data name="Map_Error_SvgEmpty" xml:space="preserve"><value>Nahraný soubor je prázdný.</value></data>
+  <data name="Map_Error_SvgUnreadable" xml:space="preserve"><value>Soubor se nepodařilo přečíst jako XML.</value></data>
+  <data name="Map_Error_SvgNotAPlan" xml:space="preserve"><value>Soubor není SVG.</value></data>
+  <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>SVG neuvádí viewBox ani rozměry, takže není z čeho určit měřítko.</value></data>
+  <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>V souboru nejsou žádné pravoúhlé tvary, ze kterých by šlo udělat stání.</value></data>
+  <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>Soubor je příliš velký (nejvýše 16 MB).</value></data>
 </root>
