@@ -4254,3 +4254,59 @@ fluent-menu-item:has(> .account-menu-link) {
     stroke: var(--neutral-foreground-hint, #9a9a9a);
     stroke-dasharray: 3 2;
 }
+
+/* Stání, které je naše, ale pro zvolené okno obsazené: barevné (aby se lišilo od cizího), ale
+   není to ovládací prvek — tabstop, který nic neudělá, je horší než žádný. */
+.map-view__shape--idle {
+    cursor: default;
+}
+
+    .map-view__shape--idle polygon {
+        fill-opacity: .3;
+    }
+
+    .map-view__shape--idle:hover polygon {
+        fill-opacity: .3;
+    }
+
+.map-view__state--Taken polygon {
+    fill: var(--neutral-foreground-hint, #8a8a8a);
+    stroke: var(--neutral-foreground-hint, #8a8a8a);
+}
+
+/* Legenda mapy v rezervaci: tři odpovědi, které mapa dává. */
+.map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+}
+
+.map-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.map-legend__swatch {
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    border: 1px solid transparent;
+}
+
+.map-legend__swatch--free {
+    background: var(--brand-green);
+    border-color: var(--brand-green-deep);
+}
+
+.map-legend__swatch--taken {
+    background: var(--neutral-foreground-hint, #8a8a8a);
+    opacity: .45;
+}
+
+.map-legend__swatch--other {
+    background: var(--neutral-fill-rest, #e9e9e9);
+    border-color: var(--neutral-stroke-rest, #cfcfcf);
+}

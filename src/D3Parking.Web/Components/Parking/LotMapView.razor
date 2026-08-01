@@ -29,6 +29,8 @@
             var spotId = shape.ParkingSpotId;
             var state = spotId is { } id ? StateOf(id) : null;
 
+            var live = state is not null && Interactive(spotId!.Value);
+
             @if (state is null)
             {
                 @* Context: a building, a lane, or a stall that is not ours. Drawn so the ones that
@@ -43,7 +45,7 @@
                     }
                 </g>
             }
-            else
+            else if (live)
             {
                 <g class="map-view__shape map-view__shape--spot map-view__state--@state @(Selected == spotId ? "is-selected" : null)"
                    @key="shape.Id"
@@ -53,6 +55,23 @@
                    @onclick="() => OnSpotSelected.InvokeAsync(spotId!.Value)"
                    @onkeydown="e => OnKeyAsync(e, spotId!.Value)">
                     @* The accessible name and the hover tooltip in one: an SVG <title> is both. *@
+                    <title>@TitleOf(spotId!.Value)</title>
+                    <polygon points="@shape.Rect.ToSvgPoints()" />
+                    @if (!string.IsNullOrEmpty(shape.Label))
+                    {
+                        <SvgLabel X="@Inv(shape.Rect.CentreX)" Y="@Inv(shape.Rect.CentreY)"
+                                  Transform="@RotateAbout(shape)" Text="@shape.Label" />
+                    }
+                </g>
+            }
+            else
+            {
+                @* One of ours, but nothing can be done with it here — a stall already taken for the
+                   window the driver asked about. Coloured, because "ours and unavailable" and "not
+                   ours at all" are different answers, but not a control: a tab stop that does
+                   nothing is worse than no tab stop. *@
+                <g class="map-view__shape map-view__shape--spot map-view__shape--idle map-view__state--@state"
+                   @key="shape.Id" data-spot="@spotId">
                     <title>@TitleOf(spotId!.Value)</title>
                     <polygon points="@shape.Rect.ToSvgPoints()" />
                     @if (!string.IsNullOrEmpty(shape.Label))
@@ -80,6 +99,14 @@
     /// <summary>The accessible name and tooltip for a spot: code, state, whoever is on it.</summary>
     [Parameter, EditorRequired]
     public Func<Guid, string> TitleOf { get; set; } = _ => string.Empty;
+
+    /// <summary>
+    /// Whether a spot can be acted on here. The manager's board says yes to everything it draws; the
+    /// driver's screen says yes only to what is free for the window they asked about, so a taken
+    /// stall is still coloured but is not a control.
+    /// </summary>
+    [Parameter]
+    public Func<Guid, bool> Interactive { get; set; } = _ => true;
 
     [Parameter]
     public Guid? Selected { get; set; }

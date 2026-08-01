@@ -319,6 +319,11 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   podle specifikace Pointer Events potlačí kompatibilní myší události. Posun funguje i bez
   zachycení; označování textu při tažení řeší `user-select` ve stylu.
 
+  Řidičova mapa v `/parking` používá tutéž komponentu s jiným významem parametrů: stav je „volné /
+  obsazené" podle posledního hledání (napojení na místo samo o sobě znamená „naše", takže se nic
+  dalšího nedotazuje) a klik rezervuje. Obsazené stání se kreslí barevně, ale bez `role`
+  a `tabindex` — tabstop, který nic neudělá, je horší než žádný.
+
   Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
   **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
   pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`

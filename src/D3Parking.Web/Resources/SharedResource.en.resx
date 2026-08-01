@@ -1738,4 +1738,10 @@
   <data name="Lot_View_Grid" xml:space="preserve"><value>Grid</value></data>
   <data name="Lot_View_Map" xml:space="preserve"><value>Map</value></data>
   <data name="Lot_Map_Label" xml:space="preserve"><value>Lot map with the state of each spot</value></data>
+  <data name="Parking_View_List" xml:space="preserve"><value>List</value></data>
+  <data name="Parking_Map_Label" xml:space="preserve"><value>Lot map with the free spots</value></data>
+  <data name="Parking_Map_Free" xml:space="preserve"><value>Free</value></data>
+  <data name="Parking_Map_Taken" xml:space="preserve"><value>Taken</value></data>
+  <data name="Parking_Map_Other" xml:space="preserve"><value>Someone else's</value></data>
+  <data name="Parking_Map_Hint" xml:space="preserve"><value>Click a free stall to book it. Scroll to zoom, drag to move the map.</value></data>
 </root>

@@ -550,6 +550,11 @@ Nenapojené stání zůstává na plánu jako kontext.
   detail — přepnutí pohledu tedy není přeučení. Cizí stání, budovy a komunikace se kreslí tlumeně
   jako kontext a klikat na ně nejde. Přepínač se nabízí, teprve když je nějaká mapa publikovaná;
   dokud se plán obtahuje, je mřížka poctivější odpověď.
+- **V rezervaci pro řidiče:** po vyhledání volných míst se dá výsledek přepnout ze seznamu na
+  **mapu** a rezervovat kliknutím přímo na stání. Volná jsou zelená a klikatelná, naše obsazená
+  šedá (ale nakreslená — „naše, ale obsazené" a „cizí" jsou jiné odpovědi) a cizí zůstávají
+  kontextem. Seznam se nikdy neschovává: je to, co funguje na telefonu, co přečte čtečka obrazovky
+  a co zbyde, když je kresba špatně.
 - **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se
   v cílové databázi obnoví jedním kliknutím na *Napojit podle popisků*).
 

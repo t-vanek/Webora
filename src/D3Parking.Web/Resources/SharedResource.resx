@@ -1738,4 +1738,10 @@
   <data name="Lot_View_Grid" xml:space="preserve"><value>Mřížka</value></data>
   <data name="Lot_View_Map" xml:space="preserve"><value>Mapa</value></data>
   <data name="Lot_Map_Label" xml:space="preserve"><value>Mapa parkoviště se stavem míst</value></data>
+  <data name="Parking_View_List" xml:space="preserve"><value>Seznam</value></data>
+  <data name="Parking_Map_Label" xml:space="preserve"><value>Mapa parkoviště s volnými místy</value></data>
+  <data name="Parking_Map_Free" xml:space="preserve"><value>Volné</value></data>
+  <data name="Parking_Map_Taken" xml:space="preserve"><value>Obsazené</value></data>
+  <data name="Parking_Map_Other" xml:space="preserve"><value>Cizí / mimo areál</value></data>
+  <data name="Parking_Map_Hint" xml:space="preserve"><value>Kliknutím na volné stání ho rovnou zarezervujete. Kolečkem přiblížíte, tažením posunete mapu.</value></data>
 </root>
