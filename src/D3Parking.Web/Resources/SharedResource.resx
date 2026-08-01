@@ -1599,4 +1599,104 @@
   <data name="Nav_Section_Access" xml:space="preserve"><value>Uživatelé a práva</value></data>
   <data name="Nav_Section_Lot" xml:space="preserve"><value>Správa parkoviště</value></data>
   <data name="Nav_Section_System" xml:space="preserve"><value>Systém</value></data>
+  <data name="Nav_AdminMap" xml:space="preserve"><value>Mapa parkoviště</value></data>
+  <data name="Nav_Short_Map" xml:space="preserve"><value>Mapa</value></data>
+  <data name="Map_Title" xml:space="preserve"><value>Mapa parkoviště</value></data>
+  <data name="Map_Intro" xml:space="preserve"><value>Nakreslete plán areálu: obtáhněte stání podle podkladu, pojmenujte je a napojte na parkovací místa. Nakreslené obdélníky bez napojení zůstávají jen kontextem plánu.</value></data>
+  <data name="Map_New" xml:space="preserve"><value>Nová mapa</value></data>
+  <data name="Map_Name" xml:space="preserve"><value>Název</value></data>
+  <data name="Map_NamePlaceholder" xml:space="preserve"><value>Areál D3</value></data>
+  <data name="Map_Width" xml:space="preserve"><value>Šířka</value></data>
+  <data name="Map_Height" xml:space="preserve"><value>Výška</value></data>
+  <data name="Map_Create" xml:space="preserve"><value>Vytvořit</value></data>
+  <data name="Map_SizeHint" xml:space="preserve"><value>Rozměr je souřadnicový prostor kresby, ne pixely. Zvolte poměr stran podle podkladového plánu — na velikosti na obrazovce nezáleží, mapa se vždy roztáhne na šířku panelu.</value></data>
+  <data name="Map_Import" xml:space="preserve"><value>Import mapy</value></data>
+  <data name="Map_ImportJson" xml:space="preserve"><value>Exportovaný JSON</value></data>
+  <data name="Map_ImportName" xml:space="preserve"><value>Název nové mapy</value></data>
+  <data name="Map_ImportRun" xml:space="preserve"><value>Importovat</value></data>
+  <data name="Map_None" xml:space="preserve"><value>Zatím není žádná mapa.</value></data>
+  <data name="Map_Size" xml:space="preserve"><value>Rozměr</value></data>
+  <data name="Map_Shapes" xml:space="preserve"><value>Tvarů</value></data>
+  <data name="Map_Linked" xml:space="preserve"><value>napojených</value></data>
+  <data name="Map_State" xml:space="preserve"><value>Stav</value></data>
+  <data name="Map_Published" xml:space="preserve"><value>Publikováno</value></data>
+  <data name="Map_Draft" xml:space="preserve"><value>Rozpracováno</value></data>
+  <data name="Map_Delete" xml:space="preserve"><value>Smazat</value></data>
+  <data name="Map_BackToList" xml:space="preserve"><value>Zpět na seznam map</value></data>
+  <data name="Map_Tools" xml:space="preserve"><value>Nástroje</value></data>
+  <data name="Map_Tool_select" xml:space="preserve"><value>Výběr</value></data>
+  <data name="Map_Tool_draw" xml:space="preserve"><value>Kreslit</value></data>
+  <data name="Map_Tool_pan" xml:space="preserve"><value>Posun</value></data>
+  <data name="Map_DrawKind" xml:space="preserve"><value>Kreslit jako</value></data>
+  <data name="Map_Grid" xml:space="preserve"><value>Mřížka</value></data>
+  <data name="Map_ZoomIn" xml:space="preserve"><value>Přiblížit</value></data>
+  <data name="Map_ZoomOut" xml:space="preserve"><value>Oddálit</value></data>
+  <data name="Map_FitView" xml:space="preserve"><value>Celá mapa</value></data>
+  <data name="Map_Publish" xml:space="preserve"><value>Publikovat</value></data>
+  <data name="Map_Unpublish" xml:space="preserve"><value>Zrušit publikaci</value></data>
+  <data name="Map_Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Map_CanvasLabel" xml:space="preserve"><value>Kreslicí plátno mapy</value></data>
+  <data name="Map_CanvasHint" xml:space="preserve"><value>Tažením kreslíte nebo posouváte, kolečkem přibližujete, prostředním tlačítkem posouváte plátno. Shift přidává do výběru a při otáčení drží násobky 15°. Delete maže výběr, šipky ho posouvají o mřížku.</value></data>
+  <data name="Map_Shape" xml:space="preserve"><value>Tvar</value></data>
+  <data name="Map_Label" xml:space="preserve"><value>Popisek</value></data>
+  <data name="Map_Kind" xml:space="preserve"><value>Druh</value></data>
+  <data name="Map_Kind_Spot" xml:space="preserve"><value>Stání</value></data>
+  <data name="Map_Kind_Building" xml:space="preserve"><value>Budova</value></data>
+  <data name="Map_Kind_Aisle" xml:space="preserve"><value>Komunikace</value></data>
+  <data name="Map_Kind_Label" xml:space="preserve"><value>Text</value></data>
+  <data name="Map_LinkedSpot" xml:space="preserve"><value>Napojené místo</value></data>
+  <data name="Map_NoSpot" xml:space="preserve"><value>— nenapojeno —</value></data>
+  <data name="Map_LabelMismatch" xml:space="preserve"><value>Popisek „{0}“ nesouhlasí s kódem napojeného místa „{1}“.</value></data>
+  <data name="Map_Geometry" xml:space="preserve"><value>x {0}, y {1} · {2} × {3} · {4}°</value></data>
+  <data name="Map_Row" xml:space="preserve"><value>Řada</value></data>
+  <data name="Map_RowCount" xml:space="preserve"><value>Celkem</value></data>
+  <data name="Map_RowGap" xml:space="preserve"><value>Mezera</value></data>
+  <data name="Map_RowStep" xml:space="preserve"><value>Krok čísel</value></data>
+  <data name="Map_RowDirection" xml:space="preserve"><value>Směr</value></data>
+  <data name="Map_Dir_Right" xml:space="preserve"><value>Doprava</value></data>
+  <data name="Map_Dir_Left" xml:space="preserve"><value>Doleva</value></data>
+  <data name="Map_Dir_Down" xml:space="preserve"><value>Dolů</value></data>
+  <data name="Map_Dir_Up" xml:space="preserve"><value>Nahoru</value></data>
+  <data name="Map_RowPreview" xml:space="preserve"><value>Přibude {0} stání: {1}</value></data>
+  <data name="Map_RowNoLabels" xml:space="preserve"><value>Zdrojový tvar nemá číselný popisek — nová stání vzniknou bez popisků.</value></data>
+  <data name="Map_RowCreate" xml:space="preserve"><value>Vytvořit řadu</value></data>
+  <data name="Map_RowCreated" xml:space="preserve"><value>Vytvořeno {0} stání.</value></data>
+  <data name="Map_SelectedCount" xml:space="preserve"><value>Vybráno tvarů: {0}</value></data>
+  <data name="Map_BulkSpotType" xml:space="preserve"><value>Typ zakládaných míst</value></data>
+  <data name="Map_CreateSpots" xml:space="preserve"><value>Založit parkovací místa</value></data>
+  <data name="Map_CreateSpotsHint" xml:space="preserve"><value>Z popisků vybraných stání vzniknou skutečná parkovací místa a tvary se na ně napojí. Popisek, který už nějaké místo pojmenovává, se jen napojí — opakované spuštění nic nerozbije.</value></data>
+  <data name="Map_SpotsCreated" xml:space="preserve"><value>Založeno {0} míst, napojeno na existující: {1}, bez popisku přeskočeno: {2}.</value></data>
+  <data name="Map_Properties" xml:space="preserve"><value>Vlastnosti mapy</value></data>
+  <data name="Map_Save" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Map_Background" xml:space="preserve"><value>Podklad</value></data>
+  <data name="Map_Opacity" xml:space="preserve"><value>Průhlednost</value></data>
+  <data name="Map_BackgroundClear" xml:space="preserve"><value>Odebrat podklad</value></data>
+  <data name="Map_BackgroundHint" xml:space="preserve"><value>Nahrajte sken plánu areálu a obtáhněte podle něj stání. Podklad je jen pomůcka při kreslení — do publikované mapy se nekreslí jako podklad pro řidiče.</value></data>
+  <data name="Map_Linking" xml:space="preserve"><value>Napojení na místa</value></data>
+  <data name="Map_AutoLink" xml:space="preserve"><value>Napojit podle popisků</value></data>
+  <data name="Map_AutoLinkHint" xml:space="preserve"><value>Napojí každé dosud nenapojené stání, jehož popisek odpovídá kódu parkovacího místa.</value></data>
+  <data name="Map_AutoLink_Linked" xml:space="preserve"><value>napojeno</value></data>
+  <data name="Map_AutoLink_NoSpot" xml:space="preserve"><value>bez místa se stejným kódem: {0} ({1})</value></data>
+  <data name="Map_AutoLink_NoShape" xml:space="preserve"><value>míst bez nakresleného stání: {0} ({1})</value></data>
+  <data name="Map_DeleteShapes" xml:space="preserve"><value>Smazat vybrané tvary</value></data>
+  <data name="Map_Error_NameRequired" xml:space="preserve"><value>Zadejte název mapy.</value></data>
+  <data name="Map_Error_DuplicateName" xml:space="preserve"><value>Mapa s tímto názvem už existuje.</value></data>
+  <data name="Map_Error_NotFound" xml:space="preserve"><value>Mapa nebyla nalezena.</value></data>
+  <data name="Map_Error_ShapeGeometry" xml:space="preserve"><value>Rozměry tvaru jsou mimo povolený rozsah.</value></data>
+  <data name="Map_Error_ShapeNotFound" xml:space="preserve"><value>Tvar nebyl nalezen.</value></data>
+  <data name="Map_Error_RowLength" xml:space="preserve"><value>Počet stání v řadě musí být od 1 do 200.</value></data>
+  <data name="Map_Error_RowGap" xml:space="preserve"><value>Mezera mezi stáními není platné číslo.</value></data>
+  <data name="Map_Error_BatchTooLarge" xml:space="preserve"><value>Najednou lze posunout nejvýše 1000 tvarů.</value></data>
+  <data name="Map_Error_BackgroundEmpty" xml:space="preserve"><value>Nahraný soubor je prázdný.</value></data>
+  <data name="Map_Error_BackgroundTooLarge" xml:space="preserve"><value>Podklad je příliš velký (nejvýše 12 MB).</value></data>
+  <data name="Map_Error_LinkNotASpotShape" xml:space="preserve"><value>Na parkovací místo lze napojit jen tvar druhu Stání.</value></data>
+  <data name="Map_Error_SpotAlreadyDrawn" xml:space="preserve"><value>Toto parkovací místo už je na mapě nakreslené jiným tvarem.</value></data>
+  <data name="Map_Error_ImportUnreadable" xml:space="preserve"><value>Vstupní JSON se nepodařilo přečíst.</value></data>
+  <data name="Map_Undo" xml:space="preserve"><value>Zpět</value></data>
+  <data name="Map_DeleteConfirm" xml:space="preserve"><value>Smazat mapu „{0}“ i s {1} nakreslenými tvary? Tuhle akci nelze vzít zpět.</value></data>
+  <data name="Map_SpotsTooLong" xml:space="preserve"><value>Popisků příliš dlouhých na kód místa: {0} ({1}).</value></data>
+  <data name="Map_Error_BackgroundNotAnImage" xml:space="preserve"><value>Nahraný soubor není obrázek PNG, JPEG ani WebP.</value></data>
+  <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>Vstupní JSON obsahuje příliš mnoho tvarů (nejvýše 10 000).</value></data>
+  <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Někdo mezitím založil místo se stejným kódem nebo je nakreslil. Zkuste to znovu — proběhlé změny se načtou.</value></data>
+  <data name="Map_Error_MapFull" xml:space="preserve"><value>Mapa je plná — víc než 5 000 tvarů editor neunese. Rozdělte plán na víc map.</value></data>
 </root>

@@ -263,6 +263,44 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   unikátní; mrtvé subscriptions se mažou při 404/410 od push služby). Přihlášení zařízení řeší
   přepínač ve zvonečku (`push.js` + `PUT/DELETE /api/notifications/push/subscription`); service
   worker OS notifikaci potlačí, když je aplikace zrovna viditelná. Konfigurace: [VAPID klíče](#konfigurace).
+- **Editor mapy parkoviště:** kreslení běží celé v prohlížeči (`wwwroot/lot-map-editor.js`, ES modul
+  načítaný jen na `/admin/parking/map`), Blazor vlastní model a ukládání. Tažení, změna velikosti,
+  otáčení, výběr rámečkem i zoom se odehrávají nad DOMem lokálně; na server jde až **výsledek
+  gesta** jednou dávkou (`MoveShapesAsync`) — po SignalR by jinak šly desítky zpráv za sekundu
+  a plán o pěti stech tvarech by byl nepoužitelný. Dělba je stálá: Blazor vykresluje `<g class="map-shape">`
+  s geometrií v `data-*` atributech a nechává prázdné `<g class="map-overlay">`, do kterého JS kreslí
+  úchyty a gumičku — Blazor o těch uzlech neví, takže mu je překreslení nesmaže. Modul zpětně hlásí
+  aktivní nástroj v `data-tool` na plátně, což je i jediný spolehlivý signál pro E2E testy, že gesto
+  bude interpretováno správným nástrojem.
+
+  Geometrie je `MapRect` — obdélník plus úhel, ne polygon (zdůvodnění v XML komentáři typu).
+  Souřadnice se do SVG **musí** formátovat invariantně; česká desetinná čárka v atributu `points` je
+  rozbitý polygon, ne detail zaokrouhlení. Server každý příchozí obdélník sanitizuje a validuje
+  (`Sanitized()`/`IsValid()`) — čísla přicházejí z tažení myší v prohlížeči, takže NaN se nesmí
+  dostat do databáze; dávka se ověřuje celá předem, aby tažení nepřistálo z poloviny.
+
+  **Podklad mapy se určuje z bajtů, ne z hlavičky.** Deklarovaný content type přichází z uploadu,
+  tedy od útočníka, a co se uloží, to endpoint servíruje zpátky ze stejné origin — uložené HTML
+  vydávané za obrázek by bylo stored XSS. `ImageContentType.Detect` proto čte magic bytes a povoluje
+  jen PNG/JPEG/WebP; uloží se detekovaný typ a odpověď nese `X-Content-Type-Options: nosniff`.
+  SVG je vynechané schválně, byť by jako podklad bylo nejlepší: je to dokument nesoucí skript.
+
+  **Geometrie se ořezává do souřadnic mapy** (`MapRect.ClampedInto`, měřeno přes obálku, takže
+  natočený tvar zůstane celý uvnitř) při kreslení, posunu, tvorbě řady, importu i při zmenšení mapy.
+  Bez toho skončí tvar mimo plátno: nejde kliknout, zoom je omezený, takže na něj nejde ani najet —
+  je to tichá ztráta práce. Tvar se přitom nikdy nezmenšuje, jen posouvá; větší než mapa se přisadí
+  do rohu. `MoveShapesAsync` proto vrací **uloženou** geometrii a editor si jí opraví plátno na
+  místě — místo přenačtení celé kresby po každém tažení.
+
+  Historie **Zpět** je v komponentě, ne v databázi: bounded seznam inverzních kroků (posun, vznik,
+  smazání) vázaný na jednu mapu. Vrácení smazaných tvarů zakládá nové řádky (staré jsou pryč)
+  a napojení na místo obnovuje jen tam, kde je místo pořád volné — undo nesmí ukrást obdélník,
+  který mezitím nakreslil někdo jiný.
+
+  Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
+  **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
+  pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`
+  v jedné transakci.
 - **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
   v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.

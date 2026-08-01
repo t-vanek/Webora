@@ -1,0 +1,21 @@
+@* Popisek tvaru na mapě.
+
+   Vlastní komponenta jen kvůli jedné věci: <text> je uvnitř kódového bloku Razoru (@foreach, @if)
+   vyhrazená značka pro doslovný text, takže SVG element <text> tam napsat nejde. V kořenové značce
+   komponenty žádný kódový blok není a projde normálně. *@
+<text x="@X" y="@Y" transform="@Transform">@Text</text>
+
+@code {
+    [Parameter]
+    public string? X { get; set; }
+
+    [Parameter]
+    public string? Y { get; set; }
+
+    /// <summary>Rotation about the shape's centre, or null for an upright shape.</summary>
+    [Parameter]
+    public string? Transform { get; set; }
+
+    [Parameter]
+    public string? Text { get; set; }
+}
