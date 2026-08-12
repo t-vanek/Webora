@@ -12,6 +12,8 @@ public class ParkingSettings : Entity, IAggregateRoot
 {
     public static readonly Guid SingletonId = new("00000000-0000-0000-0000-0000000000b1");
 
+    public const int MaxOrientationMapBytes = 12 * 1024 * 1024;
+
     public int ReleasePoints { get; private set; } = 10;
 
     public int OffPeakBonusPoints { get; private set; } = 5;
@@ -220,6 +222,10 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// </summary>
     public int OversightDisputeWindowDays { get; private set; } = 30;
 
+    public byte[]? OrientationMap { get; private set; }
+
+    public string? OrientationMapContentType { get; private set; }
+
     /// <summary>State: when the oversight digest last went out.</summary>
     public DateTimeOffset? LastOversightDigestUtc { get; private set; }
 
@@ -415,6 +421,30 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     /// <summary>Records when the collusion scan last ran.</summary>
     public void MarkCollusionScanned(DateTimeOffset at) => LastCollusionScanUtc = at;
+
+    public void SetOrientationMap(byte[] content, string contentType)
+    {
+        if (content.Length == 0)
+        {
+            OrientationMap = null;
+            OrientationMapContentType = null;
+            return;
+        }
+
+        if (content.Length > MaxOrientationMapBytes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(content), "The orientation map is too large.");
+        }
+
+        OrientationMap = content;
+        OrientationMapContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
+    }
+
+    public void ClearOrientationMap()
+    {
+        OrientationMap = null;
+        OrientationMapContentType = null;
+    }
 
     /// <summary>Applies an adaptive-controller adjustment to the peak surcharge and records the time.</summary>
     public void ApplyAdaptiveAdjustment(int newPeakPricePercent, DateTimeOffset at)

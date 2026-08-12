@@ -5,6 +5,7 @@
 @inject IIncentiveService Incentives
 @inject IResidentSpotService ResidentSpots
 @inject IOversightService Oversight
+@inject IParkingSettingsService ParkingSettings
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
 
@@ -108,12 +109,62 @@
         </div>
     </section>
 
+    @if (_showOrientationMap)
+    {
+        <div class="parking-map-modal" role="dialog" aria-modal="true" aria-labelledby="home-parking-map-title">
+            <div class="parking-map-modal__surface">
+                <div class="parking-map-modal__head">
+                    <div>
+                        <span class="parking-map-modal__eyebrow">@L["Parking_Map_OrientationEyebrow"]</span>
+                        <h2 id="home-parking-map-title">@L["Parking_Map_OrientationTitle"]</h2>
+                        <p>@L["Home_Map_ModalHelp"]</p>
+                    </div>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="CloseOrientationMapAsync"
+                                  aria-label="@L["Parking_Map_Close"]">
+                        @L["Parking_Map_Close"]
+                    </FluentButton>
+                </div>
+                <div class="parking-map-modal__tools">
+                    <FluentAnchor Href="@OrientationMapUrl" Target="_blank" Appearance="Appearance.Hypertext">
+                        @L["Parking_Map_Open"]
+                    </FluentAnchor>
+                </div>
+                <div class="parking-map-modal__viewport">
+                    <img src="@OrientationMapUrl" alt="@L["Parking_Map_ImageAlt"]" />
+                </div>
+            </div>
+        </div>
+    }
+
     @if (_error is not null)
     {
         <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">
             @L[_error]
         </FluentMessageBar>
     }
+
+    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.View)" Context="mapAccess">
+        @if (_hasOrientationMap)
+        {
+            <section class="home-map-panel" aria-labelledby="home-map-title">
+                <span class="home-map-panel__icon">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Map())" Color="Color.Custom" CustomColor="currentColor" />
+                </span>
+                <div class="home-map-panel__text">
+                    <h2 id="home-map-title">@L["Home_Map_Title"]</h2>
+                    <p>@L["Home_Map_Desc"]</p>
+                </div>
+                <div class="home-map-panel__actions">
+                    <FluentButton Appearance="Appearance.Accent" OnClick="OpenOrientationMapAsync">
+                        @L["Parking_Map_Show"]
+                    </FluentButton>
+                    <FluentAnchor Href="@OrientationMapUrl" Target="_blank" Appearance="Appearance.Hypertext">
+                        @L["Parking_Map_Open"]
+                    </FluentAnchor>
+                </div>
+            </section>
+        }
+    </AuthorizeView>
 
     @* Parking.View is the "takes part in the lot" baseline. An account without it — an auditor, a
        user manager brought in from outside — gets the administration it was given and no standing
@@ -323,12 +374,15 @@
     private bool _signedIn;
     private string? _error;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+    private bool _hasOrientationMap;
+    private bool _showOrientationMap;
 
     private int _openCases;
     private ReservationDto? _reservation;
     private QueueEntryDto? _queueEntry;
     private OwnedSpotDto? _ownedSpot;
     private ParkerScoreDto? _score;
+    private string OrientationMapUrl => "/api/parking/orientation-map";
 
     protected override async Task OnInitializedAsync()
     {
@@ -345,6 +399,11 @@
         // Before the parker guard below: a reviewer who never books anything still has a desk.
         if (_signedIn)
         {
+            if (user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.View))
+            {
+                _hasOrientationMap = await ParkingSettings.GetOrientationMapAsync() is not null;
+            }
+
             var scope = OversightScope.From(
                 user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewMismatches),
                 user.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ReviewCollusion),
@@ -417,6 +476,18 @@
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, _tz).DateTime);
         return RunAsync(() => ResidentSpots.ReleaseAsync(_userId, today, today));
+    }
+
+    private Task OpenOrientationMapAsync()
+    {
+        _showOrientationMap = true;
+        return Task.CompletedTask;
+    }
+
+    private Task CloseOrientationMapAsync()
+    {
+        _showOrientationMap = false;
+        return Task.CompletedTask;
     }
 
     private string Local(DateTimeOffset utc, string format) =>

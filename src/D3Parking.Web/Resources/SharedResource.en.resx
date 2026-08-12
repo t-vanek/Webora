@@ -361,15 +361,57 @@
   <data name="Parking_Title" xml:space="preserve"><value>Reserve parking</value></data>
   <data name="Parking_Intro" xml:space="preserve"><value>Book a spot for a chosen time. You earn points for releasing an unused reservation and for parking off-peak.</value></data>
   <data name="Parking_FindTitle" xml:space="preserve"><value>Find available spots</value></data>
+  <data name="Parking_BookingTitle" xml:space="preserve"><value>Shared spot reservation</value></data>
+  <data name="Parking_BookingIntro" xml:space="preserve"><value>Pick a time and the system will offer the best available spot from the shared pool.</value></data>
+  <data name="Parking_Context_Label" xml:space="preserve"><value>Current search summary</value></data>
+  <data name="Parking_Context_Summary" xml:space="preserve"><value>{0}, {1}–{2}</value></data>
+  <data name="Parking_Context_Change" xml:space="preserve"><value>Edit search</value></data>
+  <data name="Parking_AlternateSearch_Title" xml:space="preserve"><value>Your resident spot is handled today</value></data>
+  <data name="Parking_AlternateSearch_Text" xml:space="preserve"><value>Use search only if you need another spot or another time.</value></data>
+  <data name="Parking_AlternateSearch_Action" xml:space="preserve"><value>I need another spot</value></data>
+  <data name="Parking_ResidentState_Held_Title" xml:space="preserve"><value>Spot {0} is held for you today</value></data>
+  <data name="Parking_ResidentState_Held_Text" xml:space="preserve"><value>Your resident spot is not shared with others yet. If you arrive today, confirm arrival in your spot panel.</value></data>
+  <data name="Parking_ResidentState_Claimed_Title" xml:space="preserve"><value>Spot {0} is confirmed for you all day</value></data>
+  <data name="Parking_ResidentState_Claimed_Text" xml:space="preserve"><value>Your resident spot is yours today and is not offered to others. Use search only if you need another spot or another time.</value></data>
+  <data name="Parking_ResidentState_SharedFree_Title" xml:space="preserve"><value>Spot {0} is shared today and still free</value></data>
+  <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>You released your resident spot to others today, but nobody has reserved it yet. You can take it back in resident management.</value></data>
+  <data name="Parking_ResidentState_SharedFreeAuto_Text" xml:space="preserve"><value>Your resident spot was offered to others after the cutoff, but nobody has reserved it yet. Confirming arrival takes it back.</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Spot {0} is shared today and taken by another reservation</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>Someone else has reserved your resident spot for today. If you need to park, search for another shared spot.</value></data>
   <data name="Parking_Date" xml:space="preserve"><value>Date</value></data>
   <data name="Parking_From" xml:space="preserve"><value>From</value></data>
   <data name="Parking_To" xml:space="preserve"><value>To</value></data>
+  <data name="Parking_AllDay" xml:space="preserve"><value>all day</value></data>
   <data name="Parking_Find" xml:space="preserve"><value>Find spots</value></data>
   <data name="Parking_OffPeakHint" xml:space="preserve"><value>This time is off-peak – you'll earn bonus points.</value></data>
   <data name="Parking_Available" xml:space="preserve"><value>Available spots</value></data>
+  <data name="Parking_Available_Count" xml:space="preserve"><value>Showing {0} of {1}</value></data>
+  <data name="Parking_Available_FilterEmpty" xml:space="preserve"><value>No available spots match the selected type.</value></data>
+  <data name="Parking_Recommended_Label" xml:space="preserve"><value>Recommended spot</value></data>
+  <data name="Parking_Recommended_Reserve" xml:space="preserve"><value>Reserve recommended</value></data>
+  <data name="Parking_Group_Title" xml:space="preserve"><value>Zone {0}</value></data>
+  <data name="Parking_Group_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Parking_ActiveReservation_Title" xml:space="preserve"><value>Active reservation</value></data>
+  <data name="Parking_ActiveReservation_Subtitle" xml:space="preserve"><value>Quick actions for the reservation that matters right now.</value></data>
+  <data name="Parking_TryLater_30" xml:space="preserve"><value>Try +30 min</value></data>
+  <data name="Parking_TryLater_60" xml:space="preserve"><value>Try +60 min</value></data>
+  <data name="Parking_TryOffPeak" xml:space="preserve"><value>Try off-peak</value></data>
+  <data name="Parking_Filter_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Parking_Filter_AllTypes" xml:space="preserve"><value>All types</value></data>
+  <data name="Parking_Sort" xml:space="preserve"><value>Sort</value></data>
+  <data name="Parking_Sort_Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="Parking_Sort_Code" xml:space="preserve"><value>By code</value></data>
+  <data name="Parking_Sort_Type" xml:space="preserve"><value>By type</value></data>
   <data name="Parking_NoneAvailable" xml:space="preserve"><value>No spots are available for the chosen time.</value></data>
+  <data name="Parking_NoneAvailable_OnlyResidentSpot" xml:space="preserve"><value>No other shared spot is available for the chosen time. Take your resident spot back by confirming arrival.</value></data>
   <data name="Parking_Reserve" xml:space="preserve"><value>Reserve</value></data>
   <data name="Parking_MyReservations" xml:space="preserve"><value>My reservations</value></data>
+  <data name="Parking_Reservations_TabActive" xml:space="preserve"><value>Active</value></data>
+  <data name="Parking_Reservations_TabFuture" xml:space="preserve"><value>Future</value></data>
+  <data name="Parking_Reservations_TabHistory" xml:space="preserve"><value>History</value></data>
+  <data name="Parking_Reservations_EmptyActive" xml:space="preserve"><value>You have no active reservation right now.</value></data>
+  <data name="Parking_Reservations_EmptyFuture" xml:space="preserve"><value>You have no future reservation.</value></data>
+  <data name="Parking_Reservations_EmptyHistory" xml:space="preserve"><value>Your reservation history is empty for now.</value></data>
   <data name="Parking_NoReservations" xml:space="preserve"><value>You have no reservations yet.</value></data>
   <data name="Parking_Spot" xml:space="preserve"><value>Spot</value></data>
   <data name="Parking_When" xml:space="preserve"><value>When</value></data>
@@ -678,20 +720,42 @@
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
   <data name="Parking_Owned_Title" xml:space="preserve"><value>Your reserved spot</value></data>
+  <data name="Parking_Owned_TodayTitle" xml:space="preserve"><value>Your spot today</value></data>
   <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Held for you</value></data>
   <data name="Parking_OwnedState_Claimed" xml:space="preserve"><value>Confirmed – yours all day</value></data>
   <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Shared (still free)</value></data>
   <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Shared – taken by someone else</value></data>
   <data name="Parking_Owned_Confirm" xml:space="preserve"><value>Confirm arrival</value></data>
+  <data name="Parking_Owned_ConfirmHeldHelp" xml:space="preserve"><value>Confirming tells the system you will use your resident spot today.</value></data>
+  <data name="Parking_Owned_ConfirmAutoSharedHelp" xml:space="preserve"><value>The spot is still free. Confirming arrival takes it back and stops offering it to others.</value></data>
   <data name="Parking_Owned_ReleaseDate" xml:space="preserve"><value>Release day</value></data>
   <data name="Parking_Owned_Release" xml:space="preserve"><value>Release</value></data>
-  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Monthly share allowance</value></data>
+  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Day limit</value></data>
+  <data name="Parking_Owned_AllowanceHint" xml:space="preserve"><value>How many days per month your spot can earn a sharing reward. After the limit is used, you can still share the spot, but without points.</value></data>
+  <data name="Parking_Owned_QuotaTitle" xml:space="preserve"><value>Monthly sharing</value></data>
   <data name="Parking_Owned_SaveAllowance" xml:space="preserve"><value>Save</value></data>
   <data name="Parking_Owned_Confirmed" xml:space="preserve"><value>Arrival confirmed, the spot is yours.</value></data>
   <data name="Parking_Owned_Released" xml:space="preserve"><value>The spot was released to others.</value></data>
   <data name="Parking_Owned_AllowanceSaved" xml:space="preserve"><value>Sharing settings saved.</value></data>
+  <data name="Parking_Owned_ModeLabel" xml:space="preserve"><value>Resident spot panel switcher</value></data>
+  <data name="Parking_Owned_ModeToday" xml:space="preserve"><value>Today</value></data>
+  <data name="Parking_Owned_ModeManage" xml:space="preserve"><value>Resident management</value></data>
+  <data name="Parking_Owned_TodayReady" xml:space="preserve"><value>No further action is needed today.</value></data>
+  <data name="Parking_Owned_ResidentToolsEyebrow" xml:space="preserve"><value>Resident tools</value></data>
+  <data name="Parking_Owned_ResidentToolsTitle" xml:space="preserve"><value>Reserved spot management</value></data>
+  <data name="Parking_Owned_ResidentToolsHint" xml:space="preserve"><value>These actions apply only to your resident spot {0}.</value></data>
+  <data name="Parking_Owned_ReleaseSection" xml:space="preserve"><value>Release my spot</value></data>
+  <data name="Parking_Owned_ReleasedDaysSection" xml:space="preserve"><value>My released days</value></data>
+  <data name="Parking_Owned_DayReleasedTitle" xml:space="preserve"><value>{0}: released to others, not reserved yet.</value></data>
+  <data name="Parking_Owned_DayTakenTitle" xml:space="preserve"><value>{0}: already reserved by someone else.</value></data>
+  <data name="Parking_Owned_QuotaSection" xml:space="preserve"><value>Monthly limit</value></data>
+  <data name="Parking_Owned_PlanSection" xml:space="preserve"><value>Regular plan</value></data>
   <data name="Parking_Admin_Resident" xml:space="preserve"><value>Resident</value></data>
-  <data name="Parking_Admin_NoResident" xml:space="preserve"><value>— no resident —</value></data>
+  <data name="Parking_Admin_NoResident" xml:space="preserve"><value>No resident</value></data>
+  <data name="Parking_Admin_SharedPool" xml:space="preserve"><value>Shared pool</value></data>
+  <data name="Parking_Admin_AssignResident" xml:space="preserve"><value>Assign resident</value></data>
+  <data name="Parking_Admin_ChangeResident" xml:space="preserve"><value>Change</value></data>
+  <data name="Parking_Admin_ResidentOfSpot" xml:space="preserve"><value>Spot resident</value></data>
   <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Residents</value></data>
   <data name="Parking_Settings_ResidentsHelp" xml:space="preserve"><value>Rules for reserved spots. Each day the spot is held for its resident until the given time; if they do not confirm arrival by then, it is offered to everyone else automatically. Residents who release the spot themselves earn points — the earlier the release and the higher the monthly share allowance on the spot, the more.</value></data>
   <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Hold the spot for its resident until</value></data>
@@ -710,6 +774,10 @@
   <data name="Parking_Error_PastDate" xml:space="preserve"><value>You can't release a day in the past.</value></data>
   <data name="Parking_Owned_ReleaseFrom" xml:space="preserve"><value>Release from</value></data>
   <data name="Parking_Owned_ReleaseTo" xml:space="preserve"><value>Release to</value></data>
+  <data name="Parking_Owned_QuickRelease" xml:space="preserve"><value>Quick release options</value></data>
+  <data name="Parking_Owned_ReleaseToday" xml:space="preserve"><value>Today</value></data>
+  <data name="Parking_Owned_ReleaseTomorrow" xml:space="preserve"><value>Tomorrow</value></data>
+  <data name="Parking_Owned_ReleaseThisWeek" xml:space="preserve"><value>This week</value></data>
   <data name="Parking_Owned_ReleaseHint" xml:space="preserve"><value>Releasing the selected range earns you:</value></data>
   <data name="Parking_Earn" xml:space="preserve"><value>You'll earn</value></data>
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>The end of the range must be after its start.</value></data>
@@ -725,7 +793,7 @@
   <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>You always have first claim on your own spot: a released day can be taken back until somebody books it — including days held for the waitlist. The reward for a taken-back day is returned.</value></data>
   <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Past the cutoff the spot is offered to others, but until somebody takes it, confirming arrival takes it back.</value></data>
   <data name="Parking_Owned_PlanDays" xml:space="preserve"><value>Days I need the spot</value></data>
-  <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Release the other days automatically, in advance</value></data>
+  <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Auto release</value></data>
   <data name="Parking_Owned_SavePlan" xml:space="preserve"><value>Save plan</value></data>
   <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Days you leave unselected are released to others up to {0} days ahead — and that advance notice is exactly what earns you the full reward (within your monthly allowance), while auto-sharing after the cutoff pays nothing. Selected days are held for you as before. Any released day can be taken back until somebody books it; saving the plan does re-apply it across the whole horizon.</value></data>
   <data name="Parking_Owned_PlanSaved" xml:space="preserve"><value>Usage plan saved.</value></data>
@@ -760,6 +828,15 @@
   <data name="Parking_Settings_AutoVerifyMaxKm" xml:space="preserve"><value>Auto-approval limit (km)</value></data>
   <data name="Parking_Settings_MaxReleasesPerDay" xml:space="preserve"><value>Most rewarded releases per day</value></data>
   <data name="Parking_Settings_MaxRangeDays" xml:space="preserve"><value>Longest release range at once (days)</value></data>
+  <data name="Parking_Settings_MapSection" xml:space="preserve"><value>Parking orientation map</value></data>
+  <data name="Parking_Settings_MapHelp" xml:space="preserve"><value>Upload a PNG, JPEG or WebP plan of the parking lot. The map is only an orientation aid after booking; spots are not reserved from it automatically.</value></data>
+  <data name="Parking_Settings_MapEmptyState" xml:space="preserve"><value>No orientation map has been uploaded yet.</value></data>
+  <data name="Parking_Settings_MapSaved" xml:space="preserve"><value>The parking map was uploaded.</value></data>
+  <data name="Parking_Settings_MapRemoved" xml:space="preserve"><value>The parking map was removed.</value></data>
+  <data name="Parking_Settings_MapClear" xml:space="preserve"><value>Remove map</value></data>
+  <data name="Parking_Settings_MapEmpty" xml:space="preserve"><value>The uploaded file is empty.</value></data>
+  <data name="Parking_Settings_MapTooLarge" xml:space="preserve"><value>The map is too large (12 MB at most).</value></data>
+  <data name="Parking_Settings_MapNotImage" xml:space="preserve"><value>The uploaded file is not a PNG, JPEG or WebP image.</value></data>
   <data name="Parking_Price" xml:space="preserve"><value>Price</value></data>
   <data name="Parking_Credits" xml:space="preserve"><value>credits</value></data>
   <data name="Parking_Occupancy" xml:space="preserve"><value>Occupancy</value></data>
@@ -1081,6 +1158,9 @@
   <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Expires at {0}</value></data>
   <data name="Home_Wallet" xml:space="preserve"><value>Wallet and points</value></data>
   <data name="Home_WalletDetail" xml:space="preserve"><value>Tier {0} · streak {1}</value></data>
+  <data name="Home_Map_Title" xml:space="preserve"><value>Parking orientation map</value></data>
+  <data name="Home_Map_Desc" xml:space="preserve"><value>Quickly check where parking spots are located around the site.</value></data>
+  <data name="Home_Map_ModalHelp" xml:space="preserve"><value>Use the spot number to orient yourself in the parking plan.</value></data>
   <data name="Nav_Short_Home" xml:space="preserve"><value>Home</value></data>
   <data name="Nav_Short_Reserve" xml:space="preserve"><value>Reserve</value></data>
   <data name="Nav_Short_Leaderboard" xml:space="preserve"><value>Ranking</value></data>
@@ -1671,7 +1751,8 @@
   <data name="Map_Background" xml:space="preserve"><value>Underlay</value></data>
   <data name="Map_Opacity" xml:space="preserve"><value>Opacity</value></data>
   <data name="Map_BackgroundClear" xml:space="preserve"><value>Remove the underlay</value></data>
-  <data name="Map_BackgroundHint" xml:space="preserve"><value>Upload a scan of the site plan and trace the stalls over it. The underlay is a drawing aid — it is not drawn under the published map for drivers.</value></data>
+  <data name="Map_BackgroundHint" xml:space="preserve"><value>Upload a PNG, JPEG, WebP or PDF scan of the site plan and trace the stalls over it. For PDFs, the largest image in the file is used. The underlay is a drawing aid — it is not drawn under the published map for drivers.</value></data>
+  <data name="Map_BackgroundPdfImported" xml:space="preserve"><value>The PDF was converted into a raster map underlay.</value></data>
   <data name="Map_Linking" xml:space="preserve"><value>Linking to spots</value></data>
   <data name="Map_AutoLink" xml:space="preserve"><value>Link by label</value></data>
   <data name="Map_AutoLinkHint" xml:space="preserve"><value>Links every still-unlinked stall whose label matches a parking spot code.</value></data>
@@ -1695,7 +1776,9 @@
   <data name="Map_Undo" xml:space="preserve"><value>Undo</value></data>
   <data name="Map_DeleteConfirm" xml:space="preserve"><value>Delete the map “{0}” and the {1} shapes drawn on it? This cannot be undone.</value></data>
   <data name="Map_SpotsTooLong" xml:space="preserve"><value>Labels too long to be a spot code: {0} ({1}).</value></data>
-  <data name="Map_Error_BackgroundNotAnImage" xml:space="preserve"><value>The uploaded file is not a PNG, JPEG or WebP image.</value></data>
+  <data name="Map_Error_BackgroundNotAnImage" xml:space="preserve"><value>The uploaded file is not a PNG, JPEG, WebP image or PDF plan.</value></data>
+  <data name="Map_Error_PdfNoImage" xml:space="preserve"><value>No usable raster plan could be found in the PDF. If it is a vector PDF, export it to SVG and use the plan import instead.</value></data>
+  <data name="Map_Error_PdfUnreadable" xml:space="preserve"><value>The PDF could not be read. Try saving the file as a PDF again, or export it as PNG/JPEG.</value></data>
   <data name="Map_Error_ImportTooLarge" xml:space="preserve"><value>The supplied JSON holds too many shapes (10,000 at most).</value></data>
   <data name="Map_Error_SpotsRaced" xml:space="preserve"><value>Somebody created a spot with one of these codes, or drew it, while this ran. Try again — their work is picked up.</value></data>
   <data name="Map_Error_MapFull" xml:space="preserve"><value>The map is full — the editor cannot carry more than 5,000 shapes. Split the plan across several maps.</value></data>
@@ -1744,6 +1827,13 @@
   <data name="Parking_Map_Taken" xml:space="preserve"><value>Taken</value></data>
   <data name="Parking_Map_Other" xml:space="preserve"><value>Someone else's</value></data>
   <data name="Parking_Map_Hint" xml:space="preserve"><value>Click a free stall to book it. Scroll to zoom, drag to move the map.</value></data>
+  <data name="Parking_Map_Show" xml:space="preserve"><value>Parking map</value></data>
+  <data name="Parking_Map_OrientationEyebrow" xml:space="preserve"><value>Orientation map</value></data>
+  <data name="Parking_Map_OrientationTitle" xml:space="preserve"><value>Where to find my spot</value></data>
+  <data name="Parking_Map_FindSpot" xml:space="preserve"><value>Find spot {0} on the map.</value></data>
+  <data name="Parking_Map_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Parking_Map_Open" xml:space="preserve"><value>Open in a new tab</value></data>
+  <data name="Parking_Map_ImageAlt" xml:space="preserve"><value>Parking orientation map</value></data>
   <data name="Map_Svg" xml:space="preserve"><value>Import a plan (SVG)</value></data>
   <data name="Map_SvgKind" xml:space="preserve"><value>Import as</value></data>
   <data name="Map_SvgHint" xml:space="preserve"><value>Export the site plan from PDF or DWG to SVG and upload it — the stalls place themselves and the numbers printed inside them become labels. The map takes the drawing's dimensions. The file is only read, never stored.</value></data>

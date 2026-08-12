@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using D3Parking.Application.Parking;
+using D3Parking.Application.Parking.Maps;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Common;
@@ -20,6 +21,7 @@ public sealed class ParkingSettingsService(
     ILogger<ParkingSettingsService> logger) : IParkingSettingsService
 {
     private const string PolicyCacheKey = "d3parking:parking-policy";
+    private const string OrientationMapCacheKey = "d3parking:parking-orientation-map";
 
     public async Task<IncentivePolicy> GetPolicyAsync(CancellationToken cancellationToken = default)
     {
@@ -126,6 +128,77 @@ public sealed class ParkingSettingsService(
         cache.Remove(PolicyCacheKey);
 
         logger.LogInformation("Parking settings changed by {AdminId}.", actingUserId);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default)
+    {
+        if (cache.TryGetValue(OrientationMapCacheKey, out var cached) && cached is ParkingMapImageDto map)
+        {
+            return map;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var stored = await dbContext.ParkingSettings.AsNoTracking()
+            .Where(s => s.Id == ParkingSettings.SingletonId && s.OrientationMap != null)
+            .Select(s => new { s.OrientationMap, s.OrientationMapContentType })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (stored?.OrientationMap is null)
+        {
+            return null;
+        }
+
+        map = new ParkingMapImageDto(stored.OrientationMap, stored.OrientationMapContentType ?? ImageContentType.Jpeg);
+        using var entry = cache.CreateEntry(OrientationMapCacheKey);
+        entry.Value = map;
+        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+        return map;
+    }
+
+    public async Task<ParkingResult> SetOrientationMapAsync(byte[] content, Guid actingUserId, CancellationToken cancellationToken = default)
+    {
+        if (content.Length == 0)
+        {
+            return ParkingResult.Failure("Parking_Settings_MapEmpty");
+        }
+
+        if (content.Length > ParkingSettings.MaxOrientationMapBytes)
+        {
+            return ParkingResult.Failure("Parking_Settings_MapTooLarge");
+        }
+
+        var detected = ImageContentType.Detect(content);
+        if (detected is null)
+        {
+            return ParkingResult.Failure("Parking_Settings_MapNotImage");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
+        settings.SetOrientationMap(content, detected);
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+            actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
+            $"Parking map uploaded: type={detected} bytes={content.Length}",
+            timeProvider.GetUtcNow()));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        cache.Remove(OrientationMapCacheKey);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> ClearOrientationMapAsync(Guid actingUserId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
+        settings.ClearOrientationMap();
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+            actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
+            "Parking map removed",
+            timeProvider.GetUtcNow()));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        cache.Remove(OrientationMapCacheKey);
         return ParkingResult.Success;
     }
 

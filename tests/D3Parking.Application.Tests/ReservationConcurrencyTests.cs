@@ -302,6 +302,15 @@ public class ReservationConcurrencyTests
         public Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<ParkingMapImageDto?>(null);
+
+        public Task<ParkingResult> SetOrientationMapAsync(byte[] content, Guid actingUserId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<ParkingResult> ClearOrientationMapAsync(Guid actingUserId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
 

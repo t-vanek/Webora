@@ -13,7 +13,7 @@
 @*  Static SSR form post: SignInManager.SignOutAsync writes the cookie clear via HttpContext during
     the real POST, just like the login flow does. The Fluent chrome wraps the form; the submit
     remains a native form post triggered by FluentButton type="submit".  *@
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+<FluentStack Class="page-shell page-shell--form" Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.PageTitle">@L["Logout_Title"]</FluentLabel>
 
     <AuthorizeView Context="auth">
