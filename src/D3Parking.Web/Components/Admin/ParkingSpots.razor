@@ -8,7 +8,7 @@
 
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head__titles">
         <div class="admin-head__title-row">
             <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
@@ -151,7 +151,7 @@
     {
         <div class="admin-panel">
             <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
-                            GridTemplateColumns="1fr 1.2fr 1.5fr 1fr 1.5fr auto">
+                            GridTemplateColumns="minmax(90px, .8fr) minmax(150px, 1.1fr) minmax(140px, 1.1fr) minmax(100px, .8fr) minmax(240px, 1.7fr) auto">
                 <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
                 @* The colour-dot pill wraps an inline select, so the type is recognisable at a
                    glance and editable in place — same idiom as the resident column. *@
@@ -180,13 +180,36 @@
                     }
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Parking_Admin_Resident"]">
-                    <FluentSelect TOption="string"
-                                  Items="@_userOptions"
-                                  OptionValue="@(id => id)"
-                                  OptionText="@(id => UserLabel(id))"
-                                  Value="@(context.OwnerId?.ToString() ?? string.Empty)"
-                                  ValueChanged="@(v => AssignAsync(context.Id, v))"
-                                  Style="width:100%" />
+                    <div class="resident-cell @(context.OwnerId is null ? "resident-cell--empty" : null)">
+                        @if (context.OwnerId is null)
+                        {
+                            <div class="resident-cell__state">
+                                <span class="resident-cell__dot" aria-hidden="true"></span>
+                                <div>
+                                    <strong>@L["Parking_Admin_SharedPool"]</strong>
+                                    <small>@L["Parking_Admin_NoResident"]</small>
+                                </div>
+                            </div>
+                            <details class="resident-editor">
+                                <summary>@L["Parking_Admin_AssignResident"]</summary>
+                                @ResidentSelect(context)
+                            </details>
+                        }
+                        else
+                        {
+                            <div class="resident-cell__person">
+                                <span class="resident-avatar" aria-hidden="true">@Initials(OwnerLabel(context))</span>
+                                <div>
+                                    <strong>@OwnerLabel(context)</strong>
+                                    <small>@L["Parking_Admin_ResidentOfSpot"]</small>
+                                </div>
+                            </div>
+                            <details class="resident-editor">
+                                <summary>@L["Parking_Admin_ChangeResident"]</summary>
+                                @ResidentSelect(context)
+                            </details>
+                        }
+                    </div>
                 </TemplateColumn>
                 <TemplateColumn Align="Align.End">
                     @if (context.IsActive)
@@ -311,6 +334,35 @@
         var user = _users.FirstOrDefault(u => u.Id.ToString() == id);
         return user is null ? id : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
     }
+
+    private string OwnerLabel(ParkingSpotDto spot) =>
+        spot.OwnerId is null
+            ? L["Parking_Admin_NoResident"].Value
+            : string.IsNullOrWhiteSpace(spot.OwnerName)
+                ? UserLabel(spot.OwnerId.Value.ToString())
+                : spot.OwnerName;
+
+    private static string Initials(string label)
+    {
+        var parts = label.Split([' ', '.', '@', '_', '-'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return "?";
+        }
+
+        return string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    }
+
+    private RenderFragment ResidentSelect(ParkingSpotDto spot) => __builder =>
+    {
+        <FluentSelect TOption="string"
+                      Items="@_userOptions"
+                      OptionValue="@(id => id)"
+                      OptionText="@(id => UserLabel(id))"
+                      Value="@(spot.OwnerId?.ToString() ?? string.Empty)"
+                      ValueChanged="@(v => AssignAsync(spot.Id, v))"
+                      Style="width:100%; min-width:210px" />
+    };
 
     private async Task AssignAsync(Guid spotId, string? userId)
     {

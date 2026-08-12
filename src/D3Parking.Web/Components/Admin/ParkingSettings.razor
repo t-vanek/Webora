@@ -1,6 +1,7 @@
 @page "/admin/parking/settings"
 @attribute [HasPermission(Permissions.Parking.ManageIncentives)]
 @rendermode InteractiveServer
+@using D3Parking.Application.Parking.Maps
 @inject IParkingSettingsService SettingsService
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
@@ -16,7 +17,7 @@
 
 <PageTitle>@L["Parking_Settings_Title"]</PageTitle>
 
-<FluentStack Class="settings-page" Orientation="Orientation.Vertical" VerticalGap="16">
+<FluentStack Class="page-shell settings-page" Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.PageTitle">@L["Parking_Settings_Title"]</FluentLabel>
     <FluentLabel Typo="Typography.Body">@L["Parking_Settings_Intro"]</FluentLabel>
 
@@ -34,6 +35,35 @@
         {
             <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
         }
+
+        <div class="settings-panel">
+            <div class="settings-section__head">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_MapSection"]</FluentLabel>
+            </div>
+            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_MapHelp"]</FluentLabel>
+            <div class="orientation-map-admin">
+                <InputFile id="parking-orientation-map" OnChange="OnOrientationMapSelectedAsync"
+                           accept="@ImageContentType.AcceptAttribute" class="parking-input" />
+                @if (_hasOrientationMap)
+                {
+                    <div class="orientation-map-admin__preview">
+                        <img src="@OrientationMapUrl" alt="@L["Parking_Map_ImageAlt"]" />
+                    </div>
+                    <div class="orientation-map-admin__actions">
+                        <FluentAnchor Href="@OrientationMapUrl" Target="_blank" Appearance="Appearance.Hypertext">
+                            @L["Parking_Map_Open"]
+                        </FluentAnchor>
+                        <FluentButton Appearance="Appearance.Stealth" OnClick="ClearOrientationMapAsync">
+                            @L["Parking_Settings_MapClear"]
+                        </FluentButton>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state orientation-map-admin__empty">@L["Parking_Settings_MapEmptyState"]</div>
+                }
+            </div>
+        </div>
 
         <FluentTabs @bind-ActiveTabId="_activeTab">
             <FluentTab Id="economy" Label="@L["Parking_Settings_Tab_Economy"]">
@@ -390,6 +420,10 @@
     private string? _message;
     private string? _error;
     private string _activeTab = "economy";
+    private bool _hasOrientationMap;
+    private long _orientationMapVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    private string OrientationMapUrl => $"/api/parking/orientation-map?v={_orientationMapVersion}";
 
     // Section switches. Derived from the stored values on load; on save an off switch forces the
     // group's driving values to zero, which is what the domain treats as "feature disabled".
@@ -593,6 +627,48 @@
         _queuePenaltyOn = s.QueueNoShowPenaltyPoints > 0 || s.QueueNoShowCreditPenalty > 0
             || s.QueueNoShowBanDays > 0 || s.QueueNoShowAllowancePenalty > 0;
         _distanceOn = s.SharedTakenBasePoints > 0;
+        _hasOrientationMap = await SettingsService.GetOrientationMapAsync() is not null;
+    }
+
+    private async Task OnOrientationMapSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _message = _error = null;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: D3Parking.Domain.Parking.ParkingSettings.MaxOrientationMapBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            var result = await SettingsService.SetOrientationMapAsync(buffer.ToArray(), _adminId);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+                return;
+            }
+
+            _hasOrientationMap = true;
+            _orientationMapVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _message = L["Parking_Settings_MapSaved"];
+        }
+        catch (IOException)
+        {
+            _error = "Parking_Settings_MapTooLarge";
+        }
+    }
+
+    private async Task ClearOrientationMapAsync()
+    {
+        _message = _error = null;
+        var result = await SettingsService.ClearOrientationMapAsync(_adminId);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+            return;
+        }
+
+        _hasOrientationMap = false;
+        _orientationMapVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _message = L["Parking_Settings_MapRemoved"];
     }
 
     private async Task SaveAsync()

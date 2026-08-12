@@ -3,7 +3,7 @@
 
 <PageTitle>@L["Auth_AccessDenied_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:640px">
+<FluentStack Class="page-shell page-shell--form" Orientation="Orientation.Vertical" VerticalGap="16">
     <FluentLabel Typo="Typography.PageTitle">@L["Auth_AccessDenied_Title"]</FluentLabel>
     @*  Static SSR: FluentMessageBar renders nothing without an interactive circuit — the
         global auth-alert div renders everywhere.  *@

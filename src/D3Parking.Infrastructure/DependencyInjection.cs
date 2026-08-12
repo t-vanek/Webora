@@ -11,7 +11,6 @@ using D3Parking.Application.Identity;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Oversight;
 using D3Parking.Application.Parking;
-using D3Parking.Application.Parking.Maps;
 using D3Parking.Application.Settings;
 using D3Parking.Infrastructure.Accounts;
 using D3Parking.Infrastructure.Administration;
@@ -93,7 +92,6 @@ public static class DependencyInjection
         services.AddScoped<IAvailabilityCampaignService, AvailabilityCampaignService>();
         services.AddScoped<IVisitorBookingService, VisitorBookingService>();
         services.AddScoped<ILotDashboardService, LotDashboardService>();
-        services.AddScoped<ILotMapService, LotMapService>();
         services.AddScoped<IFleetService, FleetService>();
 
         // The review desk over everything the lot flags for a human. It reads the signals through

@@ -2,21 +2,23 @@
 @attribute [HasPermission(Permissions.Parking.Reserve)]
 @rendermode InteractiveServer
 @using System.Globalization
-@using D3Parking.Application.Parking.Maps
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject IReservationService Reservations
-@inject ILotMapService Maps
 @inject IParkingSettingsService ParkingSettings
 @inject IResidentSpotService ResidentSpots
 @inject IUserLocationService UserLocation
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
+@inject ProtectedLocalStorage Storage
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Parking_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
-    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Title"]</FluentLabel>
-    <FluentLabel Typo="Typography.Body">@L["Parking_Intro"]</FluentLabel>
+<div class="page-shell reserve-page">
+    <header class="reserve-hero">
+        <FluentLabel Typo="Typography.PageTitle">@L["Parking_Title"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body">@L["Parking_Intro"]</FluentLabel>
+    </header>
 
     @if (_error is not null)
     {
@@ -38,12 +40,46 @@
         </FluentMessageBar>
     }
 
+    @if (_showOrientationMap)
+    {
+        <div class="parking-map-modal" role="dialog" aria-modal="true" aria-labelledby="parking-map-title">
+            <div class="parking-map-modal__surface">
+                <div class="parking-map-modal__head">
+                    <div>
+                        <span class="parking-map-modal__eyebrow">@L["Parking_Map_OrientationEyebrow"]</span>
+                        <h2 id="parking-map-title">@L["Parking_Map_OrientationTitle"]</h2>
+                        @if (!string.IsNullOrWhiteSpace(_orientationMapSpotCode))
+                        {
+                            <p>@L["Parking_Map_FindSpot", _orientationMapSpotCode]</p>
+                        }
+                    </div>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="CloseOrientationMapAsync"
+                                  aria-label="@L["Parking_Map_Close"]">
+                        @L["Parking_Map_Close"]
+                    </FluentButton>
+                </div>
+                <div class="parking-map-modal__tools">
+                    @if (!string.IsNullOrWhiteSpace(_orientationMapSpotCode))
+                    {
+                        <span class="parking-map-modal__spot">@L["Parking_Spot"]: <strong>@_orientationMapSpotCode</strong></span>
+                    }
+                    <FluentAnchor Href="@OrientationMapUrl" Target="_blank" Appearance="Appearance.Hypertext">
+                        @L["Parking_Map_Open"]
+                    </FluentAnchor>
+                </div>
+                <div class="parking-map-modal__viewport">
+                    <img src="@OrientationMapUrl" alt="@L["Parking_Map_ImageAlt"]" />
+                </div>
+            </div>
+        </div>
+    }
+
     @* Apology voucher for a blocked spot: one reservation free, peak included. Redeemed by
        ticking the box before booking; a timely cancel gives it back. A voucher still awaiting
        the spot manager's review is shown, but cannot be redeemed yet. *@
     @if (_voucher is { } voucher)
     {
-        <div class="form-panel">
+        <div class="form-panel reserve-voucher">
             @if (voucher.Status == ApologyVoucherStatus.Approved)
             {
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
@@ -58,229 +94,122 @@
         </div>
     }
 
-    @if (_ownedSpot is not null)
+    <div class="reserve-layout">
+        <main class="reserve-main">
+            @if (!HasConfirmedResidentSpot)
+            {
+                @SharedSearchArea()
+            }
+
+            @ActiveReservationsPanel()
+
+    @if (_available is not null && !HasConfirmedResidentSpot)
     {
-        <FluentCard>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                <FluentLabel Typo="Typography.Subject">@L["Parking_Owned_Title"]</FluentLabel>
-                <FluentLabel Typo="Typography.H5">@_ownedSpot.Code (@L[$"Parking_SpotType_{_ownedSpot.Type}"])</FluentLabel>
-                <FluentLabel Typo="Typography.Body">
-                    @L["Parking_Status"]: @L[$"Parking_OwnedState_{_ownedSpot.TodayState}"]
-                </FluentLabel>
-
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                    @* The resident's right of first refusal: the auto-shared spot can still be
-                       confirmed back as long as nobody booked it (the service withdraws any
-                       waitlist hold), so the button stays past the cutoff too. *@
-                    @if (_ownedSpot.TodayState == OwnedSpotDayState.Held || CanConfirmAutoShared)
-                    {
-                        <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
-                    }
-                    <div>
-                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseFrom"]</FluentLabel>
-                        <input type="date" @bind="_releaseFrom" @bind:after="RefreshReleasePreviewAsync" class="parking-input" />
-                    </div>
-                    <div>
-                        <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleaseTo"]</FluentLabel>
-                        <input type="date" @bind="_releaseTo" @bind:after="RefreshReleasePreviewAsync" class="parking-input" />
-                    </div>
-                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
-                </FluentStack>
-                @if (CanConfirmAutoShared)
-                {
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Owned_AutoShareReclaimHint"]</FluentLabel>
-                }
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                    @L["Parking_Owned_ReleaseHint"] +@_releasePreview @L["Parking_Points"]
-                </FluentLabel>
-
-                @if (_ownedSpot.UpcomingReleases.Count > 0)
-                {
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
-                            <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReleasedDays"]:</FluentLabel>
-                            @foreach (var day in _ownedSpot.UpcomingReleases)
-                            {
-                                <span class="pill @(day.TakenByGuest ? "pill--peak" : "pill--offpeak")">
-                                    @day.Date.ToString("d. M.")@(day.TakenByGuest ? $" {L["Parking_Owned_DayTaken"]}" : null)
-                                </span>
-                            }
-                        </FluentStack>
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                            <div>
-                                <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReclaimFrom"]</FluentLabel>
-                                <input type="date" @bind="_reclaimFrom" class="parking-input" />
-                            </div>
-                            <div>
-                                <FluentLabel Typo="Typography.Body">@L["Parking_Owned_ReclaimTo"]</FluentLabel>
-                                <input type="date" @bind="_reclaimTo" class="parking-input" />
-                            </div>
-                            <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReclaimOwnedAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
-                        </FluentStack>
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Owned_ReclaimHint"]</FluentLabel>
-                    </FluentStack>
-                }
-
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                    <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
-                                       Label="@L["Parking_Owned_Allowance"]" />
-                    <FluentButton Disabled="@_actionBusy" OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
-                </FluentStack>
-
-                @* Standing usage plan: the days kept are the resident's, the rest are released ahead
-                   of time by the maintenance loop — which is what earns the full advance-notice
-                   reward instead of the same-day auto-share paying nothing. *@
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Owned_PlanDays"]</FluentLabel>
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
-                        @foreach (var (flag, label) in PlanWeekdays)
+        <div class="availability-toolbar">
+            <div class="availability-toolbar__title">
+                <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
+                <span>@L["Parking_Available_Count", VisibleAvailableSpots.Count, AvailableTotal]</span>
+            </div>
+            <div class="availability-toolbar__controls">
+                <label class="select-field">
+                    <span>@L["Parking_Filter_Type"]</span>
+                    <select class="parking-input" @bind="_spotTypeFilter">
+                        <option value="">@L["Parking_Filter_AllTypes"]</option>
+                        @foreach (var type in ReservableSpotTypes)
                         {
-                            <FluentButton Appearance="@(_planDays.HasFlag(flag) ? Appearance.Accent : Appearance.Outline)"
-                                          Disabled="@_actionBusy" OnClick="() => TogglePlanDay(flag)">@label</FluentButton>
+                            <option value="@type">@L[$"Parking_SpotType_{type}"]</option>
                         }
-                    </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
-                        <FluentSwitch @bind-Value="_planAutoRelease" Label="@L["Parking_Owned_PlanAutoRelease"]" />
-                        <FluentButton Disabled="@_actionBusy" OnClick="SaveUsagePlanAsync">@L["Parking_Owned_SavePlan"]</FluentButton>
-                    </FluentStack>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                        @L["Parking_Owned_PlanHint", _ownedSpot.PlanHorizonDays]
-                    </FluentLabel>
-                </FluentStack>
-            </FluentStack>
-        </FluentCard>
-    }
-
-    <FluentCard Class="booking-bar">
-        <div class="section-head">
-            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Accent" />
-            <span>@L["Parking_FindTitle"]</span>
-        </div>
-        <div class="booking-bar__row">
-            <div class="field">
-                <label>@L["Parking_Date"]</label>
-                <input type="date" @bind="_day" @bind:after="InvalidateSearch" class="parking-input" />
+                    </select>
+                </label>
+                <label class="select-field">
+                    <span>@L["Parking_Sort"]</span>
+                    <select class="parking-input" @bind="_availableSort">
+                        <option value="@AvailableSort.Recommended">@L["Parking_Sort_Recommended"]</option>
+                        <option value="@AvailableSort.Code">@L["Parking_Sort_Code"]</option>
+                        <option value="@AvailableSort.Type">@L["Parking_Sort_Type"]</option>
+                    </select>
+                </label>
             </div>
-            <div class="field">
-                <label>@L["Parking_From"]</label>
-                <input type="time" @bind="_startTime" @bind:after="InvalidateSearch" class="parking-input" />
-            </div>
-            <div class="field">
-                <label>@L["Parking_To"]</label>
-                <input type="time" @bind="_endTime" @bind:after="InvalidateSearch" class="parking-input" />
-            </div>
-            <FluentButton Appearance="Appearance.Accent" OnClick="() => FindAvailableAsync()">@L["Parking_Find"]</FluentButton>
         </div>
 
-        @if (_quote is not null)
-        {
-            <div class="quote-panel">
-                <div class="price-tag">
-                    <span class="price-tag__num">@_quote.Cost</span>
-                    <span class="price-tag__unit">@L["Parking_Credits"]</span>
-                </div>
-                <span class="pill @(_quote.IsPeak ? "pill--peak" : "pill--offpeak")">
-                    @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])
-                </span>
-                <div class="quote-meter">
-                    <div class="quote-meter__head">
-                        <span>@L["Parking_Occupancy"]</span>
-                        <span>@_quote.OccupancyPercent %</span>
-                    </div>
-                    <div class="meter"><div class="meter__fill @OccupancyClass(_quote.OccupancyPercent)" style="width:@(_quote.OccupancyPercent)%"></div></div>
-                </div>
-                <span class="balance-chip @(_quote.Affordable ? "balance-chip--ok" : "balance-chip--low")">
-                    @L["Parking_Balance"]: <strong>@_quote.Balance</strong> @L["Parking_Credits"]
-                </span>
-            </div>
-            @if (!_quote.Affordable)
-            {
-                <FluentLabel Typo="Typography.Body" Style="color:var(--error)">@L["Parking_Error_InsufficientCredit"]</FluentLabel>
-            }
-        }
-    </FluentCard>
-
-    @if (_available is not null)
-    {
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
-            <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
-            @* Offered only once a plan is published. The list is never taken away: it is what works
-               on a phone, what a screen reader reads, and what is left when the drawing is wrong. *@
-            @if (_map is not null)
-            {
-                <div class="map-toolbar__group" role="group" aria-label="@L["Lot_View"]">
-                    <FluentButton Id="reserve-view-list" Appearance="@(_mapView ? Appearance.Outline : Appearance.Accent)"
-                                  aria-pressed="@(_mapView ? "false" : "true")"
-                                  OnClick="() => _mapView = false">@L["Parking_View_List"]</FluentButton>
-                    <FluentButton Id="reserve-view-map" Appearance="@(_mapView ? Appearance.Accent : Appearance.Outline)"
-                                  aria-pressed="@(_mapView ? "true" : "false")"
-                                  OnClick="() => _mapView = true">@L["Lot_View_Map"]</FluentButton>
-                </div>
-            }
-        </FluentStack>
-
-        @if (_mapView && _map is not null)
-        {
-            <div class="map-legend">
-                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--free"></span>@L["Parking_Map_Free"]</span>
-                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--taken"></span>@L["Parking_Map_Taken"]</span>
-                <span class="map-legend__item"><span class="map-legend__swatch map-legend__swatch--other"></span>@L["Parking_Map_Other"]</span>
-            </div>
-            <LotMapView Map="_map"
-                        StateOf="MapStateOf"
-                        TitleOf="MapTitleOf"
-                        Interactive="MapInteractive"
-                        OnSpotSelected="ReserveAsync"
-                        AriaLabel="@L["Parking_Map_Label"]"
-                        ZoomInLabel="@L["Map_ZoomIn"]"
-                        ZoomOutLabel="@L["Map_ZoomOut"]"
-                        FitLabel="@L["Map_FitView"]" />
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Parking_Map_Hint"]</FluentLabel>
-            @if (_available.Count == 0)
-            {
-                @* The way out of a full lot has to be on this view too, or switching to the map
-                   quietly hides it. *@
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center" Wrap="true">
-                    <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
-                    <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
-                </FluentStack>
-            }
-        }
-        else if (_available.Count == 0)
+        @if (AvailableTotal == 0)
         {
             <div class="empty-state">
                 <FluentIcon Value="@(new Icons.Regular.Size32.VehicleCar())" Color="Color.Neutral" />
-                <FluentLabel Typo="Typography.Body">@L["Parking_NoneAvailable"]</FluentLabel>
-                <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+                <FluentLabel Typo="Typography.Body">@NoBookableSpotsText</FluentLabel>
+                <div class="empty-actions">
+                    <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="JoinQueueAsync">@L["Parking_Queue_JoinFull"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="() => ShiftSearchAsync(TimeSpan.FromMinutes(30))">@L["Parking_TryLater_30"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="() => ShiftSearchAsync(TimeSpan.FromMinutes(60))">@L["Parking_TryLater_60"]</FluentButton>
+                    @if (SuggestedOffPeakStart is { } offPeakStart)
+                    {
+                        <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="() => SearchFromAsync(offPeakStart)">@L["Parking_TryOffPeak"]</FluentButton>
+                    }
+                </div>
+            </div>
+        }
+        else if (VisibleAvailableSpots.Count == 0)
+        {
+            <div class="empty-state">
+                <FluentIcon Value="@(new Icons.Regular.Size32.Filter())" Color="Color.Neutral" />
+                <FluentLabel Typo="Typography.Body">@L["Parking_Available_FilterEmpty"]</FluentLabel>
             </div>
         }
         else
         {
-            <div class="spot-grid">
-                @foreach (var spot in _available)
-                {
-                    <div class="spot-card spot-card--@spot.Type">
-                        <div class="spot-card__top">
-                            <span class="spot-glyph"><FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Accent" /></span>
-                            <div>
-                                <div class="spot-card__code">@spot.Code</div>
-                                <span class="pill pill--type">@L[$"Parking_SpotType_{spot.Type}"]</span>
-                            </div>
+            @if (RecommendedAvailableSpot is { } recommended)
+            {
+                <section class="recommended-spot">
+                    <div class="recommended-spot__copy">
+                        <span>@L["Parking_Recommended_Label"]</span>
+                        <strong>@recommended.Code</strong>
+                        <div class="recommended-spot__meta">
+                            <span class="pill pill--type">@L[$"Parking_SpotType_{recommended.Type}"]</span>
+                            @if (_quote is not null)
+                            {
+                                <span>@_quote.Cost @L["Parking_Credits"]</span>
+                            }
+                            @if (PointsForSpot(recommended) > 0)
+                            {
+                                <span>@L["Parking_Earn"] +@PointsForSpot(recommended) @L["Parking_Points"]</span>
+                            }
                         </div>
-                        @if (_quote is not null)
-                        {
-                            <div class="spot-card__price"><strong>@_quote.Cost</strong> @L["Parking_Credits"]</div>
-                        }
-                        @if (PointsForSpot(spot) > 0)
-                        {
-                            <span class="reward-chip">@L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]</span>
-                        }
-                        <FluentButton Appearance="Appearance.Accent" Style="width:100%"
-                                      Disabled="@(_actionBusy || (_quote is not null && !_quote.Affordable))"
-                                      OnClick="() => ReserveAsync(spot.Id)">
-                            @L["Parking_Reserve"]
-                        </FluentButton>
                     </div>
+                    <FluentButton Appearance="Appearance.Accent"
+                                  Disabled="@(_actionBusy || (_quote is not null && !_quote.Affordable))"
+                                  OnClick="() => ReserveAsync(recommended.Id)">
+                        @L["Parking_Recommended_Reserve"]
+                    </FluentButton>
+                </section>
+            }
+
+            <div class="spot-groups">
+                @{
+                    var groups = AvailableSpotGroups;
+                }
+                @for (var i = 0; i < groups.Count; i++)
+                {
+                    var group = groups[i];
+                    @if (i == 0)
+                    {
+                        <section class="spot-group spot-group--featured">
+                            <div class="spot-group__summary spot-group__summary--static">
+                                <span>@L["Parking_Group_Title", group.Label]</span>
+                                <span class="count-chip">@group.Spots.Count</span>
+                            </div>
+                            @SpotGrid(group)
+                        </section>
+                    }
+                    else
+                    {
+                        <details class="spot-group">
+                            <summary class="spot-group__summary">
+                                <span>@L["Parking_Group_Title", group.Label]</span>
+                                <span class="count-chip">@group.Spots.Count</span>
+                            </summary>
+                            @SpotGrid(group)
+                        </details>
+                    }
                 }
             </div>
         }
@@ -362,69 +291,212 @@
         </div>
     }
 
-    <FluentLabel Typo="Typography.Subject">@L["Parking_MyReservations"]</FluentLabel>
-    @if (_myReservations is null)
-    {
-        <div class="loading"><FluentProgressRing /></div>
-    }
-    else if (_myReservations.Count == 0)
-    {
-        <div class="empty-state">@L["Parking_NoReservations"]</div>
-    }
-    else
-    {
-        <FluentDataGrid Items="@_myReservations.AsQueryable()" TGridItem="ReservationDto"
-                        GridTemplateColumns="1fr 2fr 1fr 1fr auto">
-            <PropertyColumn Property="@(r => r.SpotCode)" Title="@L["Parking_Spot"]" />
-            <TemplateColumn Title="@L["Parking_When"]">
-                @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Parking_OffPeak"]">
-                @(context.IsOffPeak ? L["Parking_Yes"] : "—")
-            </TemplateColumn>
-            <TemplateColumn Title="@L["Parking_Status"]">
-                @L[$"Parking_State_{context.Status}"]
-            </TemplateColumn>
-            <TemplateColumn Align="Align.End">
-                @if (context.Status == ReservationStatus.Reserved)
-                {
-                    <FluentButton OnClick="() => CheckInAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_CheckIn"]</FluentButton>
-                    <FluentButton OnClick="() => ReleaseAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
-                    <FluentButton OnClick="() => CancelAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
-                    @if (CanReportBlocked(context))
+            <section class="reservations-panel">
+                <div class="reservations-head">
+                    <div class="section-head">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.CalendarLtr())" Color="Color.Accent" />
+                        <span>@L["Parking_MyReservations"]</span>
+                    </div>
+                    @if (_myReservations is not null)
                     {
-                        <FluentButton OnClick="() => OpenBlockedPanel(context)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
+                        <div class="reservation-tabs" role="tablist" aria-label="@L["Parking_MyReservations"]">
+                            @ReservationTab(ReservationView.Active, L["Parking_Reservations_TabActive"].Value, ActiveReservations.Count)
+                            @ReservationTab(ReservationView.Future, L["Parking_Reservations_TabFuture"].Value, FutureReservations.Count)
+                            @ReservationTab(ReservationView.History, L["Parking_Reservations_TabHistory"].Value, HistoryReservations.Count)
+                        </div>
                     }
-                    @* The download attribute keeps Blazor's router from intercepting the click,
-                       so the .ics streams straight from the endpoint. *@
-                    <FluentAnchor Href="@($"api/parking/reservations/{context.Id}/calendar")"
-                                  Download="@($"parkovani-{context.SpotCode}.ics")"
-                                  Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
-                }
-                else if (context.Status == ReservationStatus.CheckedIn)
+                </div>
+                @if (_myReservations is null)
                 {
-                    <FluentButton OnClick="() => CompleteAsync(context.Id)" Disabled="@_actionBusy" Appearance="Appearance.Accent">@L["Parking_Complete"]</FluentButton>
-                    <FluentAnchor Href="@($"api/parking/reservations/{context.Id}/calendar")"
-                                  Download="@($"parkovani-{context.SpotCode}.ics")"
-                                  Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
+                    <div class="loading"><FluentProgressRing /></div>
                 }
-            </TemplateColumn>
-        </FluentDataGrid>
-        @* Hand-rolled rather than <FluentPaginator>: that one drives PaginationState, which exposes no
-           page-change hook — it is built for a grid paging an IQueryable client-side. Here the paging
-           happens in SQL, so the buttons have to call back into the component. *@
-        @if (_reservationTotal > ReservationPageSize)
+                else if (_myReservations.Count == 0)
+                {
+                    <div class="empty-state">@L["Parking_NoReservations"]</div>
+                }
+                else if (VisibleReservations.Count == 0)
+                {
+                    <div class="empty-state">@ReservationEmptyText</div>
+                }
+                else
+                {
+                    <div class="reservations-table">
+                        <FluentDataGrid Items="@VisibleReservations.AsQueryable()" TGridItem="ReservationDto"
+                                        GridTemplateColumns="minmax(90px, .8fr) minmax(170px, 1.4fr) minmax(100px, .8fr) minmax(120px, 1fr) minmax(300px, auto)">
+                            <PropertyColumn Property="@(r => r.SpotCode)" Title="@L["Parking_Spot"]" />
+                            <TemplateColumn Title="@L["Parking_When"]">
+                                @ReservationWhen(context)
+                            </TemplateColumn>
+                            <TemplateColumn Title="@L["Parking_OffPeak"]">
+                                @(context.IsOffPeak ? L["Parking_Yes"] : "—")
+                            </TemplateColumn>
+                            <TemplateColumn Title="@L["Parking_Status"]">
+                                <span class="reservation-status reservation-status--@context.Status">
+                                    @L[$"Parking_State_{context.Status}"]
+                                </span>
+                            </TemplateColumn>
+                            <TemplateColumn Align="Align.End">
+                                @ReservationActions(context)
+                            </TemplateColumn>
+                        </FluentDataGrid>
+                    </div>
+                }
+            </section>
+        </main>
+
+        @if (_ownedSpot is not null)
         {
-            <div class="pager">
-                <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex == 0)"
-                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
-                <span>@L["Common_PageOf", _reservationPageIndex + 1, ReservationPageCount]</span>
-                <FluentButton Appearance="Appearance.Outline" Disabled="@(_reservationPageIndex >= ReservationPageCount - 1)"
-                              OnClick="() => GoToReservationPageAsync(_reservationPageIndex + 1)">@L["Common_NextPage"]</FluentButton>
-            </div>
+            <aside class="reserve-side">
+                <FluentCard Class="owned-spot-panel">
+                    <div class="owned-spot">
+                        <div class="resident-mode-tabs" role="tablist" aria-label="@L["Parking_Owned_ModeLabel"]">
+                            @ResidentPanelTab(ResidentPanelMode.Today, L["Parking_Owned_ModeToday"].Value)
+                            @ResidentPanelTab(ResidentPanelMode.Manage, L["Parking_Owned_ModeManage"].Value)
+                        </div>
+
+                        @if (_residentPanelMode == ResidentPanelMode.Today)
+                        {
+                        <div class="owned-spot__head">
+                            <div class="owned-spot__title">
+                                <span>@L["Parking_Owned_TodayTitle"]</span>
+                                <strong>@_ownedSpot.Code</strong>
+                                <span class="pill pill--type">@L[$"Parking_SpotType_{_ownedSpot.Type}"]</span>
+                            </div>
+                            <span class="owned-status">@L[$"Parking_OwnedState_{_ownedSpot.TodayState}"]</span>
+                        </div>
+
+                        @* The resident's right of first refusal: the auto-shared spot can still be
+                           confirmed back as long as nobody booked it (the service withdraws any
+                           waitlist hold), so the button stays past the cutoff too. *@
+                        @if (_ownedSpot.TodayState == OwnedSpotDayState.Held || CanConfirmAutoShared)
+                        {
+                            <div class="owned-spot__quick">
+                                <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ConfirmArrivalAsync">@L["Parking_Owned_Confirm"]</FluentButton>
+                                <span class="owned-spot__quick-help">@ConfirmArrivalHelp</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="owned-today-note">
+                                <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Custom" CustomColor="currentColor" />
+                                <span>@ResidentParkingText</span>
+                            </div>
+                        }
+                        }
+                        else
+                        {
+
+                        <section class="resident-tools" aria-labelledby="resident-tools-title">
+                            <div class="resident-tools__head">
+                                <span class="resident-tools__eyebrow">@L["Parking_Owned_ResidentToolsEyebrow"]</span>
+                                <strong id="resident-tools-title">@L["Parking_Owned_ResidentToolsTitle"]</strong>
+                                <small>@L["Parking_Owned_ResidentToolsHint", _ownedSpot.Code]</small>
+                            </div>
+
+                        <details class="owned-section" open>
+                            <summary class="owned-section__summary">
+                                <span class="owned-section__label">
+                                    <span>@L["Parking_Owned_ReleaseSection"]</span>
+                                    @SmartHint("owned-release-hint", L["Parking_Owned_ReleaseHint"].Value, forceIcon: true)
+                                </span>
+                                <span class="owned-section__meta">+@_releasePreview @L["Parking_Points"]</span>
+                            </summary>
+                            <div class="owned-fields">
+                                <div class="quick-range" role="group" aria-label="@L["Parking_Owned_QuickRelease"]">
+                                    @ReleasePresetButton(ReleasePreset.Today, L["Parking_Owned_ReleaseToday"].Value)
+                                    @ReleasePresetButton(ReleasePreset.Tomorrow, L["Parking_Owned_ReleaseTomorrow"].Value)
+                                    @ReleasePresetButton(ReleasePreset.ThisWeek, L["Parking_Owned_ReleaseThisWeek"].Value)
+                                </div>
+                                <div class="field">
+                                    <label>@L["Parking_Owned_ReleaseFrom"]</label>
+                                    <input type="date" @bind="_releaseFrom" @bind:after="ReleaseRangeChangedAsync" class="parking-input" />
+                                </div>
+                                <div class="field">
+                                    <label>@L["Parking_Owned_ReleaseTo"]</label>
+                                    <input type="date" @bind="_releaseTo" @bind:after="ReleaseRangeChangedAsync" class="parking-input" />
+                                </div>
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReleaseOwnedAsync">@L["Parking_Owned_Release"]</FluentButton>
+                            </div>
+                        </details>
+
+                        @if (_ownedSpot.UpcomingReleases.Count > 0)
+                        {
+                            <details class="owned-section">
+                                <summary class="owned-section__summary">
+                                    <span class="owned-section__label">
+                                        <span>@L["Parking_Owned_ReleasedDaysSection"]</span>
+                                        @SmartHint("owned-reclaim-hint", L["Parking_Owned_ReclaimHint"].Value, forceIcon: true)
+                                    </span>
+                                </summary>
+                                <div class="release-calendar">
+                                    @foreach (var day in _ownedSpot.UpcomingReleases)
+                                    {
+                                        var dayLabel = CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedDayName(day.Date.DayOfWeek);
+                                        <span class="release-calendar__day @(day.TakenByGuest ? "release-calendar__day--taken" : null)"
+                                              title="@ReleaseDayTitle(day)">
+                                            <strong>@day.Date.ToString("d. M.")</strong>
+                                            <small>@dayLabel</small>
+                                        </span>
+                                    }
+                                </div>
+                                <div class="owned-fields">
+                                    <div class="field">
+                                        <label>@L["Parking_Owned_ReclaimFrom"]</label>
+                                        <input type="date" @bind="_reclaimFrom" class="parking-input" />
+                                    </div>
+                                    <div class="field">
+                                        <label>@L["Parking_Owned_ReclaimTo"]</label>
+                                        <input type="date" @bind="_reclaimTo" class="parking-input" />
+                                    </div>
+                                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="ReclaimOwnedAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
+                                </div>
+                            </details>
+                        }
+
+                        <details class="owned-section">
+                            <summary class="owned-section__summary">
+                                <span class="owned-section__label">
+                                    <span>@L["Parking_Owned_QuotaSection"]</span>
+                                    @SmartHint("owned-quota-hint", L["Parking_Owned_AllowanceHint"].Value, forceIcon: true)
+                                </span>
+                            </summary>
+                            <div class="owned-fields owned-fields--allowance">
+                                <FluentNumberField TValue="int" @bind-Value="_allowance" Min="0" Max="@_ownedSpot.MaxShareAllowance.ToString()"
+                                                   Label="@L["Parking_Owned_Allowance"]" />
+                                <FluentButton Disabled="@_actionBusy" OnClick="SaveAllowanceAsync">@L["Parking_Owned_SaveAllowance"]</FluentButton>
+                            </div>
+                        </details>
+
+                        @* Standing usage plan: the days kept are the resident's, the rest are released ahead
+                           of time by the maintenance loop — which is what earns the full advance-notice
+                           reward instead of the same-day auto-share paying nothing. *@
+                        <details class="owned-section">
+                            <summary class="owned-section__summary">
+                                <span class="owned-section__label">
+                                    <span>@L["Parking_Owned_PlanSection"]</span>
+                                    @SmartHint("owned-plan-hint", L["Parking_Owned_PlanHint", _ownedSpot.PlanHorizonDays].Value, forceIcon: true)
+                                </span>
+                            </summary>
+                            <div class="plan-days">
+                                @foreach (var (flag, label) in PlanWeekdays)
+                                {
+                                    <FluentButton Appearance="@(_planDays.HasFlag(flag) ? Appearance.Accent : Appearance.Outline)"
+                                                  Disabled="@_actionBusy" OnClick="() => TogglePlanDay(flag)">@label</FluentButton>
+                                }
+                            </div>
+                            <div class="owned-plan-actions">
+                                <FluentSwitch @bind-Value="_planAutoRelease" Label="@L["Parking_Owned_PlanAutoRelease"]" />
+                                <FluentButton Disabled="@_actionBusy" OnClick="SaveUsagePlanAsync">@L["Parking_Owned_SavePlan"]</FluentButton>
+                            </div>
+                        </details>
+                        </section>
+                        }
+                    </div>
+                </FluentCard>
+            </aside>
         }
-    }
-</FluentStack>
+    </div>
+</div>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
@@ -435,22 +507,381 @@
     private TimeOnly _endTime = new(17, 0);
 
     private bool _actionBusy;
+    private bool _preferencesLoaded;
+    private bool _highlightSearch;
+    private ElementReference _dateInput;
 
     private IReadOnlyList<ParkingSpotDto>? _available;
     private ReservationQuoteDto? _quote;
     private IReadOnlyList<ReservationDto>? _myReservations;
+    private ReservationView _reservationView = ReservationView.Future;
+    private ResidentPanelMode _residentPanelMode = ResidentPanelMode.Today;
+    private string _spotTypeFilter = string.Empty;
+    private AvailableSort _availableSort = AvailableSort.Recommended;
+    private ReleasePreset _releasePreset = ReleasePreset.Today;
 
-    // Paged in SQL. The unpaged read stops at 200 rows without saying so, which for a long-serving
-    // driver means their older bookings simply are not there.
-    private const int ReservationPageSize = 20;
-    private int _reservationPageIndex;
-    private int _reservationTotal;
+    private enum AvailableSort
+    {
+        Recommended,
+        Code,
+        Type,
+    }
 
-    private int ReservationPageCount =>
-        _reservationTotal == 0 ? 1 : (_reservationTotal + ReservationPageSize - 1) / ReservationPageSize;
+    private enum ReleasePreset
+    {
+        Custom,
+        Today,
+        Tomorrow,
+        ThisWeek,
+    }
+
+    private sealed record SpotGroup(string Label, IReadOnlyList<ParkingSpotDto> Spots);
+
+    private sealed record ParkingReservePreferences(
+        string StartTime,
+        string EndTime,
+        string SpotTypeFilter,
+        string Sort);
+
+    private static readonly IComparer<string> SpotCodeComparer =
+        Comparer<string>.Create(CompareSpotCodes);
+
+    private string PreferencesStorageKey => $"parking.reserve.preferences.{_userId}";
+
+    private static readonly ParkingSpotType[] ReservableSpotTypes =
+        Enum.GetValues<ParkingSpotType>().Where(type => type != ParkingSpotType.Visitor).ToArray();
+
+    private int AvailableTotal => BookableAvailableSpots.Count();
+
+    private ParkingSpotDto? RecommendedAvailableSpot =>
+        FilteredAvailableSpots
+            .OrderByDescending(PointsForSpot)
+            .ThenBy(spot => spot.Code, SpotCodeComparer)
+            .FirstOrDefault();
+
+    private IReadOnlyList<SpotGroup> AvailableSpotGroups =>
+        VisibleAvailableSpots
+            .GroupBy(SpotGroupLabel)
+            .OrderBy(group => group.Key, SpotCodeComparer)
+            .Select(group => new SpotGroup(group.Key, group.ToList()))
+            .ToList();
+
+    private IEnumerable<ParkingSpotDto> FilteredAvailableSpots
+    {
+        get
+        {
+            IEnumerable<ParkingSpotDto> spots = BookableAvailableSpots;
+            if (Enum.TryParse<ParkingSpotType>(_spotTypeFilter, out var selectedType))
+            {
+                spots = spots.Where(spot => spot.Type == selectedType);
+            }
+
+            return spots;
+        }
+    }
+
+    private IEnumerable<ParkingSpotDto> BookableAvailableSpots
+    {
+        get
+        {
+            IEnumerable<ParkingSpotDto> spots = _available ?? [];
+            if (_ownedSpot is { } ownedSpot)
+            {
+                spots = spots.Where(spot => spot.Id != ownedSpot.SpotId);
+            }
+
+            return spots;
+        }
+    }
+
+    private IReadOnlyList<ParkingSpotDto> VisibleAvailableSpots
+    {
+        get
+        {
+            var spots = FilteredAvailableSpots;
+            return (_availableSort switch
+            {
+                AvailableSort.Code => spots.OrderBy(spot => spot.Code, SpotCodeComparer),
+                AvailableSort.Type => spots.OrderBy(spot => L[$"Parking_SpotType_{spot.Type}"].Value)
+                    .ThenBy(spot => spot.Code, SpotCodeComparer),
+                _ => spots.OrderByDescending(PointsForSpot)
+                    .ThenBy(spot => spot.Code, SpotCodeComparer),
+            }).ToList();
+        }
+    }
+
+    private string SpotGroupLabel(ParkingSpotDto spot)
+    {
+        var code = spot.Code.Trim();
+        var dash = code.LastIndexOf('-');
+        if (dash > 0 && dash < code.Length - 1 && code[(dash + 1)..].All(char.IsDigit))
+        {
+            return code[..dash];
+        }
+
+        return string.IsNullOrWhiteSpace(code) ? L["Parking_Group_Other"].Value : code;
+    }
+
+    private static int CompareSpotCodes(string? left, string? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return 0;
+        }
+
+        if (left is null)
+        {
+            return -1;
+        }
+
+        if (right is null)
+        {
+            return 1;
+        }
+
+        var l = 0;
+        var r = 0;
+        while (l < left.Length && r < right.Length)
+        {
+            var lc = left[l];
+            var rc = right[r];
+            if (char.IsDigit(lc) && char.IsDigit(rc))
+            {
+                var lStart = l;
+                var rStart = r;
+                while (l < left.Length && char.IsDigit(left[l])) l++;
+                while (r < right.Length && char.IsDigit(right[r])) r++;
+
+                var lTrim = lStart;
+                var rTrim = rStart;
+                while (lTrim < l && left[lTrim] == '0') lTrim++;
+                while (rTrim < r && right[rTrim] == '0') rTrim++;
+
+                var lDigits = l - lTrim;
+                var rDigits = r - rTrim;
+                var lengthCompare = lDigits.CompareTo(rDigits);
+                if (lengthCompare != 0)
+                {
+                    return lengthCompare;
+                }
+
+                for (var i = 0; i < lDigits; i++)
+                {
+                    var digitCompare = left[lTrim + i].CompareTo(right[rTrim + i]);
+                    if (digitCompare != 0)
+                    {
+                        return digitCompare;
+                    }
+                }
+
+                var zeroCompare = (l - lStart).CompareTo(r - rStart);
+                if (zeroCompare != 0)
+                {
+                    return zeroCompare;
+                }
+
+                continue;
+            }
+
+            var charCompare = char.ToUpperInvariant(lc).CompareTo(char.ToUpperInvariant(rc));
+            if (charCompare != 0)
+            {
+                return charCompare;
+            }
+
+            l++;
+            r++;
+        }
+
+        return (left.Length - l).CompareTo(right.Length - r);
+    }
+
+    private enum ReservationView
+    {
+        Active,
+        Future,
+        History,
+    }
+
+    private enum ResidentPanelMode
+    {
+        Today,
+        Manage,
+    }
+
+    private DateTimeOffset ReservationNow => DateTimeOffset.UtcNow;
+
+    private IReadOnlyList<ReservationDto> ActiveReservations =>
+        _myReservations?.Where(IsActiveReservation).OrderBy(r => r.StartUtc).ToList() ?? [];
+
+    private IReadOnlyList<ReservationDto> FutureReservations =>
+        _myReservations?.Where(IsFutureReservation).OrderBy(r => r.StartUtc).ToList() ?? [];
+
+    private IReadOnlyList<ReservationDto> HistoryReservations =>
+        _myReservations?.Where(r => !IsActiveReservation(r) && !IsFutureReservation(r)).ToList() ?? [];
+
+    private IReadOnlyList<ReservationDto> VisibleReservations => _reservationView switch
+    {
+        ReservationView.Future => FutureReservations,
+        ReservationView.History => HistoryReservations,
+        _ => ActiveReservations,
+    };
+
+    private string ReservationEmptyText => _reservationView switch
+    {
+        ReservationView.Future => L["Parking_Reservations_EmptyFuture"].Value,
+        ReservationView.History => L["Parking_Reservations_EmptyHistory"].Value,
+        _ => L["Parking_Reservations_EmptyActive"].Value,
+    };
+
+    private bool IsActiveReservation(ReservationDto reservation)
+    {
+        var now = ReservationNow;
+        return (reservation.Status == ReservationStatus.CheckedIn
+                || reservation.Status == ReservationStatus.Reserved)
+            && now >= reservation.StartUtc - TimeSpan.FromMinutes(15)
+            && now < reservation.EndUtc;
+    }
+
+    private bool IsFutureReservation(ReservationDto reservation) =>
+        reservation.Status == ReservationStatus.Reserved
+        && ReservationNow < reservation.StartUtc - TimeSpan.FromMinutes(15);
+
+    private RenderFragment ReservationTab(ReservationView view, string label, int count) => __builder =>
+    {
+        var selected = _reservationView == view;
+        <button type="button" class="reservation-tab @(selected ? "is-selected" : null)"
+                role="tab" aria-selected="@selected" @onclick="() => _reservationView = view">
+            <span>@label</span>
+            <span class="count-chip">@count</span>
+        </button>
+    };
+
+    private RenderFragment ResidentPanelTab(ResidentPanelMode mode, string label) => __builder =>
+    {
+        var selected = _residentPanelMode == mode;
+        <button type="button" class="resident-mode-tab @(selected ? "is-selected" : null)"
+                role="tab" aria-selected="@selected" @onclick="() => _residentPanelMode = mode">
+            @label
+        </button>
+    };
+
+    private RenderFragment ReservationActions(ReservationDto reservation) => __builder =>
+    {
+        <div class="reservation-actions">
+            @if (reservation.Status == ReservationStatus.Reserved)
+            {
+                <FluentButton OnClick="() => CheckInAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_CheckIn"]</FluentButton>
+                <FluentButton OnClick="() => ReleaseAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
+                <FluentButton OnClick="() => CancelAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
+                @if (CanReportBlocked(reservation))
+                {
+                    <FluentButton OnClick="() => OpenBlockedPanel(reservation)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
+                }
+                @if (_hasOrientationMap)
+                {
+                    <FluentButton OnClick="() => OpenOrientationMap(reservation.SpotCode)" Appearance="Appearance.Stealth">
+                        @L["Parking_Map_Show"]
+                    </FluentButton>
+                }
+                @* The download attribute keeps Blazor's router from intercepting the click,
+                   so the .ics streams straight from the endpoint. *@
+                <FluentAnchor Href="@($"api/parking/reservations/{reservation.Id}/calendar")"
+                              Download="@($"parkovani-{reservation.SpotCode}.ics")"
+                              Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
+            }
+            else if (reservation.Status == ReservationStatus.CheckedIn)
+            {
+                <FluentButton OnClick="() => CompleteAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Accent">@L["Parking_Complete"]</FluentButton>
+                @if (_hasOrientationMap)
+                {
+                    <FluentButton OnClick="() => OpenOrientationMap(reservation.SpotCode)" Appearance="Appearance.Stealth">
+                        @L["Parking_Map_Show"]
+                    </FluentButton>
+                }
+                <FluentAnchor Href="@($"api/parking/reservations/{reservation.Id}/calendar")"
+                              Download="@($"parkovani-{reservation.SpotCode}.ics")"
+                              Appearance="Appearance.Stealth">@L["Parking_AddToCalendar"]</FluentAnchor>
+            }
+        </div>
+    };
+
+    private RenderFragment ActiveReservationsPanel() => __builder =>
+    {
+        if (ActiveReservations.Count == 0)
+        {
+            return;
+        }
+
+        <section class="active-reservations" aria-labelledby="active-reservations-title">
+            <div class="active-reservations__head">
+                <div class="section-head">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.CalendarCheckmark())" Color="Color.Accent" />
+                    <span id="active-reservations-title">@L["Parking_ActiveReservation_Title"]</span>
+                </div>
+                <span>@L["Parking_ActiveReservation_Subtitle"]</span>
+            </div>
+            <div class="active-reservations__grid">
+                @foreach (var reservation in ActiveReservations)
+                {
+                    <article class="active-reservation-card">
+                        <div class="active-reservation-card__main">
+                            <span class="active-reservation-card__eyebrow">@L["Parking_Spot"]</span>
+                            <strong>@reservation.SpotCode</strong>
+                            <span class="reservation-status reservation-status--@reservation.Status">
+                                @L[$"Parking_State_{reservation.Status}"]
+                            </span>
+                        </div>
+                        <div class="active-reservation-card__meta">
+                            <span>@L["Parking_When"]</span>
+                            <strong>@ReservationWhen(reservation)</strong>
+                        </div>
+                        <div class="active-reservation-card__actions">
+                            @ReservationActions(reservation)
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+    };
+
+    private RenderFragment SpotGrid(SpotGroup group) => __builder =>
+    {
+        <div class="spot-grid">
+            @foreach (var spot in group.Spots)
+            {
+                <div class="spot-card spot-card--@spot.Type">
+                    <div class="spot-card__top">
+                        <span class="spot-glyph"><FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" /></span>
+                        <div>
+                            <div class="spot-card__code">@spot.Code</div>
+                            <span class="pill pill--type">@L[$"Parking_SpotType_{spot.Type}"]</span>
+                        </div>
+                    </div>
+                    @if (_quote is not null)
+                    {
+                        <div class="spot-card__price"><strong>@_quote.Cost</strong> @L["Parking_Credits"]</div>
+                    }
+                    @if (PointsForSpot(spot) > 0)
+                    {
+                        <span class="reward-chip">@L["Parking_Earn"] +@PointsForSpot(spot) @L["Parking_Points"]</span>
+                    }
+                    <FluentButton Class="spot-card__reserve" Appearance="Appearance.Outline"
+                                  Disabled="@(_actionBusy || (_quote is not null && !_quote.Affordable))"
+                                  OnClick="() => ReserveAsync(spot.Id)">
+                        @L["Parking_Reserve"]
+                    </FluentButton>
+                </div>
+            }
+        </div>
+    };
+
     private IReadOnlyList<QueueEntryDto>? _myQueue;
     private string? _error;
     private string? _info;
+    private bool _hasOrientationMap;
+    private bool _showOrientationMap;
+    private string? _orientationMapSpotCode;
 
     private OwnedSpotDto? _ownedSpot;
     private DateTime _releaseFrom = DateTime.Today;
@@ -476,6 +907,16 @@
         PlanWeekdayOrder.Select(entry => (entry.Flag,
             CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedDayName(entry.Day)));
 
+    private RenderFragment ReleasePresetButton(ReleasePreset preset, string label) => __builder =>
+    {
+        var selected = _releasePreset == preset;
+        <FluentButton Appearance="@(selected ? Appearance.Accent : Appearance.Outline)"
+                      Disabled="@_actionBusy"
+                      OnClick="() => SetReleasePresetAsync(preset)">
+            @label
+        </FluentButton>
+    };
+
     private void TogglePlanDay(Weekday flag) =>
         _planDays = _planDays.HasFlag(flag) ? _planDays & ~flag : _planDays | flag;
 
@@ -489,15 +930,222 @@
 
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
 
+    private string OrientationMapUrl => "/api/parking/orientation-map";
+
     // The picked date and time are local wall-clock at the lot, so they are resolved through the
     // site's time zone before being sent as the UTC instants the window is stored and compared in.
     private DateTimeOffset Start => SiteTime.At(_day, _startTime, _tz);
     private DateTimeOffset End => SiteTime.At(_day, _endTime, _tz);
     private bool IsOffPeak => _policy?.IsOffPeak(Start, _tz) ?? false;
+    private TimeSpan SearchDuration => End > Start ? End - Start : TimeSpan.FromHours(1);
+
+    private TimeOnly? SuggestedOffPeakStart =>
+        _policy is not null && _policy.IsPeak(Start, _tz) && _policy.PeakEnd > _startTime
+            ? _policy.PeakEnd
+            : null;
+
+    private bool HasConfirmedResidentSpot =>
+        _ownedSpot is { TodayState: OwnedSpotDayState.Claimed };
+
+    private bool ShouldCollapseSharedSearch =>
+        _ownedSpot is { TodayState: OwnedSpotDayState.Held or OwnedSpotDayState.SharedFree };
+
+    private bool SharedSearchExpanded => _available is not null || _quote is not null || _highlightSearch;
+
+    private bool OnlyResidentSpotIsAvailable =>
+        _available is { Count: > 0 }
+        && _ownedSpot is { } ownedSpot
+        && _available.Any(spot => spot.Id == ownedSpot.SpotId)
+        && !_available.Any(spot => spot.Id != ownedSpot.SpotId);
+
+    private string NoBookableSpotsText =>
+        OnlyResidentSpotIsAvailable
+            ? L["Parking_NoneAvailable_OnlyResidentSpot"].Value
+            : L["Parking_NoneAvailable"].Value;
+
+    private string ResidentParkingTitle => _ownedSpot?.TodayState switch
+    {
+        OwnedSpotDayState.Held => L["Parking_ResidentState_Held_Title", _ownedSpot.Code].Value,
+        OwnedSpotDayState.Claimed => L["Parking_ResidentState_Claimed_Title", _ownedSpot.Code].Value,
+        OwnedSpotDayState.SharedFree => L["Parking_ResidentState_SharedFree_Title", _ownedSpot.Code].Value,
+        OwnedSpotDayState.SharedTaken => L["Parking_ResidentState_SharedTaken_Title", _ownedSpot.Code].Value,
+        _ => L["Parking_AlternateSearch_Title"].Value,
+    };
+
+    private string ResidentParkingText => _ownedSpot?.TodayState switch
+    {
+        OwnedSpotDayState.Held => L["Parking_ResidentState_Held_Text"].Value,
+        OwnedSpotDayState.Claimed => L["Parking_ResidentState_Claimed_Text"].Value,
+        OwnedSpotDayState.SharedFree when _ownedSpot.ReleasedToday => L["Parking_ResidentState_SharedFreeReleased_Text"].Value,
+        OwnedSpotDayState.SharedFree => L["Parking_ResidentState_SharedFreeAuto_Text"].Value,
+        OwnedSpotDayState.SharedTaken => L["Parking_ResidentState_SharedTaken_Text"].Value,
+        _ => L["Parking_AlternateSearch_Text"].Value,
+    };
+
+    private string ConfirmArrivalHelp => CanConfirmAutoShared
+        ? L["Parking_Owned_ConfirmAutoSharedHelp"].Value
+        : L["Parking_Owned_ConfirmHeldHelp"].Value;
+
+    private RenderFragment ResidentSearchNotice() => __builder =>
+    {
+        if (_ownedSpot is null)
+        {
+            return;
+        }
+
+        <div class="resident-search-notice @( _ownedSpot.TodayState == OwnedSpotDayState.SharedTaken ? "resident-search-notice--warning" : null)">
+            <strong>@ResidentParkingTitle</strong>
+            <span>@ResidentParkingText</span>
+        </div>
+    };
+
+    private RenderFragment SharedSearchArea() => __builder =>
+    {
+        if (!ShouldCollapseSharedSearch)
+        {
+            @ResidentSearchNotice()
+            @SharedSearchPanel()
+            return;
+        }
+
+        if (SharedSearchExpanded)
+        {
+            <details class="alternate-search" open>
+                <summary class="alternate-search__summary">
+                    <span>
+                        <strong>@ResidentParkingTitle</strong>
+                        <small>@ResidentParkingText</small>
+                    </span>
+                    <span class="alternate-search__action">@L["Parking_AlternateSearch_Action"]</span>
+                </summary>
+                <div class="alternate-search__body">
+                    @SharedSearchPanel()
+                </div>
+            </details>
+        }
+        else
+        {
+            <details class="alternate-search">
+                <summary class="alternate-search__summary">
+                    <span>
+                        <strong>@ResidentParkingTitle</strong>
+                        <small>@ResidentParkingText</small>
+                    </span>
+                    <span class="alternate-search__action">@L["Parking_AlternateSearch_Action"]</span>
+                </summary>
+                <div class="alternate-search__body">
+                    @SharedSearchPanel()
+                </div>
+            </details>
+        }
+    };
+
+    private RenderFragment SharedSearchPanel() => __builder =>
+    {
+        <FluentCard Id="booking-bar" Class="@($"booking-bar {(_highlightSearch ? "booking-bar--attention" : null)}")">
+            <div class="booking-bar__head">
+                <div>
+                    <div class="section-head">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Accent" />
+                        <span>@L["Parking_BookingTitle"]</span>
+                    </div>
+                    <p class="booking-bar__copy">@L["Parking_BookingIntro"]</p>
+                </div>
+            </div>
+            <div class="booking-bar__row">
+                <div class="field">
+                    <label>@L["Parking_Date"]</label>
+                    <input type="date" @ref="_dateInput" @bind="_day" @bind:after="InvalidateSearch" class="parking-input" />
+                </div>
+                <div class="field">
+                    <label>@L["Parking_From"]</label>
+                    <input type="time" @bind="_startTime" @bind:after="InvalidateSearch" class="parking-input" />
+                </div>
+                <div class="field">
+                    <label>@L["Parking_To"]</label>
+                    <input type="time" @bind="_endTime" @bind:after="InvalidateSearch" class="parking-input" />
+                </div>
+                <FluentButton Class="booking-bar__submit" Appearance="Appearance.Accent" OnClick="() => FindAvailableAsync()">@L["Parking_Find"]</FluentButton>
+            </div>
+
+            @if (_quote is not null)
+            {
+                <div class="quote-panel">
+                    <div class="price-tag">
+                        <span class="price-tag__num">@_quote.Cost</span>
+                        <span class="price-tag__unit">@L["Parking_Credits"]</span>
+                    </div>
+                    <span class="pill @(_quote.IsPeak ? "pill--peak" : "pill--offpeak")">
+                        @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])
+                    </span>
+                    <div class="quote-meter">
+                        <div class="quote-meter__head">
+                            <span>@L["Parking_Occupancy"]</span>
+                            <span>@_quote.OccupancyPercent %</span>
+                        </div>
+                        <div class="meter"><div class="meter__fill @OccupancyClass(_quote.OccupancyPercent)" style="width:@(_quote.OccupancyPercent)%"></div></div>
+                    </div>
+                    <span class="balance-chip @(_quote.Affordable ? "balance-chip--ok" : "balance-chip--low")">
+                        @L["Parking_Balance"]: <strong>@_quote.Balance</strong> @L["Parking_Credits"]
+                    </span>
+                </div>
+                @if (!_quote.Affordable)
+                {
+                    <FluentLabel Typo="Typography.Body" Style="color:var(--error)">@L["Parking_Error_InsufficientCredit"]</FluentLabel>
+                }
+            }
+        </FluentCard>
+
+        @if (_quote is not null)
+        {
+            <div class="booking-context-bar" aria-label="@L["Parking_Context_Label"]">
+                <div class="booking-context-bar__main">
+                    <strong>@L["Parking_Context_Summary", Local(Start, "d"), Local(Start, "t"), Local(End, "t")]</strong>
+                    <span>@_quote.Cost @L["Parking_Credits"] · @(_quote.IsPeak ? L["Parking_Peak"] : L["Parking_OffPeakLabel"])</span>
+                </div>
+                <span class="balance-chip @(_quote.Affordable ? "balance-chip--ok" : "balance-chip--low")">
+                    @L["Parking_Balance"]: <strong>@_quote.Balance</strong> @L["Parking_Credits"]
+                </span>
+                <button type="button" class="context-link" @onclick="FocusSearchAsync">@L["Parking_Context_Change"]</button>
+            </div>
+        }
+    };
 
     /// <summary>Renders a stored UTC instant as local wall-clock at the lot.</summary>
     private string Local(DateTimeOffset utc, string format) =>
         TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+
+    private string ReservationWhen(ReservationDto reservation)
+    {
+        var start = TimeZoneInfo.ConvertTime(reservation.StartUtc, _tz);
+        var end = TimeZoneInfo.ConvertTime(reservation.EndUtc, _tz);
+        if (start.TimeOfDay == TimeSpan.Zero && end.TimeOfDay == TimeSpan.Zero)
+        {
+            return $"{start:d} · {L["Parking_AllDay"]}";
+        }
+
+        return $"{start:g} – {end:t}";
+    }
+
+    private string ReleaseDayTitle(ReleasedDayDto day) =>
+        day.TakenByGuest
+            ? L["Parking_Owned_DayTakenTitle", day.Date.ToString("D")].Value
+            : L["Parking_Owned_DayReleasedTitle", day.Date.ToString("D")].Value;
+
+    private RenderFragment SmartHint(string anchorId, string text, int longAt = 92, bool forceIcon = false) => __builder =>
+    {
+        if (forceIcon || text.Length > longAt)
+        {
+            <button type="button" id="@anchorId" class="owned-hint" aria-label="@text">
+                <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            </button>
+            <FluentTooltip Anchor="@anchorId" Position="TooltipPosition.Bottom" MaxWidth="440px">@text</FluentTooltip>
+        }
+        else
+        {
+            <span class="owned-note">@text</span>
+        }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -527,84 +1175,56 @@
         // Four independent reads. Each writes its own fields, and their continuations are serialised
         // by the renderer's dispatcher, so there is nothing to race over.
         var home = UserLocation.GetHomeAsync(_userId);
-        await Task.WhenAll(home, ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
+        var orientationMap = ParkingSettings.GetOrientationMapAsync();
+        await Task.WhenAll(home, orientationMap, ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
         _distanceKm = home.Result.Verified ? home.Result.DistanceKm : null;
-
-        // The published plan, if there is one. Geometry only — which stalls are free comes from the
-        // search, so this is read once and never again.
-        _map = await Maps.GetPublishedAsync();
+        _hasOrientationMap = orientationMap.Result is not null;
     }
 
-    /// <summary>The published drawing of the lot, or null while nobody has published one.</summary>
-    private LotMapDetailDto? _map;
-
-    /// <summary>Whether the results are shown as the plan rather than as cards.</summary>
-    private bool _mapView;
-
-    /// <summary>
-    /// What the last search found, by spot — the map's whole notion of "free". Rebuilt whenever the
-    /// list it comes from is replaced, rather than invalidated by hand: the search is cleared from
-    /// three different places, and a lookup that has to be remembered at each of them is a lookup
-    /// that will one day colour the map with the previous window.
-    /// </summary>
-    private HashSet<Guid> AvailableIds
+    private void OpenOrientationMap(string spotCode)
     {
-        get
+        _orientationMapSpotCode = spotCode;
+        _showOrientationMap = true;
+    }
+
+    private Task CloseOrientationMapAsync()
+    {
+        _showOrientationMap = false;
+        _orientationMapSpotCode = null;
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _preferencesLoaded || _userId == Guid.Empty)
         {
-            if (!ReferenceEquals(_availableIdsSource, _available))
+            return;
+        }
+
+        _preferencesLoaded = true;
+        try
+        {
+            var stored = await Storage.GetAsync<ParkingReservePreferences>(PreferencesStorageKey);
+            if (stored.Success && stored.Value is { } prefs)
             {
-                _availableIdsSource = _available;
-                _availableIds = _available?.Select(s => s.Id).ToHashSet() ?? [];
+                ApplyPreferences(prefs);
+                StateHasChanged();
             }
-
-            return _availableIds;
         }
-    }
-
-    private IReadOnlyList<ParkingSpotDto>? _availableIdsSource;
-    private HashSet<Guid> _availableIds = [];
-
-    /// <summary>
-    /// Every shape the map draws for a spot is one of ours — that is what the link means — so the
-    /// only question left is whether the search found it free for the window that was asked about.
-    /// The stalls of other tenants have no link and never reach here; they stay context.
-    /// </summary>
-    private string? MapStateOf(Guid spotId) => AvailableIds.Contains(spotId) ? "Free" : "Taken";
-
-    /// <summary>
-    /// Only what is free can be booked, and only under the same conditions the list's button obeys:
-    /// nothing in flight, and the window affordable.
-    /// </summary>
-    private bool MapInteractive(Guid spotId) =>
-        AvailableIds.Contains(spotId) && !_actionBusy && (_quote is null || _quote.Affordable);
-
-    private string MapTitleOf(Guid spotId)
-    {
-        // The code and type come off the shape itself (the map denormalizes them), so a stall that
-        // is taken — and therefore absent from the search — can still say what it is.
-        var shape = _map?.Shapes.FirstOrDefault(sh => sh.ParkingSpotId == spotId);
-        var parts = new List<string> { shape?.SpotCode ?? shape?.Label ?? string.Empty };
-        if (shape?.SpotType is { } type)
+        catch
         {
-            parts.Add(L[$"Parking_SpotType_{type}"].Value);
+            try
+            {
+                await Storage.DeleteAsync(PreferencesStorageKey);
+            }
+            catch
+            {
+                // A stored convenience preference must never break the reservation page.
+            }
         }
-
-        parts.Add(L[AvailableIds.Contains(spotId) ? "Parking_Map_Free" : "Parking_Map_Taken"].Value);
-        if (AvailableIds.Contains(spotId) && _quote is not null)
-        {
-            parts.Add($"{_quote.Cost} {L["Parking_Credits"]}");
-        }
-
-        return string.Join(" · ", parts.Where(p => p.Length > 0));
     }
 
     private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
-
-    private async Task GoToReservationPageAsync(int pageIndex)
-    {
-        _reservationPageIndex = Math.Clamp(pageIndex, 0, ReservationPageCount - 1);
-        await ReloadReservationsAsync();
-    }
 
     // A changed window makes the shown spots and quote stale — clear them so the only path to
     // a reservation goes through a fresh search (the visitor agenda does the same).
@@ -612,6 +1232,21 @@
     {
         _available = null;
         _quote = null;
+    }
+
+    private async Task FocusSearchAsync()
+    {
+        _highlightSearch = true;
+        await Task.Yield();
+        await _dateInput.FocusAsync();
+        _ = ClearSearchHighlightAsync();
+    }
+
+    private async Task ClearSearchHighlightAsync()
+    {
+        await Task.Delay(1400);
+        _highlightSearch = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task JoinQueueAsync()
@@ -728,6 +1363,35 @@
                 DateOnly.FromDateTime(_releaseFrom), DateOnly.FromDateTime(_releaseTo));
     }
 
+    private async Task ReleaseRangeChangedAsync()
+    {
+        _releasePreset = ReleasePreset.Custom;
+        await RefreshReleasePreviewAsync();
+    }
+
+    private async Task SetReleasePresetAsync(ReleasePreset preset)
+    {
+        _releasePreset = preset;
+        var today = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        var from = today;
+        var to = today;
+
+        if (preset == ReleasePreset.Tomorrow)
+        {
+            from = today.AddDays(1);
+            to = from;
+        }
+        else if (preset == ReleasePreset.ThisWeek)
+        {
+            var daysUntilSunday = ((int)DayOfWeek.Sunday - (int)today.DayOfWeek + 7) % 7;
+            to = today.AddDays(daysUntilSunday);
+        }
+
+        _releaseFrom = from.ToDateTime(TimeOnly.MinValue);
+        _releaseTo = to.ToDateTime(TimeOnly.MinValue);
+        await RefreshReleasePreviewAsync();
+    }
+
     private async Task ReloadOwnedSpotAsync()
     {
         _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
@@ -785,7 +1449,12 @@
                 _info = successKey;
                 await ReloadOwnedSpotAsync();
                 await ReloadReservationsAsync();
-                if (_available is not null)
+                if (HasConfirmedResidentSpot)
+                {
+                    _available = null;
+                    _quote = null;
+                }
+                else if (_available is not null)
                 {
                     await FindAvailableAsync(keepMessages: true);
                 }
@@ -824,6 +1493,81 @@
 
         _available = await Reservations.GetAvailableSpotsAsync(Start, End);
         _quote = await Reservations.GetQuoteAsync(_userId, Start, End);
+        if (!keepMessages)
+        {
+            await SavePreferencesAsync();
+        }
+    }
+
+    private async Task ShiftSearchAsync(TimeSpan delta)
+    {
+        var start = _day.ToDateTime(_startTime).Add(delta);
+        var end = _day.ToDateTime(_endTime).Add(delta);
+        ApplySearchWindow(start, end);
+        await FindAvailableAsync();
+    }
+
+    private async Task SearchFromAsync(TimeOnly startTime)
+    {
+        var start = _day.ToDateTime(startTime);
+        var end = start.Add(SearchDuration);
+        ApplySearchWindow(start, end);
+        await FindAvailableAsync();
+    }
+
+    private void ApplySearchWindow(DateTime start, DateTime end)
+    {
+        if (end.Date > start.Date)
+        {
+            end = start.Date.AddDays(1).AddMinutes(-1);
+        }
+
+        _day = DateOnly.FromDateTime(start);
+        _startTime = TimeOnly.FromDateTime(start);
+        _endTime = TimeOnly.FromDateTime(end);
+    }
+
+    private void ApplyPreferences(ParkingReservePreferences prefs)
+    {
+        if (TimeOnly.TryParseExact(prefs.StartTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start))
+        {
+            _startTime = start;
+        }
+
+        if (TimeOnly.TryParseExact(prefs.EndTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var end)
+            && end > _startTime)
+        {
+            _endTime = end;
+        }
+
+        if (string.IsNullOrWhiteSpace(prefs.SpotTypeFilter)
+            || Enum.TryParse<ParkingSpotType>(prefs.SpotTypeFilter, out _))
+        {
+            _spotTypeFilter = prefs.SpotTypeFilter ?? string.Empty;
+        }
+
+        if (Enum.TryParse<AvailableSort>(prefs.Sort, out var sort))
+        {
+            _availableSort = sort;
+        }
+
+        InvalidateSearch();
+    }
+
+    private async Task SavePreferencesAsync()
+    {
+        try
+        {
+            await Storage.SetAsync(PreferencesStorageKey, new ParkingReservePreferences(
+                _startTime.ToString("HH:mm", CultureInfo.InvariantCulture),
+                _endTime.ToString("HH:mm", CultureInfo.InvariantCulture),
+                _spotTypeFilter,
+                _availableSort.ToString()));
+        }
+        catch
+        {
+            // Best-effort only: searching must work even when browser storage is unavailable.
+        }
     }
 
     private async Task ReserveAsync(Guid spotId)
@@ -999,14 +1743,19 @@
         // The apology voucher can appear (blocked-spot flow), disappear (redeemed by a booking)
         // or come back (timely cancel/release) with any reservation action — keep it in sync. It
         // does not depend on the reservation list, so both go at once.
-        var page = Reservations.GetMyReservationsPageAsync(_userId, _reservationPageIndex, ReservationPageSize);
+        var reservations = Reservations.GetMyReservationsAsync(_userId);
         var voucher = Reservations.GetMyApologyVoucherAsync(_userId);
-        await Task.WhenAll(page, voucher);
-        _myReservations = page.Result.Items;
-        _reservationTotal = page.Result.TotalCount;
-        // Taken back from the result, not assumed: the service walks the index back when the page it
-        // was asked for no longer exists (the last booking on it was just cancelled away).
-        _reservationPageIndex = page.Result.PageIndex;
+        await Task.WhenAll(reservations, voucher);
+        _myReservations = reservations.Result;
+        if (VisibleReservations.Count == 0)
+        {
+            _reservationView = ActiveReservations.Count > 0
+                ? ReservationView.Active
+                : FutureReservations.Count > 0
+                    ? ReservationView.Future
+                    : _reservationView;
+        }
+
         _voucher = voucher.Result;
         if (_voucher is null)
         {

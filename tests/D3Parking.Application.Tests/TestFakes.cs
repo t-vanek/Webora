@@ -40,6 +40,15 @@ internal sealed class FakeParkingSettings(IncentivePolicy? policy = null) : IPar
     public Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<ParkingMapImageDto?>(null);
+
+    public Task<ParkingResult> SetOrientationMapAsync(byte[] content, Guid actingUserId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<ParkingResult> ClearOrientationMapAsync(Guid actingUserId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
 }
 
 /// <summary>Returns the resource key itself; the tests assert behavior, not message text.</summary>

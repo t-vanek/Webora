@@ -7,13 +7,11 @@
    Fluent UI's across every component in the project. The aliases below keep Fluent winning inside
    this file. *@
 @using ApexCharts
-@using D3Parking.Application.Parking.Maps
 @using Color = Microsoft.FluentUI.AspNetCore.Components.Color
 @using Orientation = Microsoft.FluentUI.AspNetCore.Components.Orientation
 @using Align = Microsoft.FluentUI.AspNetCore.Components.Align
 @using TooltipPosition = Microsoft.FluentUI.AspNetCore.Components.TooltipPosition
 @inject ILotDashboardService Dashboard
-@inject ILotMapService Maps
 @inject IParkingSpotService Spots
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
@@ -23,7 +21,7 @@
 
 <PageTitle>@L["Lot_Title"]</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="20">
+<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head__titles">
         <div class="admin-head__title-row">
             <FluentLabel Typo="Typography.PageTitle">@L["Lot_Title"]</FluentLabel>
@@ -84,19 +82,6 @@
             {
                 <span class="state-pill state-pill--info">@L["Lot_NotToday"]</span>
             }
-            @* Offered only once a map is published: the grid is always available and is the honest
-               answer while the plan is still being traced. *@
-            @if (_map is not null)
-            {
-                <div class="map-toolbar__group" role="group" aria-label="@L["Lot_View"]">
-                    <FluentButton Id="lot-view-grid" Appearance="@(_mapView ? Appearance.Outline : Appearance.Accent)"
-                                  aria-pressed="@(_mapView ? "false" : "true")"
-                                  OnClick="() => _mapView = false">@L["Lot_View_Grid"]</FluentButton>
-                    <FluentButton Id="lot-view-map" Appearance="@(_mapView ? Appearance.Accent : Appearance.Outline)"
-                                  aria-pressed="@(_mapView ? "true" : "false")"
-                                  OnClick="() => _mapView = true">@L["Lot_View_Map"]</FluentButton>
-                </div>
-            }
         </div>
 
         <div class="lot-legend">
@@ -114,22 +99,6 @@
            one click each and the board stays readable underneath. *@
         <div class="lot-split">
         <div class="lot-split__board">
-        @if (_mapView && _map is not null)
-        {
-            @* The same tiles, drawn where they actually are. States and selection come from the
-               board that is already loaded, so switching view costs no query. *@
-            <LotMapView Map="_map"
-                        StateOf="MapStateOf"
-                        TitleOf="MapTitleOf"
-                        Selected="_detail?.SpotId"
-                        OnSpotSelected="SelectSpotAsync"
-                        AriaLabel="@L["Lot_Map_Label"]"
-                        ZoomInLabel="@L["Map_ZoomIn"]"
-                        ZoomOutLabel="@L["Map_ZoomOut"]"
-                        FitLabel="@L["Map_FitView"]" />
-        }
-        else
-        {
         @* The lot drawn as itself: a tile per spot, grouped into the sections the codes imply. The
            loop variable is not called "section" — @section is a reserved Razor directive, so
            @section.Spots would be parsed as one.
@@ -186,9 +155,7 @@
             </div>
         }
 
-        }
-
-        @if (!_mapView && HasMoreTiles)
+        @if (HasMoreTiles)
         {
             @* Keyed so the diff keeps this exact node as tiles are appended above it: the observer
                in JS holds the element, and a recreated button would silently stop loading. *@
@@ -900,39 +867,11 @@
         // until somebody actually goes there.
         await ReloadBoardAsync();
 
-        // The drawing, if there is a published one. Read once: the geometry does not change with the
-        // day, only what each stall is doing does, and that comes from the board.
-        _map = await Maps.GetPublishedAsync();
     }
-
-    /// <summary>The published drawing of the lot, or null while nobody has published one.</summary>
-    private LotMapDetailDto? _map;
-
-    /// <summary>Whether the board tab is showing the drawing rather than the grid of tiles.</summary>
-    private bool _mapView;
-
-    /// <summary>The board's tiles by spot, so the map can colour a shape without a second query.</summary>
-    private IReadOnlyDictionary<Guid, SpotTileDto> TilesBySpot =>
-        _tilesBySpot ??= _board?.Spots.ToDictionary(t => t.SpotId) ?? new Dictionary<Guid, SpotTileDto>();
-
-    private IReadOnlyDictionary<Guid, SpotTileDto>? _tilesBySpot;
-
-    /// <summary>
-    /// The state class for a drawn stall, or null when the map draws a spot this lot has no tile for
-    /// — a stall of somebody else's, which the map shows as context and never as a control.
-    /// </summary>
-    private string? MapStateOf(Guid spotId) =>
-        TilesBySpot.TryGetValue(spotId, out var tile) ? tile.State.ToString() : null;
-
-    private string MapTitleOf(Guid spotId) =>
-        TilesBySpot.TryGetValue(spotId, out var tile) ? TileTooltip(tile) : string.Empty;
 
     private async Task ReloadBoardAsync()
     {
         _board = await Dashboard.GetBoardAsync(Day);
-        // Derived from the board, so it cannot outlive it — a stale lookup would colour the map with
-        // yesterday's states.
-        _tilesBySpot = null;
         // How big each section is, taken from the whole board rather than from the tiles drawn so
         // far — counting the drawn ones would shrink a section's chip while it is being revealed.
         _sectionSizes = _board.Spots.GroupBy(s => s.Section).ToDictionary(g => g.Key, g => g.Count());

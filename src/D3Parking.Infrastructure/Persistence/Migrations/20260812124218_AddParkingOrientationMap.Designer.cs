@@ -4,6 +4,7 @@ using D3Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace D3Parking.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D3ParkingDbContext))]
-    partial class D3ParkingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260812124218_AddParkingOrientationMap")]
+    partial class AddParkingOrientationMap
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -718,6 +721,104 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("UserBadges", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.Maps.LotMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Background")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("BackgroundContentType")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("BackgroundOpacity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("GridSize")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsPublished")
+                        .IsUnique()
+                        .HasFilter("[IsPublished] = 1");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("LotMaps", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.Maps.MapShape", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("LotMapId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ParkingSpotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("Rotation")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("float");
+
+                    b.Property<double>("X")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LotMapId");
+
+                    b.HasIndex("ParkingSpotId")
+                        .IsUnique()
+                        .HasFilter("[ParkingSpotId] IS NOT NULL");
+
+                    b.ToTable("MapShapes", (string)null);
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.MismatchPhoto", b =>
@@ -2144,6 +2245,20 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.Maps.MapShape", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Parking.Maps.LotMap", null)
+                        .WithMany()
+                        .HasForeignKey("LotMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("D3Parking.Domain.Parking.ParkingSpot", null)
+                        .WithMany()
+                        .HasForeignKey("ParkingSpotId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.SpotDefectPhoto", b =>
