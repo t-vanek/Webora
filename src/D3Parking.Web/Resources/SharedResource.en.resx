@@ -205,6 +205,16 @@
   <data name="Admin_UserEdit_DangerZone" xml:space="preserve"><value>Danger zone</value></data>
   <data name="Admin_UserEdit_Delete" xml:space="preserve"><value>Delete account</value></data>
   <data name="Admin_UserEdit_DeleteConfirm" xml:space="preserve"><value>Do you really want to permanently delete this account?</value></data>
+  <data name="Admin_UserEdit_DeleteImpactIntro" xml:space="preserve"><value>The employee cleanup will run first:</value></data>
+  <data name="Admin_UserEdit_DeleteSpots" xml:space="preserve"><value>Spots released</value></data>
+  <data name="Admin_UserEdit_DeleteVehicles" xml:space="preserve"><value>Vehicles unpaired</value></data>
+  <data name="Admin_UserEdit_DeleteReservations" xml:space="preserve"><value>Reservations cancelled</value></data>
+  <data name="Admin_UserEdit_DeleteQueue" xml:space="preserve"><value>Queues left</value></data>
+  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Visits cancelled</value></data>
+  <data name="Admin_UserEdit_DeleteMessages" xml:space="preserve"><value>Personal messages and devices</value></data>
+  <data name="Admin_UserEdit_DeleteCases" xml:space="preserve"><value>Cases reassigned</value></data>
+  <data name="Admin_UserEdit_DeleteHistory" xml:space="preserve"><value>{0} historical records will be retained anonymously for audit and analytics.</value></data>
+  <data name="Admin_UserEdit_DeleteTypeEmail" xml:space="preserve"><value>Type {0} to confirm</value></data>
   <data name="Admin_UserEdit_DeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
   <data name="Admin_UserEdit_Audit" xml:space="preserve"><value>History</value></data>
   <data name="Admin_UserEdit_NoAudit" xml:space="preserve"><value>No records.</value></data>

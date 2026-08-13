@@ -29,4 +29,6 @@ public enum AccountAuditEventType
     EmailChanged,
     PhoneChangeRequested,
     PhoneChanged,
+    /// <summary>The identity was removed after its operational footprint had been cleaned up.</summary>
+    Deleted,
 }

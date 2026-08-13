@@ -7,6 +7,7 @@ using D3Parking.Application.Accounts;
 using D3Parking.Application.Identity;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
+using D3Parking.Infrastructure.Administration;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Identity;
@@ -111,6 +112,14 @@ public sealed class EntraDirectoryService(
         var target = active ? AccountStatus.Active : AccountStatus.Blocked;
         if (user.Status == target)
         {
+            // SCIM retries are expected. A previous request may have blocked the identity and then
+            // failed halfway through the operational cascade, so an inactive retry finishes it.
+            if (!active)
+            {
+                await EmployeeLifecycleCleanup.CleanOperationalAsync(
+                    dbContext, user.Id, user.Email, actingUserId: null, timeProvider.GetUtcNow(),
+                    revokeAccess: true, cancellationToken);
+            }
             return AccountResult.Success;
         }
 
@@ -136,6 +145,13 @@ public sealed class EntraDirectoryService(
 
         // Blocking has to end live sessions, not just close the front door.
         await userManager.UpdateSecurityStampAsync(user);
+
+        if (!active)
+        {
+            await EmployeeLifecycleCleanup.CleanOperationalAsync(
+                dbContext, user.Id, user.Email, actingUserId: null, timeProvider.GetUtcNow(),
+                revokeAccess: true, cancellationToken);
+        }
 
         await AuditAsync(user.Id, active ? AccountAuditEventType.Unblocked : AccountAuditEventType.Blocked,
             $"{(active ? "reactivated" : "deprovisioned")} by {provider}", cancellationToken);
