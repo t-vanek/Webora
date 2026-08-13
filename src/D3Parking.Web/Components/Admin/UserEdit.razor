@@ -204,16 +204,40 @@
                                 @if (_confirmDelete)
                                 {
                                     <div class="user-delete-confirm">
-                                        <strong>@L["Admin_UserEdit_DeleteConfirm"]</strong>
+                                        <div class="user-delete-confirm__head">
+                                            <strong>@L["Admin_UserEdit_DeleteConfirm"]</strong>
+                                            <span>@L["Admin_UserEdit_DeleteImpactIntro"]</span>
+                                        </div>
+                                        @if (_deletionImpact is { } impact)
+                                        {
+                                            <div class="user-delete-impact">
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteSpots"], impact.OwnedSpots)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteVehicles"], impact.PairedVehicles)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteReservations"], impact.ActiveReservations)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteQueue"], impact.ActiveQueueEntries)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteVisitors"], impact.UpcomingVisitorBookings)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteMessages"], impact.PersonalMessages)
+                                                @DeleteImpactFact(L["Admin_UserEdit_DeleteCases"], impact.AssignedOversightCases)
+                                            </div>
+                                            <div class="user-delete-history">
+                                                <FluentIcon Value="@(new Icons.Regular.Size20.ShieldCheckmark())" />
+                                                <span>@L["Admin_UserEdit_DeleteHistory", impact.HistoricalRecords]</span>
+                                            </div>
+                                        }
+                                        <FluentTextField @bind-Value="_deleteConfirmation"
+                                                         Label="@L["Admin_UserEdit_DeleteTypeEmail", _detail.Email]"
+                                                         AutoComplete="off" Style="width:100%" />
                                         <div class="user-detail-actions">
-                                            <FluentButton OnClick="DeleteAsync" Appearance="Appearance.Accent">@L["Admin_UserEdit_DeleteYes"]</FluentButton>
-                                            <FluentButton OnClick="() => _confirmDelete = false" Appearance="Appearance.Outline">@L["Admin_Cancel"]</FluentButton>
+                                            <FluentButton OnClick="DeleteAsync" Appearance="Appearance.Accent"
+                                                          Disabled="@(!DeleteConfirmed || _deleteBusy)">@L["Admin_UserEdit_DeleteYes"]</FluentButton>
+                                            <FluentButton OnClick="CloseDelete" Appearance="Appearance.Outline" Disabled="@_deleteBusy">@L["Admin_Cancel"]</FluentButton>
                                         </div>
                                     </div>
                                 }
                                 else
                                 {
-                                    <FluentButton OnClick="() => _confirmDelete = true" Appearance="Appearance.Outline">@L["Admin_UserEdit_Delete"]</FluentButton>
+                                    <FluentButton OnClick="OpenDeleteAsync" Appearance="Appearance.Outline"
+                                                  Disabled="@_deleteBusy">@L["Admin_UserEdit_Delete"]</FluentButton>
                                 }
                             </section>
                         }
@@ -286,6 +310,9 @@
     private UserHomeDto _home = new(null, null, false);
     private string? _blockReason;
     private bool _confirmDelete;
+    private bool _deleteBusy;
+    private string? _deleteConfirmation;
+    private EmployeeDeletionImpact? _deletionImpact;
     private string? _message;
     private string? _error;
     private TimeZoneInfo _tz = TimeZoneInfo.Local;
@@ -323,6 +350,8 @@
             _loadedId = Id;
             _message = _error = null;
             _confirmDelete = false;
+            _deleteConfirmation = null;
+            _deletionImpact = null;
             _activeTab = OverviewTab;
             // The trail belongs to the account, so following a link to another one starts at its
             // first page rather than wherever the previous account was being read.
@@ -422,6 +451,14 @@
         <dd>@value</dd>
     </div>;
 
+    private RenderFragment DeleteImpactFact(string label, int value) => @<div>
+        <span>@label</span>
+        <strong>@value</strong>
+    </div>;
+
+    private bool DeleteConfirmed => _detail is not null
+        && string.Equals(_deleteConfirmation?.Trim(), _detail.Email, StringComparison.OrdinalIgnoreCase);
+
     private string ActorLabel(string actor)
     {
         if (string.Equals(actor, "self", StringComparison.OrdinalIgnoreCase))
@@ -445,6 +482,12 @@
 
     private async Task DeleteAsync()
     {
+        if (!DeleteConfirmed)
+        {
+            return;
+        }
+
+        _deleteBusy = true;
         var result = await UserAdmin.DeleteAsync(Id, _adminId);
         if (result.Succeeded)
         {
@@ -452,8 +495,33 @@
             return;
         }
 
+        _deleteBusy = false;
         _confirmDelete = false;
         _error = string.Join(" ", result.Errors);
+    }
+
+    private async Task OpenDeleteAsync()
+    {
+        _deleteBusy = true;
+        _error = null;
+        _deletionImpact = await UserAdmin.GetDeletionImpactAsync(Id);
+        _deleteBusy = false;
+
+        if (_deletionImpact is null)
+        {
+            _error = L["Admin_Users_NotFound"];
+            return;
+        }
+
+        _deleteConfirmation = null;
+        _confirmDelete = true;
+    }
+
+    private void CloseDelete()
+    {
+        _confirmDelete = false;
+        _deleteConfirmation = null;
+        _deletionImpact = null;
     }
 
     private async Task RunAsync(Func<Task<AccountResult>> action, string successMessage)

@@ -229,6 +229,17 @@ public sealed class UserAdminService(
             user.ExternalProvider, user.ExternalSyncedAtUtc);
     }
 
+    public async Task<EmployeeDeletionImpact?> GetDeletionImpactAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (!await dbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken))
+        {
+            return null;
+        }
+
+        return await EmployeeLifecycleCleanup.PreviewAsync(dbContext, userId, cancellationToken);
+    }
+
     public async Task<AccountResult> CreateAsync(
         string email,
         string? displayName,
@@ -380,74 +391,37 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_LastAdministrator"]);
         }
 
+        // The cascade and the Identity row are one unit. Previously the account was committed first
+        // and parking cleanup happened through another context; a transient failure left ghost
+        // reservations and ownership that no retry could reach from the deleted account screen.
+        await EmployeeLifecycleCleanup.CleanOperationalAsync(
+            identityDbContext, userId, user.Email, adminId, timeProvider.GetUtcNow(),
+            revokeAccess: false, cancellationToken);
+
+        // Keep the event sequence and timestamps, but remove free-form values that may contain an
+        // old e-mail address, phone number or administrator note. The unresolved user id is the
+        // anonymous correlation key used by reports after the Identity row is gone.
+        await identityDbContext.AccountAuditEvents
+            .Where(a => a.UserId == userId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(a => a.Actor, a => a.Actor == "self" ? "deleted" : a.Actor)
+                .SetProperty(a => a.Detail, (string?)null), cancellationToken);
+
         var deleted = await userManager.DeleteAsync(user);
         if (!deleted.Succeeded)
         {
             return ToFailure(deleted);
         }
 
+        identityDbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+            userId, AccountAuditEventType.Deleted, $"admin:{adminId}",
+            "Identity removed; operational data deleted and retained history anonymized.",
+            timeProvider.GetUtcNow()));
+        await identityDbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-
-        await CleanUpParkingFootprintAsync(userId, cancellationToken);
 
         logger.LogInformation("Admin {AdminId} deleted account {UserId}", adminId, userId);
         return AccountResult.Success;
-    }
-
-    /// <summary>
-    /// Severs a deleted account's footprint in the parking domain (nothing references Users by
-    /// FK): owned spots return to the shared pool, active bookings and waitlist entries stop
-    /// blocking spots for a ghost, and notification/push rows addressed to the nonexistent user
-    /// are dropped. Historical rows (completed reservations, the points ledger) are kept.
-    /// </summary>
-    private async Task CleanUpParkingFootprintAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        // Owned spots go back to the pool. Their upcoming releases are void with the owner gone —
-        // for an ownerless spot they no longer gate booking, but the reconcile sweep would keep
-        // processing them and write clawbacks/notifications for the deleted account. UTC "today"
-        // is close enough here; at worst one boundary day is treated as history.
-        var ownedSpotIds = await dbContext.ParkingSpots
-            .Where(s => s.OwnerId == userId)
-            .Select(s => s.Id)
-            .ToListAsync(cancellationToken);
-        if (ownedSpotIds.Count > 0)
-        {
-            var todayUtc = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.Date);
-            await dbContext.ParkingSpots
-                .Where(s => ownedSpotIds.Contains(s.Id))
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.OwnerId, (Guid?)null), cancellationToken);
-            await dbContext.SpotReleases
-                .Where(r => ownedSpotIds.Contains(r.SpotId) && r.Date >= todayUtc)
-                .ExecuteDeleteAsync(cancellationToken);
-        }
-
-        // A paired company vehicle loses its driver but stays in the registry for the next one.
-        // The owned-spot reset above has already returned the residency the pairing carried.
-        await dbContext.CompanyVehicles
-            .Where(v => v.PairedUserId == userId)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(v => v.PairedUserId, (Guid?)null)
-                .SetProperty(v => v.PairedAtUtc, (DateTimeOffset?)null)
-                .SetProperty(v => v.PairingCodeSentAtUtc, (DateTimeOffset?)null)
-                .SetProperty(v => v.PairingAttempts, 0)
-                .SetProperty(v => v.PairingAttemptsWindowStartUtc, (DateTimeOffset?)null), cancellationToken);
-
-        // Active bookings would otherwise hold spots until the no-show sweep penalized a ghost.
-        await dbContext.Reservations
-            .Where(r => r.UserId == userId
-                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, ReservationStatus.Cancelled), cancellationToken);
-
-        await dbContext.QueueEntries
-            .Where(q => q.UserId == userId
-                && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered))
-            .ExecuteUpdateAsync(s => s.SetProperty(q => q.Status, QueueEntryStatus.Cancelled), cancellationToken);
-
-        await dbContext.PushSubscriptions.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
-        await dbContext.Notifications.Where(n => n.UserId == userId).ExecuteDeleteAsync(cancellationToken);
-        await dbContext.NotificationPreferences.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
     }
 
     private async Task<AccountResult?> ValidateRolesAsync(D3ParkingDbContext dbContext, IReadOnlyList<string> roles, CancellationToken cancellationToken)

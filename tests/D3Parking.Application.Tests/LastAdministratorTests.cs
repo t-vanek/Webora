@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
+using D3Parking.Domain.Notifications;
+using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Administration;
 using D3Parking.Infrastructure.Identity;
@@ -192,6 +194,59 @@ public class LastAdministratorTests
         // uncheck it and discover the refusal on save.
         Assert.That((await service.GetAsync(admin.Id))!.IsLastAdministrator, Is.True);
         Assert.That((await service.GetAsync(ordinary.Id))!.IsLastAdministrator, Is.False);
+    }
+
+    [Test]
+    public async Task Deleting_an_employee_cascades_live_resources_and_keeps_anonymous_history()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var actor = await CreateAdminAsync(scope, "lifecycle-admin@example.test");
+        var employee = await CreateUserAsync(scope, "departing@example.test");
+        var now = DateTimeOffset.UtcNow;
+
+        await using (var seed = new D3ParkingDbContext(_options))
+        {
+            var spot = new ParkingSpot("LIFE-1", ParkingSpotType.Standard);
+            spot.AssignOwner(employee.Id);
+            var reservation = new Reservation(spot.Id, employee.Id, now.AddDays(2), now.AddDays(2).AddHours(8), false, now, 12);
+            var queue = new QueueEntry(employee.Id, now.AddDays(3), now.AddDays(3).AddHours(8), now);
+            var vehicle = new CompanyVehicle("LIFE-001", VehicleType.Company, "Lifecycle car",
+                employee.Email, spot.Id, null, now);
+            vehicle.Pair(employee.Id, now);
+
+            seed.AddRange(spot, reservation, queue, vehicle,
+                new Notification(employee.Id, NotificationCategory.Administrative, NotificationLevel.Info,
+                    "Departure", "Pending", now),
+                new AccountAuditEvent(employee.Id, AccountAuditEventType.Activated, "system", null, now));
+            await seed.SaveChangesAsync();
+        }
+
+        var service = CreateUserAdminService(scope);
+        var impact = await service.GetDeletionImpactAsync(employee.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(impact, Is.Not.Null);
+            Assert.That(impact!.OwnedSpots, Is.EqualTo(1));
+            Assert.That(impact.PairedVehicles, Is.EqualTo(1));
+            Assert.That(impact.ActiveReservations, Is.EqualTo(1));
+            Assert.That(impact.ActiveQueueEntries, Is.EqualTo(1));
+        });
+
+        var result = await service.DeleteAsync(employee.Id, actor.Id);
+        Assert.That(result.Succeeded, Is.True, string.Join("; ", result.Errors));
+
+        await using var verify = new D3ParkingDbContext(_options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(verify.Users.Any(u => u.Id == employee.Id), Is.False);
+            Assert.That(verify.ParkingSpots.Single(s => s.Code == "LIFE-1").OwnerId, Is.Null);
+            Assert.That(verify.CompanyVehicles.Single(v => v.Plate == "LIFE-001").PairedUserId, Is.Null);
+            Assert.That(verify.CompanyVehicles.Single(v => v.Plate == "LIFE-001").DriverEmail, Is.Null);
+            Assert.That(verify.Reservations.Single(r => r.UserId == employee.Id).Status, Is.EqualTo(ReservationStatus.Cancelled));
+            Assert.That(verify.QueueEntries.Single(q => q.UserId == employee.Id).Status, Is.EqualTo(QueueEntryStatus.Cancelled));
+            Assert.That(verify.Notifications.Any(n => n.UserId == employee.Id), Is.False);
+            Assert.That(verify.AccountAuditEvents.Any(a => a.UserId == employee.Id && a.Type == AccountAuditEventType.Deleted), Is.True);
+        });
     }
 
     private static async Task<ApplicationUser> CreateAdminAsync(

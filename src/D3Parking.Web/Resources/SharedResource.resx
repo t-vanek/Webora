@@ -205,6 +205,16 @@
   <data name="Admin_UserEdit_DangerZone" xml:space="preserve"><value>Nebezpečná zóna</value></data>
   <data name="Admin_UserEdit_Delete" xml:space="preserve"><value>Smazat účet</value></data>
   <data name="Admin_UserEdit_DeleteConfirm" xml:space="preserve"><value>Opravdu chcete tento účet trvale smazat?</value></data>
+  <data name="Admin_UserEdit_DeleteImpactIntro" xml:space="preserve"><value>Systém nejprve provede řízený úklid zaměstnance:</value></data>
+  <data name="Admin_UserEdit_DeleteSpots" xml:space="preserve"><value>Uvolněná místa</value></data>
+  <data name="Admin_UserEdit_DeleteVehicles" xml:space="preserve"><value>Odpárovaná vozidla</value></data>
+  <data name="Admin_UserEdit_DeleteReservations" xml:space="preserve"><value>Zrušené rezervace</value></data>
+  <data name="Admin_UserEdit_DeleteQueue" xml:space="preserve"><value>Opuštěné fronty</value></data>
+  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Zrušené návštěvy</value></data>
+  <data name="Admin_UserEdit_DeleteMessages" xml:space="preserve"><value>Osobní zprávy a zařízení</value></data>
+  <data name="Admin_UserEdit_DeleteCases" xml:space="preserve"><value>Předané případy</value></data>
+  <data name="Admin_UserEdit_DeleteHistory" xml:space="preserve"><value>{0} historických záznamů zůstane anonymně zachováno pro audit a analytiku.</value></data>
+  <data name="Admin_UserEdit_DeleteTypeEmail" xml:space="preserve"><value>Pro potvrzení napište {0}</value></data>
   <data name="Admin_UserEdit_DeleteYes" xml:space="preserve"><value>Ano, smazat</value></data>
   <data name="Admin_UserEdit_Audit" xml:space="preserve"><value>Historie</value></data>
   <data name="Admin_UserEdit_NoAudit" xml:space="preserve"><value>Žádné záznamy.</value></data>

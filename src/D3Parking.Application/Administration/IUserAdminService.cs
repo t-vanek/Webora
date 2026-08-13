@@ -37,6 +37,9 @@ public interface IUserAdminService
 
     Task<UserDetail?> GetAsync(Guid userId, CancellationToken cancellationToken = default);
 
+    /// <summary>Previews the operational cascade and the history that will be anonymized.</summary>
+    Task<EmployeeDeletionImpact?> GetDeletionImpactAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<AccountResult> CreateAsync(
         string email,
         string? displayName,
