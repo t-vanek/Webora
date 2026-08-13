@@ -2012,4 +2012,59 @@
   <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>The SVG states neither a viewBox nor dimensions, so there is no scale to read.</value></data>
   <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>The file holds no rectangular shapes that could become stalls.</value></data>
   <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>The file is too large (16 MB at most).</value></data>
+  <data name="Common_ClearFilters" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Common_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Parking_Admin_AddSpots" xml:space="preserve"><value>Add spots</value></data>
+  <data name="Parking_Admin_CloseCreate" xml:space="preserve"><value>Close spot creation</value></data>
+  <data name="Parking_Admin_Overview" xml:space="preserve"><value>Parking spot summary</value></data>
+  <data name="Parking_Admin_Summary_Total" xml:space="preserve"><value>Total spots</value></data>
+  <data name="Parking_Admin_Summary_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Parking_Admin_Summary_Resident" xml:space="preserve"><value>Resident</value></data>
+  <data name="Parking_Admin_Summary_Shared" xml:space="preserve"><value>Shared pool</value></data>
+  <data name="Parking_Admin_Summary_Visitor" xml:space="preserve"><value>Visitor</value></data>
+  <data name="Parking_Admin_Filter_AllStates" xml:space="preserve"><value>All states</value></data>
+  <data name="Parking_Admin_Filter_Active" xml:space="preserve"><value>Active only</value></data>
+  <data name="Parking_Admin_Filter_Inactive" xml:space="preserve"><value>Inactive only</value></data>
+  <data name="Parking_Admin_Filter_AllTypes" xml:space="preserve"><value>All types</value></data>
+  <data name="Parking_Admin_Filter_AllOwnership" xml:space="preserve"><value>All assignments</value></data>
+  <data name="Parking_Admin_Filter_Resident" xml:space="preserve"><value>With resident</value></data>
+  <data name="Parking_Admin_Filter_Shared" xml:space="preserve"><value>Without resident</value></data>
+  <data name="Parking_Admin_Results" xml:space="preserve"><value>Spots found: {0}</value></data>
+  <data name="Admin_Audit_Results" xml:space="preserve"><value>Events found: {0}</value></data>
+  <data name="Admin_Audit_ResultHint" xml:space="preserve"><value>Select an event to view the full technical detail.</value></data>
+  <data name="Admin_Audit_OpenDetail" xml:space="preserve"><value>Open event detail</value></data>
+  <data name="Admin_Audit_SelectHint" xml:space="preserve"><value>Select an event on the left to see its actor, account and full detail.</value></data>
+  <data name="Admin_Audit_OpenAccount" xml:space="preserve"><value>Open account</value></data>
+  <data name="Parking_Visitors_CloseBooking" xml:space="preserve"><value>Close booking form</value></data>
+  <data name="Parking_Visitors_Overview" xml:space="preserve"><value>Visitor summary</value></data>
+  <data name="Parking_Visitors_Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Parking_Visitors_FreeNow" xml:space="preserve"><value>Free for selected time</value></data>
+  <data name="Parking_Visitors_SpotCapacity" xml:space="preserve"><value>Visitor spots</value></data>
+  <data name="Parking_Visitors_Search" xml:space="preserve"><value>Search visitor, plate, host or spot</value></data>
+  <data name="Parking_Visitors_View" xml:space="preserve"><value>Visitor view</value></data>
+  <data name="Parking_Visitors_TodayAgenda" xml:space="preserve"><value>Today's agenda</value></data>
+  <data name="Parking_Visitors_Results" xml:space="preserve"><value>Records: {0}</value></data>
+  <data name="Parking_Visitors_NoExtraInfo" xml:space="preserve"><value>No additional details</value></data>
+  <data name="Admin_Directory_CloseAdd" xml:space="preserve"><value>Close mapping form</value></data>
+  <data name="Admin_Directory_Overview" xml:space="preserve"><value>Directory status</value></data>
+  <data name="Admin_Directory_Mappings" xml:space="preserve"><value>Mappings</value></data>
+  <data name="Admin_Directory_AssignedUsers" xml:space="preserve"><value>Assigned users</value></data>
+  <data name="Admin_Directory_AvailableRoles" xml:space="preserve"><value>Application roles</value></data>
+  <data name="Admin_Directory_ScimEndpoint" xml:space="preserve"><value>SCIM endpoint</value></data>
+  <data name="Admin_Directory_Results" xml:space="preserve"><value>Mappings found: {0}</value></data>
+  <data name="Settings_Intro" xml:space="preserve"><value>Operational website, account and external integration settings in one workspace.</value></data>
+  <data name="Settings_Overview" xml:space="preserve"><value>Website settings summary</value></data>
+  <data name="Parking_Settings_Overview" xml:space="preserve"><value>Parking rules summary</value></data>
+  <data name="Parking_Settings_EnabledFeatures" xml:space="preserve"><value>Enabled mechanisms</value></data>
+  <data name="Parking_Settings_MapReady" xml:space="preserve"><value>Map uploaded</value></data>
+  <data name="Parking_Settings_MapMissing" xml:space="preserve"><value>Map not uploaded</value></data>
+  <data name="Parking_Settings_ConfigurationState" xml:space="preserve"><value>Configuration effect</value></data>
+  <data name="Parking_Settings_ChangesApplyImmediately" xml:space="preserve"><value>Immediately after save</value></data>
+  <data name="Parking_Settings_SaveHint" xml:space="preserve"><value>Changes affect all subsequent reservations.</value></data>
+  <data name="Admin_Users_CreateIntro" xml:space="preserve"><value>Create a local account and set its initial access.</value></data>
+  <data name="Admin_Users_CreateIdentityHint" xml:space="preserve"><value>Sign-in and contact details for the new user.</value></data>
+  <data name="Admin_Users_CreateRolesHint" xml:space="preserve"><value>Roles can be changed later in the account detail.</value></data>
+  <data name="Parking_Defect_Close" xml:space="preserve"><value>Close report form</value></data>
 </root>

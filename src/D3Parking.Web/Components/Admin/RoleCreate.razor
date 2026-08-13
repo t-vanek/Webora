@@ -12,9 +12,9 @@
 
 <PageTitle>@L["Admin_Roles_Create"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Create"]</FluentLabel>
-    <FluentAnchor Href="admin/roles" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Roles_Title"]</FluentAnchor>
+<FluentStack Class="page-shell entity-create-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="user-detail-nav"><FluentAnchor Href="admin/roles" Appearance="Appearance.Hypertext">← @L["Admin_Roles_Title"]</FluentAnchor></div>
+    <div class="admin-head"><div class="admin-head__titles"><div class="admin-head__title-row"><FluentLabel Typo="Typography.PageTitle">@L["Admin_Roles_Create"]</FluentLabel></div><p class="admin-head__intro">@L["Admin_Roles_TemplateIntro"]</p></div></div>
 
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -23,9 +23,10 @@
         </FluentMessageBar>
     }
 
-    <FluentTextField @bind-Value="_name" Label="@L["Admin_Roles_Name"]" Style="max-width:480px" />
-
-    <FluentCard Class="profile-section">
+    <section class="entity-create-section">
+        <FluentTextField @bind-Value="_name" Label="@L["Admin_Roles_Name"]" Style="width:100%;max-width:480px" />
+    </section>
+    <section class="entity-create-section">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <FluentLabel Typo="Typography.Subject">@L["Admin_Roles_Template"]</FluentLabel>
             <p class="admin-head__intro">@L["Admin_Roles_TemplateIntro"]</p>
@@ -42,9 +43,9 @@
                 }
             </div>
         </FluentStack>
-    </FluentCard>
+    </section>
 
-    <FluentCard Class="profile-section">
+    <section class="entity-create-section">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <FluentLabel Typo="Typography.Subject">@L["Admin_RoleEdit_Composition"]</FluentLabel>
             <p class="admin-head__intro">@L["Admin_RoleEdit_CompositionIntro"]</p>
@@ -52,11 +53,12 @@
                          Selected="_selected"
                          Grantable="_grantable"
                          SelectionChanged="OnSelectionChanged" />
-            <div class="perm-editor__actions">
-                <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Roles_Create"]</FluentButton>
-            </div>
         </FluentStack>
-    </FluentCard>
+    </section>
+    <div class="entity-create-actions">
+        <FluentAnchor Href="admin/roles" Appearance="Appearance.Outline">@L["Common_Cancel"]</FluentAnchor>
+        <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())">@L["Admin_Roles_Create"]</FluentButton>
+    </div>
 </FluentStack>
 
 @code {

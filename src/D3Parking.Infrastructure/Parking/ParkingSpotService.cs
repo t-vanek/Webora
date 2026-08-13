@@ -45,6 +45,14 @@ public sealed class ParkingSpotService(
         int pageSize,
         string? search = null,
         string? jumpToCode = null,
+        CancellationToken cancellationToken = default) =>
+        await ListAdminPageAsync(new ParkingSpotListQuery(Search: search), pageIndex, pageSize, jumpToCode, cancellationToken);
+
+    public async Task<PagedResult<ParkingSpotDto>> ListAdminPageAsync(
+        ParkingSpotListQuery filter,
+        int pageIndex,
+        int pageSize,
+        string? jumpToCode = null,
         CancellationToken cancellationToken = default)
     {
         // Clamped here, not trusted from the caller: the page size decides how much a single request
@@ -55,11 +63,30 @@ public sealed class ParkingSpotService(
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var query = dbContext.ParkingSpots.AsNoTracking();
-        var term = search?.Trim();
+        var term = filter.Search?.Trim();
         if (!string.IsNullOrEmpty(term))
         {
             query = query.Where(s => s.Code.Contains(term));
         }
+
+        query = filter.State switch
+        {
+            ParkingSpotStateFilter.Active => query.Where(s => s.IsActive),
+            ParkingSpotStateFilter.Inactive => query.Where(s => !s.IsActive),
+            _ => query,
+        };
+
+        if (filter.Type is { } type)
+        {
+            query = query.Where(s => s.Type == type);
+        }
+
+        query = filter.Ownership switch
+        {
+            ParkingSpotOwnershipFilter.Resident => query.Where(s => s.OwnerId != null),
+            ParkingSpotOwnershipFilter.Shared => query.Where(s => s.OwnerId == null),
+            _ => query,
+        };
 
         // Natural code order is not a collation any database has (D3-2 before D3-10), so the order is
         // decided here — but only over the codes. The row itself, whose owner name costs a lookup per
@@ -106,6 +133,19 @@ public sealed class ParkingSpotService(
         var page = pageIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
 
         return new PagedResult<ParkingSpotDto>(page, total, index, size);
+    }
+
+    public async Task<ParkingSpotDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = dbContext.ParkingSpots.AsNoTracking();
+
+        return new ParkingSpotDirectorySummary(
+            await query.CountAsync(cancellationToken),
+            await query.CountAsync(s => s.IsActive, cancellationToken),
+            await query.CountAsync(s => s.OwnerId != null, cancellationToken),
+            await query.CountAsync(s => s.OwnerId == null, cancellationToken),
+            await query.CountAsync(s => s.Type == ParkingSpotType.Visitor, cancellationToken));
     }
 
     public async Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)

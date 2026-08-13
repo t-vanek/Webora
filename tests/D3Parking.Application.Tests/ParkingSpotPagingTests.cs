@@ -1,9 +1,11 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using D3Parking.Application.Parking;
 using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
+using D3Parking.Infrastructure.Identity;
 using NUnit.Framework;
 
 namespace D3Parking.Application.Tests;
@@ -181,6 +183,47 @@ public class ParkingSpotPagingTests
         {
             Assert.That(huge.PageSize, Is.EqualTo(100), "A caller must not be able to ask for the whole table.");
             Assert.That(zero.PageSize, Is.EqualTo(1), "Nor for nothing at all.");
+        });
+    }
+
+    [Test]
+    public async Task Structured_filters_are_applied_before_paging_and_summary_stays_global()
+    {
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            var resident = new ApplicationUser
+            {
+                UserName = "resident@example.test",
+                NormalizedUserName = "RESIDENT@EXAMPLE.TEST",
+                Email = "resident@example.test",
+                NormalizedEmail = "RESIDENT@EXAMPLE.TEST",
+            };
+            dbContext.Users.Add(resident);
+
+            var residentSpot = new ParkingSpot("R-1", ParkingSpotType.Standard);
+            residentSpot.AssignOwner(resident.Id);
+            var visitor = new ParkingSpot("V-1", ParkingSpotType.Visitor);
+            var inactive = new ParkingSpot("I-1", ParkingSpotType.Standard);
+            inactive.Deactivate();
+            dbContext.ParkingSpots.AddRange(residentSpot, visitor, inactive, new ParkingSpot("S-1", ParkingSpotType.Standard));
+            await dbContext.SaveChangesAsync();
+        }
+
+        var active = await _spots.ListAdminPageAsync(
+            new ParkingSpotListQuery(State: ParkingSpotStateFilter.Active), 0, 2);
+        var owned = await _spots.ListAdminPageAsync(
+            new ParkingSpotListQuery(Ownership: ParkingSpotOwnershipFilter.Resident), 0, 10);
+        var visitors = await _spots.ListAdminPageAsync(
+            new ParkingSpotListQuery(Type: ParkingSpotType.Visitor), 0, 10);
+        var summary = await _spots.GetAdminSummaryAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(active.TotalCount, Is.EqualTo(3));
+            Assert.That(active.Items, Has.Count.EqualTo(2), "The page is cut only after the state filter.");
+            Assert.That(owned.Items.Select(spot => spot.Code), Is.EqualTo(new[] { "R-1" }));
+            Assert.That(visitors.Items.Select(spot => spot.Code), Is.EqualTo(new[] { "V-1" }));
+            Assert.That(summary, Is.EqualTo(new ParkingSpotDirectorySummary(4, 3, 1, 3, 1)));
         });
     }
 

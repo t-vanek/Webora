@@ -2,6 +2,7 @@
 @attribute [HasPermission(Permissions.Parking.ManageVisitors)]
 @rendermode InteractiveServer
 @inject IVisitorBookingService Visitors
+@inject IParkingSpotService Spots
 @inject IUserAdminService UserAdmin
 @inject ISiteSettingsService SiteSettings
 @inject UserManager<ApplicationUser> UserManager
@@ -12,17 +13,33 @@
 @* Reception agenda for Visitor-type spots: guests have no accounts, so the booking carries the
    visitor's name/company/plate and (optionally) the visited employee, who gets a bell heads-up.
    Visitor spots are excluded from the employee pool, so this page is the only competition. *@
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <div class="admin-head__titles">
-        <div class="admin-head__title-row">
-            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Visitors_Title"]</FluentLabel>
-            @if (_bookings is { Count: > 0 })
-            {
-                <span class="count-chip">@_bookings.Count</span>
-            }
+<FluentStack Class="page-shell visitors-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head visitors-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Parking_Visitors_Title"]</FluentLabel>
+                @if (_bookings is not null)
+                {
+                    <span class="count-chip">@_bookings.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Parking_Visitors_Intro"]</p>
         </div>
-        <p class="admin-head__intro">@L["Parking_Visitors_Intro"]</p>
+        <FluentButton Appearance="Appearance.Accent" IconStart="@(_createOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
+                      OnClick="() => _createOpen = !_createOpen">
+            @L[_createOpen ? "Parking_Visitors_CloseBooking" : "Parking_Visitors_NewBooking"]
+        </FluentButton>
     </div>
+
+    @if (_bookings is not null)
+    {
+        <section class="visitors-overview" aria-label="@L["Parking_Visitors_Overview"]">
+            @VisitorMetric(L["Parking_Visitors_Today"], TodayBookings.Count, "today", () => _view = TodayView)
+            @VisitorMetric(L["Parking_Visitors_Upcoming"], _bookings.Count, "upcoming", () => _view = UpcomingView)
+            @VisitorMetric(L["Parking_Visitors_FreeNow"], _freeSpots.Count, "free", () => _createOpen = true)
+            @VisitorMetric(L["Parking_Visitors_SpotCapacity"], _visitorSpotCount, "capacity", () => _createOpen = true)
+        </section>
+    }
 
     @if (_error is not null)
     {
@@ -33,7 +50,9 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
     }
 
-    <div class="form-panel">
+    @if (_createOpen)
+    {
+    <div class="form-panel visitors-create-panel">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             <FluentLabel Typo="Typography.Subject">@L["Parking_Visitors_NewBooking"]</FluentLabel>
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
@@ -70,39 +89,66 @@
             </FluentStack>
         </FluentStack>
     </div>
+    }
 
-    <FluentLabel Typo="Typography.Subject">@L["Parking_Visitors_Upcoming"]</FluentLabel>
+    <div class="visitors-commandbar">
+        <FluentSearch @bind-Value="_search" Immediate="true" ImmediateDelay="200"
+                      Placeholder="@L["Parking_Visitors_Search"]" Class="visitors-search" />
+        <div class="visitors-view-switch" role="group" aria-label="@L["Parking_Visitors_View"]">
+            <button type="button" class="@(_view == TodayView ? "is-active" : null)" @onclick="() => _view = TodayView">
+                @L["Parking_Visitors_Today"] <span>@TodayBookings.Count</span>
+            </button>
+            <button type="button" class="@(_view == UpcomingView ? "is-active" : null)" @onclick="() => _view = UpcomingView">
+                @L["Parking_Visitors_Upcoming"] <span>@(_bookings?.Count ?? 0)</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="visitors-results-head">
+        <strong>@L[_view == TodayView ? "Parking_Visitors_TodayAgenda" : "Parking_Visitors_Upcoming"]</strong>
+        <span>@L["Parking_Visitors_Results", VisibleBookings.Count]</span>
+    </div>
     @if (_bookings is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
-    else if (_bookings.Count == 0)
+    else if (VisibleBookings.Count == 0)
     {
         <div class="empty-state">@L["Parking_Visitors_Empty"]</div>
     }
     else
     {
-        <div class="admin-panel">
-            <FluentDataGrid Items="@_bookings.AsQueryable()" TGridItem="VisitorBookingDto"
-                            GridTemplateColumns="0.7fr 1.6fr 1.4fr 1fr 1fr 1.2fr auto">
-                <PropertyColumn Property="@(b => b.SpotCode)" Title="@L["Parking_Spot"]" />
-                <TemplateColumn Title="@L["Parking_When"]">
-                    @Local(context.StartUtc, "g") – @Local(context.EndUtc, "t")
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Parking_Visitors_Name"]">
-                    @context.VisitorName@(context.Company is { } company ? $" ({company})" : string.Empty)
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Parking_Visitors_Plate"]">
-                    @(context.LicensePlate ?? "—")
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Parking_Visitors_Host"]">
-                    @(context.HostName ?? "—")
-                </TemplateColumn>
-                <PropertyColumn Property="@(b => b.CreatedByName)" Title="@L["Parking_Visitors_CreatedBy"]" />
-                <TemplateColumn Align="Align.End">
-                    <FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" OnClick="() => CancelAsync(context.Id)">@L["Parking_Cancel"]</FluentButton>
-                </TemplateColumn>
-            </FluentDataGrid>
+        <div class="admin-panel visitors-desktop-list">
+            <table class="visitors-table">
+                <thead><tr>
+                    <th>@L["Parking_When"]</th><th>@L["Parking_Visitors_Name"]</th><th>@L["Parking_Spot"]</th>
+                    <th>@L["Parking_Visitors_Plate"]</th><th>@L["Parking_Visitors_Host"]</th><th>@L["Parking_Visitors_CreatedBy"]</th><th></th>
+                </tr></thead>
+                <tbody>
+                    @foreach (var booking in VisibleBookings)
+                    {
+                        <tr>
+                            <td><strong>@Local(booking.StartUtc, "d")</strong><small>@Local(booking.StartUtc, "t")–@Local(booking.EndUtc, "t")</small></td>
+                            <td><strong>@booking.VisitorName</strong><small>@(booking.Company ?? "—")</small></td>
+                            <td><span class="visitors-spot">@booking.SpotCode</span></td>
+                            <td>@(booking.LicensePlate ?? "—")</td><td>@(booking.HostName ?? "—")</td><td>@booking.CreatedByName</td>
+                            <td><FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" IconStart="@(new Icons.Regular.Size16.Delete())"
+                                              Title="@L["Parking_Cancel"]" OnClick="() => CancelAsync(booking.Id)" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="visitors-mobile-list">
+            @foreach (var booking in VisibleBookings)
+            {
+                <article class="visitors-mobile-row">
+                    <div class="visitors-mobile-row__head"><strong>@booking.VisitorName</strong><span class="visitors-spot">@booking.SpotCode</span></div>
+                    <span>@Local(booking.StartUtc, "g")–@Local(booking.EndUtc, "t")</span>
+                    <small>@(booking.Company ?? booking.LicensePlate ?? L["Parking_Visitors_NoExtraInfo"])</small>
+                    <div class="visitors-mobile-row__foot"><span>@(booking.HostName ?? "—")</span><FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" OnClick="() => CancelAsync(booking.Id)">@L["Parking_Cancel"]</FluentButton></div>
+                </article>
+            }
         </div>
     }
 </FluentStack>
@@ -122,6 +168,13 @@
     private IReadOnlyList<UserSummary> _users = [];
     private UserSummary? _selectedHost;
     private IReadOnlyList<VisitorBookingDto>? _bookings;
+    private int _visitorSpotCount;
+    private bool _createOpen;
+    private string? _search;
+    private string _view = TodayView;
+
+    private const string TodayView = "today";
+    private const string UpcomingView = "upcoming";
 
     private string? _visitorName;
     private string? _company;
@@ -132,6 +185,35 @@
     private DateTimeOffset Start => SiteTime.At(_day, _from, _tz);
     private DateTimeOffset End => SiteTime.At(_day, _to, _tz);
 
+    private IReadOnlyList<VisitorBookingDto> TodayBookings => (_bookings ?? [])
+        .Where(booking => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(booking.StartUtc, _tz).DateTime) == _day)
+        .ToList();
+
+    private IReadOnlyList<VisitorBookingDto> VisibleBookings
+    {
+        get
+        {
+            IEnumerable<VisitorBookingDto> query = _view == TodayView ? TodayBookings : _bookings ?? [];
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var term = _search.Trim();
+                query = query.Where(booking =>
+                    Contains(booking.VisitorName, term) || Contains(booking.Company, term)
+                    || Contains(booking.LicensePlate, term) || Contains(booking.HostName, term)
+                    || Contains(booking.SpotCode, term));
+            }
+
+            return query.ToList();
+        }
+    }
+
+    private RenderFragment VisitorMetric(string label, int value, string tone, Action action) => __builder =>
+    {
+        <button type="button" class="visitors-metric visitors-metric--@tone" @onclick="action">
+            <span>@label</span><strong>@value</strong>
+        </button>
+    };
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
@@ -140,6 +222,7 @@
         _tz = await SiteSettings.GetTimeZoneAsync();
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
         _users = await UserAdmin.ListAsync(null);
+        _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);
         await ReloadFreeSpotsAsync();
         await ReloadBookingsAsync();
     }
@@ -227,4 +310,7 @@
 
     private string Local(DateTimeOffset utc, string format) =>
         TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+
+    private static bool Contains(string? value, string term) =>
+        value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;
 }

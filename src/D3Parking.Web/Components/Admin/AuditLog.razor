@@ -11,7 +11,7 @@
 
 <PageTitle>@L["Admin_Audit_Title"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
+<FluentStack Class="page-shell audit-page" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head">
         <div class="admin-head__titles">
             <div class="admin-head__title-row">
@@ -29,22 +29,32 @@
 
     @* Both filters go through FilterAsync, not ReloadAsync: a narrowed trail has its own pages, and
        page 7 of the old result set means nothing in the new one. *@
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+    <div class="audit-commandbar">
         @* Immediate: the change event of the underlying web component does not cross the shadow
            boundary reliably, so a term typed here reached the component only once the field lost
            focus — measured in the browser, the grid sat on the old result set the whole time. The
            delay is the debounce; every keystroke is a query. *@
         <FluentSearch @bind-Value="_search" @bind-Value:after="FilterAsync"
                       Immediate="true" ImmediateDelay="300"
-                      Placeholder="@L["Admin_Audit_SearchHint"]" Style="max-width:320px" />
+                      Placeholder="@L["Admin_Audit_SearchHint"]" Class="audit-search" />
         <FluentSelect TOption="string"
                       Items="@_typeOptions"
                       OptionValue="@(t => t)"
                       OptionText="@(t => t.Length == 0 ? L["Admin_Audit_AllTypes"] : L[$"Audit_Type_{t}"])"
                       @bind-SelectedOption="_type"
                       @bind-SelectedOption:after="FilterAsync"
-                      Style="min-width:260px" />
-    </FluentStack>
+                      Class="audit-filter" />
+        @if (!string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_type))
+        {
+            <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.Dismiss())"
+                          OnClick="ClearFiltersAsync">@L["Common_ClearFilters"]</FluentButton>
+        }
+    </div>
+
+    <div class="audit-results-head">
+        <span>@L["Admin_Audit_Results", _total]</span>
+        <small>@L["Admin_Audit_ResultHint"]</small>
+    </div>
 
     @if (_entries is null)
     {
@@ -56,25 +66,73 @@
     }
     else
     {
-        <div class="admin-panel">
-            <FluentDataGrid Items="@_entries.AsQueryable()" TGridItem="AuditLogEntry"
-                            GridTemplateColumns="0.9fr 1.1fr 1.2fr 0.9fr 2fr">
-                <TemplateColumn Title="@L["Admin_UserEdit_AuditWhen"]">@Fmt(context.OccurredAtUtc)</TemplateColumn>
-                <TemplateColumn Title="@L["Admin_Audit_Event"]">@L[$"Audit_Type_{context.Type}"]</TemplateColumn>
-                <TemplateColumn Title="@L["Admin_Audit_Subject"]">
-                    @if (context.UserEmail is null)
+        <div class="audit-workspace @(_selected is not null ? "has-detail" : null)">
+            <div class="audit-list-pane">
+                <div class="admin-panel audit-desktop-list">
+                    <table class="audit-native-table">
+                        <thead>
+                            <tr>
+                                <th>@L["Admin_UserEdit_AuditWhen"]</th>
+                                <th>@L["Admin_Audit_Event"]</th>
+                                <th>@L["Admin_Audit_Subject"]</th>
+                                <th>@L["Admin_UserEdit_AuditActor"]</th>
+                                <th aria-label="@L["Common_Actions"]"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in _entries)
+                            {
+                                <tr class="@(_selected?.Id == entry.Id ? "is-selected" : null)" @onclick="() => _selected = entry">
+                                    <td>@Fmt(entry.OccurredAtUtc)</td>
+                                    <td><strong>@L[$"Audit_Type_{entry.Type}"]</strong></td>
+                                    <td>@Subject(entry)</td>
+                                    <td>@ActorLabel(entry.Actor)</td>
+                                    <td><FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.ChevronRight())" Title="@L["Admin_Audit_OpenDetail"]" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="audit-mobile-list">
+                    @foreach (var entry in _entries)
                     {
-                        @* The account is gone; its history is not. *@
-                        <span class="audit-subject audit-subject--gone">@L["Admin_Audit_DeletedUser"]</span>
+                        <button type="button" class="audit-mobile-row" @onclick="() => _selected = entry">
+                            <span class="audit-mobile-row__head"><strong>@L[$"Audit_Type_{entry.Type}"]</strong><span>@Fmt(entry.OccurredAtUtc)</span></span>
+                            <span>@Subject(entry)</span>
+                            <small>@ActorLabel(entry.Actor)</small>
+                        </button>
                     }
-                    else
+                </div>
+            </div>
+            <aside class="audit-detail-pane">
+                @if (_selected is null)
+                {
+                    <div class="audit-detail-empty">@L["Admin_Audit_SelectHint"]</div>
+                }
+                else
+                {
+                    <div class="audit-detail-head">
+                        <div><small>@L["Admin_Audit_Event"]</small><h2>@L[$"Audit_Type_{_selected.Type}"]</h2></div>
+                        <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.Dismiss())"
+                                      Title="@L["Common_Close"]" OnClick="() => _selected = null" />
+                    </div>
+                    <dl class="audit-detail-facts">
+                        <div><dt>@L["Admin_UserEdit_AuditWhen"]</dt><dd>@Fmt(_selected.OccurredAtUtc)</dd></div>
+                        <div><dt>@L["Admin_Audit_Subject"]</dt><dd>@Subject(_selected)</dd></div>
+                        <div><dt>@L["Admin_UserEdit_AuditActor"]</dt><dd>@ActorLabel(_selected.Actor)</dd></div>
+                    </dl>
+                    <div class="audit-detail-payload">
+                        <small>@L["Admin_UserEdit_AuditDetail"]</small>
+                        <pre>@(_selected.Detail ?? "—")</pre>
+                    </div>
+                    @if (_selected.UserEmail is not null)
                     {
-                        <a href="@($"admin/users/{context.UserId}")">@(context.UserDisplayName ?? context.UserEmail)</a>
+                        <FluentAnchor Href="@($"admin/users/{_selected.UserId}")" Appearance="Appearance.Outline">
+                            @L["Admin_Audit_OpenAccount"]
+                        </FluentAnchor>
                     }
-                </TemplateColumn>
-                <PropertyColumn Property="@(e => e.Actor)" Title="@L["Admin_UserEdit_AuditActor"]" />
-                <TemplateColumn Title="@L["Admin_UserEdit_AuditDetail"]">@(context.Detail ?? "—")</TemplateColumn>
-            </FluentDataGrid>
+                }
+            </aside>
         </div>
         @if (_total > PageSize)
         {
@@ -97,6 +155,7 @@
     private const int PageSize = 50;
 
     private IReadOnlyList<AuditLogEntry>? _entries;
+    private AuditLogEntry? _selected;
     private int _pageIndex;
     private int _total;
     private string? _search;
@@ -123,12 +182,23 @@
         // Taken back from the result: the service walks the index back when the page asked for no
         // longer exists.
         _pageIndex = page.PageIndex;
+        if (_selected is not null && _entries.All(entry => entry.Id != _selected.Id))
+        {
+            _selected = null;
+        }
     }
 
     private async Task FilterAsync()
     {
         _pageIndex = 0;
         await ReloadAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _search = null;
+        _type = string.Empty;
+        await FilterAsync();
     }
 
     private async Task GoToPageAsync(int pageIndex)
@@ -138,4 +208,15 @@
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
+
+    private string Subject(AuditLogEntry entry) => entry.UserEmail is null
+        ? L["Admin_Audit_DeletedUser"]
+        : entry.UserDisplayName ?? entry.UserEmail;
+
+    private string ActorLabel(string actor) => actor switch
+    {
+        "self" => L["Admin_UserEdit_ActorSelf"],
+        _ when actor.StartsWith("admin:", StringComparison.OrdinalIgnoreCase) => L["Admin_UserEdit_ActorAdmin"],
+        _ => actor,
+    };
 }

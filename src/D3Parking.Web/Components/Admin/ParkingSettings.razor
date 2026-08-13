@@ -17,9 +17,13 @@
 
 <PageTitle>@L["Parking_Settings_Title"]</PageTitle>
 
-<FluentStack Class="page-shell settings-page" Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Settings_Title"]</FluentLabel>
-    <FluentLabel Typo="Typography.Body">@L["Parking_Settings_Intro"]</FluentLabel>
+<FluentStack Class="page-shell settings-page parking-settings-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row"><FluentLabel Typo="Typography.PageTitle">@L["Parking_Settings_Title"]</FluentLabel></div>
+            <p class="admin-head__intro">@L["Parking_Settings_Intro"]</p>
+        </div>
+    </div>
 
     @if (_form is null)
     {
@@ -27,6 +31,11 @@
     }
     else
     {
+        <section class="parking-settings-overview" aria-label="@L["Parking_Settings_Overview"]">
+            <div><span>@L["Parking_Settings_EnabledFeatures"]</span><strong>@EnabledFeatureCount</strong></div>
+            <div><span>@L["Parking_Settings_MapSection"]</span><strong>@L[_hasOrientationMap ? "Parking_Settings_MapReady" : "Parking_Settings_MapMissing"]</strong></div>
+            <div><span>@L["Parking_Settings_ConfigurationState"]</span><strong>@L["Parking_Settings_ChangesApplyImmediately"]</strong></div>
+        </section>
         @if (!string.IsNullOrEmpty(_message))
         {
             <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
@@ -36,10 +45,9 @@
             <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
         }
 
-        <div class="settings-panel">
-            <div class="settings-section__head">
-                <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_MapSection"]</FluentLabel>
-            </div>
+        <details class="settings-map-disclosure">
+            <summary><span>@L["Parking_Settings_MapSection"]</span><span class="state-pill state-pill--@(_hasOrientationMap ? "on" : "off")">@L[_hasOrientationMap ? "Parking_Settings_MapReady" : "Parking_Settings_MapMissing"]</span></summary>
+        <div class="settings-panel settings-map-panel">
             <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_MapHelp"]</FluentLabel>
             <div class="orientation-map-admin">
                 <InputFile id="parking-orientation-map" OnChange="OnOrientationMapSelectedAsync"
@@ -64,8 +72,9 @@
                 }
             </div>
         </div>
+        </details>
 
-        <FluentTabs @bind-ActiveTabId="_activeTab">
+        <FluentTabs @bind-ActiveTabId="_activeTab" Class="parking-settings-tabs">
             <FluentTab Id="economy" Label="@L["Parking_Settings_Tab_Economy"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
@@ -408,7 +417,10 @@
             </FluentTab>
         </FluentTabs>
 
-        <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent" Style="margin-top:16px">@L["Parking_Settings_Save"]</FluentButton>
+        <div class="settings-savebar">
+            <span>@L["Parking_Settings_SaveHint"]</span>
+            <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Save())">@L["Parking_Settings_Save"]</FluentButton>
+        </div>
     }
 </FluentStack>
 
@@ -435,6 +447,11 @@
     private bool _decayOn;
     private bool _queuePenaltyOn;
     private bool _distanceOn;
+
+    private int EnabledFeatureCount => new[]
+    {
+        _economyOn, _pointsOn, _demandOn, _streakOn, _perksOn, _decayOn, _queuePenaltyOn, _distanceOn,
+    }.Count(enabled => enabled);
 
     protected override async Task OnInitializedAsync()
     {

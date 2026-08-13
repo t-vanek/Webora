@@ -24,6 +24,15 @@ public interface IParkingSpotService
         string? jumpToCode = null,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResult<ParkingSpotDto>> ListAdminPageAsync(
+        ParkingSpotListQuery query,
+        int pageIndex,
+        int pageSize,
+        string? jumpToCode = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ParkingSpotDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default);
+
     Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CreateAsync(string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);

@@ -10,49 +10,54 @@
 
 <PageTitle>@L["Admin_Users_Create"]</PageTitle>
 
-<FluentStack Class="page-shell page-shell--form" Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Create"]</FluentLabel>
-    <FluentAnchor Href="admin/users" Appearance="Appearance.Hypertext">&laquo; @L["Admin_Users_Title"]</FluentAnchor>
+<FluentStack Class="page-shell user-create-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="user-detail-nav"><FluentAnchor Href="admin/users" Appearance="Appearance.Hypertext">← @L["Admin_Users_Title"]</FluentAnchor></div>
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row"><FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Create"]</FluentLabel></div>
+            <p class="admin-head__intro">@L["Admin_Users_CreateIntro"]</p>
+        </div>
+    </div>
 
     <EditForm Model="Input" OnValidSubmit="CreateAsync">
         <DataAnnotationsValidator />
-        <FluentCard Class="profile-section">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            @if (!string.IsNullOrEmpty(_error))
-            {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">
-                    @_error
-                </FluentMessageBar>
-            }
-
-            <FluentTextField @bind-Value="Input.DisplayName" Label="@L["Admin_Users_Name"]" Style="width:100%" />
-
-            <div>
-                <FluentTextField @bind-Value="Input.Email" Label="@L["Admin_Users_Email"]"
-                                 Required="true" AutoComplete="off" Style="width:100%" />
-                <ValidationMessage For="() => Input.Email" />
-            </div>
-
-            <div>
-                <FluentTextField @bind-Value="Input.Password" Label="@L["Admin_Users_Password"]"
-                                 TextFieldType="TextFieldType.Password" Required="true"
-                                 AutoComplete="new-password" Style="width:100%" />
-                <ValidationMessage For="() => Input.Password" />
-            </div>
-
-            <FluentLabel Typo="Typography.Subject">@L["Admin_UserEdit_Roles"]</FluentLabel>
-            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" HorizontalGap="16">
-                @foreach (var role in _allRoles)
-                {
-                    <FluentCheckbox Label="@AuthorizationDisplay.RoleName(L, role)"
-                                    Value="@_selectedRoles.Contains(role)"
-                                    ValueChanged="@(c => ToggleRole(role, c))" />
-                }
-            </FluentStack>
-
-            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentButton>
-        </FluentStack>
-        </FluentCard>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="false">@_error</FluentMessageBar>
+        }
+        <div class="user-create-layout">
+            <section class="user-create-section">
+                <div class="user-create-section__head"><h2>@L["Admin_UserEdit_Identity"]</h2><p>@L["Admin_Users_CreateIdentityHint"]</p></div>
+                <div class="user-create-fields">
+                    <FluentTextField @bind-Value="Input.DisplayName" Label="@L["Admin_Users_Name"]" Style="width:100%" />
+                    <div>
+                        <FluentTextField @bind-Value="Input.Email" Label="@L["Admin_Users_Email"]" Required="true" AutoComplete="off" Style="width:100%" />
+                        <ValidationMessage For="() => Input.Email" />
+                    </div>
+                    <div>
+                        <FluentTextField @bind-Value="Input.Password" Label="@L["Admin_Users_Password"]" TextFieldType="TextFieldType.Password"
+                                         Required="true" AutoComplete="new-password" Style="width:100%" />
+                        <ValidationMessage For="() => Input.Password" />
+                    </div>
+                </div>
+            </section>
+            <section class="user-create-section">
+                <div class="user-create-section__head"><h2>@L["Admin_UserEdit_Roles"]</h2><p>@L["Admin_Users_CreateRolesHint"]</p></div>
+                <div class="user-create-role-grid">
+                    @foreach (var role in _allRoles)
+                    {
+                        <label class="user-role-option">
+                            <FluentCheckbox Label="@AuthorizationDisplay.RoleName(L, role)" Value="@_selectedRoles.Contains(role)"
+                                            ValueChanged="@(selected => ToggleRole(role, selected))" />
+                        </label>
+                    }
+                </div>
+            </section>
+        </div>
+        <div class="user-create-actions">
+            <FluentAnchor Href="admin/users" Appearance="Appearance.Outline">@L["Common_Cancel"]</FluentAnchor>
+            <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())">@L["Admin_Users_Create"]</FluentButton>
+        </div>
     </EditForm>
 </FluentStack>
 

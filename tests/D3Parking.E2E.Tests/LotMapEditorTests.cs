@@ -81,6 +81,7 @@ public class LotMapEditorTests : AdminTest
 
         // A real spot to match against, created through the catalogue the admin actually uses.
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Přidat místa|Add spots") }).ClickAsync();
         await FillAsync("fluent-text-field#single-code", code);
         await Page.Locator("fluent-button:has-text('Přidat')").First.ClickAsync();
         await Expect(Page.GetByText(code).First).ToBeVisibleAsync();

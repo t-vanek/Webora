@@ -2012,4 +2012,59 @@
   <data name="Map_Error_SvgNoSize" xml:space="preserve"><value>SVG neuvádí viewBox ani rozměry, takže není z čeho určit měřítko.</value></data>
   <data name="Map_Error_SvgNoShapes" xml:space="preserve"><value>V souboru nejsou žádné pravoúhlé tvary, ze kterých by šlo udělat stání.</value></data>
   <data name="Map_Error_SvgTooLarge" xml:space="preserve"><value>Soubor je příliš velký (nejvýše 16 MB).</value></data>
+  <data name="Common_ClearFilters" xml:space="preserve"><value>Zrušit filtry</value></data>
+  <data name="Common_Actions" xml:space="preserve"><value>Akce</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Zavřít</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Parking_Admin_AddSpots" xml:space="preserve"><value>Přidat místa</value></data>
+  <data name="Parking_Admin_CloseCreate" xml:space="preserve"><value>Zavřít přidávání</value></data>
+  <data name="Parking_Admin_Overview" xml:space="preserve"><value>Souhrn parkovacích míst</value></data>
+  <data name="Parking_Admin_Summary_Total" xml:space="preserve"><value>Celkem míst</value></data>
+  <data name="Parking_Admin_Summary_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Parking_Admin_Summary_Resident" xml:space="preserve"><value>Rezidentní</value></data>
+  <data name="Parking_Admin_Summary_Shared" xml:space="preserve"><value>Sdílený fond</value></data>
+  <data name="Parking_Admin_Summary_Visitor" xml:space="preserve"><value>Návštěvnická</value></data>
+  <data name="Parking_Admin_Filter_AllStates" xml:space="preserve"><value>Všechny stavy</value></data>
+  <data name="Parking_Admin_Filter_Active" xml:space="preserve"><value>Jen aktivní</value></data>
+  <data name="Parking_Admin_Filter_Inactive" xml:space="preserve"><value>Jen neaktivní</value></data>
+  <data name="Parking_Admin_Filter_AllTypes" xml:space="preserve"><value>Všechny typy</value></data>
+  <data name="Parking_Admin_Filter_AllOwnership" xml:space="preserve"><value>Všechna přiřazení</value></data>
+  <data name="Parking_Admin_Filter_Resident" xml:space="preserve"><value>S rezidentem</value></data>
+  <data name="Parking_Admin_Filter_Shared" xml:space="preserve"><value>Bez rezidenta</value></data>
+  <data name="Parking_Admin_Results" xml:space="preserve"><value>Nalezeno míst: {0}</value></data>
+  <data name="Admin_Audit_Results" xml:space="preserve"><value>Nalezeno událostí: {0}</value></data>
+  <data name="Admin_Audit_ResultHint" xml:space="preserve"><value>Vyberte událost pro celý technický detail.</value></data>
+  <data name="Admin_Audit_OpenDetail" xml:space="preserve"><value>Otevřít detail události</value></data>
+  <data name="Admin_Audit_SelectHint" xml:space="preserve"><value>Vyberte událost vlevo. Zde se zobrazí její aktér, účet a úplný detail.</value></data>
+  <data name="Admin_Audit_OpenAccount" xml:space="preserve"><value>Otevřít účet</value></data>
+  <data name="Parking_Visitors_CloseBooking" xml:space="preserve"><value>Zavřít rezervaci</value></data>
+  <data name="Parking_Visitors_Overview" xml:space="preserve"><value>Souhrn návštěv</value></data>
+  <data name="Parking_Visitors_Today" xml:space="preserve"><value>Dnes</value></data>
+  <data name="Parking_Visitors_FreeNow" xml:space="preserve"><value>Volná ve zvolený čas</value></data>
+  <data name="Parking_Visitors_SpotCapacity" xml:space="preserve"><value>Návštěvnická místa</value></data>
+  <data name="Parking_Visitors_Search" xml:space="preserve"><value>Hledat návštěvu, SPZ, hostitele nebo místo</value></data>
+  <data name="Parking_Visitors_View" xml:space="preserve"><value>Pohled návštěv</value></data>
+  <data name="Parking_Visitors_TodayAgenda" xml:space="preserve"><value>Dnešní agenda</value></data>
+  <data name="Parking_Visitors_Results" xml:space="preserve"><value>Záznamů: {0}</value></data>
+  <data name="Parking_Visitors_NoExtraInfo" xml:space="preserve"><value>Bez dalších údajů</value></data>
+  <data name="Admin_Directory_CloseAdd" xml:space="preserve"><value>Zavřít mapování</value></data>
+  <data name="Admin_Directory_Overview" xml:space="preserve"><value>Stav firemního adresáře</value></data>
+  <data name="Admin_Directory_Mappings" xml:space="preserve"><value>Mapování</value></data>
+  <data name="Admin_Directory_AssignedUsers" xml:space="preserve"><value>Přiřazených uživatelů</value></data>
+  <data name="Admin_Directory_AvailableRoles" xml:space="preserve"><value>Rolí v aplikaci</value></data>
+  <data name="Admin_Directory_ScimEndpoint" xml:space="preserve"><value>SCIM endpoint</value></data>
+  <data name="Admin_Directory_Results" xml:space="preserve"><value>Nalezeno mapování: {0}</value></data>
+  <data name="Settings_Intro" xml:space="preserve"><value>Provozní konfigurace webu, účtů a externích integrací v jednom pracovním prostoru.</value></data>
+  <data name="Settings_Overview" xml:space="preserve"><value>Souhrn nastavení webu</value></data>
+  <data name="Parking_Settings_Overview" xml:space="preserve"><value>Souhrn pravidel parkování</value></data>
+  <data name="Parking_Settings_EnabledFeatures" xml:space="preserve"><value>Zapnuté mechanismy</value></data>
+  <data name="Parking_Settings_MapReady" xml:space="preserve"><value>Mapa nahrána</value></data>
+  <data name="Parking_Settings_MapMissing" xml:space="preserve"><value>Mapa nenahrána</value></data>
+  <data name="Parking_Settings_ConfigurationState" xml:space="preserve"><value>Platnost konfigurace</value></data>
+  <data name="Parking_Settings_ChangesApplyImmediately" xml:space="preserve"><value>Po uložení okamžitě</value></data>
+  <data name="Parking_Settings_SaveHint" xml:space="preserve"><value>Změny ovlivní všechny následující rezervace.</value></data>
+  <data name="Admin_Users_CreateIntro" xml:space="preserve"><value>Založte místní účet a nastavte jeho počáteční přístupy.</value></data>
+  <data name="Admin_Users_CreateIdentityHint" xml:space="preserve"><value>Přihlašovací a kontaktní údaje nového uživatele.</value></data>
+  <data name="Admin_Users_CreateRolesHint" xml:space="preserve"><value>Role lze později změnit v detailu účtu.</value></data>
+  <data name="Parking_Defect_Close" xml:space="preserve"><value>Zavřít hlášení</value></data>
 </root>

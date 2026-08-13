@@ -8,24 +8,35 @@
 
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="20">
-    <div class="admin-head__titles">
-        <div class="admin-head__title-row">
-            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
-            @if (_spots is not null)
-            {
-                @* The whole lot, not the page: the chip answers "how big is this parking lot", which
-                   the number of rows below stopped being the moment the list started paging. *@
-                <span class="count-chip">@_total</span>
-            }
+<FluentStack Class="page-shell spot-admin-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head spots-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Parking_Admin_Title"]</FluentLabel>
+                @if (_summary is not null)
+                {
+                    <span class="count-chip">@_summary.Total</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Parking_Admin_Intro"]</p>
         </div>
-        <p class="admin-head__intro">
-            @L["Parking_Admin_Intro"]
-            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
-                <FluentAnchor Href="/admin/parking/oversight/occupancy" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
-            </AuthorizeView>
-        </p>
+        <FluentButton Appearance="Appearance.Accent" Class="spots-create-action"
+                      IconStart="@(_createOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
+                      OnClick="() => _createOpen = !_createOpen">
+            @L[_createOpen ? "Parking_Admin_CloseCreate" : "Parking_Admin_AddSpots"]
+        </FluentButton>
     </div>
+
+    @if (_summary is not null)
+    {
+        <section class="spots-overview" aria-label="@L["Parking_Admin_Overview"]">
+            @SpotMetric(L["Parking_Admin_Summary_Total"], _summary.Total, "total", () => ResetFiltersAsync())
+            @SpotMetric(L["Parking_Admin_Summary_Active"], _summary.Active, "active", () => SetStateAsync(ParkingSpotStateFilter.Active))
+            @SpotMetric(L["Parking_Admin_Summary_Resident"], _summary.Resident, "resident", () => SetOwnershipAsync(ParkingSpotOwnershipFilter.Resident))
+            @SpotMetric(L["Parking_Admin_Summary_Shared"], _summary.Shared, "shared", () => SetOwnershipAsync(ParkingSpotOwnershipFilter.Shared))
+            @SpotMetric(L["Parking_Admin_Summary_Visitor"], _summary.Visitor, "visitor", () => SetTypeAsync(ParkingSpotType.Visitor.ToString()))
+        </section>
+    }
 
     @if (_error is not null)
     {
@@ -39,7 +50,9 @@
     @* A plain panel, deliberately not FluentCard: fluent-card ships contain:content, which clips
        the select's dropped-down listbox to the card edge — the "Typ" menu opened as a sliver
        peeking from under the panel. *@
-    <div class="form-panel">
+    @if (_createOpen)
+    {
+    <div class="form-panel spots-create-panel">
         <FluentTabs @bind-ActiveTabId="_activeAddTab">
             <FluentTab Id="tab-single" Label="@L["Parking_Admin_Tab_Single"]">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
@@ -117,25 +130,36 @@
             </FluentTab>
         </FluentTabs>
     </div>
+    }
 
-    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-            <FluentButton Appearance="Appearance.Outline" OnClick="SweepNoShowsAsync">@L["Parking_Admin_SweepNoShows"]</FluentButton>
-            <FluentLabel Typo="Typography.Body">@L["Parking_Admin_SweepHint"]</FluentLabel>
-        </FluentStack>
-    </AuthorizeView>
-
-    @* The search is what keeps a paged catalogue usable: without it, reaching P2-08b on a lot of two
-       hundred means clicking through pages until it happens to show up. *@
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-        @* Immediate, like the batch inputs above and unlike the search on the audit log: the change
-           event of the underlying web component does not cross the shadow boundary reliably, so a
-           term typed here never reached the component until the field lost focus. The delay is the
-           debounce — every keystroke is a query. *@
+    <div class="spots-commandbar">
         <FluentSearch Id="spot-search" @bind-Value="_search" @bind-Value:after="SearchAsync"
                       Immediate="true" ImmediateDelay="300"
-                      Placeholder="@L["Parking_Admin_SearchHint"]" Style="max-width:320px" />
-    </FluentStack>
+                      Placeholder="@L["Parking_Admin_SearchHint"]" Class="spots-search" />
+        <FluentSelect TOption="ParkingSpotStateFilter" Items="@_stateFilters"
+                      OptionText="StateFilterLabel" @bind-SelectedOption="_stateFilter"
+                      @bind-SelectedOption:after="FilterAsync" Class="spots-filter" />
+        <FluentSelect TOption="string" Items="@_typeFilters"
+                      OptionValue="@(value => value)" OptionText="TypeFilterLabel"
+                      @bind-SelectedOption="_typeFilter" @bind-SelectedOption:after="FilterAsync"
+                      Class="spots-filter" />
+        <FluentSelect TOption="ParkingSpotOwnershipFilter" Items="@_ownershipFilters"
+                      OptionText="OwnershipFilterLabel" @bind-SelectedOption="_ownershipFilter"
+                      @bind-SelectedOption:after="FilterAsync" Class="spots-filter" />
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
+            <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.ArrowSync())"
+                          OnClick="SweepNoShowsAsync" Title="@L["Parking_Admin_SweepHint"]">
+                @L["Parking_Admin_SweepNoShows"]
+            </FluentButton>
+        </AuthorizeView>
+    </div>
+
+    <div class="spots-results-head">
+        <span>@L["Parking_Admin_Results", _total]</span>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
+            <FluentAnchor Href="/admin/parking/oversight/occupancy" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
+        </AuthorizeView>
+    </div>
 
     @if (_spots is null)
     {
@@ -149,7 +173,7 @@
     }
     else
     {
-        <div class="admin-panel">
+        <div class="admin-panel spots-desktop-list">
             <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
                             GridTemplateColumns="minmax(90px, .8fr) minmax(150px, 1.1fr) minmax(140px, 1.1fr) minmax(100px, .8fr) minmax(240px, 1.7fr) auto">
                 <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
@@ -223,6 +247,36 @@
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
+        <div class="spots-mobile-list">
+            @foreach (var spot in _spots)
+            {
+                <article class="spots-mobile-row">
+                    <div class="spots-mobile-row__head">
+                        <strong>@spot.Code</strong>
+                        <span class="state-pill state-pill--@(spot.IsActive ? "on" : "off")">
+                            @L[spot.IsActive ? "Parking_Admin_Active" : "Parking_Admin_Inactive"]
+                        </span>
+                    </div>
+                    <div class="spots-mobile-row__facts">
+                        <span>@L[$"Parking_SpotType_{spot.Type}"]</span>
+                        <span>@(spot.OwnerId is null ? L["Parking_Admin_SharedPool"] : OwnerLabel(spot))</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(spot.Notes))
+                    {
+                        <small>@spot.Notes</small>
+                    }
+                    <div class="spots-mobile-row__actions">
+                        <details class="resident-editor">
+                            <summary>@L[spot.OwnerId is null ? "Parking_Admin_AssignResident" : "Parking_Admin_ChangeResident"]</summary>
+                            @ResidentSelect(spot)
+                        </details>
+                        <FluentButton OnClick="() => SetActiveAsync(spot.Id, !spot.IsActive)" Appearance="Appearance.Stealth">
+                            @L[spot.IsActive ? "Parking_Admin_Deactivate" : "Parking_Admin_Activate"]
+                        </FluentButton>
+                    </div>
+                </article>
+            }
+        </div>
         @* Hand-rolled for the same reason as the booking history's pager: FluentPaginator drives
            PaginationState, which has no page-change hook — it is built for a grid paging an
            IQueryable client-side, and here the paging happens in SQL. *@
@@ -241,7 +295,11 @@
 
 @code {
     private IReadOnlyList<ParkingSpotDto>? _spots;
+    private ParkingSpotDirectorySummary? _summary;
     private readonly ParkingSpotType[] _spotTypes = Enum.GetValues<ParkingSpotType>();
+    private readonly ParkingSpotStateFilter[] _stateFilters = Enum.GetValues<ParkingSpotStateFilter>();
+    private readonly ParkingSpotOwnershipFilter[] _ownershipFilters = Enum.GetValues<ParkingSpotOwnershipFilter>();
+    private readonly string[] _typeFilters = [string.Empty, .. Enum.GetNames<ParkingSpotType>()];
 
     // Paged in SQL. A lot of two hundred spots used to render as two hundred rows, each carrying two
     // inline selects — and the resident one holds an option per user, so the page grew as the product
@@ -250,6 +308,10 @@
     private int _pageIndex;
     private int _total;
     private string? _search;
+    private ParkingSpotStateFilter _stateFilter;
+    private ParkingSpotOwnershipFilter _ownershipFilter;
+    private string _typeFilter = string.Empty;
+    private bool _createOpen;
 
     /// <summary>Set for one reload after a create, so the page lands where the new code sorted.</summary>
     private string? _jumpToCode;
@@ -281,6 +343,14 @@
 
     private string? _error;
     private string? _info;
+
+    private RenderFragment SpotMetric(string label, int value, string tone, Func<Task> action) => __builder =>
+    {
+        <button type="button" class="spots-metric spots-metric--@tone" @onclick="action">
+            <span>@label</span>
+            <strong>@value</strong>
+        </button>
+    };
 
     /// <summary>Shared dry-run readout for both batch tabs: counts, sample codes, collisions.</summary>
     private RenderFragment BatchPreview(string? patternError, SpotBatchPlan? plan) => __builder =>
@@ -323,6 +393,24 @@
         _users = await UserAdmin.ListAsync(null);
         await ReloadAsync();
     }
+
+    private string StateFilterLabel(ParkingSpotStateFilter value) => value switch
+    {
+        ParkingSpotStateFilter.Active => L["Parking_Admin_Filter_Active"],
+        ParkingSpotStateFilter.Inactive => L["Parking_Admin_Filter_Inactive"],
+        _ => L["Parking_Admin_Filter_AllStates"],
+    };
+
+    private string TypeFilterLabel(string value) => string.IsNullOrEmpty(value)
+        ? L["Parking_Admin_Filter_AllTypes"]
+        : L[$"Parking_SpotType_{value}"];
+
+    private string OwnershipFilterLabel(ParkingSpotOwnershipFilter value) => value switch
+    {
+        ParkingSpotOwnershipFilter.Resident => L["Parking_Admin_Filter_Resident"],
+        ParkingSpotOwnershipFilter.Shared => L["Parking_Admin_Filter_Shared"],
+        _ => L["Parking_Admin_Filter_AllOwnership"],
+    };
 
     private string UserLabel(string id)
     {
@@ -492,7 +580,11 @@
 
     private async Task ReloadAsync()
     {
-        var page = await Spots.ListPageAsync(_pageIndex, SpotPageSize, _search, _jumpToCode);
+        _summary = await Spots.GetAdminSummaryAsync();
+        ParkingSpotType? type = Enum.TryParse<ParkingSpotType>(_typeFilter, out var parsedType) ? parsedType : null;
+        var page = await Spots.ListAdminPageAsync(
+            new ParkingSpotListQuery(_search, _stateFilter, type, _ownershipFilter),
+            _pageIndex, SpotPageSize, _jumpToCode);
         _spots = page.Items;
         _total = page.TotalCount;
         // Taken back from the result, not assumed: the service walks the index back when the page
@@ -522,6 +614,39 @@
         // A new search starts at the front; page 5 of the old result set means nothing in the new one.
         _pageIndex = 0;
         await ReloadAsync();
+    }
+
+    private async Task FilterAsync()
+    {
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task SetStateAsync(ParkingSpotStateFilter value)
+    {
+        _stateFilter = value;
+        await FilterAsync();
+    }
+
+    private async Task SetOwnershipAsync(ParkingSpotOwnershipFilter value)
+    {
+        _ownershipFilter = value;
+        await FilterAsync();
+    }
+
+    private async Task SetTypeAsync(string value)
+    {
+        _typeFilter = value;
+        await FilterAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _stateFilter = ParkingSpotStateFilter.All;
+        _ownershipFilter = ParkingSpotOwnershipFilter.All;
+        _typeFilter = string.Empty;
+        _search = null;
+        await FilterAsync();
     }
 
     private async Task GoToPageAsync(int pageIndex)

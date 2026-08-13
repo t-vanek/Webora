@@ -13,7 +13,7 @@
 
 <PageTitle>@L["Admin_Directory_Title"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
+<FluentStack Class="page-shell directory-page" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head">
         <div class="admin-head__titles">
             <div class="admin-head__title-row">
@@ -25,7 +25,26 @@
             </div>
             <p class="admin-head__intro">@L["Admin_Directory_Intro"]</p>
         </div>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="addAction">
+            <FluentButton Appearance="Appearance.Accent" IconStart="@(_addOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
+                          OnClick="() => _addOpen = !_addOpen">
+                @L[_addOpen ? "Admin_Directory_CloseAdd" : "Admin_Directory_Add"]
+            </FluentButton>
+        </AuthorizeView>
     </div>
+
+    @if (_mappings is not null)
+    {
+        <section class="directory-overview" aria-label="@L["Admin_Directory_Overview"]">
+            <div class="directory-metric directory-metric--mappings"><span>@L["Admin_Directory_Mappings"]</span><strong>@_mappings.Count</strong></div>
+            <div class="directory-metric directory-metric--people"><span>@L["Admin_Directory_AssignedUsers"]</span><strong>@_mappings.Sum(mapping => mapping.AssignedUserCount)</strong></div>
+            <div class="directory-metric directory-metric--roles"><span>@L["Admin_Directory_AvailableRoles"]</span><strong>@_roles.Count</strong></div>
+            <div class="directory-integration-state">
+                <span class="state-pill state-pill--@(_entra.IsSignInConfigured ? "on" : "off")">@L[_entra.IsSignInConfigured ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</span>
+                <span class="state-pill state-pill--@(_entra.Scim.IsConfigured ? "on" : "off")">@L[_entra.Scim.IsConfigured ? "Admin_Directory_ScimOn" : "Admin_Directory_ScimOff"]</span>
+            </div>
+        </section>
+    }
 
     @if (!_entra.Enabled && !_entra.Scim.Enabled)
     {
@@ -38,16 +57,9 @@
             <FluentAnchor Href="/admin/settings?tab=entra" Appearance="Appearance.Hypertext">@L["Admin_Directory_ConfigureLink"]</FluentAnchor>
         </AuthorizeView>
     }
-    else
+    else if (_entra.Scim.IsConfigured)
     {
-        <div class="directory-status">
-            <span class="tag">@L[_entra.IsSignInConfigured ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</span>
-            <span class="tag">@L[_entra.Scim.IsConfigured ? "Admin_Directory_ScimOn" : "Admin_Directory_ScimOff"]</span>
-            @if (_entra.Scim.IsConfigured)
-            {
-                <code class="perm-row__id">@_scimUrl</code>
-            }
-        </div>
+        <div class="directory-endpoint"><span>@L["Admin_Directory_ScimEndpoint"]</span><code class="perm-row__id">@_scimUrl</code></div>
     }
 
     @if (!string.IsNullOrEmpty(_message))
@@ -59,6 +71,8 @@
         <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
     }
 
+    @if (_addOpen)
+    {
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="add">
         @* A plain panel, deliberately not FluentCard: fluent-card ships contain:content, which clips
            the select's dropped-down listbox to the card edge — the role menu opened as a strip
@@ -92,17 +106,19 @@
             </FluentStack>
         </div>
     </AuthorizeView>
+    }
 
     @* One row per app role the tenant publishes — a set the directory writes and this page only
        translates, so it is bounded by the tenant and read whole. No pager; a filter, because the
        app-role names are long dotted strings that all start alike. *@
     @if (_mappings is { Count: > 0 })
     {
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+        <div class="directory-commandbar">
             <FluentSearch Id="directory-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
                           Immediate="true" ImmediateDelay="150"
-                          Placeholder="@L["Admin_Directory_SearchHint"]" Style="max-width:320px" />
-        </FluentStack>
+                          Placeholder="@L["Admin_Directory_SearchHint"]" Class="directory-search" />
+            <span>@L["Admin_Directory_Results", Visible.Count]</span>
+        </div>
     }
 
     @if (_mappings is null)
@@ -119,7 +135,7 @@
     }
     else
     {
-        <div class="admin-panel">
+        <div class="admin-panel directory-desktop-list">
             <FluentDataGrid Items="@Visible.AsQueryable()" TGridItem="ExternalRoleMappingSummary"
                             GridTemplateColumns="1.4fr 1.2fr 0.8fr auto">
                 <TemplateColumn Title="@L["Admin_Directory_AppRole"]">
@@ -140,6 +156,20 @@
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
+        <div class="directory-mobile-list">
+            @foreach (var mapping in Visible)
+            {
+                <article class="directory-mobile-row">
+                    <code>@mapping.ExternalRole</code>
+                    <a href="@($"admin/roles/{mapping.RoleId}")">@AuthorizationDisplay.RoleName(L, mapping.RoleName)</a>
+                    <div><span>@PluralText.For(L, "Admin_Roles_MemberCount", mapping.AssignedUserCount)</span>
+                        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Roles.Edit)" Context="removeMobile">
+                            <FluentButton OnClick="() => RemoveAsync(mapping.Id)" Appearance="Appearance.Stealth">@L["Admin_Directory_Remove"]</FluentButton>
+                        </AuthorizeView>
+                    </div>
+                </article>
+            }
+        </div>
     }
 </FluentStack>
 
@@ -156,6 +186,7 @@
     private string _scimUrl = string.Empty;
     private string? _message;
     private string? _error;
+    private bool _addOpen;
 
     private const string Provider = ExternalProviders.EntraId;
 
@@ -210,6 +241,7 @@
             _message = L["Admin_Directory_Added"];
             _newExternalRole = null;
             _newRole = null;
+            _addOpen = false;
             await LoadAsync();
         }
         else

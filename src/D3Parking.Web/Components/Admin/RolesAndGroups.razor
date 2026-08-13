@@ -54,10 +54,10 @@
     @* One box over both catalogs. The counts ride on the tab labels only while it is in use: with no
        filter they would just repeat the chip above, but the moment something is typed they are the
        whole point — "three roles and two groups carry this" is one answer living on two tabs. *@
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+    <FluentStack Class="auth-commandbar" Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
         <FluentSearch Id="auth-search" @bind-Value="_filter" @bind-Value:after="StateHasChanged"
                       Immediate="true" ImmediateDelay="150"
-                      Placeholder="@L["Admin_Auth_SearchHint"]" Style="max-width:360px" />
+                      Placeholder="@L["Admin_Auth_SearchHint"]" />
     </FluentStack>
 
     @* Held back until both catalogs are in, so the tab strip is built once with its final set of

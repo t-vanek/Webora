@@ -24,18 +24,20 @@
 
    The page-level gate is any-of: a reviewer who holds one permission gets in and sees only their
    kind of case, which is also what the counts are of. *@
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <div class="admin-head__titles">
-        <div class="admin-head__title-row">
-            <FluentLabel Typo="Typography.PageTitle">@L["Parking_Oversight_Title"]</FluentLabel>
-            @if (_queue is { OpenCount: > 0 })
-            {
-                <span class="count-chip" title="@L["Parking_Oversight_OpenCases"]">@_queue.OpenCount</span>
-            }
-            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="RefreshAsync"
-                          IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">@L["Parking_Oversight_Refresh"]</FluentButton>
+<FluentStack Class="page-shell oversight-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head oversight-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Parking_Oversight_Title"]</FluentLabel>
+                @if (_queue is { OpenCount: > 0 })
+                {
+                    <span class="count-chip" title="@L["Parking_Oversight_OpenCases"]">@_queue.OpenCount</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Parking_Oversight_Intro"]</p>
         </div>
-        <p class="admin-head__intro">@L["Parking_Oversight_Intro"]</p>
+        <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="RefreshAsync"
+                      IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">@L["Parking_Oversight_Refresh"]</FluentButton>
     </div>
 
     @if (_error is not null)
@@ -74,7 +76,7 @@
             }
         </div>
 
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+        <div class="oversight-commandbar">
             @* The kind filter only appears for a reviewer who can see more than one — with a
                single permission there is nothing to filter between. *@
             @if (_scopeKinds.Count > 1)
@@ -85,7 +87,7 @@
                               OptionText="@(k => k.Length == 0 ? L["Parking_Oversight_AllKinds"] : L[$"Parking_OversightKind_{k}"])"
                               @bind-Value="_kindFilter"
                               @bind-Value:after="ReloadAsync"
-                              Style="min-width:220px" />
+                              Class="oversight-filter" />
             }
             <FluentSelect TOption="string"
                           Items="@_priorityOptions"
@@ -93,10 +95,10 @@
                           OptionText="@(p => p.Length == 0 ? L["Parking_Oversight_AllPriorities"] : L[$"Parking_OversightPriority_{p}"])"
                           @bind-Value="_priorityFilter"
                           @bind-Value:after="ReloadAsync"
-                          Style="min-width:200px" />
+                          Class="oversight-filter" />
             <FluentSearch @bind-Value="_search" @bind-Value:after="ReloadAsync"
-                          Placeholder="@L["Parking_Oversight_SearchHint"]" Style="max-width:320px" />
-        </FluentStack>
+                          Placeholder="@L["Parking_Oversight_SearchHint"]" Class="oversight-search" />
+        </div>
 
         @if (_queue.Cases.Count == 0)
         {

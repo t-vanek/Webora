@@ -16,10 +16,22 @@
    What it shows is deliberately not the reviewer's screen. No internal notes — those are filtered
    out in the query, not here, so a template that forgets cannot leak one — and no reviewer's name:
    the driver is owed the decision and its reasons, not a colleague to corner about it. *@
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <div class="admin-head__titles">
-        <FluentLabel Typo="Typography.PageTitle">@L["Parking_MyReports_Title"]</FluentLabel>
-        <p class="admin-head__intro">@L["Parking_MyReports_Intro"]</p>
+<FluentStack Class="page-shell my-reports-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head my-reports-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Parking_MyReports_Title"]</FluentLabel>
+                @if (_reports is not null)
+                {
+                    <span class="count-chip">@_reports.Count</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Parking_MyReports_Intro"]</p>
+        </div>
+        <FluentButton Appearance="Appearance.Accent" IconStart="@(_reportOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
+                      OnClick="() => _reportOpen = !_reportOpen">
+            @L[_reportOpen ? "Parking_Defect_Close" : "Parking_Defect_Report"]
+        </FluentButton>
     </div>
 
     @if (_error is not null)
@@ -37,7 +49,9 @@
 
     @* The one case anybody can open. A burnt-out light or a skip across two bays is invisible to
        every sweep and every scan, so until somebody says so it does not exist. *@
-    <div class="admin-panel case-section">
+    @if (_reportOpen)
+    {
+    <div class="admin-panel case-section report-create-panel">
         <FluentLabel Typo="Typography.H5">@L["Parking_Defect_Report"]</FluentLabel>
         <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Defect_Help"]</FluentLabel>
         <FluentSelect TOption="string"
@@ -74,6 +88,7 @@
         <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
                       OnClick="ReportDefectAsync">@L["Parking_Defect_Send"]</FluentButton>
     </div>
+    }
 
     @* Until this, a no-show penalty was final and wordless: points gone, streak reset, credit
        forfeited, and nowhere to say "I was in hospital" or "the barrier never let me in". *@
@@ -223,6 +238,7 @@
     private BlockedSpotPhoto? _defectPhoto;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
     private bool _busy;
+    private bool _reportOpen;
     private string? _error;
     private string? _info;
 
@@ -293,6 +309,7 @@
                 _info = "Parking_Defect_Sent";
                 _defectDescription = string.Empty;
                 _defectPhoto = null;
+                _reportOpen = false;
             }
             else
             {

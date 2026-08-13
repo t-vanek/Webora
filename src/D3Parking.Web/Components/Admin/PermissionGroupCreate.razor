@@ -8,9 +8,9 @@
 
 <PageTitle>@L["Admin_Groups_Create"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Admin_Groups_Create"]</FluentLabel>
-    <FluentAnchor Href="admin/permission-groups" Appearance="Appearance.Hypertext">&laquo; @L["Nav_AdminPermissionGroups"]</FluentAnchor>
+<FluentStack Class="page-shell entity-create-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="user-detail-nav"><FluentAnchor Href="admin/permission-groups" Appearance="Appearance.Hypertext">← @L["Nav_AdminPermissionGroups"]</FluentAnchor></div>
+    <div class="admin-head"><div class="admin-head__titles"><div class="admin-head__title-row"><FluentLabel Typo="Typography.PageTitle">@L["Admin_Groups_Create"]</FluentLabel></div><p class="admin-head__intro">@L["Admin_Groups_Intro"]</p></div></div>
 
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -19,25 +19,26 @@
         </FluentMessageBar>
     }
 
-    <FluentCard Class="profile-section">
+    <section class="entity-create-section">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <FluentTextField @bind-Value="_name" Label="@L["Admin_Groups_Name"]" Style="max-width:480px" />
             <FluentTextArea @bind-Value="_description" Label="@L["Admin_Groups_Description"]" Rows="2" Style="max-width:640px" />
         </FluentStack>
-    </FluentCard>
+    </section>
 
-    <FluentCard Class="profile-section">
+    <section class="entity-create-section">
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <FluentLabel Typo="Typography.Subject">@L["Admin_Roles_Permissions"]</FluentLabel>
             <PermissionEditor Catalog="Groups.PermissionCatalog"
                               Selected="_selected"
                               Grantable="_grantable"
                               SelectionChanged="StateHasChanged" />
-            <div class="perm-editor__actions">
-                <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent">@L["Admin_Groups_Create"]</FluentButton>
-            </div>
         </FluentStack>
-    </FluentCard>
+    </section>
+    <div class="entity-create-actions">
+        <FluentAnchor Href="admin/permission-groups" Appearance="Appearance.Outline">@L["Common_Cancel"]</FluentAnchor>
+        <FluentButton OnClick="CreateAsync" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())">@L["Admin_Groups_Create"]</FluentButton>
+    </div>
 </FluentStack>
 
 @code {

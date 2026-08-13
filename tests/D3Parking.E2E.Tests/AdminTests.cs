@@ -79,6 +79,20 @@ public class AdminTests : AdminTest
     public async Task The_directory_role_menu_opens_clear_of_its_panel()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/directory");
+        var addPanel = Page.Locator(".directory-add");
+        for (var attempt = 0; attempt < 3 && !await addPanel.IsVisibleAsync(); attempt++)
+        {
+            await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Nové mapování|New mapping") }).ClickAsync();
+            try
+            {
+                await addPanel.WaitForAsync(new() { Timeout = 2000 });
+            }
+            catch (TimeoutException)
+            {
+                // The first interactive re-render can replace the server-rendered button.
+            }
+        }
+        await Expect(addPanel).ToBeVisibleAsync();
 
         // A Fluent label is a sibling of its input, not its parent, so a wrapping flex row used to
         // strand "Role v aplikaci" at the end of the line above — where it read as a label for the
@@ -107,6 +121,7 @@ public class AdminTests : AdminTest
     public async Task Spot_generator_creates_a_series_and_marks_it_duplicate_afterwards()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Přidat místa|Add spots") }).ClickAsync();
 
         // Unique section prefix per run — the database persists between test runs.
         var prefix = $"G{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
@@ -152,6 +167,7 @@ public class AdminTests : AdminTest
     public async Task Spot_type_changes_inline_from_the_grid()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Přidat místa|Add spots") }).ClickAsync();
 
         // Create a throwaway spot to retype. Even attached, a grid re-render can still swallow
         // an early click — retry until the new row appears, using the row itself as the wait.

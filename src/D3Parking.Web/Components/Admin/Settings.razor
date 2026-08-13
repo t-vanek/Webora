@@ -13,8 +13,13 @@
 
 <PageTitle>@L["Settings_Title"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentLabel Typo="Typography.PageTitle">@L["Settings_Title"]</FluentLabel>
+<FluentStack Class="page-shell site-settings-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row"><FluentLabel Typo="Typography.PageTitle">@L["Settings_Title"]</FluentLabel></div>
+            <p class="admin-head__intro">@L["Settings_Intro"]</p>
+        </div>
+    </div>
 
     @if (_form is null)
     {
@@ -22,6 +27,11 @@
     }
     else
     {
+        <section class="site-settings-overview" aria-label="@L["Settings_Overview"]">
+            <div><span>@L["Settings_DomainSection"]</span><strong>@(_baseUrl ?? L["Settings_NotSet"])</strong></div>
+            <div><span>@L["Settings_RegionSection"]</span><strong>@(string.IsNullOrEmpty(_regional.DefaultLanguage) ? L["Settings_Automatic"] : CultureLabel(_regional.DefaultLanguage))</strong></div>
+            <div><span>@L["Settings_EntraSection"]</span><strong>@L[_entra.Settings.Enabled ? "Admin_Directory_SignInOn" : "Admin_Directory_SignInOff"]</strong></div>
+        </section>
         @if (!string.IsNullOrEmpty(_message))
         {
             <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
@@ -31,7 +41,7 @@
             <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
         }
 
-        <FluentTabs @bind-ActiveTabId="_activeTab">
+        <FluentTabs @bind-ActiveTabId="_activeTab" Class="site-settings-tabs">
             <FluentTab Id="domain" Label="@L["Settings_DomainSection"]">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16" Style="max-width:720px;padding-top:12px">
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
@@ -41,7 +51,9 @@
 
                     <FluentGrid Spacing="3">
                         <FluentGridItem xs="12" md="8">
-                            <FluentTextField @bind-Value="_form.CanonicalHost"
+                            <FluentTextField Name="SiteSettings.CanonicalHost"
+                                             AutoComplete="off"
+                                             @bind-Value="_form.CanonicalHost"
                                              Label="@L["Settings_CanonicalHost"]"
                                              Placeholder="www.example.com"
                                              Style="width:100%" />
@@ -56,7 +68,9 @@
                                           Style="width:100%" />
                         </FluentGridItem>
                         <FluentGridItem xs="6" md="2">
-                            <FluentNumberField TValue="int?" @bind-Value="_form.Port"
+                            <FluentNumberField Name="SiteSettings.Port"
+                                               AutoComplete="off"
+                                               TValue="int?" @bind-Value="_form.Port"
                                                Label="@L["Settings_Port"]"
                                                Min="1" Max="65535"
                                                Style="width:100%" />
