@@ -27,6 +27,14 @@ public interface IUserAdminService
         int pageSize,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResult<UserSummary>> ListFilteredPageAsync(
+        UserListQuery query,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<UserDirectorySummary> GetSummaryAsync(CancellationToken cancellationToken = default);
+
     Task<UserDetail?> GetAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<AccountResult> CreateAsync(

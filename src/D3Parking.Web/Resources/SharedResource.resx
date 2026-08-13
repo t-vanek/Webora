@@ -215,6 +215,66 @@
   <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Role byly uloženy.</value></data>
   <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Účet byl zablokován.</value></data>
   <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Účet byl odblokován.</value></data>
+  <data name="Admin_Users_Overview_Label" xml:space="preserve"><value>Souhrn uživatelských účtů</value></data>
+  <data name="Admin_Users_Overview_Total" xml:space="preserve"><value>Celkem účtů</value></data>
+  <data name="Admin_Users_Overview_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Admin_Users_Overview_Pending" xml:space="preserve"><value>Čeká na aktivaci</value></data>
+  <data name="Admin_Users_Overview_Blocked" xml:space="preserve"><value>Blokované</value></data>
+  <data name="Admin_Users_Filter_Label" xml:space="preserve"><value>Vyhledávání a filtrování účtů</value></data>
+  <data name="Admin_Users_Filter_Status" xml:space="preserve"><value>Filtrovat podle stavu</value></data>
+  <data name="Admin_Users_Filter_AllStatuses" xml:space="preserve"><value>Všechny stavy</value></data>
+  <data name="Admin_Users_Filter_Role" xml:space="preserve"><value>Filtrovat podle role</value></data>
+  <data name="Admin_Users_Filter_AllRoles" xml:space="preserve"><value>Všechny role</value></data>
+  <data name="Admin_Users_Filter_Source" xml:space="preserve"><value>Filtrovat podle zdroje účtu</value></data>
+  <data name="Admin_Users_Filter_AllSources" xml:space="preserve"><value>Všechny zdroje</value></data>
+  <data name="Admin_Users_Filter_Sort" xml:space="preserve"><value>Řazení účtů</value></data>
+  <data name="Admin_Users_Filter_Clear" xml:space="preserve"><value>Zrušit filtry</value></data>
+  <data name="Admin_Users_Filter_StateViews" xml:space="preserve"><value>Rychlý výběr podle stavu</value></data>
+  <data name="Admin_Users_Source_Local" xml:space="preserve"><value>Lokální účet</value></data>
+  <data name="Admin_Users_Source_Federated" xml:space="preserve"><value>Firemní účet</value></data>
+  <data name="Admin_Users_Sort_Email" xml:space="preserve"><value>Řadit podle e-mailu</value></data>
+  <data name="Admin_Users_Sort_Name" xml:space="preserve"><value>Řadit podle jména</value></data>
+  <data name="Admin_Users_Sort_Status" xml:space="preserve"><value>Řadit podle stavu</value></data>
+  <data name="Admin_Users_Sort_Activity" xml:space="preserve"><value>Nejnovější aktivita</value></data>
+  <data name="Admin_Users_View_All" xml:space="preserve"><value>Všechny</value></data>
+  <data name="Admin_Users_View_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Admin_Users_View_Pending" xml:space="preserve"><value>Čekající</value></data>
+  <data name="Admin_Users_View_Blocked" xml:space="preserve"><value>Blokované</value></data>
+  <data name="Admin_Users_View_AllHint" xml:space="preserve"><value>Celý adresář uživatelských účtů</value></data>
+  <data name="Admin_Users_View_ActiveHint" xml:space="preserve"><value>Účty, které se mohou přihlásit</value></data>
+  <data name="Admin_Users_View_PendingHint" xml:space="preserve"><value>Registrace čekající na potvrzení e-mailu</value></data>
+  <data name="Admin_Users_View_BlockedHint" xml:space="preserve"><value>Účty zablokované správcem</value></data>
+  <data name="Admin_Users_ResultCount" xml:space="preserve"><value>Nalezeno účtů: {0}</value></data>
+  <data name="Admin_Users_NoneHint" xml:space="preserve"><value>Změňte hledání nebo zrušte aktivní filtry.</value></data>
+  <data name="Admin_Users_Column_User" xml:space="preserve"><value>Uživatel</value></data>
+  <data name="Admin_Users_Column_Source" xml:space="preserve"><value>Zdroj a ověření</value></data>
+  <data name="Admin_Users_Column_Activity" xml:space="preserve"><value>Poslední aktivita</value></data>
+  <data name="Admin_Users_Column_Action" xml:space="preserve"><value>Akce</value></data>
+  <data name="Admin_Users_OpenDetail" xml:space="preserve"><value>Otevřít detail uživatele {0}</value></data>
+  <data name="Admin_Users_NoRoles" xml:space="preserve"><value>Bez role</value></data>
+  <data name="Admin_Users_RoleCount" xml:space="preserve"><value>Role: {0}</value></data>
+  <data name="Admin_Users_EmailConfirmed" xml:space="preserve"><value>E-mail ověřen</value></data>
+  <data name="Admin_Users_EmailUnconfirmed" xml:space="preserve"><value>E-mail neověřen</value></data>
+  <data name="Admin_Users_NoActivity" xml:space="preserve"><value>Bez aktivity</value></data>
+  <data name="Admin_UserEdit_Tabs" xml:space="preserve"><value>Části detailu účtu</value></data>
+  <data name="Admin_UserEdit_TabOverview" xml:space="preserve"><value>Přehled</value></data>
+  <data name="Admin_UserEdit_TabAccess" xml:space="preserve"><value>Přístupy</value></data>
+  <data name="Admin_UserEdit_TabActivity" xml:space="preserve"><value>Aktivita</value></data>
+  <data name="Admin_UserEdit_Identity" xml:space="preserve"><value>Identita a kontakt</value></data>
+  <data name="Admin_UserEdit_IdentityHint" xml:space="preserve"><value>Základní údaje a stav identity uživatele.</value></data>
+  <data name="Admin_UserEdit_EmailState" xml:space="preserve"><value>Ověření e-mailu</value></data>
+  <data name="Admin_UserEdit_Source" xml:space="preserve"><value>Zdroj účtu</value></data>
+  <data name="Admin_UserEdit_StatusChanged" xml:space="preserve"><value>Poslední změna stavu</value></data>
+  <data name="Admin_UserEdit_StatusReason" xml:space="preserve"><value>Důvod stavu</value></data>
+  <data name="Admin_UserEdit_CommuteHint" xml:space="preserve"><value>Domovská adresa používaná pro parkovací pravidla.</value></data>
+  <data name="Admin_UserEdit_Distance" xml:space="preserve"><value>Vzdálenost: {0} km</value></data>
+  <data name="Admin_UserEdit_RolesHint" xml:space="preserve"><value>Role určují přístup k funkcím a datům aplikace.</value></data>
+  <data name="Admin_UserEdit_Unsaved" xml:space="preserve"><value>Neuložené změny</value></data>
+  <data name="Admin_UserEdit_StatusHint" xml:space="preserve"><value>Řízení možnosti přihlášení k účtu.</value></data>
+  <data name="Admin_UserEdit_DangerHint" xml:space="preserve"><value>Smazání účtu je trvalé a nelze je vrátit zpět.</value></data>
+  <data name="Admin_UserEdit_AuditHint" xml:space="preserve"><value>Změny účtu a bezpečnostní události v časovém pořadí.</value></data>
+  <data name="Admin_UserEdit_ActorSelf" xml:space="preserve"><value>Uživatel</value></data>
+  <data name="Admin_UserEdit_ActorAdmin" xml:space="preserve"><value>Správce</value></data>
   <data name="Admin_Roles_Title" xml:space="preserve"><value>Správa oprávnění</value></data>
   <data name="Admin_Roles_Create" xml:space="preserve"><value>Nová role</value></data>
   <data name="Admin_Roles_Name" xml:space="preserve"><value>Název role</value></data>
@@ -1193,7 +1253,86 @@
   <data name="Nav_AdminFleet" xml:space="preserve"><value>Vozový park</value></data>
   <data name="Nav_Short_Fleet" xml:space="preserve"><value>Vozy</value></data>
   <data name="Fleet_Admin_Title" xml:space="preserve"><value>Vozový park</value></data>
-  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>Evidence vozidel podle SPZ, rozlišená typem: firemní vozidlo může mít přidělené vlastní (rezidentní) místo, vozidlo zaměstnance rezervuje jen z fondu. Když si uživatel uloží do svého účtu SPZ vozidla, jehož e-mail řidiče se shoduje s jeho účtem, může se s vozidlem spárovat potvrzovacím kódem z e-mailu — u firemního vozidla se tím stane rezidentem přiděleného místa.</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>Registr vozidel, jejich řidičů, parkovacích nároků a stavu propojení s uživatelskými účty.</value></data>
+  <data name="Fleet_Overview_Label" xml:space="preserve"><value>Souhrn vozového parku</value></data>
+  <data name="Fleet_Overview_Active" xml:space="preserve"><value>Aktivních vozidel</value></data>
+  <data name="Fleet_Overview_Paired" xml:space="preserve"><value>Spárováno s účtem</value></data>
+  <data name="Fleet_Overview_Action" xml:space="preserve"><value>Vyžaduje zásah</value></data>
+  <data name="Fleet_Overview_Assigned" xml:space="preserve"><value>S vlastním místem</value></data>
+  <data name="Fleet_Filter_Label" xml:space="preserve"><value>Vyhledávání a filtrování vozidel</value></data>
+  <data name="Fleet_Filter_Search" xml:space="preserve"><value>Hledat SPZ, vozidlo, řidiče nebo místo</value></data>
+  <data name="Fleet_Filter_Type" xml:space="preserve"><value>Filtrovat podle typu vozidla</value></data>
+  <data name="Fleet_Filter_AllTypes" xml:space="preserve"><value>Všechny typy</value></data>
+  <data name="Fleet_Filter_Parking" xml:space="preserve"><value>Filtrovat podle parkovacího místa</value></data>
+  <data name="Fleet_Filter_AllParking" xml:space="preserve"><value>Všechna parkování</value></data>
+  <data name="Fleet_Filter_Assigned" xml:space="preserve"><value>S přiděleným místem</value></data>
+  <data name="Fleet_Filter_Unassigned" xml:space="preserve"><value>Bez přiděleného místa</value></data>
+  <data name="Fleet_Filter_Clear" xml:space="preserve"><value>Zrušit filtry</value></data>
+  <data name="Fleet_Filter_State" xml:space="preserve"><value>Filtrovat podle provozního stavu</value></data>
+  <data name="Fleet_Filter_ResultCount" xml:space="preserve"><value>Zobrazeno vozidel: {0}</value></data>
+  <data name="Fleet_Filter_EmptyTitle" xml:space="preserve"><value>Žádné vozidlo neodpovídá filtrům</value></data>
+  <data name="Fleet_Filter_EmptyText" xml:space="preserve"><value>Upravte hledání, typ vozidla nebo parkovací nárok.</value></data>
+  <data name="Fleet_View_Active" xml:space="preserve"><value>Aktivní</value></data>
+  <data name="Fleet_View_Paired" xml:space="preserve"><value>Spárovaná</value></data>
+  <data name="Fleet_View_Action" xml:space="preserve"><value>K řešení</value></data>
+  <data name="Fleet_View_Manual" xml:space="preserve"><value>Ruční párování</value></data>
+  <data name="Fleet_View_Inactive" xml:space="preserve"><value>Neaktivní</value></data>
+  <data name="Fleet_View_ActiveHint" xml:space="preserve"><value>Všechna provozovaná vozidla</value></data>
+  <data name="Fleet_View_PairedHint" xml:space="preserve"><value>Vozidla propojená s uživatelským účtem</value></data>
+  <data name="Fleet_View_ActionHint" xml:space="preserve"><value>Vozidla, u kterých je potřeba zásah správce</value></data>
+  <data name="Fleet_View_ManualHint" xml:space="preserve"><value>Vozidla bez e-mailu řidiče, která lze spárovat pouze zde</value></data>
+  <data name="Fleet_View_InactiveHint" xml:space="preserve"><value>Archivovaná vozidla mimo provoz</value></data>
+  <data name="Fleet_Table_Vehicle" xml:space="preserve"><value>Vozidlo</value></data>
+  <data name="Fleet_Table_Driver" xml:space="preserve"><value>Řidič</value></data>
+  <data name="Fleet_Table_Parking" xml:space="preserve"><value>Parkování</value></data>
+  <data name="Fleet_Table_Pairing" xml:space="preserve"><value>Párování</value></data>
+  <data name="Fleet_Table_Activity" xml:space="preserve"><value>Poslední aktivita</value></data>
+  <data name="Fleet_Table_Actions" xml:space="preserve"><value>Akce</value></data>
+  <data name="Fleet_Driver_Unpaired" xml:space="preserve"><value>Účet není spárován</value></data>
+  <data name="Fleet_Driver_NoEmail" xml:space="preserve"><value>E-mail řidiče není uveden</value></data>
+  <data name="Fleet_Parking_NoSpot" xml:space="preserve"><value>Bez vlastního místa</value></data>
+  <data name="Fleet_Parking_Spot" xml:space="preserve"><value>Místo {0}</value></data>
+  <data name="Fleet_Action_Detail" xml:space="preserve"><value>Zobrazit detail</value></data>
+  <data name="Fleet_Action_DetailFor" xml:space="preserve"><value>Zobrazit detail vozidla {0}</value></data>
+  <data name="Fleet_Action_Close" xml:space="preserve"><value>Zavřít panel</value></data>
+  <data name="Fleet_Editor_Label" xml:space="preserve"><value>Editor vozidla</value></data>
+  <data name="Fleet_Editor_New" xml:space="preserve"><value>Nový záznam</value></data>
+  <data name="Fleet_Editor_Edit" xml:space="preserve"><value>Úprava vozidla</value></data>
+  <data name="Fleet_Editor_Entitlement" xml:space="preserve"><value>Parkovací nárok</value></data>
+  <data name="Fleet_Editor_CompanyHint" xml:space="preserve"><value>Firemnímu vozidlu lze přidělit vlastní rezidentní místo.</value></data>
+  <data name="Fleet_Editor_EmployeeHint" xml:space="preserve"><value>Vozidlo zaměstnance rezervuje pouze ze sdíleného fondu.</value></data>
+  <data name="Fleet_Detail_Label" xml:space="preserve"><value>Detail vozidla</value></data>
+  <data name="Fleet_Detail_Vehicle" xml:space="preserve"><value>Vozidlo</value></data>
+  <data name="Fleet_Detail_Identity" xml:space="preserve"><value>Identita a řidič</value></data>
+  <data name="Fleet_Detail_Parking" xml:space="preserve"><value>Parkovací nárok</value></data>
+  <data name="Fleet_Detail_Pairing" xml:space="preserve"><value>Propojení s účtem</value></data>
+  <data name="Fleet_Detail_CompanyNoSpot" xml:space="preserve"><value>Firemní vozidlo může mít vlastní místo, ale zatím žádné přidělené nemá.</value></data>
+  <data name="Fleet_Detail_CompanySpot" xml:space="preserve"><value>Spárováním řidiče se účet stane rezidentem místa {0}.</value></data>
+  <data name="Fleet_Detail_EmployeePool" xml:space="preserve"><value>Vozidlo zaměstnance nemá vlastní místo a rezervuje ze sdíleného fondu.</value></data>
+  <data name="Fleet_Pair_Title" xml:space="preserve"><value>Ruční párování účtu</value></data>
+  <data name="Fleet_Pair_Review" xml:space="preserve"><value>Zkontrolovat změnu</value></data>
+  <data name="Fleet_Pair_ConfirmTitle" xml:space="preserve"><value>Potvrďte dopad změny</value></data>
+  <data name="Fleet_Pair_Confirm" xml:space="preserve"><value>Potvrdit párování</value></data>
+  <data name="Fleet_Pair_ConfirmUnpair" xml:space="preserve"><value>Účet bude od vozidla {0} odpojen a případný rezidentní nárok bude odebrán.</value></data>
+  <data name="Fleet_Pair_ConfirmPair" xml:space="preserve"><value>Účet {0} bude spárován s vozidlem {1}. Parkovací nárok: {2}.</value></data>
+  <data name="Fleet_Pair_Back" xml:space="preserve"><value>Zpět k výběru</value></data>
+  <data name="Fleet_Pair_Action" xml:space="preserve"><value>Spárovat účet</value></data>
+  <data name="Fleet_Pair_ChangeAction" xml:space="preserve"><value>Změnit párování</value></data>
+  <data name="Fleet_Next_Paired" xml:space="preserve"><value>Propojeno s účtem {0}</value></data>
+  <data name="Fleet_Next_CodeSent" xml:space="preserve"><value>Čeká se na zadání potvrzovacího kódu řidičem</value></data>
+  <data name="Fleet_Next_Locked" xml:space="preserve"><value>Samoobslužné párování je pozastaveno do {0}</value></data>
+  <data name="Fleet_Next_Ready" xml:space="preserve"><value>Řidič si může ve svém účtu vyžádat kód</value></data>
+  <data name="Fleet_Next_Plate" xml:space="preserve"><value>Řidič musí do profilu uložit odpovídající SPZ</value></data>
+  <data name="Fleet_Next_Account" xml:space="preserve"><value>Zkontrolujte e-mail nebo vyčkejte na registraci řidiče</value></data>
+  <data name="Fleet_Next_Manual" xml:space="preserve"><value>Vyberte účet ručně v detailu vozidla</value></data>
+  <data name="Fleet_Next_Inactive" xml:space="preserve"><value>Vozidlo je mimo provoz a nelze ho párovat</value></data>
+  <data name="Fleet_Success_Created" xml:space="preserve"><value>Vozidlo bylo přidáno.</value></data>
+  <data name="Fleet_Success_Updated" xml:space="preserve"><value>Změny vozidla byly uloženy.</value></data>
+  <data name="Fleet_Success_Paired" xml:space="preserve"><value>Účet byl s vozidlem spárován.</value></data>
+  <data name="Fleet_Success_Unpaired" xml:space="preserve"><value>Účet byl od vozidla odpojen.</value></data>
+  <data name="Fleet_Success_Activated" xml:space="preserve"><value>Vozidlo bylo aktivováno.</value></data>
+  <data name="Fleet_Success_Deactivated" xml:space="preserve"><value>Vozidlo bylo vyřazeno z provozu.</value></data>
+  <data name="Fleet_Success_Deleted" xml:space="preserve"><value>Vozidlo bylo odstraněno.</value></data>
   <data name="Fleet_Admin_Type" xml:space="preserve"><value>Typ vozidla</value></data>
   <data name="Fleet_Type_Company" xml:space="preserve"><value>firemní vozidlo</value></data>
   <data name="Fleet_Type_Employee" xml:space="preserve"><value>vozidlo zaměstnance</value></data>
@@ -1269,8 +1408,27 @@
   <data name="Nav_AdminLot" xml:space="preserve"><value>Plocha parkoviště</value></data>
   <data name="Nav_Short_Lot" xml:space="preserve"><value>Plocha</value></data>
   <data name="Lot_Title" xml:space="preserve"><value>Plocha parkoviště</value></data>
-  <data name="Lot_Intro" xml:space="preserve"><value>Přehled stavu plochy v reálném čase: obsazení jednotlivých míst, jejich kalendář a nástroje pro řešení neshod obsazenosti.</value></data>
+  <data name="Lot_Intro" xml:space="preserve"><value>Denní provozní přehled kapacity, rezervací a událostí na jednotlivých místech.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Správa míst</value></data>
+  <data name="Lot_Overview_Label" xml:space="preserve"><value>Souhrn provozu parkoviště</value></data>
+  <data name="Lot_Overview_Available" xml:space="preserve"><value>Dostupná kapacita</value></data>
+  <data name="Lot_Overview_OfActive" xml:space="preserve"><value>z {0} aktivních míst</value></data>
+  <data name="Lot_Overview_Utilization" xml:space="preserve"><value>Využití nabízené kapacity</value></data>
+  <data name="Lot_Overview_OccupancyAria" xml:space="preserve"><value>Využití kapacity {0} procent</value></data>
+  <data name="Lot_Overview_Activity" xml:space="preserve"><value>Provoz ve zvolený den</value></data>
+  <data name="Lot_Overview_Attention" xml:space="preserve"><value>Provozní signály</value></data>
+  <data name="Lot_Overview_NoIssues" xml:space="preserve"><value>Bez provozních odchylek</value></data>
+  <data name="Lot_Filter_Label" xml:space="preserve"><value>Ovládání a filtrování plochy</value></data>
+  <data name="Lot_Filter_SearchPlaceholder" xml:space="preserve"><value>Hledat místo, rezidenta nebo držitele</value></data>
+  <data name="Lot_Filter_Section" xml:space="preserve"><value>Filtrovat podle sekce</value></data>
+  <data name="Lot_Filter_AllSections" xml:space="preserve"><value>Všechny sekce</value></data>
+  <data name="Lot_Filter_State" xml:space="preserve"><value>Filtrovat podle stavu</value></data>
+  <data name="Lot_Filter_AllStates" xml:space="preserve"><value>Všechna místa</value></data>
+  <data name="Lot_Filter_ResultCount" xml:space="preserve"><value>Zobrazeno míst: {0}</value></data>
+  <data name="Lot_Filter_Clear" xml:space="preserve"><value>Zrušit filtry</value></data>
+  <data name="Lot_Filter_EmptyTitle" xml:space="preserve"><value>Žádné místo neodpovídá filtrům</value></data>
+  <data name="Lot_Filter_EmptyText" xml:space="preserve"><value>Upravte hledání, stav nebo vybranou sekci.</value></data>
+  <data name="Lot_Section_Summary" xml:space="preserve"><value>{0} dostupných z {1}</value></data>
   <data name="Lot_Day" xml:space="preserve"><value>Den</value></data>
   <data name="Lot_PrevDay" xml:space="preserve"><value>← Předchozí</value></data>
   <data name="Lot_NextDay" xml:space="preserve"><value>Další →</value></data>
@@ -1311,6 +1469,10 @@
   <data name="Lot_Detail_Mismatches" xml:space="preserve"><value>Neshody</value></data>
   <data name="Lot_Detail_Shared" xml:space="preserve"><value>Sdílené dny</value></data>
   <data name="Lot_Detail_Wasted" xml:space="preserve"><value>nevyužito</value></data>
+  <data name="Lot_Detail_StatusSection" xml:space="preserve"><value>Stav a rizika</value></data>
+  <data name="Lot_Detail_ResidentSection" xml:space="preserve"><value>Rezident a plán</value></data>
+  <data name="Lot_Detail_OperationsSection" xml:space="preserve"><value>Provozní zásahy</value></data>
+  <data name="Lot_Detail_PerformanceSection" xml:space="preserve"><value>Vytížení místa</value></data>
   <data name="Lot_Detail_MismatchLog" xml:space="preserve"><value>Nahlášené neshody na tomto místě</value></data>
   <data name="Lot_Detail_Relocated" xml:space="preserve"><value>přesunuto</value></data>
   <data name="Lot_Deactivate" xml:space="preserve"><value>Vyřadit z provozu (údržba)</value></data>
@@ -1330,6 +1492,7 @@
   <data name="Lot_Window" xml:space="preserve"><value>Období</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Posledních {0} dní</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Neshody</value></data>
+  <data name="Lot_List_Holder" xml:space="preserve"><value>Držitel</value></data>
   <data name="Lot_Summary_Group_Trend" xml:space="preserve"><value>Vývoj</value></data>
   <data name="Lot_Summary_Group_Lot" xml:space="preserve"><value>Skladba plochy</value></data>
   <data name="Lot_Summary_Value" xml:space="preserve"><value>Aktuálně</value></data>
