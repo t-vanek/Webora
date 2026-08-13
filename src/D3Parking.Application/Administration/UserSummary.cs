@@ -8,7 +8,41 @@ public sealed record UserSummary(
     string Email,
     string? DisplayName,
     AccountStatus Status,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    bool EmailConfirmed,
+    string? ExternalProvider,
+    DateTimeOffset? LastActivityUtc)
+{
+    public bool IsFederated => ExternalProvider is not null;
+}
+
+public enum UserAccountSourceFilter
+{
+    All,
+    Local,
+    Federated,
+}
+
+public enum UserListSort
+{
+    Email,
+    Name,
+    Status,
+    RecentActivity,
+}
+
+public sealed record UserListQuery(
+    string? Search = null,
+    AccountStatus? Status = null,
+    string? Role = null,
+    UserAccountSourceFilter Source = UserAccountSourceFilter.All,
+    UserListSort Sort = UserListSort.Email);
+
+public sealed record UserDirectorySummary(
+    int Total,
+    int Active,
+    int PendingActivation,
+    int Blocked);
 
 /// <summary>Full detail of a user shown on the administration detail page.</summary>
 /// <param name="IsLastAdministrator">

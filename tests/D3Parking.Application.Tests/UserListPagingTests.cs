@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using D3Parking.Application.Accounts;
+using D3Parking.Application.Administration;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Administration;
 using D3Parking.Infrastructure.Identity;
@@ -173,6 +175,31 @@ public class UserListPagingTests
             Assert.That(paged.DisplayName, Is.EqualTo(listed.DisplayName));
             Assert.That(paged.Status, Is.EqualTo(listed.Status));
             Assert.That(paged.Roles, Is.EqualTo(listed.Roles));
+            Assert.That(paged.EmailConfirmed, Is.EqualTo(listed.EmailConfirmed));
+            Assert.That(paged.ExternalProvider, Is.EqualTo(listed.ExternalProvider));
+        });
+    }
+
+    [Test]
+    public async Task Structured_filters_are_applied_before_the_page_is_cut()
+    {
+        var active = await _users.ListFilteredPageAsync(
+            new UserListQuery(Status: AccountStatus.Active), 0, 5);
+        var employee = await _users.ListFilteredPageAsync(
+            new UserListQuery(Role: Roles.Employee), 0, 5);
+        var federated = await _users.ListFilteredPageAsync(
+            new UserListQuery(Source: UserAccountSourceFilter.Federated), 0, 5);
+        var summary = await _users.GetSummaryAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(active.TotalCount, Is.EqualTo(8));
+            Assert.That(active.Items, Has.All.Property(nameof(UserSummary.Status)).EqualTo(AccountStatus.Active));
+            Assert.That(employee.TotalCount, Is.EqualTo(1));
+            Assert.That(employee.Items.Single().Email, Is.EqualTo("u00@d3.local"));
+            Assert.That(federated.TotalCount, Is.EqualTo(1));
+            Assert.That(federated.Items.Single().ExternalProvider, Is.EqualTo("Entra ID"));
+            Assert.That(summary, Is.EqualTo(new UserDirectorySummary(12, 8, 3, 1)));
         });
     }
 
@@ -192,6 +219,10 @@ public class UserListPagingTests
     {
         await using var scope = _provider.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var roleCreated = await roleManager.CreateAsync(new ApplicationRole(Roles.Employee));
+        Assert.That(roleCreated.Succeeded, Is.True, string.Join("; ", roleCreated.Errors.Select(e => e.Description)));
+
         for (var i = 0; i < count; i++)
         {
             var user = new ApplicationUser
@@ -200,10 +231,17 @@ public class UserListPagingTests
                 Email = $"u{i:00}@d3.local",
                 DisplayName = $"Uživatel {i:00}",
                 EmailConfirmed = true,
+                Status = i < 8 ? AccountStatus.Active : i == 8 ? AccountStatus.Blocked : AccountStatus.PendingActivation,
+                ExternalProvider = i == 9 ? "Entra ID" : null,
             };
 
             var created = await userManager.CreateAsync(user, "Str0ng!Password");
             Assert.That(created.Succeeded, Is.True, string.Join("; ", created.Errors.Select(e => e.Description)));
+            if (i == 0)
+            {
+                var assigned = await userManager.AddToRoleAsync(user, Roles.Employee);
+                Assert.That(assigned.Succeeded, Is.True, string.Join("; ", assigned.Errors.Select(e => e.Description)));
+            }
         }
     }
 }

@@ -215,6 +215,66 @@
   <data name="Admin_UserEdit_RolesSaved" xml:space="preserve"><value>Roles saved.</value></data>
   <data name="Admin_UserEdit_Blocked" xml:space="preserve"><value>Account blocked.</value></data>
   <data name="Admin_UserEdit_Unblocked" xml:space="preserve"><value>Account unblocked.</value></data>
+  <data name="Admin_Users_Overview_Label" xml:space="preserve"><value>User account summary</value></data>
+  <data name="Admin_Users_Overview_Total" xml:space="preserve"><value>Total accounts</value></data>
+  <data name="Admin_Users_Overview_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Admin_Users_Overview_Pending" xml:space="preserve"><value>Pending activation</value></data>
+  <data name="Admin_Users_Overview_Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Admin_Users_Filter_Label" xml:space="preserve"><value>Search and filter accounts</value></data>
+  <data name="Admin_Users_Filter_Status" xml:space="preserve"><value>Filter by status</value></data>
+  <data name="Admin_Users_Filter_AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Admin_Users_Filter_Role" xml:space="preserve"><value>Filter by role</value></data>
+  <data name="Admin_Users_Filter_AllRoles" xml:space="preserve"><value>All roles</value></data>
+  <data name="Admin_Users_Filter_Source" xml:space="preserve"><value>Filter by account source</value></data>
+  <data name="Admin_Users_Filter_AllSources" xml:space="preserve"><value>All sources</value></data>
+  <data name="Admin_Users_Filter_Sort" xml:space="preserve"><value>Account sorting</value></data>
+  <data name="Admin_Users_Filter_Clear" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Admin_Users_Filter_StateViews" xml:space="preserve"><value>Quick status filter</value></data>
+  <data name="Admin_Users_Source_Local" xml:space="preserve"><value>Local account</value></data>
+  <data name="Admin_Users_Source_Federated" xml:space="preserve"><value>Company account</value></data>
+  <data name="Admin_Users_Sort_Email" xml:space="preserve"><value>Sort by email</value></data>
+  <data name="Admin_Users_Sort_Name" xml:space="preserve"><value>Sort by name</value></data>
+  <data name="Admin_Users_Sort_Status" xml:space="preserve"><value>Sort by status</value></data>
+  <data name="Admin_Users_Sort_Activity" xml:space="preserve"><value>Most recent activity</value></data>
+  <data name="Admin_Users_View_All" xml:space="preserve"><value>All</value></data>
+  <data name="Admin_Users_View_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Admin_Users_View_Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="Admin_Users_View_Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Admin_Users_View_AllHint" xml:space="preserve"><value>The complete user directory</value></data>
+  <data name="Admin_Users_View_ActiveHint" xml:space="preserve"><value>Accounts that can sign in</value></data>
+  <data name="Admin_Users_View_PendingHint" xml:space="preserve"><value>Registrations waiting for email confirmation</value></data>
+  <data name="Admin_Users_View_BlockedHint" xml:space="preserve"><value>Accounts blocked by an administrator</value></data>
+  <data name="Admin_Users_ResultCount" xml:space="preserve"><value>Accounts found: {0}</value></data>
+  <data name="Admin_Users_NoneHint" xml:space="preserve"><value>Change your search or clear the active filters.</value></data>
+  <data name="Admin_Users_Column_User" xml:space="preserve"><value>User</value></data>
+  <data name="Admin_Users_Column_Source" xml:space="preserve"><value>Source and verification</value></data>
+  <data name="Admin_Users_Column_Activity" xml:space="preserve"><value>Last activity</value></data>
+  <data name="Admin_Users_Column_Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Admin_Users_OpenDetail" xml:space="preserve"><value>Open details for {0}</value></data>
+  <data name="Admin_Users_NoRoles" xml:space="preserve"><value>No role</value></data>
+  <data name="Admin_Users_RoleCount" xml:space="preserve"><value>Roles: {0}</value></data>
+  <data name="Admin_Users_EmailConfirmed" xml:space="preserve"><value>Email verified</value></data>
+  <data name="Admin_Users_EmailUnconfirmed" xml:space="preserve"><value>Email unverified</value></data>
+  <data name="Admin_Users_NoActivity" xml:space="preserve"><value>No activity</value></data>
+  <data name="Admin_UserEdit_Tabs" xml:space="preserve"><value>Account detail sections</value></data>
+  <data name="Admin_UserEdit_TabOverview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Admin_UserEdit_TabAccess" xml:space="preserve"><value>Access</value></data>
+  <data name="Admin_UserEdit_TabActivity" xml:space="preserve"><value>Activity</value></data>
+  <data name="Admin_UserEdit_Identity" xml:space="preserve"><value>Identity and contact</value></data>
+  <data name="Admin_UserEdit_IdentityHint" xml:space="preserve"><value>Core details and the state of the user's identity.</value></data>
+  <data name="Admin_UserEdit_EmailState" xml:space="preserve"><value>Email verification</value></data>
+  <data name="Admin_UserEdit_Source" xml:space="preserve"><value>Account source</value></data>
+  <data name="Admin_UserEdit_StatusChanged" xml:space="preserve"><value>Last status change</value></data>
+  <data name="Admin_UserEdit_StatusReason" xml:space="preserve"><value>Status reason</value></data>
+  <data name="Admin_UserEdit_CommuteHint" xml:space="preserve"><value>Home address used by parking rules.</value></data>
+  <data name="Admin_UserEdit_Distance" xml:space="preserve"><value>Distance: {0} km</value></data>
+  <data name="Admin_UserEdit_RolesHint" xml:space="preserve"><value>Roles control access to application features and data.</value></data>
+  <data name="Admin_UserEdit_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Admin_UserEdit_StatusHint" xml:space="preserve"><value>Control whether this account can sign in.</value></data>
+  <data name="Admin_UserEdit_DangerHint" xml:space="preserve"><value>Deleting the account is permanent and cannot be undone.</value></data>
+  <data name="Admin_UserEdit_AuditHint" xml:space="preserve"><value>Account changes and security events in chronological order.</value></data>
+  <data name="Admin_UserEdit_ActorSelf" xml:space="preserve"><value>User</value></data>
+  <data name="Admin_UserEdit_ActorAdmin" xml:space="preserve"><value>Administrator</value></data>
   <data name="Admin_Roles_Title" xml:space="preserve"><value>Roles &amp; permissions</value></data>
   <data name="Admin_Roles_Create" xml:space="preserve"><value>New role</value></data>
   <data name="Admin_Roles_Name" xml:space="preserve"><value>Role name</value></data>
@@ -1193,7 +1253,86 @@
   <data name="Nav_AdminFleet" xml:space="preserve"><value>Company fleet</value></data>
   <data name="Nav_Short_Fleet" xml:space="preserve"><value>Fleet</value></data>
   <data name="Fleet_Admin_Title" xml:space="preserve"><value>Company fleet</value></data>
-  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>The vehicle registry by license plate, split by type: a company vehicle may hold a dedicated (resident) spot, an employee vehicle books from the shared pool only. When a user saves a plate to their account and the vehicle's driver email matches their account, they can pair with the vehicle using an emailed confirmation code — for a company vehicle that makes them the resident of its assigned spot.</value></data>
+  <data name="Fleet_Admin_Intro" xml:space="preserve"><value>A registry of vehicles, their drivers, parking entitlements, and links to user accounts.</value></data>
+  <data name="Fleet_Overview_Label" xml:space="preserve"><value>Fleet summary</value></data>
+  <data name="Fleet_Overview_Active" xml:space="preserve"><value>Active vehicles</value></data>
+  <data name="Fleet_Overview_Paired" xml:space="preserve"><value>Paired with account</value></data>
+  <data name="Fleet_Overview_Action" xml:space="preserve"><value>Needs action</value></data>
+  <data name="Fleet_Overview_Assigned" xml:space="preserve"><value>With dedicated spot</value></data>
+  <data name="Fleet_Filter_Label" xml:space="preserve"><value>Vehicle search and filters</value></data>
+  <data name="Fleet_Filter_Search" xml:space="preserve"><value>Search plate, vehicle, driver, or spot</value></data>
+  <data name="Fleet_Filter_Type" xml:space="preserve"><value>Filter by vehicle type</value></data>
+  <data name="Fleet_Filter_AllTypes" xml:space="preserve"><value>All types</value></data>
+  <data name="Fleet_Filter_Parking" xml:space="preserve"><value>Filter by parking spot</value></data>
+  <data name="Fleet_Filter_AllParking" xml:space="preserve"><value>All parking</value></data>
+  <data name="Fleet_Filter_Assigned" xml:space="preserve"><value>With assigned spot</value></data>
+  <data name="Fleet_Filter_Unassigned" xml:space="preserve"><value>Without assigned spot</value></data>
+  <data name="Fleet_Filter_Clear" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Fleet_Filter_State" xml:space="preserve"><value>Filter by operational state</value></data>
+  <data name="Fleet_Filter_ResultCount" xml:space="preserve"><value>Vehicles shown: {0}</value></data>
+  <data name="Fleet_Filter_EmptyTitle" xml:space="preserve"><value>No vehicle matches these filters</value></data>
+  <data name="Fleet_Filter_EmptyText" xml:space="preserve"><value>Adjust the search, vehicle type, or parking entitlement.</value></data>
+  <data name="Fleet_View_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Fleet_View_Paired" xml:space="preserve"><value>Paired</value></data>
+  <data name="Fleet_View_Action" xml:space="preserve"><value>Needs action</value></data>
+  <data name="Fleet_View_Manual" xml:space="preserve"><value>Manual pairing</value></data>
+  <data name="Fleet_View_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Fleet_View_ActiveHint" xml:space="preserve"><value>All vehicles currently in service</value></data>
+  <data name="Fleet_View_PairedHint" xml:space="preserve"><value>Vehicles linked to a user account</value></data>
+  <data name="Fleet_View_ActionHint" xml:space="preserve"><value>Vehicles that require administrator action</value></data>
+  <data name="Fleet_View_ManualHint" xml:space="preserve"><value>Vehicles without a driver email that can only be paired here</value></data>
+  <data name="Fleet_View_InactiveHint" xml:space="preserve"><value>Archived vehicles that are out of service</value></data>
+  <data name="Fleet_Table_Vehicle" xml:space="preserve"><value>Vehicle</value></data>
+  <data name="Fleet_Table_Driver" xml:space="preserve"><value>Driver</value></data>
+  <data name="Fleet_Table_Parking" xml:space="preserve"><value>Parking</value></data>
+  <data name="Fleet_Table_Pairing" xml:space="preserve"><value>Pairing</value></data>
+  <data name="Fleet_Table_Activity" xml:space="preserve"><value>Last activity</value></data>
+  <data name="Fleet_Table_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Fleet_Driver_Unpaired" xml:space="preserve"><value>Account not paired</value></data>
+  <data name="Fleet_Driver_NoEmail" xml:space="preserve"><value>Driver email not provided</value></data>
+  <data name="Fleet_Parking_NoSpot" xml:space="preserve"><value>No dedicated spot</value></data>
+  <data name="Fleet_Parking_Spot" xml:space="preserve"><value>Spot {0}</value></data>
+  <data name="Fleet_Action_Detail" xml:space="preserve"><value>Show details</value></data>
+  <data name="Fleet_Action_DetailFor" xml:space="preserve"><value>Show details for vehicle {0}</value></data>
+  <data name="Fleet_Action_Close" xml:space="preserve"><value>Close panel</value></data>
+  <data name="Fleet_Editor_Label" xml:space="preserve"><value>Vehicle editor</value></data>
+  <data name="Fleet_Editor_New" xml:space="preserve"><value>New record</value></data>
+  <data name="Fleet_Editor_Edit" xml:space="preserve"><value>Edit vehicle</value></data>
+  <data name="Fleet_Editor_Entitlement" xml:space="preserve"><value>Parking entitlement</value></data>
+  <data name="Fleet_Editor_CompanyHint" xml:space="preserve"><value>A company vehicle may be assigned a dedicated resident spot.</value></data>
+  <data name="Fleet_Editor_EmployeeHint" xml:space="preserve"><value>An employee vehicle only books from the shared pool.</value></data>
+  <data name="Fleet_Detail_Label" xml:space="preserve"><value>Vehicle details</value></data>
+  <data name="Fleet_Detail_Vehicle" xml:space="preserve"><value>Vehicle</value></data>
+  <data name="Fleet_Detail_Identity" xml:space="preserve"><value>Identity and driver</value></data>
+  <data name="Fleet_Detail_Parking" xml:space="preserve"><value>Parking entitlement</value></data>
+  <data name="Fleet_Detail_Pairing" xml:space="preserve"><value>Account link</value></data>
+  <data name="Fleet_Detail_CompanyNoSpot" xml:space="preserve"><value>This company vehicle may hold a dedicated spot, but none is assigned yet.</value></data>
+  <data name="Fleet_Detail_CompanySpot" xml:space="preserve"><value>Pairing a driver makes the account the resident of spot {0}.</value></data>
+  <data name="Fleet_Detail_EmployeePool" xml:space="preserve"><value>This employee vehicle has no dedicated spot and books from the shared pool.</value></data>
+  <data name="Fleet_Pair_Title" xml:space="preserve"><value>Manual account pairing</value></data>
+  <data name="Fleet_Pair_Review" xml:space="preserve"><value>Review change</value></data>
+  <data name="Fleet_Pair_ConfirmTitle" xml:space="preserve"><value>Confirm the impact</value></data>
+  <data name="Fleet_Pair_Confirm" xml:space="preserve"><value>Confirm pairing</value></data>
+  <data name="Fleet_Pair_ConfirmUnpair" xml:space="preserve"><value>The account will be disconnected from vehicle {0} and any resident entitlement will be removed.</value></data>
+  <data name="Fleet_Pair_ConfirmPair" xml:space="preserve"><value>Account {0} will be paired with vehicle {1}. Parking entitlement: {2}.</value></data>
+  <data name="Fleet_Pair_Back" xml:space="preserve"><value>Back to selection</value></data>
+  <data name="Fleet_Pair_Action" xml:space="preserve"><value>Pair account</value></data>
+  <data name="Fleet_Pair_ChangeAction" xml:space="preserve"><value>Change pairing</value></data>
+  <data name="Fleet_Next_Paired" xml:space="preserve"><value>Linked to account {0}</value></data>
+  <data name="Fleet_Next_CodeSent" xml:space="preserve"><value>Waiting for the driver to enter the confirmation code</value></data>
+  <data name="Fleet_Next_Locked" xml:space="preserve"><value>Self-service pairing is paused until {0}</value></data>
+  <data name="Fleet_Next_Ready" xml:space="preserve"><value>The driver can request a code in their account</value></data>
+  <data name="Fleet_Next_Plate" xml:space="preserve"><value>The driver must save the matching plate in their profile</value></data>
+  <data name="Fleet_Next_Account" xml:space="preserve"><value>Check the email or wait for the driver to register</value></data>
+  <data name="Fleet_Next_Manual" xml:space="preserve"><value>Select an account manually in the vehicle details</value></data>
+  <data name="Fleet_Next_Inactive" xml:space="preserve"><value>The vehicle is out of service and cannot be paired</value></data>
+  <data name="Fleet_Success_Created" xml:space="preserve"><value>Vehicle added.</value></data>
+  <data name="Fleet_Success_Updated" xml:space="preserve"><value>Vehicle changes saved.</value></data>
+  <data name="Fleet_Success_Paired" xml:space="preserve"><value>The account was paired with the vehicle.</value></data>
+  <data name="Fleet_Success_Unpaired" xml:space="preserve"><value>The account was disconnected from the vehicle.</value></data>
+  <data name="Fleet_Success_Activated" xml:space="preserve"><value>Vehicle activated.</value></data>
+  <data name="Fleet_Success_Deactivated" xml:space="preserve"><value>Vehicle taken out of service.</value></data>
+  <data name="Fleet_Success_Deleted" xml:space="preserve"><value>Vehicle deleted.</value></data>
   <data name="Fleet_Admin_Type" xml:space="preserve"><value>Vehicle type</value></data>
   <data name="Fleet_Type_Company" xml:space="preserve"><value>company vehicle</value></data>
   <data name="Fleet_Type_Employee" xml:space="preserve"><value>employee vehicle</value></data>
@@ -1269,8 +1408,27 @@
   <data name="Nav_AdminLot" xml:space="preserve"><value>Lot floor</value></data>
   <data name="Nav_Short_Lot" xml:space="preserve"><value>Lot</value></data>
   <data name="Lot_Title" xml:space="preserve"><value>Lot floor</value></data>
-  <data name="Lot_Intro" xml:space="preserve"><value>A real-time view of the lot: the state of each spot, its calendar, and the tools for resolving occupancy mismatches.</value></data>
+  <data name="Lot_Intro" xml:space="preserve"><value>A daily operational view of capacity, reservations, and events at each spot.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Manage spots</value></data>
+  <data name="Lot_Overview_Label" xml:space="preserve"><value>Parking operations summary</value></data>
+  <data name="Lot_Overview_Available" xml:space="preserve"><value>Available capacity</value></data>
+  <data name="Lot_Overview_OfActive" xml:space="preserve"><value>of {0} active spots</value></data>
+  <data name="Lot_Overview_Utilization" xml:space="preserve"><value>Offered capacity utilization</value></data>
+  <data name="Lot_Overview_OccupancyAria" xml:space="preserve"><value>Capacity utilization {0} percent</value></data>
+  <data name="Lot_Overview_Activity" xml:space="preserve"><value>Operations on the selected day</value></data>
+  <data name="Lot_Overview_Attention" xml:space="preserve"><value>Operational signals</value></data>
+  <data name="Lot_Overview_NoIssues" xml:space="preserve"><value>No operational deviations</value></data>
+  <data name="Lot_Filter_Label" xml:space="preserve"><value>Lot controls and filters</value></data>
+  <data name="Lot_Filter_SearchPlaceholder" xml:space="preserve"><value>Search spot, resident, or holder</value></data>
+  <data name="Lot_Filter_Section" xml:space="preserve"><value>Filter by section</value></data>
+  <data name="Lot_Filter_AllSections" xml:space="preserve"><value>All sections</value></data>
+  <data name="Lot_Filter_State" xml:space="preserve"><value>Filter by state</value></data>
+  <data name="Lot_Filter_AllStates" xml:space="preserve"><value>All spots</value></data>
+  <data name="Lot_Filter_ResultCount" xml:space="preserve"><value>Spots shown: {0}</value></data>
+  <data name="Lot_Filter_Clear" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Lot_Filter_EmptyTitle" xml:space="preserve"><value>No spots match these filters</value></data>
+  <data name="Lot_Filter_EmptyText" xml:space="preserve"><value>Adjust the search, state, or selected section.</value></data>
+  <data name="Lot_Section_Summary" xml:space="preserve"><value>{0} available of {1}</value></data>
   <data name="Lot_Day" xml:space="preserve"><value>Day</value></data>
   <data name="Lot_PrevDay" xml:space="preserve"><value>← Previous</value></data>
   <data name="Lot_NextDay" xml:space="preserve"><value>Next →</value></data>
@@ -1311,6 +1469,10 @@
   <data name="Lot_Detail_Mismatches" xml:space="preserve"><value>Mismatches</value></data>
   <data name="Lot_Detail_Shared" xml:space="preserve"><value>Shared days</value></data>
   <data name="Lot_Detail_Wasted" xml:space="preserve"><value>unused</value></data>
+  <data name="Lot_Detail_StatusSection" xml:space="preserve"><value>Status and risks</value></data>
+  <data name="Lot_Detail_ResidentSection" xml:space="preserve"><value>Resident and plan</value></data>
+  <data name="Lot_Detail_OperationsSection" xml:space="preserve"><value>Operational actions</value></data>
+  <data name="Lot_Detail_PerformanceSection" xml:space="preserve"><value>Spot utilization</value></data>
   <data name="Lot_Detail_MismatchLog" xml:space="preserve"><value>Blocked-spot reports on this spot</value></data>
   <data name="Lot_Detail_Relocated" xml:space="preserve"><value>relocated</value></data>
   <data name="Lot_Deactivate" xml:space="preserve"><value>Take out of service (maintenance)</value></data>
@@ -1330,6 +1492,7 @@
   <data name="Lot_Window" xml:space="preserve"><value>Period</value></data>
   <data name="Lot_LastDays" xml:space="preserve"><value>Last {0} days</value></data>
   <data name="Lot_Col_Mismatch" xml:space="preserve"><value>Mismatches</value></data>
+  <data name="Lot_List_Holder" xml:space="preserve"><value>Holder</value></data>
   <data name="Lot_Summary_Group_Trend" xml:space="preserve"><value>Trend</value></data>
   <data name="Lot_Summary_Group_Lot" xml:space="preserve"><value>Lot makeup</value></data>
   <data name="Lot_Summary_Value" xml:space="preserve"><value>Current</value></data>

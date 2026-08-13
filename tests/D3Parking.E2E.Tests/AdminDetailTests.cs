@@ -11,11 +11,12 @@ public class AdminDetailTests : AdminTest
     public async Task Editing_own_account_shows_the_profile_card_and_hides_the_danger_zone()
     {
         await Page.GotoAsync("/admin/users");
-        await Page.GetByRole(AriaRole.Row, new() { NameRegex = new Regex("admin@d3parking.local") })
-            .GetByRole(AriaRole.Link, new() { NameRegex = new Regex("Spravovat") })
+        await Page.Locator(".users-table tr", new() { HasText = "admin@d3parking.local" })
+            .Locator("a.users-identity")
             .ClickAsync();
 
-        await Expect(Page.Locator(".profile-card")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".user-detail-hero")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Přístupy" }).ClickAsync();
         // Scoped to the checkbox: the seeded admin's display name is "Administrator" too, so a
         // plain text lookup would match both it and the role. The role label is localized, which
         // is what distinguishes the two ("Administrátor" vs the untranslated display name).

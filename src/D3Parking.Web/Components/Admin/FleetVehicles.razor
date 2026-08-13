@@ -10,15 +10,15 @@
 <PageTitle>@L["Fleet_Admin_Title"]</PageTitle>
 
 <FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="20">
-    <div class="admin-head__titles">
-        <div class="admin-head__title-row">
-            <FluentLabel Typo="Typography.PageTitle">@L["Fleet_Admin_Title"]</FluentLabel>
-            @if (_vehicles is not null)
-            {
-                <span class="count-chip">@_vehicles.Count</span>
-            }
+    <div class="admin-head fleet-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Fleet_Admin_Title"]</FluentLabel>
+            </div>
+            <p class="admin-head__intro">@L["Fleet_Admin_Intro"]</p>
         </div>
-        <p class="admin-head__intro">@L["Fleet_Admin_Intro"]</p>
+        <FluentButton Id="fleet-open-add" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())"
+                      OnClick="BeginCreateAsync">@L["Fleet_Admin_AddTitle"]</FluentButton>
     </div>
 
     @if (_error is not null)
@@ -27,128 +27,326 @@
     }
     @if (_info is not null)
     {
-        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
     }
-
-    @* Same plain panel as the spots page — fluent-card's contain:content would clip the
-       spot select's dropdown to the card edge. *@
-    <div class="form-panel">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            <FluentLabel Typo="Typography.Subject">
-                @(_editing is null ? L["Fleet_Admin_AddTitle"] : L["Fleet_Admin_EditTitle", _editing.Plate])
-            </FluentLabel>
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                <FluentTextField Id="fleet-plate" Immediate="true" @bind-Value="_formPlate" Maxlength="16"
-                                 Label="@L["Fleet_Admin_Plate"]" Placeholder="1AB 2345" Style="width:150px" />
-                @* String Value/ValueChanged, not @bind-SelectedOption: the web component's
-                   change event does not cross the shadow boundary reliably, and hiding the
-                   spot select below depends on this rerender. *@
-                <FluentSelect Id="fleet-type" TOption="VehicleType"
-                              Items="@_vehicleTypes"
-                              OptionValue="@(t => t.ToString())"
-                              OptionText="@(t => L[$"Fleet_Type_{t}"].Value)"
-                              Value="@_formType.ToString()"
-                              ValueChanged="@(v => OnTypeChanged(v))"
-                              Label="@L["Fleet_Admin_Type"]"
-                              Style="min-width:170px" />
-                <FluentTextField @bind-Value="_formName" Maxlength="128"
-                                 Label="@L["Fleet_Admin_Name"]" Style="width:220px" />
-                <FluentTextField Id="fleet-email" @bind-Value="_formEmail" Maxlength="256"
-                                 Label="@L["Fleet_Admin_DriverEmail"]" Style="width:260px" />
-                @* The dedicated spot is the company-vehicle entitlement; for an employee vehicle
-                   the control disappears (and FormSpotId sends null) instead of erroring later. *@
-                @if (_formType == VehicleType.Company)
-                {
-                    <FluentSelect TOption="string"
-                                  Items="@_spotOptions"
-                                  OptionValue="@(id => id)"
-                                  OptionText="@(id => SpotLabel(id))"
-                                  @bind-Value="_formSpotId"
-                                  Label="@L["Fleet_Admin_Spot"]"
-                                  Style="min-width:150px" />
-                }
-                <FluentTextField @bind-Value="_formNotes" Maxlength="512" Label="@L["Fleet_Admin_Notes"]" />
-                @if (_editing is null)
-                {
-                    <FluentButton Id="fleet-add" Appearance="Appearance.Accent" OnClick="CreateAsync">@L["Fleet_Admin_Add"]</FluentButton>
-                }
-                else
-                {
-                    <FluentButton Id="fleet-save" Appearance="Appearance.Accent" OnClick="SaveEditAsync">@L["Fleet_Admin_Save"]</FluentButton>
-                    <FluentButton Appearance="Appearance.Outline" OnClick="CancelEdit">@L["Fleet_Admin_Cancel"]</FluentButton>
-                }
-            </FluentStack>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Fleet_Admin_TypeHint"]</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Fleet_Admin_EmailHint"]</FluentLabel>
-        </FluentStack>
-    </div>
 
     @if (_vehicles is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
-    else if (_vehicles.Count == 0)
-    {
-        <FluentLabel Typo="Typography.Body">@L["Fleet_Admin_NoVehicles"]</FluentLabel>
-    }
     else
     {
-        <div class="admin-panel">
-            <FluentDataGrid Items="@_vehicles.AsQueryable()" TGridItem="CompanyVehicleDto"
-                            GridTemplateColumns="1fr 1.1fr 1.3fr 1.5fr 0.7fr 1.5fr 1.2fr auto">
-                <PropertyColumn Property="@(v => v.Plate)" Title="@L["Fleet_Admin_Plate"]" />
-                <TemplateColumn Title="@L["Fleet_Admin_Type"]">
-                    @L[$"Fleet_Type_{context.Type}"]
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Fleet_Admin_Name"]">
-                    @(string.IsNullOrWhiteSpace(context.Name) ? "—" : context.Name)
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Fleet_Admin_DriverEmail"]">
-                    @(string.IsNullOrWhiteSpace(context.DriverEmail) ? "—" : context.DriverEmail)
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Fleet_Admin_Spot"]">
-                    @(context.SpotCode ?? "—")
-                </TemplateColumn>
-                @* The driver column doubles as the manual pairing control: an admin picks the
-                   account directly (they are the authority — no code ceremony), clearing it unpairs. *@
-                <TemplateColumn Title="@L["Fleet_Admin_PairedUser"]">
-                    <FluentSelect TOption="string"
-                                  Items="@_userOptions"
-                                  OptionValue="@(id => id)"
-                                  OptionText="@(id => UserLabel(id))"
-                                  Value="@(context.PairedUserId?.ToString() ?? string.Empty)"
-                                  ValueChanged="@(v => PairAsync(context, v))"
-                                  Style="width:100%" />
-                </TemplateColumn>
-                @* The funnel column: names the exact missing ingredient (account, plate, code…)
-                   instead of a bare active/inactive — the "why has nobody paired" support
-                   question should be answerable from this grid alone. Details ride in title. *@
-                <TemplateColumn Title="@L["Fleet_Admin_State"]">
-                    @{ var pill = StatePill(context); }
-                    <span class="state-pill @pill.Css" title="@pill.Hint">@pill.Label</span>
-                </TemplateColumn>
-                <TemplateColumn Align="Align.End">
-                    <FluentButton OnClick="() => BeginEdit(context)" Appearance="Appearance.Outline">@L["Fleet_Admin_Edit"]</FluentButton>
-                    @if (context.IsActive)
+        <section class="fleet-overview" aria-label="@L["Fleet_Overview_Label"]">
+            @FleetMetric(L["Fleet_Overview_Active"], ActiveVehicleCount, "active")
+            @FleetMetric(L["Fleet_Overview_Paired"], PairedVehicleCount, "paired")
+            @FleetMetric(L["Fleet_Overview_Action"], ActionVehicleCount, ActionVehicleCount > 0 ? "attention" : "clear")
+            @FleetMetric(L["Fleet_Overview_Assigned"], AssignedSpotCount, "parking")
+        </section>
+
+        <section class="fleet-commandbar" aria-label="@L["Fleet_Filter_Label"]">
+            <label class="lot-search fleet-search" for="fleet-search">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Color="Color.Custom" CustomColor="currentColor" />
+                <input id="fleet-search" type="search" placeholder="@L["Fleet_Filter_Search"]"
+                       @bind="_search" @bind:event="oninput" />
+            </label>
+            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Type"]" @bind="_typeFilter">
+                <option value="">@L["Fleet_Filter_AllTypes"]</option>
+                @foreach (var type in _vehicleTypes)
+                {
+                    <option value="@type">@L[$"Fleet_Type_{type}"]</option>
+                }
+            </select>
+            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Parking"]" @bind="_parkingFilter">
+                <option value="">@L["Fleet_Filter_AllParking"]</option>
+                <option value="assigned">@L["Fleet_Filter_Assigned"]</option>
+                <option value="unassigned">@L["Fleet_Filter_Unassigned"]</option>
+            </select>
+            @if (HasActiveFilters)
+            {
+                <button type="button" class="lot-clear-filter" @onclick="ClearFilters">@L["Fleet_Filter_Clear"]</button>
+            }
+        </section>
+
+        <div class="fleet-state-filters" role="group" aria-label="@L["Fleet_Filter_State"]">
+            @FleetViewButton(FleetViewActive, L["Fleet_View_Active"], ActiveVehicleCount)
+            @FleetViewButton(FleetViewPaired, L["Fleet_View_Paired"], PairedVehicleCount)
+            @FleetViewButton(FleetViewAction, L["Fleet_View_Action"], ActionVehicleCount)
+            @FleetViewButton(FleetViewManual, L["Fleet_View_Manual"], ManualVehicleCount)
+            @FleetViewButton(FleetViewInactive, L["Fleet_View_Inactive"], InactiveVehicleCount)
+        </div>
+
+        <div class="fleet-results-head">
+            <span>@L["Fleet_Filter_ResultCount", FilteredVehicles.Count]</span>
+            <span>@ActiveViewDescription</span>
+        </div>
+
+        <div class="fleet-workspace @(SideOpen ? "has-side" : null)">
+            <div class="fleet-registry">
+                @if (_vehicles.Count == 0)
+                {
+                    <div class="fleet-empty">
+                        <strong>@L["Fleet_Admin_NoVehicles"]</strong>
+                        <FluentButton Appearance="Appearance.Accent" OnClick="BeginCreateAsync">@L["Fleet_Admin_AddTitle"]</FluentButton>
+                    </div>
+                }
+                else if (FilteredVehicles.Count == 0)
+                {
+                    <div class="fleet-empty">
+                        <strong>@L["Fleet_Filter_EmptyTitle"]</strong>
+                        <span>@L["Fleet_Filter_EmptyText"]</span>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="ClearFilters">@L["Fleet_Filter_Clear"]</FluentButton>
+                    </div>
+                }
+                else
+                {
+                    <div class="admin-panel fleet-table-wrap">
+                        <table class="fleet-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["Fleet_Table_Vehicle"]</th>
+                                    <th scope="col">@L["Fleet_Table_Driver"]</th>
+                                    <th scope="col">@L["Fleet_Table_Parking"]</th>
+                                    <th scope="col">@L["Fleet_Table_Pairing"]</th>
+                                    <th scope="col">@L["Fleet_Table_Activity"]</th>
+                                    <th scope="col" class="fleet-table__actions">@L["Fleet_Table_Actions"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var vehicle in FilteredVehicles)
+                                {
+                                    var pill = StatePill(vehicle);
+                                    <tr class="@(_selected?.Id == vehicle.Id ? "is-selected" : null)">
+                                        <th scope="row">
+                                            <button type="button" class="fleet-vehicle-link" aria-pressed="@(_selected?.Id == vehicle.Id ? "true" : "false")"
+                                                    @onclick="() => SelectVehicle(vehicle)">
+                                                <span>@vehicle.Plate</span>
+                                                <small>@(string.IsNullOrWhiteSpace(vehicle.Name) ? L[$"Fleet_Type_{vehicle.Type}"] : vehicle.Name)</small>
+                                            </button>
+                                        </th>
+                                        <td>
+                                            <div class="fleet-cell-stack">
+                                                <span>@(vehicle.PairedUserName ?? L["Fleet_Driver_Unpaired"].Value)</span>
+                                                <small>@(vehicle.DriverEmail ?? L["Fleet_Driver_NoEmail"].Value)</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fleet-cell-stack">
+                                                <span>@L[$"Fleet_Type_{vehicle.Type}"]</span>
+                                                <small>@(vehicle.SpotCode is null ? L["Fleet_Parking_NoSpot"] : L["Fleet_Parking_Spot", vehicle.SpotCode])</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fleet-cell-stack">
+                                                <span class="state-pill @pill.Css" title="@pill.Hint">@pill.Label</span>
+                                                <small>@PairingNextStep(vehicle)</small>
+                                            </div>
+                                        </td>
+                                        <td class="fleet-table__activity">@PairingActivity(vehicle)</td>
+                                        <td class="fleet-table__actions">
+                                            <button type="button" class="fleet-more" title="@L["Fleet_Action_Detail"]"
+                                                    aria-label="@L["Fleet_Action_DetailFor", vehicle.Plate]" @onclick="() => SelectVehicle(vehicle)">
+                                                <FluentIcon Value="@(new Icons.Regular.Size20.MoreHorizontal())" Color="Color.Custom" CustomColor="currentColor" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            @if (_editorOpen)
+            {
+                <aside class="admin-panel fleet-side fleet-editor" aria-label="@L["Fleet_Editor_Label"]">
+                    <div class="fleet-side__head">
+                        <div>
+                            <span class="fleet-side__eyebrow">@(_editing is null ? L["Fleet_Editor_New"] : L["Fleet_Editor_Edit"])</span>
+                            <strong>@(_editing is null ? L["Fleet_Admin_AddTitle"] : _editing.Plate)</strong>
+                        </div>
+                        <button type="button" class="fleet-more" aria-label="@L["Fleet_Action_Close"]" @onclick="CloseSide">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" Color="Color.Custom" CustomColor="currentColor" />
+                        </button>
+                    </div>
+
+                    @if (_optionsBusy)
                     {
-                        <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Fleet_Admin_Deactivate"]</FluentButton>
+                        <div class="loading"><FluentProgressRing /></div>
                     }
                     else
                     {
-                        <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Fleet_Admin_Activate"]</FluentButton>
-                        <FluentButton OnClick="() => DeleteAsync(context.Id)" Appearance="Appearance.Stealth">@L["Fleet_Admin_Delete"]</FluentButton>
+                        <div class="fleet-form">
+                            <FluentTextField Id="fleet-plate" Immediate="true" @bind-Value="_formPlate" Maxlength="16"
+                                             Label="@L["Fleet_Admin_Plate"]" Placeholder="1AB 2345" />
+                            <FluentSelect Id="fleet-type" TOption="VehicleType"
+                                          Items="@_vehicleTypes"
+                                          OptionValue="@(t => t.ToString())"
+                                          OptionText="@(t => L[$"Fleet_Type_{t}"].Value)"
+                                          Value="@_formType.ToString()"
+                                          ValueChanged="@(v => OnTypeChanged(v))"
+                                          Label="@L["Fleet_Admin_Type"]" />
+                            <FluentTextField @bind-Value="_formName" Maxlength="128" Label="@L["Fleet_Admin_Name"]" />
+                            <FluentTextField Id="fleet-email" @bind-Value="_formEmail" Maxlength="256" Label="@L["Fleet_Admin_DriverEmail"]" />
+                            @if (_formType == VehicleType.Company)
+                            {
+                                <FluentSelect TOption="string"
+                                              Items="@SpotOptions"
+                                              OptionValue="@(id => id)"
+                                              OptionText="@(id => SpotLabel(id))"
+                                              @bind-Value="_formSpotId"
+                                              Label="@L["Fleet_Admin_Spot"]" />
+                            }
+                            <FluentTextField @bind-Value="_formNotes" Maxlength="512" Label="@L["Fleet_Admin_Notes"]" />
+
+                            <div class="fleet-form__hint">
+                                <strong>@L["Fleet_Editor_Entitlement"]</strong>
+                                <span>@(_formType == VehicleType.Company ? L["Fleet_Editor_CompanyHint"] : L["Fleet_Editor_EmployeeHint"])</span>
+                            </div>
+
+                            <div class="fleet-side__actions">
+                                @if (_editing is null)
+                                {
+                                    <FluentButton Id="fleet-add" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateAsync">@L["Fleet_Admin_Add"]</FluentButton>
+                                }
+                                else
+                                {
+                                    <FluentButton Id="fleet-save" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="SaveEditAsync">@L["Fleet_Admin_Save"]</FluentButton>
+                                }
+                                <FluentButton Appearance="Appearance.Outline" OnClick="CloseSide">@L["Fleet_Admin_Cancel"]</FluentButton>
+                            </div>
+                        </div>
                     }
-                </TemplateColumn>
-            </FluentDataGrid>
+                </aside>
+            }
+            else if (_selected is not null)
+            {
+                var selectedPill = StatePill(_selected);
+                <aside class="admin-panel fleet-side" aria-live="polite" aria-label="@L["Fleet_Detail_Label"]">
+                    <div class="fleet-side__head">
+                        <div>
+                            <span class="fleet-side__eyebrow">@L["Fleet_Detail_Vehicle"]</span>
+                            <strong>@_selected.Plate</strong>
+                        </div>
+                        <button type="button" class="fleet-more" aria-label="@L["Fleet_Action_Close"]" @onclick="CloseSide">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" Color="Color.Custom" CustomColor="currentColor" />
+                        </button>
+                    </div>
+
+                    <div class="fleet-detail__status">
+                        <span class="state-pill @selectedPill.Css">@selectedPill.Label</span>
+                        <span class="state-pill state-pill--@(_selected.IsActive ? "on" : "off")">
+                            @L[_selected.IsActive ? "Parking_Admin_Active" : "Parking_Admin_Inactive"]
+                        </span>
+                    </div>
+
+                    <section class="fleet-detail__section">
+                        <h3>@L["Fleet_Detail_Identity"]</h3>
+                        @DetailFact(L["Fleet_Admin_Name"], _selected.Name ?? "—")
+                        @DetailFact(L["Fleet_Admin_Type"], L[$"Fleet_Type_{_selected.Type}"])
+                        @DetailFact(L["Fleet_Admin_DriverEmail"], _selected.DriverEmail ?? L["Fleet_Driver_NoEmail"])
+                    </section>
+
+                    <section class="fleet-detail__section">
+                        <h3>@L["Fleet_Detail_Parking"]</h3>
+                        @DetailFact(L["Fleet_Admin_Spot"], _selected.SpotCode ?? L["Fleet_Parking_NoSpot"])
+                        <p class="fleet-detail__note">@ParkingEntitlement(_selected)</p>
+                    </section>
+
+                    <section class="fleet-detail__section">
+                        <h3>@L["Fleet_Detail_Pairing"]</h3>
+                        @DetailFact(L["Fleet_Admin_PairedUser"], _selected.PairedUserName ?? L["Fleet_Admin_NotPaired"])
+                        <p class="fleet-detail__note">@PairingNextStep(_selected)</p>
+                    </section>
+
+                    @if (!string.IsNullOrWhiteSpace(_selected.Notes))
+                    {
+                        <section class="fleet-detail__section">
+                            <h3>@L["Fleet_Admin_Notes"]</h3>
+                            <p class="fleet-detail__note">@_selected.Notes</p>
+                        </section>
+                    }
+
+                    @if (_pairingOpen)
+                    {
+                        <section class="fleet-pairing">
+                            <h3>@L["Fleet_Pair_Title"]</h3>
+                            @if (_optionsBusy)
+                            {
+                                <FluentProgressRing Style="width:24px;height:24px" />
+                            }
+                            else
+                            {
+                                <FluentSelect TOption="string"
+                                              Items="@UserOptions"
+                                              OptionValue="@(id => id)"
+                                              OptionText="@(id => UserLabel(id))"
+                                              Value="@_pairUserId"
+                                              ValueChanged="OnPairUserChanged"
+                                              Label="@L["Fleet_Admin_PairedUser"]" />
+                                @if (!_pairingConfirmed)
+                                {
+                                    <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="PreparePairing">
+                                        @L["Fleet_Pair_Review"]
+                                    </FluentButton>
+                                }
+                                else
+                                {
+                                    <div class="fleet-pairing__confirm">
+                                        <strong>@L["Fleet_Pair_ConfirmTitle"]</strong>
+                                        <span>@PairingConfirmationText</span>
+                                    </div>
+                                    <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmPairingAsync">@L["Fleet_Pair_Confirm"]</FluentButton>
+                                    <FluentButton Appearance="Appearance.Outline" OnClick="() => _pairingConfirmed = false">@L["Fleet_Pair_Back"]</FluentButton>
+                                }
+                            }
+                        </section>
+                    }
+
+                    <div class="fleet-side__actions">
+                        <FluentButton Appearance="Appearance.Accent" OnClick="() => BeginEditAsync(_selected)">@L["Fleet_Admin_Edit"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="BeginPairAsync">@PairActionLabel(_selected)</FluentButton>
+                        @if (_selected.IsActive)
+                        {
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="() => SetActiveAsync(_selected.Id, false)">@L["Fleet_Admin_Deactivate"]</FluentButton>
+                        }
+                        else
+                        {
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="() => SetActiveAsync(_selected.Id, true)">@L["Fleet_Admin_Activate"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="() => DeleteAsync(_selected.Id)">@L["Fleet_Admin_Delete"]</FluentButton>
+                        }
+                    </div>
+                </aside>
+            }
         </div>
     }
 </FluentStack>
 
 @code {
+    private const string FleetViewActive = "active";
+    private const string FleetViewPaired = "paired";
+    private const string FleetViewAction = "action";
+    private const string FleetViewManual = "manual";
+    private const string FleetViewInactive = "inactive";
+
     private IReadOnlyList<CompanyVehicleDto>? _vehicles;
     private IReadOnlyList<ParkingSpotDto> _spots = [];
     private IReadOnlyList<UserSummary> _users = [];
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+
+    private string? _search;
+    private string _typeFilter = string.Empty;
+    private string _parkingFilter = string.Empty;
+    private string _view = FleetViewActive;
+
+    private CompanyVehicleDto? _selected;
+    private CompanyVehicleDto? _editing;
+    private bool _editorOpen;
+    private bool _pairingOpen;
+    private bool _pairingConfirmed;
+    private bool _optionsBusy;
+    private bool _spotsLoaded;
+    private bool _usersLoaded;
+    private bool _busy;
 
     private string? _formPlate;
     private VehicleType _formType = VehicleType.Company;
@@ -156,45 +354,148 @@
     private string? _formEmail;
     private string _formSpotId = string.Empty;
     private string? _formNotes;
-    private CompanyVehicleDto? _editing;
+    private string _pairUserId = string.Empty;
     private readonly VehicleType[] _vehicleTypes = Enum.GetValues<VehicleType>();
 
     private string? _error;
     private string? _info;
 
-    // Visitor spots are the reception's agenda — the service refuses them, so don't offer them.
-    private IEnumerable<string> _spotOptions => new[] { string.Empty }
-        .Concat(_spots.Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor)
+    private int ActiveVehicleCount => _vehicles?.Count(v => v.IsActive) ?? 0;
+    private int InactiveVehicleCount => _vehicles?.Count(v => !v.IsActive) ?? 0;
+    private int PairedVehicleCount => _vehicles?.Count(v => v.IsActive && v.PairingState == FleetPairingState.Paired) ?? 0;
+    private int ManualVehicleCount => _vehicles?.Count(v => v.IsActive && v.PairingState == FleetPairingState.ManualOnly) ?? 0;
+    private int ActionVehicleCount => _vehicles?.Count(RequiresAdminAction) ?? 0;
+    private int AssignedSpotCount => _vehicles?.Count(v => v.IsActive && v.AssignedSpotId is not null) ?? 0;
+    private bool SideOpen => _editorOpen || _selected is not null;
+    private bool HasActiveFilters => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_typeFilter) || !string.IsNullOrEmpty(_parkingFilter);
+
+    private List<CompanyVehicleDto> FilteredVehicles => (_vehicles ?? [])
+        .Where(MatchesView)
+        .Where(MatchesSearch)
+        .Where(v => string.IsNullOrEmpty(_typeFilter) || v.Type.ToString() == _typeFilter)
+        .Where(v => _parkingFilter switch
+        {
+            "assigned" => v.AssignedSpotId is not null,
+            "unassigned" => v.AssignedSpotId is null,
+            _ => true,
+        })
+        .OrderBy(FleetPriority)
+        .ThenBy(v => v.Plate, StringComparer.CurrentCultureIgnoreCase)
+        .ToList();
+
+    private string ActiveViewDescription => _view switch
+    {
+        FleetViewPaired => L["Fleet_View_PairedHint"],
+        FleetViewAction => L["Fleet_View_ActionHint"],
+        FleetViewManual => L["Fleet_View_ManualHint"],
+        FleetViewInactive => L["Fleet_View_InactiveHint"],
+        _ => L["Fleet_View_ActiveHint"],
+    };
+
+    private IEnumerable<string> SpotOptions => new[] { string.Empty }
+        .Concat(_spots.Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor && SpotAvailableForEditor(s.Id))
             .OrderBy(s => s.Code, StringComparer.OrdinalIgnoreCase)
             .Select(s => s.Id.ToString()));
 
-    private IEnumerable<string> _userOptions => new[] { string.Empty }.Concat(_users.Select(u => u.Id.ToString()));
+    private IEnumerable<string> UserOptions => new[] { string.Empty }.Concat(_users.Select(u => u.Id.ToString()));
+
+    private string PairingConfirmationText => _selected is null
+        ? string.Empty
+        : string.IsNullOrEmpty(_pairUserId)
+            ? L["Fleet_Pair_ConfirmUnpair", _selected.Plate]
+            : L["Fleet_Pair_ConfirmPair", UserLabel(_pairUserId), _selected.Plate, _selected.SpotCode ?? L["Fleet_Parking_NoSpot"]];
+
+    private Guid? FormSpotId => _formType == VehicleType.Employee
+        ? null
+        : Guid.TryParse(_formSpotId, out var parsed) ? parsed : null;
 
     protected override async Task OnInitializedAsync()
     {
         _tz = await SiteSettings.GetTimeZoneAsync();
-        _users = await UserAdmin.ListAsync(null);
-        _spots = await Spots.ListAsync();
         await ReloadAsync();
+    }
+
+    private static bool RequiresAdminAction(CompanyVehicleDto vehicle) => vehicle.IsActive && vehicle.PairingState is
+        FleetPairingState.ManualOnly or FleetPairingState.NoAccount or FleetPairingState.PlateMissing or FleetPairingState.Locked;
+
+    private static int FleetPriority(CompanyVehicleDto vehicle) => vehicle.PairingState switch
+    {
+        FleetPairingState.Locked => 0,
+        FleetPairingState.NoAccount => 1,
+        FleetPairingState.PlateMissing => 2,
+        FleetPairingState.ManualOnly => 3,
+        FleetPairingState.CodeSent => 4,
+        FleetPairingState.ReadyToPair => 5,
+        FleetPairingState.Paired => 6,
+        _ => 7,
+    };
+
+    private bool MatchesView(CompanyVehicleDto vehicle) => _view switch
+    {
+        FleetViewPaired => vehicle.IsActive && vehicle.PairingState == FleetPairingState.Paired,
+        FleetViewAction => RequiresAdminAction(vehicle),
+        FleetViewManual => vehicle.IsActive && vehicle.PairingState == FleetPairingState.ManualOnly,
+        FleetViewInactive => !vehicle.IsActive,
+        _ => vehicle.IsActive,
+    };
+
+    private bool MatchesSearch(CompanyVehicleDto vehicle)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            return true;
+        }
+
+        var search = _search.Trim();
+        return vehicle.Plate.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||
+               (vehicle.Name?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+               (vehicle.DriverEmail?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+               (vehicle.PairedUserName?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+               (vehicle.SpotCode?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false);
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
 
-    /// <summary>One pill per funnel state; Hint carries the explanation (and timestamps).</summary>
-    private (string Css, string Label, string? Hint) StatePill(CompanyVehicleDto v) => v.PairingState switch
+    private (string Css, string Label, string? Hint) StatePill(CompanyVehicleDto vehicle) => vehicle.PairingState switch
     {
         FleetPairingState.Paired => ("state-pill--on", L["Fleet_State_Paired"],
-            v.PairedAtUtc is { } at ? L["Fleet_State_Paired_Hint", Fmt(at)] : null),
+            vehicle.PairedAtUtc is { } at ? L["Fleet_State_Paired_Hint", Fmt(at)] : null),
         FleetPairingState.CodeSent => ("state-pill--info", L["Fleet_State_CodeSent"],
-            v.PairingCodeSentAtUtc is { } sent ? L["Fleet_State_CodeSent_Hint", Fmt(sent)] : null),
+            vehicle.PairingCodeSentAtUtc is { } sent ? L["Fleet_State_CodeSent_Hint", Fmt(sent)] : null),
         FleetPairingState.Locked => ("state-pill--warn", L["Fleet_State_Locked"],
-            v.PairingLockedUntilUtc is { } until ? L["Fleet_State_Locked_Hint", Fmt(until)] : null),
+            vehicle.PairingLockedUntilUtc is { } until ? L["Fleet_State_Locked_Hint", Fmt(until)] : null),
         FleetPairingState.ReadyToPair => ("state-pill--info", L["Fleet_State_ReadyToPair"], L["Fleet_State_ReadyToPair_Hint"]),
         FleetPairingState.PlateMissing => ("state-pill--info", L["Fleet_State_PlateMissing"], L["Fleet_State_PlateMissing_Hint"]),
         FleetPairingState.NoAccount => ("state-pill--warn", L["Fleet_State_NoAccount"], L["Fleet_State_NoAccount_Hint"]),
         FleetPairingState.ManualOnly => ("state-pill--off", L["Fleet_State_ManualOnly"], L["Fleet_State_ManualOnly_Hint"]),
         _ => ("state-pill--off", L["Fleet_Admin_Inactive"], null),
     };
+
+    private string PairingNextStep(CompanyVehicleDto vehicle) => vehicle.PairingState switch
+    {
+        FleetPairingState.Paired => L["Fleet_Next_Paired", vehicle.PairedUserName ?? vehicle.DriverEmail ?? "—"],
+        FleetPairingState.CodeSent => L["Fleet_Next_CodeSent"],
+        FleetPairingState.Locked => vehicle.PairingLockedUntilUtc is { } until ? L["Fleet_Next_Locked", Fmt(until)] : L["Fleet_State_Locked"],
+        FleetPairingState.ReadyToPair => L["Fleet_Next_Ready"],
+        FleetPairingState.PlateMissing => L["Fleet_Next_Plate"],
+        FleetPairingState.NoAccount => L["Fleet_Next_Account"],
+        FleetPairingState.ManualOnly => L["Fleet_Next_Manual"],
+        _ => L["Fleet_Next_Inactive"],
+    };
+
+    private string PairingActivity(CompanyVehicleDto vehicle)
+    {
+        var instant = vehicle.PairingState == FleetPairingState.Paired ? vehicle.PairedAtUtc : vehicle.PairingCodeSentAtUtc;
+        return instant is { } at ? Fmt(at) : "—";
+    }
+
+    private string ParkingEntitlement(CompanyVehicleDto vehicle) => vehicle.Type == VehicleType.Company
+        ? vehicle.SpotCode is null ? L["Fleet_Detail_CompanyNoSpot"] : L["Fleet_Detail_CompanySpot", vehicle.SpotCode]
+        : L["Fleet_Detail_EmployeePool"];
+
+    private string PairActionLabel(CompanyVehicleDto vehicle) => vehicle.PairedUserId is null
+        ? L["Fleet_Pair_Action"]
+        : L["Fleet_Pair_ChangeAction"];
 
     private string SpotLabel(string id)
     {
@@ -214,14 +515,124 @@
         }
 
         var user = _users.FirstOrDefault(u => u.Id.ToString() == id);
-        return user is null ? id : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
+        return user is null ? id : string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} · {user.Email}";
     }
 
-    // The hidden spot select keeps its value while the form says "employee vehicle", so the
-    // submitted spot must follow what the admin sees: none.
-    private Guid? FormSpotId => _formType == VehicleType.Employee
-        ? null
-        : Guid.TryParse(_formSpotId, out var parsed) ? parsed : null;
+    private bool SpotAvailableForEditor(Guid spotId) => _vehicles?.All(v =>
+        v.AssignedSpotId != spotId || v.Id == _editing?.Id) ?? true;
+
+    private void SetView(string view)
+    {
+        _view = view;
+        _selected = null;
+        _pairingOpen = false;
+    }
+
+    private void ClearFilters()
+    {
+        _search = null;
+        _typeFilter = string.Empty;
+        _parkingFilter = string.Empty;
+    }
+
+    private void SelectVehicle(CompanyVehicleDto vehicle)
+    {
+        _selected = vehicle;
+        _editorOpen = false;
+        _pairingOpen = false;
+        _pairingConfirmed = false;
+        _error = _info = null;
+    }
+
+    private async Task BeginCreateAsync()
+    {
+        ResetForm();
+        _selected = null;
+        _editorOpen = true;
+        await EnsureSpotsAsync();
+    }
+
+    private async Task BeginEditAsync(CompanyVehicleDto vehicle)
+    {
+        _error = _info = null;
+        _editing = vehicle;
+        _formPlate = vehicle.Plate;
+        _formType = vehicle.Type;
+        _formName = vehicle.Name;
+        _formEmail = vehicle.DriverEmail;
+        _formSpotId = vehicle.AssignedSpotId?.ToString() ?? string.Empty;
+        _formNotes = vehicle.Notes;
+        _editorOpen = true;
+        await EnsureSpotsAsync();
+    }
+
+    private async Task BeginPairAsync()
+    {
+        if (_selected is null)
+        {
+            return;
+        }
+
+        _pairUserId = _selected.PairedUserId?.ToString() ?? string.Empty;
+        _pairingOpen = true;
+        _pairingConfirmed = false;
+        await EnsureUsersAsync();
+    }
+
+    private void OnPairUserChanged(string? value)
+    {
+        _pairUserId = value ?? string.Empty;
+        _pairingConfirmed = false;
+    }
+
+    private void PreparePairing() => _pairingConfirmed = true;
+
+    private void CloseSide()
+    {
+        _selected = null;
+        _editorOpen = false;
+        _pairingOpen = false;
+        _pairingConfirmed = false;
+        ResetForm();
+    }
+
+    private async Task EnsureSpotsAsync()
+    {
+        if (_spotsLoaded)
+        {
+            return;
+        }
+
+        _optionsBusy = true;
+        try
+        {
+            _spots = await Spots.ListAsync();
+            _spotsLoaded = true;
+        }
+        finally
+        {
+            _optionsBusy = false;
+        }
+    }
+
+    private async Task EnsureUsersAsync()
+    {
+        if (_usersLoaded)
+        {
+            return;
+        }
+
+        _optionsBusy = true;
+        try
+        {
+            _users = await UserAdmin.ListAsync(null);
+            _usersLoaded = true;
+        }
+        finally
+        {
+            _optionsBusy = false;
+        }
+    }
 
     private void OnTypeChanged(string? value)
     {
@@ -234,31 +645,26 @@
     private async Task CreateAsync()
     {
         _error = _info = null;
-        var result = await Fleet.CreateAsync(_formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
-        if (result.Succeeded)
+        _busy = true;
+        try
         {
-            ResetForm();
-            await ReloadAsync();
+            var result = await Fleet.CreateAsync(_formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
+            if (result.Succeeded)
+            {
+                _info = L["Fleet_Success_Created"].Value;
+                CloseSide();
+                await ReloadAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _busy = false;
         }
     }
-
-    private void BeginEdit(CompanyVehicleDto vehicle)
-    {
-        _error = _info = null;
-        _editing = vehicle;
-        _formPlate = vehicle.Plate;
-        _formType = vehicle.Type;
-        _formName = vehicle.Name;
-        _formEmail = vehicle.DriverEmail;
-        _formSpotId = vehicle.AssignedSpotId?.ToString() ?? string.Empty;
-        _formNotes = vehicle.Notes;
-    }
-
-    private void CancelEdit() => ResetForm();
 
     private async Task SaveEditAsync()
     {
@@ -268,67 +674,116 @@
         }
 
         _error = _info = null;
-        var result = await Fleet.UpdateAsync(_editing.Id, _formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
-        if (result.Succeeded)
+        _busy = true;
+        try
         {
-            ResetForm();
-            await ReloadAsync();
+            var result = await Fleet.UpdateAsync(_editing.Id, _formPlate ?? string.Empty, _formType, _formName, _formEmail, FormSpotId, _formNotes);
+            if (result.Succeeded)
+            {
+                _info = L["Fleet_Success_Updated"].Value;
+                CloseSide();
+                await ReloadAsync();
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
         }
-        else
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _busy = false;
         }
     }
 
-    private async Task PairAsync(CompanyVehicleDto vehicle, string? userId)
+    private async Task ConfirmPairingAsync()
     {
-        _error = _info = null;
-        Guid? target = Guid.TryParse(userId, out var parsed) ? parsed : null;
-        if (target == vehicle.PairedUserId)
+        if (_selected is null)
         {
             return;
         }
 
-        // Changing one driver for another goes through an explicit unpair first, so the old
-        // driver's residency is released with the usual notification before the new one starts.
-        var result = vehicle.PairedUserId is not null
-            ? await Fleet.UnpairAsync(vehicle.Id)
-            : ParkingResult.Success;
-        if (result.Succeeded && target is { } newUser)
+        _error = _info = null;
+        _busy = true;
+        try
         {
-            result = await Fleet.PairManuallyAsync(vehicle.Id, newUser);
-        }
+            Guid? target = Guid.TryParse(_pairUserId, out var parsed) ? parsed : null;
+            if (target == _selected.PairedUserId)
+            {
+                _pairingOpen = false;
+                return;
+            }
 
-        if (!result.Succeeded)
+            var vehicleId = _selected.Id;
+            var result = _selected.PairedUserId is not null
+                ? await Fleet.UnpairAsync(vehicleId)
+                : ParkingResult.Success;
+            if (result.Succeeded && target is { } newUser)
+            {
+                result = await Fleet.PairManuallyAsync(vehicleId, newUser);
+            }
+
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+                return;
+            }
+
+            _info = L[target is null ? "Fleet_Success_Unpaired" : "Fleet_Success_Paired"].Value;
+            _pairingOpen = false;
+            _pairingConfirmed = false;
+            await ReloadAsync();
+            _selected = _vehicles?.FirstOrDefault(v => v.Id == vehicleId);
+        }
+        finally
         {
-            _error = result.Errors.FirstOrDefault();
+            _busy = false;
         }
-
-        await ReloadAsync();
     }
 
     private async Task SetActiveAsync(Guid id, bool active)
     {
         _error = _info = null;
-        var result = await Fleet.SetActiveAsync(id, active);
-        if (!result.Succeeded)
+        _busy = true;
+        try
         {
-            _error = result.Errors.FirstOrDefault();
-        }
+            var result = await Fleet.SetActiveAsync(id, active);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+                return;
+            }
 
-        await ReloadAsync();
+            _info = L[active ? "Fleet_Success_Activated" : "Fleet_Success_Deactivated"].Value;
+            await ReloadAsync();
+            _selected = _vehicles?.FirstOrDefault(v => v.Id == id);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task DeleteAsync(Guid id)
     {
         _error = _info = null;
-        var result = await Fleet.DeleteAsync(id);
-        if (!result.Succeeded)
+        _busy = true;
+        try
         {
-            _error = result.Errors.FirstOrDefault();
-        }
+            var result = await Fleet.DeleteAsync(id);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+                return;
+            }
 
-        await ReloadAsync();
+            _info = L["Fleet_Success_Deleted"].Value;
+            CloseSide();
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void ResetForm()
@@ -339,5 +794,34 @@
         _formSpotId = string.Empty;
     }
 
-    private async Task ReloadAsync() => _vehicles = await Fleet.ListAsync();
+    private async Task ReloadAsync()
+    {
+        var selectedId = _selected?.Id;
+        _vehicles = await Fleet.ListAsync();
+        if (selectedId is { } id)
+        {
+            _selected = _vehicles.FirstOrDefault(v => v.Id == id);
+        }
+    }
+
+    private RenderFragment FleetMetric(string label, int value, string tone) => __builder =>
+    {
+        <div class="fleet-metric fleet-metric--@tone">
+            <span class="fleet-metric__label">@label</span>
+            <strong>@value</strong>
+        </div>
+    };
+
+    private RenderFragment FleetViewButton(string view, string label, int count) => __builder =>
+    {
+        <button type="button" class="fleet-state-filter @(_view == view ? "is-selected" : null)"
+                aria-pressed="@(_view == view ? "true" : "false")" @onclick="() => SetView(view)">
+            <span>@label</span><strong>@count</strong>
+        </button>
+    };
+
+    private RenderFragment DetailFact(string label, string value) => __builder =>
+    {
+        <div class="fleet-detail__fact"><span>@label</span><strong>@value</strong></div>
+    };
 }

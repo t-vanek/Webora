@@ -25,20 +25,8 @@
     <div class="admin-head__titles">
         <div class="admin-head__title-row">
             <FluentLabel Typo="Typography.PageTitle">@L["Lot_Title"]</FluentLabel>
-            @if (_board is not null)
-            {
-                <span class="count-chip">@_board.Overview.TotalSpots</span>
-            }
         </div>
-        <p class="admin-head__intro">
-            @L["Lot_Intro"]
-            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)" Context="spotsLink">
-                <FluentAnchor Href="/admin/parking/spots" Appearance="Appearance.Hypertext">@L["Lot_LinkSpots"]</FluentAnchor>
-            </AuthorizeView>
-            <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
-                <FluentAnchor Href="/admin/parking/oversight/occupancy" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
-            </AuthorizeView>
-        </p>
+        <p class="admin-head__intro">@L["Lot_Intro"]</p>
     </div>
 
     @if (_error is not null)
@@ -70,34 +58,147 @@
         <FluentTabs @bind-ActiveTabId="_activeTab" OnTabChange="OnTabChangedAsync" Class="lot-tabs">
             <FluentTab Id="@BoardTab" Label="@L["Lot_Tab_Board"]">
         <div class="lot-tab">
-        <div class="lot-toolbar">
-            <div class="field">
-                <label>@L["Lot_Day"]</label>
-                <input type="date" @bind="_day" @bind:after="ReloadBoardAsync" class="parking-input" />
+        <section class="lot-overview" aria-label="@L["Lot_Overview_Label"]">
+            <div class="lot-overview__capacity">
+                <span class="lot-overview__eyebrow">@L["Lot_Overview_Available"]</span>
+                <div class="lot-overview__number-row">
+                    <strong>@_board.Overview.Free</strong>
+                    <span>@L["Lot_Overview_OfActive", _board.Overview.ActiveSpots]</span>
+                </div>
+                <div class="lot-capacity" role="img" aria-label="@L["Lot_Overview_OccupancyAria", _board.Overview.OccupancyPercent]">
+                    <span class="lot-capacity__used" style="@($"width: {_board.Overview.OccupancyPercent}%")"></span>
+                </div>
+                <div class="lot-overview__capacity-foot">
+                    <span>@L["Lot_Overview_Utilization"]</span>
+                    <strong>@_board.Overview.OccupancyPercent %</strong>
+                </div>
             </div>
-            <FluentButton Appearance="Appearance.Outline" OnClick="() => ShiftDayAsync(-1)">@L["Lot_PrevDay"]</FluentButton>
-            <FluentButton Appearance="Appearance.Outline" OnClick="() => ShiftDayAsync(1)">@L["Lot_NextDay"]</FluentButton>
-            <FluentButton Appearance="Appearance.Outline" OnClick="GoTodayAsync">@L["Lot_Today"]</FluentButton>
-            @if (!_board.IsToday)
+
+            <div class="lot-overview__activity">
+                <span class="lot-overview__eyebrow">@L["Lot_Overview_Activity"]</span>
+                <div class="lot-overview__metrics">
+                    @OverviewMetric(_board.Overview.Occupied, L["Lot_Stat_Occupied"], "Occupied")
+                    @OverviewMetric(_board.Overview.Booked, L["Lot_State_Booked"], "Booked")
+                    @OverviewMetric(_board.Overview.ResidentHeld, L["Lot_Stat_ResidentHeld"], "ResidentHeld")
+                    @OverviewMetric(_board.Overview.VisitorBookings, L["Lot_Stat_Visitors"], "VisitorBooked")
+                </div>
+            </div>
+
+            <div class="lot-overview__attention @(!HasOperationalSignals ? "is-clear" : null)">
+                <span class="lot-overview__eyebrow">@L["Lot_Overview_Attention"]</span>
+                @if (!HasOperationalSignals)
+                {
+                    <div class="lot-attention__clear">
+                        <span class="lot-attention__check">&#10003;</span>
+                        <span>@L["Lot_Overview_NoIssues"]</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="lot-attention__items">
+                        @if (_board.Overview.ReportedMismatches > 0)
+                        {
+                            <div class="lot-attention__item">
+                                <strong>@_board.Overview.ReportedMismatches</strong>
+                                <span>@L["Lot_Stat_Mismatches"]</span>
+                            </div>
+                        }
+                        @if (_board.Overview.QueueWaiting > 0)
+                        {
+                            <div class="lot-attention__item">
+                                <strong>@_board.Overview.QueueWaiting</strong>
+                                <span>@L["Lot_Stat_Queue"]</span>
+                            </div>
+                        }
+                        @if (_board.Overview.InactiveSpots > 0)
+                        {
+                            <div class="lot-attention__item">
+                                <strong>@_board.Overview.InactiveSpots</strong>
+                                <span>@L["Lot_State_Inactive"]</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="lot-commandbar" aria-label="@L["Lot_Filter_Label"]">
+            <div class="lot-commandbar__date">
+                <button type="button" class="lot-icon-button" title="@L["Lot_PrevDay"]" aria-label="@L["Lot_PrevDay"]"
+                        @onclick="() => ShiftDayAsync(-1)">&#8249;</button>
+                <div class="field lot-date-field">
+                    <label>@L["Lot_Day"]</label>
+                    <input type="date" @bind="_day" @bind:after="ReloadBoardAsync" class="parking-input" />
+                </div>
+                <button type="button" class="lot-icon-button" title="@L["Lot_NextDay"]" aria-label="@L["Lot_NextDay"]"
+                        @onclick="() => ShiftDayAsync(1)">&#8250;</button>
+                <FluentButton Appearance="Appearance.Stealth" OnClick="GoTodayAsync" Disabled="@_board.IsToday">@L["Lot_Today"]</FluentButton>
+            </div>
+
+            <div class="lot-commandbar__filters">
+                <label class="lot-search" for="lot-search">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Color="Color.Custom" CustomColor="currentColor" />
+                    <input id="lot-search" type="search" placeholder="@L["Lot_Filter_SearchPlaceholder"]"
+                           @bind="_search" @bind:event="oninput" @bind:after="ResetVisibleTiles" />
+                </label>
+                <select class="parking-input lot-section-filter" aria-label="@L["Lot_Filter_Section"]"
+                        @bind="_sectionFilter" @bind:after="ResetVisibleTiles">
+                    <option value="">@L["Lot_Filter_AllSections"]</option>
+                    @foreach (var sectionName in SectionNames)
+                    {
+                        <option value="@sectionName">@(string.IsNullOrEmpty(sectionName) ? L["Lot_SectionUnnamed"] : sectionName)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="lot-view-switch" role="group" aria-label="@L["Lot_View"]">
+                <button id="lot-view-grid" type="button"
+                        class="lot-view-switch__button @(_boardView == BoardViewGrid ? "is-selected" : null)"
+                        aria-pressed="@(_boardView == BoardViewGrid ? "true" : "false")"
+                        @onclick="() => SetBoardView(BoardViewGrid)">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@L["Lot_View_Grid"]</span>
+                </button>
+                <button id="lot-view-list" type="button"
+                        class="lot-view-switch__button @(_boardView == BoardViewList ? "is-selected" : null)"
+                        aria-pressed="@(_boardView == BoardViewList ? "true" : "false")"
+                        @onclick="() => SetBoardView(BoardViewList)">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ClipboardTextEdit())" Color="Color.Custom" CustomColor="currentColor" />
+                    <span>@L["Parking_View_List"]</span>
+                </button>
+            </div>
+        </section>
+
+        @if (!_board.IsToday)
+        {
+            <div class="lot-day-notice">@L["Lot_NotToday"]</div>
+        }
+
+        <div class="lot-state-filters" role="group" aria-label="@L["Lot_Filter_State"]">
+            <button type="button" class="lot-state-filter @(_stateFilter is null ? "is-selected" : null)"
+                    aria-pressed="@(_stateFilter is null ? "true" : "false")" @onclick="() => SetStateFilter(null)">
+                <span>@L["Lot_Filter_AllStates"]</span><strong>@_board.Spots.Count</strong>
+            </button>
+            @foreach (var state in ActiveBoardStates)
             {
-                <span class="state-pill state-pill--info">@L["Lot_NotToday"]</span>
+                <button type="button" class="lot-state-filter @(_stateFilter == state ? "is-selected" : null)"
+                        aria-pressed="@(_stateFilter == state ? "true" : "false")" @onclick="() => SetStateFilter(state)">
+                    <span class="lot-tile__dot lot-tile__dot--@state"></span>
+                    <span>@L[$"Lot_State_{state}"]</span>
+                    <strong>@StateCount(state)</strong>
+                </button>
             }
         </div>
 
-        <div class="lot-legend">
-            @foreach (var state in BoardStates)
+        <div class="lot-results-head">
+            <span>@L["Lot_Filter_ResultCount", FilteredTileCount]</span>
+            @if (HasActiveFilters)
             {
-                <span class="lot-legend__item">
-                    <span class="lot-tile__dot lot-tile__dot--@state"></span>@L[$"Lot_State_{state}"]
-                </span>
+                <button type="button" class="lot-clear-filter" @onclick="ClearFilters">@L["Lot_Filter_Clear"]</button>
             }
         </div>
 
-        @* The lot on the left, the spot you clicked on the right. The detail used to be a modal
-           dialog, which put a scrim over the very board you were comparing against and had to be
-           dismissed before the next tile could be clicked; side by side, clicking through spots is
-           one click each and the board stays readable underneath. *@
-        <div class="lot-split">
+        <div class="lot-workspace @(_detail is not null ? "has-detail" : null)">
         <div class="lot-split__board">
         @* The lot drawn as itself: a tile per spot, grouped into the sections the codes imply. The
            loop variable is not called "section" — @section is a reserved Razor directive, so
@@ -108,51 +209,112 @@
            looked at the first row is most of what the tab costs to open. The rest arrives from the
            patch at the bottom, which loads itself as it comes into view. The chip stays the section's
            real size — it answers "how big is section P2", not "how much of it is drawn". *@
-        @foreach (var zone in VisibleSections)
+        @if (FilteredTileCount == 0)
         {
-            <div class="lot-section">
-                <div class="section-head">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Accent" />
-                    <span>@(string.IsNullOrEmpty(zone.Key) ? L["Lot_SectionUnnamed"] : zone.Key)</span>
-                    <span class="count-chip">@SectionSize(zone.Key)</span>
-                </div>
-                <div class="lot-board">
-                    @foreach (var tile in zone)
-                    {
-                        @* A button, not a div: the board is keyboard-navigable and each tile shows the
-                           spot in the panel beside it — the same affordance a screen reader announces.
-                           aria-pressed says which tile the panel is currently showing, which the ring
-                           around the selected tile says only visually. *@
-                        <button type="button"
-                                class="lot-tile lot-tile--@tile.State @(_detail?.SpotId == tile.SpotId ? "lot-tile--selected" : null)"
-                                title="@TileTooltip(tile)"
-                                aria-pressed="@(_detail?.SpotId == tile.SpotId ? "true" : "false")"
-                                @onclick="() => SelectSpotAsync(tile.SpotId)">
-                            <span class="lot-tile__head">
-                                <span class="lot-tile__code">@tile.Code</span>
-                                <span class="lot-tile__dot lot-tile__dot--@tile.State"></span>
-                            </span>
-                            <span class="lot-tile__meta">
-                                <span class="type-pill type-pill--@tile.Type">@L[$"Parking_SpotType_{tile.Type}"]</span>
-                            </span>
-                            <span class="lot-tile__holder">
-                                @if (tile.OwnerName is not null)
-                                {
-                                    <span class="lot-tile__owner" title="@L["Lot_Tile_Resident"]">@tile.OwnerName</span>
-                                }
-                                @if (tile.HolderName is not null)
-                                {
-                                    <span class="lot-tile__guest">@tile.HolderName</span>
-                                }
-                            </span>
-                            @if (tile.MismatchCount > 0)
-                            {
-                                <span class="lot-tile__flag" title="@L["Lot_Tile_Mismatches"]">▲ @tile.MismatchCount</span>
-                            }
-                        </button>
-                    }
-                </div>
+            <div class="lot-empty-results">
+                <strong>@L["Lot_Filter_EmptyTitle"]</strong>
+                <span>@L["Lot_Filter_EmptyText"]</span>
+                <FluentButton Appearance="Appearance.Outline" OnClick="ClearFilters">@L["Lot_Filter_Clear"]</FluentButton>
             </div>
+        }
+        else if (_boardView == BoardViewList)
+        {
+            <div class="admin-panel lot-list-panel">
+                <table class="lot-list">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Parking_Admin_Code"]</th>
+                            <th scope="col">@L["Map_State"]</th>
+                            <th scope="col">@L["Parking_Admin_Type"]</th>
+                            <th scope="col">@L["Parking_Admin_Resident"]</th>
+                            <th scope="col">@L["Lot_List_Holder"]</th>
+                            <th scope="col">@L["Lot_Col_Mismatch"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tile in VisibleTiles)
+                        {
+                            <tr class="@(_detail?.SpotId == tile.SpotId ? "is-selected" : null)">
+                                <th scope="row">
+                                    <button type="button" class="lot-list__spot" @onclick="() => SelectSpotAsync(tile.SpotId)">
+                                        <span class="lot-tile__dot lot-tile__dot--@tile.State"></span>
+                                        @tile.Code
+                                    </button>
+                                </th>
+                                <td>@L[$"Lot_State_{tile.State}"]</td>
+                                <td><span class="type-pill type-pill--@tile.Type">@L[$"Parking_SpotType_{tile.Type}"]</span></td>
+                                <td>@(tile.OwnerName ?? L["Lot_Detail_NoResident"].Value)</td>
+                                <td>@(tile.HolderName ?? "—")</td>
+                                <td>
+                                    @if (tile.MismatchCount > 0)
+                                    {
+                                        <span class="lot-tile__flag">@tile.MismatchCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="lot-calendar__muted">0</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            @foreach (var zone in VisibleSections)
+            {
+                <div class="lot-section">
+                    <div class="lot-section__head">
+                        <span class="lot-section__title">@(string.IsNullOrEmpty(zone.Key) ? L["Lot_SectionUnnamed"] : zone.Key)</span>
+                        <span>@L["Lot_Section_Summary", SectionAvailableCount(zone.Key), SectionResultCount(zone.Key)]</span>
+                    </div>
+                    <div class="lot-board">
+                        @foreach (var tile in zone)
+                        {
+                            @* A button, not a div: the board is keyboard-navigable and each tile shows the
+                               spot in the panel beside it — the same affordance a screen reader announces.
+                               aria-pressed says which tile the panel is currently showing, which the ring
+                               around the selected tile says only visually. *@
+                            <button type="button"
+                                    class="lot-tile lot-tile--@tile.State @(_detail?.SpotId == tile.SpotId ? "lot-tile--selected" : null)"
+                                    title="@TileTooltip(tile)"
+                                    aria-pressed="@(_detail?.SpotId == tile.SpotId ? "true" : "false")"
+                                    @onclick="() => SelectSpotAsync(tile.SpotId)">
+                                <span class="lot-tile__head">
+                                    <span class="lot-tile__code">@tile.Code</span>
+                                    <span class="lot-tile__dot lot-tile__dot--@tile.State"></span>
+                                </span>
+                                <span class="lot-tile__meta">
+                                    <span>@L[$"Lot_State_{tile.State}"]</span>
+                                    @if (tile.Type != ParkingSpotType.Standard)
+                                    {
+                                        <span class="type-pill type-pill--@tile.Type">@L[$"Parking_SpotType_{tile.Type}"]</span>
+                                    }
+                                </span>
+                                @if (tile.HolderName is not null || tile.OwnerName is not null)
+                                {
+                                    <span class="lot-tile__holder">
+                                        @if (tile.HolderName is not null)
+                                        {
+                                            <span class="lot-tile__guest">@tile.HolderName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lot-tile__owner" title="@L["Lot_Tile_Resident"]">@tile.OwnerName</span>
+                                        }
+                                    </span>
+                                }
+                                @if (tile.MismatchCount > 0)
+                                {
+                                    <span class="lot-tile__flag" title="@L["Lot_Tile_Mismatches"]">▲ @tile.MismatchCount</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
         }
 
         @if (HasMoreTiles)
@@ -166,18 +328,9 @@
         }
         </div>
 
-        @* The selected spot. aria-live so a screen reader hears the panel change when a tile is
-           clicked — without the dialog's focus trap nothing else announces it. *@
-        <aside class="lot-split__side" aria-live="polite" aria-label="@L["Lot_Detail_Panel"]">
-            @if (_detail is null)
-            {
-                <div class="admin-panel lot-detail lot-detail--empty">
-                    <FluentIcon Value="@(new Icons.Regular.Size24.HandPoint())" Color="Color.Neutral" />
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Lot_Detail_PickSpot"]</FluentLabel>
-                </div>
-            }
-            else
-            {
+        @if (_detail is not null)
+        {
+            <aside class="lot-split__side" aria-live="polite" aria-label="@L["Lot_Detail_Panel"]">
                 <div class="admin-panel lot-detail">
                     <div class="section-head">
                         <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Accent" />
@@ -189,12 +342,30 @@
                         <FluentButton Appearance="Appearance.Stealth" OnClick="CloseDetail">@L["Lot_Close"]</FluentButton>
                     </div>
 
-                    <div class="lot-detail__facts">
-                        <div><span class="lot-detail__label">@L["Lot_Detail_State"]</span> @L[$"Lot_State_{_detail.State}"]</div>
-                        <div>
-                            <span class="lot-detail__label">@L["Parking_Admin_Resident"]</span>
-                            @(_detail.OwnerName ?? L["Lot_Detail_NoResident"].Value)
+                    <div class="lot-detail__section">
+                        <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_StatusSection"]</FluentLabel>
+                        <div class="lot-detail__facts">
+                            <div><span class="lot-detail__label">@L["Lot_Detail_State"]</span> @L[$"Lot_State_{_detail.State}"]</div>
+                            <div>
+                                <span class="lot-detail__label">@L["Lot_Detail_Utilization"]</span>
+                                @_detail.Stats.UtilizationPercent % (@_detail.Stats.BookedDays / @_detail.Stats.WindowDays @L["Lot_Detail_Days"])
+                            </div>
+                            <div>
+                                <span class="lot-detail__label">@L["Lot_Detail_NoShows"]</span> @_detail.Stats.NoShows
+                            </div>
+                            <div>
+                                <span class="lot-detail__label">@L["Lot_Detail_Mismatches"]</span> @_detail.Stats.Mismatches
+                            </div>
                         </div>
+                    </div>
+
+                    <div class="lot-detail__section">
+                        <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_ResidentSection"]</FluentLabel>
+                        <div class="lot-detail__facts">
+                            <div>
+                                <span class="lot-detail__label">@L["Parking_Admin_Resident"]</span>
+                                @(_detail.OwnerName ?? L["Lot_Detail_NoResident"].Value)
+                            </div>
                         @if (_detail.OwnerId is not null)
                         {
                             <div>
@@ -206,16 +377,6 @@
                                 @_detail.MonthlyShareAllowance
                             </div>
                         }
-                        <div>
-                            <span class="lot-detail__label">@L["Lot_Detail_Utilization"]</span>
-                            @_detail.Stats.UtilizationPercent % (@_detail.Stats.BookedDays / @_detail.Stats.WindowDays @L["Lot_Detail_Days"])
-                        </div>
-                        <div>
-                            <span class="lot-detail__label">@L["Lot_Detail_NoShows"]</span> @_detail.Stats.NoShows
-                        </div>
-                        <div>
-                            <span class="lot-detail__label">@L["Lot_Detail_Mismatches"]</span> @_detail.Stats.Mismatches
-                        </div>
                         @if (_detail.Stats.SharedDays > 0)
                         {
                             <div>
@@ -227,36 +388,42 @@
                         {
                             <div><span class="lot-detail__label">@L["Parking_Admin_Notes"]</span> @_detail.Notes</div>
                         }
+                        </div>
                     </div>
 
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                        @if (_detail.IsActive)
-                        {
-                            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
-                                          OnClick="() => SetActiveAsync(false)">@L["Lot_Deactivate"]</FluentButton>
-                        }
-                        else
-                        {
-                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
-                                          OnClick="() => SetActiveAsync(true)">@L["Parking_Admin_Activate"]</FluentButton>
-                        }
-                    </FluentStack>
+                    <div class="lot-detail__section lot-detail__section--actions">
+                        <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_OperationsSection"]</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            @if (_detail.IsActive)
+                            {
+                                <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                              OnClick="() => SetActiveAsync(false)">@L["Lot_Deactivate"]</FluentButton>
+                            }
+                            else
+                            {
+                                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy"
+                                              OnClick="() => SetActiveAsync(true)">@L["Parking_Admin_Activate"]</FluentButton>
+                            }
+                        </FluentStack>
+                    </div>
 
                     @* This spot's own recent load — the per-spot answer to the lot-wide trend on the
                        analytics tab. Keyed on the spot so switching tiles rebuilds rather than
                        animating across spots. *@
                     @if (_detail.Trend.Count > 0)
                     {
-                        <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_Trend"]</FluentLabel>
-                        <ApexChart @key="@($"trend-{_detail.SpotId}")" TItem="SpotDayDto"
-                                   Options="@_trendOptions" Height="140">
-                            <ApexPointSeries TItem="SpotDayDto"
-                                             Items="@_detail.Trend"
-                                             Name="@L["Lot_Detail_Trend_Series"].Value"
-                                             SeriesType="SeriesType.Bar"
-                                             XValue="@(d => d.Date.ToString("d.M."))"
-                                             YValue="@(d => d.Busy ? 1 : 0)" />
-                        </ApexChart>
+                        <div class="lot-detail__section">
+                            <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_PerformanceSection"]</FluentLabel>
+                            <ApexChart @key="@($"trend-{_detail.SpotId}")" TItem="SpotDayDto"
+                                       Options="@_trendOptions" Height="140">
+                                <ApexPointSeries TItem="SpotDayDto"
+                                                 Items="@_detail.Trend"
+                                                 Name="@L["Lot_Detail_Trend_Series"].Value"
+                                                 SeriesType="SeriesType.Bar"
+                                                 XValue="@(d => d.Date.ToString("d.M."))"
+                                                 YValue="@(d => d.Busy ? 1 : 0)" />
+                            </ApexChart>
+                        </div>
                     }
 
                     <FluentLabel Typo="Typography.Subject">@L["Lot_Calendar"]</FluentLabel>
@@ -371,8 +538,8 @@
                         </div>
                     }
                 </div>
-            }
-        </aside>
+            </aside>
+        }
         </div>
         </div>
             </FluentTab>
@@ -708,6 +875,8 @@
 @code {
     private const string BoardTab = "tab-board";
     private const string AnalyticsTab = "tab-analytics";
+    private const string BoardViewGrid = "grid";
+    private const string BoardViewList = "list";
 
     private static readonly SpotBoardState[] BoardStates = Enum.GetValues<SpotBoardState>();
     private static readonly int[] AnalyticsWindows = [7, 30, 90];
@@ -725,6 +894,10 @@
     private LotAnalyticsDto? _analytics;
 
     private string? _activeTab = BoardTab;
+    private string _boardView = BoardViewGrid;
+    private string? _search;
+    private string _sectionFilter = string.Empty;
+    private SpotBoardState? _stateFilter;
     private DateTime _day = DateTime.Today;
     private int _analyticsDays = 30;
 
@@ -755,9 +928,32 @@
     private readonly string _observerId = Guid.NewGuid().ToString("N");
     private bool _observing;
 
-    private bool HasMoreTiles => _board is not null && _board.Spots.Count > _visibleTiles;
+    private bool HasMoreTiles => FilteredTileCount > _visibleTiles;
 
-    private int VisibleTileCount => Math.Min(_visibleTiles, _board?.Spots.Count ?? 0);
+    private int VisibleTileCount => Math.Min(_visibleTiles, FilteredTileCount);
+
+    private bool HasOperationalSignals => _board is not null &&
+        (_board.Overview.ReportedMismatches > 0 || _board.Overview.QueueWaiting > 0 || _board.Overview.InactiveSpots > 0);
+
+    private bool HasActiveFilters => !string.IsNullOrWhiteSpace(_search) ||
+        !string.IsNullOrEmpty(_sectionFilter) || _stateFilter is not null;
+
+    private IEnumerable<string> SectionNames => _board is null
+        ? []
+        : _board.Spots
+            .Select(s => s.Section)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.CurrentCultureIgnoreCase);
+
+    private IEnumerable<SpotBoardState> ActiveBoardStates => BoardStates.Where(state => StateCount(state) > 0);
+
+    private IEnumerable<SpotTileDto> FilteredTiles => (_board?.Spots ?? [])
+        .Where(tile => _stateFilter is null || tile.State == _stateFilter)
+        .Where(tile => string.IsNullOrEmpty(_sectionFilter) ||
+                       string.Equals(tile.Section, _sectionFilter, StringComparison.OrdinalIgnoreCase))
+        .Where(MatchesSearch);
+
+    private int FilteredTileCount => FilteredTiles.Count();
 
     /// <summary>
     /// The board as far as it has been revealed. The spots come ordered by section and then by code,
@@ -766,9 +962,52 @@
     /// long section from drawing itself in full anyway.
     /// </summary>
     private IEnumerable<IGrouping<string, SpotTileDto>> VisibleSections =>
-        _board!.Spots.Take(_visibleTiles).GroupBy(s => s.Section);
+        FilteredTiles.Take(_visibleTiles).GroupBy(s => s.Section);
+
+    private IEnumerable<SpotTileDto> VisibleTiles =>
+        FilteredTiles.Take(_visibleTiles);
 
     private int SectionSize(string section) => _sectionSizes.TryGetValue(section, out var size) ? size : 0;
+
+    private int SectionResultCount(string section) => FilteredTiles.Count(s => s.Section == section);
+
+    private int SectionAvailableCount(string section) => FilteredTiles.Count(s => s.Section == section &&
+        s.State is SpotBoardState.Free or SpotBoardState.ResidentShared);
+
+    private int StateCount(SpotBoardState state) => _board?.Spots.Count(s => s.State == state) ?? 0;
+
+    private void SetBoardView(string view) => _boardView = view;
+
+    private bool MatchesSearch(SpotTileDto tile)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            return true;
+        }
+
+        var search = _search.Trim();
+        return tile.Code.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||
+               tile.Section.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||
+               (tile.OwnerName?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+               (tile.HolderName?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+               L[$"Parking_SpotType_{tile.Type}"].Value.Contains(search, StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private void SetStateFilter(SpotBoardState? state)
+    {
+        _stateFilter = state;
+        ResetVisibleTiles();
+    }
+
+    private void ResetVisibleTiles() => _visibleTiles = BoardTileBatch;
+
+    private void ClearFilters()
+    {
+        _search = null;
+        _sectionFilter = string.Empty;
+        _stateFilter = null;
+        ResetVisibleTiles();
+    }
 
     /// <summary>How many spots the "busiest" chart lists before it stops being readable.</summary>
     private const int TopSpotCount = 12;
@@ -1142,6 +1381,15 @@
     /// beside counts of spots — a bare "3" next to "Free 11" reads as three more spots when it is
     /// three people in a queue.
     /// </summary>
+    private RenderFragment OverviewMetric(int value, string label, string state) => __builder =>
+    {
+        <div class="lot-overview__metric">
+            <span class="lot-tile__dot lot-tile__dot--@state"></span>
+            <strong>@value</strong>
+            <span>@label</span>
+        </div>
+    };
+
     private RenderFragment Stat(string label, string value, string? tone, string? unit = null) => __builder =>
     {
         <div class="lot-stat @(tone is null ? null : $"lot-stat--{tone}")">

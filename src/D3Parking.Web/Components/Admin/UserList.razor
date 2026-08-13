@@ -2,123 +2,277 @@
 @attribute [HasPermission(Permissions.Users.View)]
 @rendermode InteractiveServer
 @inject IUserAdminService UserAdmin
+@inject IRoleAdminService RoleAdmin
+@inject ISiteSettingsService SiteSettings
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Admin_Users_Title"]</PageTitle>
 
-<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="16">
-    <div class="admin-head">
+<FluentStack Class="page-shell users-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head users-head">
         <div class="admin-head__titles">
             <div class="admin-head__title-row">
                 <FluentLabel Typo="Typography.PageTitle">@L["Admin_Users_Title"]</FluentLabel>
-                @if (_users is not null)
+                @if (_summary is not null)
                 {
-                    @* What the search matches, not what this page draws — the chip used to read 500
-                       for every directory bigger than 500, which is the one number it must not say. *@
-                    <span class="count-chip">@_total</span>
+                    <span class="count-chip">@_summary.Total</span>
                 }
             </div>
             <p class="admin-head__intro">@L["Admin_Users_Intro"]</p>
         </div>
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Users.Create)" Context="create">
-            <FluentAnchor Href="admin/users/create" Appearance="Appearance.Accent">@L["Admin_Users_Create"]</FluentAnchor>
+            <FluentAnchor Href="admin/users/create" Appearance="Appearance.Accent" Class="users-create">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Add())" />
+                <span>@L["Admin_Users_Create"]</span>
+            </FluentAnchor>
         </AuthorizeView>
     </div>
 
-    @* Immediate: the change event of the underlying web component does not cross the shadow boundary
-       reliably, so a term typed here reached the component only once the field lost focus — which is
-       what the "Hledat" button beside it was really for. With the search firing as it is typed
-       (debounced), the button was a workaround for a bug and is gone. *@
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-        <FluentSearch Id="user-search" @bind-Value="_search" @bind-Value:after="SearchAsync"
-                      Immediate="true" ImmediateDelay="300"
-                      Placeholder="@L["Admin_Users_SearchPlaceholder"]"
-                      Style="max-width:320px" />
-    </FluentStack>
-
-    @if (_users is null)
+    @if (_summary is null || _users is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
-    else if (_users.Count == 0)
-    {
-        <div class="empty-state">@L["Admin_Users_None"]</div>
-    }
     else
     {
-        <div class="admin-panel">
-            <FluentDataGrid Items="@_users.AsQueryable()" TGridItem="UserSummary"
-                            GridTemplateColumns="2fr 2fr 1fr 2fr auto">
-                <PropertyColumn Property="@(u => u.Email)" Title="@L["Admin_Users_Email"]" />
-                <TemplateColumn Title="@L["Admin_Users_Name"]">
-                    @(string.IsNullOrWhiteSpace(context.DisplayName) ? "—" : context.DisplayName)
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Admin_Users_Status"]">
-                    <StatusBadge Status="context.Status" />
-                </TemplateColumn>
-                <TemplateColumn Title="@L["Admin_Users_Roles"]">
-                    @if (context.Roles.Count == 0)
-                    {
-                        <span>—</span>
-                    }
-                    else
-                    {
-                        <span class="role-tags">
-                            @foreach (var role in context.Roles)
-                            {
-                                <span class="tag">@AuthorizationDisplay.RoleName(L, role)</span>
-                            }
-                        </span>
-                    }
-                </TemplateColumn>
-                <TemplateColumn Align="Align.End">
-                    <FluentAnchor Href="@($"admin/users/{context.Id}")" Appearance="Appearance.Outline">
-                        @L["Admin_Manage"]
-                    </FluentAnchor>
-                </TemplateColumn>
-            </FluentDataGrid>
+        <section class="users-overview" aria-label="@L["Admin_Users_Overview_Label"]">
+            @UserMetric(L["Admin_Users_Overview_Total"], _summary.Total, "total")
+            @UserMetric(L["Admin_Users_Overview_Active"], _summary.Active, "active")
+            @UserMetric(L["Admin_Users_Overview_Pending"], _summary.PendingActivation, "pending")
+            @UserMetric(L["Admin_Users_Overview_Blocked"], _summary.Blocked, "blocked")
+        </section>
+
+        <section class="users-commandbar" aria-label="@L["Admin_Users_Filter_Label"]">
+            <FluentSearch Id="user-search" Class="users-search"
+                          @bind-Value="_search" @bind-Value:after="SearchAsync"
+                          Immediate="true" ImmediateDelay="300"
+                          Placeholder="@L["Admin_Users_SearchPlaceholder"]" />
+            <select class="parking-input users-filter" aria-label="@L["Admin_Users_Filter_Status"]"
+                    @bind="_status" @bind:after="FiltersChangedAsync">
+                <option value="">@L["Admin_Users_Filter_AllStatuses"]</option>
+                @foreach (var status in Enum.GetValues<AccountStatus>())
+                {
+                    <option value="@status">@L[$"AccountStatus_{status}"]</option>
+                }
+            </select>
+            <select class="parking-input users-filter" aria-label="@L["Admin_Users_Filter_Role"]"
+                    @bind="_role" @bind:after="FiltersChangedAsync">
+                <option value="">@L["Admin_Users_Filter_AllRoles"]</option>
+                @foreach (var role in _roles)
+                {
+                    <option value="@role">@AuthorizationDisplay.RoleName(L, role)</option>
+                }
+            </select>
+            <select class="parking-input users-filter" aria-label="@L["Admin_Users_Filter_Source"]"
+                    @bind="_source" @bind:after="FiltersChangedAsync">
+                <option value="">@L["Admin_Users_Filter_AllSources"]</option>
+                <option value="Local">@L["Admin_Users_Source_Local"]</option>
+                <option value="Federated">@L["Admin_Users_Source_Federated"]</option>
+            </select>
+            <select class="parking-input users-filter users-sort" aria-label="@L["Admin_Users_Filter_Sort"]"
+                    @bind="_sort" @bind:after="FiltersChangedAsync">
+                <option value="Email">@L["Admin_Users_Sort_Email"]</option>
+                <option value="Name">@L["Admin_Users_Sort_Name"]</option>
+                <option value="Status">@L["Admin_Users_Sort_Status"]</option>
+                <option value="RecentActivity">@L["Admin_Users_Sort_Activity"]</option>
+            </select>
+            @if (HasActiveFilters)
+            {
+                <button type="button" class="lot-clear-filter" @onclick="ClearFiltersAsync">@L["Admin_Users_Filter_Clear"]</button>
+            }
+        </section>
+
+        <div class="users-state-filters" role="group" aria-label="@L["Admin_Users_Filter_StateViews"]">
+            @StatusViewButton(null, L["Admin_Users_View_All"], _summary.Total)
+            @StatusViewButton(AccountStatus.Active, L["Admin_Users_View_Active"], _summary.Active)
+            @StatusViewButton(AccountStatus.PendingActivation, L["Admin_Users_View_Pending"], _summary.PendingActivation)
+            @StatusViewButton(AccountStatus.Blocked, L["Admin_Users_View_Blocked"], _summary.Blocked)
         </div>
-        @if (_total > PageSize)
+
+        <div class="users-results-head">
+            <span>@L["Admin_Users_ResultCount", _total]</span>
+            <span>@ActiveViewDescription</span>
+        </div>
+
+        @if (_users.Count == 0)
         {
-            <div class="pager">
-                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
-                              OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
-                <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
-                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
-                              OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+            <div class="users-empty">
+                <strong>@L["Admin_Users_None"]</strong>
+                <span>@L["Admin_Users_NoneHint"]</span>
+                @if (HasActiveFilters)
+                {
+                    <FluentButton Appearance="Appearance.Outline" OnClick="ClearFiltersAsync">@L["Admin_Users_Filter_Clear"]</FluentButton>
+                }
             </div>
+        }
+        else
+        {
+            <div class="admin-panel users-table-wrap">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Admin_Users_Column_User"]</th>
+                            <th scope="col">@L["Admin_Users_Status"]</th>
+                            <th scope="col">@L["Admin_Users_Column_Source"]</th>
+                            <th scope="col">@L["Admin_Users_Roles"]</th>
+                            <th scope="col">@L["Admin_Users_Column_Activity"]</th>
+                            <th scope="col" class="users-table__action">@L["Admin_Users_Column_Action"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in _users)
+                        {
+                            <tr>
+                                <th scope="row">
+                                    <a class="users-identity" href="@($"admin/users/{user.Id}")">
+                                        <span class="users-avatar">@Initials(user)</span>
+                                        <span class="users-cell-stack">
+                                            <strong>@DisplayName(user)</strong>
+                                            <small>@user.Email</small>
+                                        </span>
+                                    </a>
+                                </th>
+                                <td><StatusBadge Status="user.Status" /></td>
+                                <td>
+                                    <span class="users-cell-stack">
+                                        <strong>@SourceLabel(user)</strong>
+                                        <small>@ConfirmationLabel(user)</small>
+                                    </span>
+                                </td>
+                                <td>@RoleSummary(user)</td>
+                                <td class="users-activity">@FormatActivity(user.LastActivityUtc)</td>
+                                <td class="users-table__action">
+                                    <a class="users-detail-link" href="@($"admin/users/{user.Id}")"
+                                       aria-label="@L["Admin_Users_OpenDetail", DisplayName(user)]">
+                                        <FluentIcon Value="@(new Icons.Regular.Size20.ChevronRight())" />
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="users-mobile-list">
+                @foreach (var user in _users)
+                {
+                    <a class="users-mobile-row" href="@($"admin/users/{user.Id}")">
+                        <span class="users-avatar">@Initials(user)</span>
+                        <span class="users-mobile-row__body">
+                            <span class="users-mobile-row__head">
+                                <strong>@DisplayName(user)</strong>
+                                <StatusBadge Status="user.Status" />
+                            </span>
+                            <small>@user.Email</small>
+                            <span class="users-mobile-row__facts">
+                                <span>@SourceLabel(user)</span>
+                                <span>@RoleSummaryText(user)</span>
+                                <span>@FormatActivity(user.LastActivityUtc)</span>
+                            </span>
+                        </span>
+                        <FluentIcon Value="@(new Icons.Regular.Size20.ChevronRight())" />
+                    </a>
+                }
+            </div>
+
+            @if (_total > PageSize)
+            {
+                <div class="pager users-pager">
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                                  OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                    <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                                  OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+                </div>
+            }
         }
     }
 </FluentStack>
 
 @code {
-    // Paged in SQL. The unpaged read stops at 500 accounts and says nothing about it, so on a
-    // directory any larger the tail simply had no way to be reached — and every row here carries a
-    // status badge and a tag per role, so drawing five hundred of them is not free either.
     private const int PageSize = 25;
 
     private IReadOnlyList<UserSummary>? _users;
+    private UserDirectorySummary? _summary;
+    private IReadOnlyList<string> _roles = [];
     private int _pageIndex;
     private int _total;
     private string? _search;
+    private string _status = string.Empty;
+    private string _role = string.Empty;
+    private string _source = string.Empty;
+    private string _sort = nameof(UserListSort.Email);
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
 
     private int PageCount => _total == 0 ? 1 : (_total + PageSize - 1) / PageSize;
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(_search) ||
+        !string.IsNullOrWhiteSpace(_status) ||
+        !string.IsNullOrWhiteSpace(_role) ||
+        !string.IsNullOrWhiteSpace(_source);
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    private string ActiveViewDescription => ParseStatus() switch
+    {
+        AccountStatus.Active => L["Admin_Users_View_ActiveHint"],
+        AccountStatus.PendingActivation => L["Admin_Users_View_PendingHint"],
+        AccountStatus.Blocked => L["Admin_Users_View_BlockedHint"],
+        _ => L["Admin_Users_View_AllHint"],
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var rolesTask = RoleAdmin.ListAsync();
+        var summaryTask = UserAdmin.GetSummaryAsync();
+        var timeZoneTask = SiteSettings.GetTimeZoneAsync();
+        await Task.WhenAll(rolesTask, summaryTask, timeZoneTask);
+
+        _roles = rolesTask.Result.Select(role => role.Name).OrderBy(RoleName).ToArray();
+        _summary = summaryTask.Result;
+        _tz = timeZoneTask.Result;
+        await ReloadAsync();
+    }
+
+    private string RoleName(string role) => AuthorizationDisplay.RoleName(L, role);
 
     private async Task ReloadAsync()
     {
-        var page = await UserAdmin.ListPageAsync(_search, _pageIndex, PageSize);
+        var query = new UserListQuery(
+            _search,
+            ParseStatus(),
+            string.IsNullOrWhiteSpace(_role) ? null : _role,
+            Enum.TryParse<UserAccountSourceFilter>(_source, out var source) ? source : UserAccountSourceFilter.All,
+            Enum.TryParse<UserListSort>(_sort, out var sort) ? sort : UserListSort.Email);
+
+        var page = await UserAdmin.ListFilteredPageAsync(query, _pageIndex, PageSize);
         _users = page.Items;
         _total = page.TotalCount;
-        // Taken back from the result: the service walks the index back when the page asked for no
-        // longer exists.
         _pageIndex = page.PageIndex;
     }
 
+    private AccountStatus? ParseStatus() =>
+        Enum.TryParse<AccountStatus>(_status, out var status) ? status : null;
+
     private async Task SearchAsync()
     {
-        // A new search starts at the front; page 5 of the old result set means nothing in the new one.
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task FiltersChangedAsync()
+    {
+        _pageIndex = 0;
+        await ReloadAsync();
+    }
+
+    private async Task SetStatusAsync(AccountStatus? status)
+    {
+        _status = status?.ToString() ?? string.Empty;
+        await FiltersChangedAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _search = null;
+        _status = _role = _source = string.Empty;
         _pageIndex = 0;
         await ReloadAsync();
     }
@@ -128,4 +282,67 @@
         _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
         await ReloadAsync();
     }
+
+    private RenderFragment UserMetric(string label, int value, string modifier) => @<div class="users-metric users-metric--@modifier">
+        <span>@label</span>
+        <strong>@value</strong>
+    </div>;
+
+    private RenderFragment StatusViewButton(AccountStatus? status, string label, int count)
+    {
+        var selected = ParseStatus() == status && string.IsNullOrWhiteSpace(_role) && string.IsNullOrWhiteSpace(_source);
+        return @<button type="button" class="users-state-filter @(selected ? "is-active" : null)"
+                        aria-pressed="@selected" @onclick="() => SetStatusAsync(status)">
+            <span>@label</span><strong>@count</strong>
+        </button>;
+    }
+
+    private RenderFragment RoleSummary(UserSummary user) => @<span class="role-tags users-role-tags">
+        @if (user.Roles.Count == 0)
+        {
+            <span class="users-muted">@L["Admin_Users_NoRoles"]</span>
+        }
+        else
+        {
+            @foreach (var role in user.Roles.Take(2))
+            {
+                <span class="tag">@RoleName(role)</span>
+            }
+            @if (user.Roles.Count > 2)
+            {
+                <span class="tag">+@(user.Roles.Count - 2)</span>
+            }
+        }
+    </span>;
+
+    private string RoleSummaryText(UserSummary user) => user.Roles.Count switch
+    {
+        0 => L["Admin_Users_NoRoles"],
+        1 => RoleName(user.Roles[0]),
+        _ => L["Admin_Users_RoleCount", user.Roles.Count],
+    };
+
+    private string DisplayName(UserSummary user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName;
+
+    private string Initials(UserSummary user)
+    {
+        var value = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName;
+        var parts = value.Split([' ', '@'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant()
+            : value[..Math.Min(2, value.Length)].ToUpperInvariant();
+    }
+
+    private string SourceLabel(UserSummary user) => user.IsFederated
+        ? user.ExternalProvider ?? L["Admin_Users_Source_Federated"]
+        : L["Admin_Users_Source_Local"];
+
+    private string ConfirmationLabel(UserSummary user) => user.EmailConfirmed
+        ? L["Admin_Users_EmailConfirmed"]
+        : L["Admin_Users_EmailUnconfirmed"];
+
+    private string FormatActivity(DateTimeOffset? activity) => activity is { } value
+        ? TimeZoneInfo.ConvertTime(value, _tz).ToString("g")
+        : L["Admin_Users_NoActivity"];
 }

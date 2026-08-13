@@ -41,6 +41,13 @@ public sealed class UserAdminService(
         string? search,
         int pageIndex,
         int pageSize,
+        CancellationToken cancellationToken = default) =>
+        await ListFilteredPageAsync(new UserListQuery(Search: search), pageIndex, pageSize, cancellationToken);
+
+    public async Task<PagedResult<UserSummary>> ListFilteredPageAsync(
+        UserListQuery query,
+        int pageIndex,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
         // Clamped here, not trusted from the caller: the page size decides how much a single request
@@ -49,7 +56,7 @@ public sealed class UserAdminService(
         var index = Math.Max(0, pageIndex);
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var matching = Matching(dbContext, search);
+        var matching = Matching(dbContext, query);
 
         var total = await matching.CountAsync(cancellationToken);
         if (total == 0)
@@ -64,12 +71,47 @@ public sealed class UserAdminService(
         // Email is unique (Identity is configured with RequireUniqueEmail), so it is already a total
         // order; the id rides along for the theoretical row that has none, because a tie under
         // Skip/Take drops rows off one page and repeats them on the next.
+        var ordered = query.Sort switch
+        {
+            UserListSort.Name => matching
+                .OrderBy(u => u.DisplayName ?? u.Email)
+                .ThenBy(u => u.Email)
+                .ThenBy(u => u.Id),
+            UserListSort.Status => matching
+                .OrderBy(u => u.Status)
+                .ThenBy(u => u.Email)
+                .ThenBy(u => u.Id),
+            UserListSort.RecentActivity => matching
+                .OrderByDescending(u => dbContext.AccountAuditEvents
+                    .Where(e => e.UserId == u.Id)
+                    .Select(e => (DateTimeOffset?)e.OccurredAtUtc)
+                    .Max())
+                .ThenBy(u => u.Email)
+                .ThenBy(u => u.Id),
+            _ => matching.OrderBy(u => u.Email).ThenBy(u => u.Id),
+        };
+
         var items = await SummariseAsync(
             dbContext,
-            matching.OrderBy(u => u.Email).ThenBy(u => u.Id).Skip(index * size).Take(size),
+            ordered.Skip(index * size).Take(size),
             cancellationToken);
 
         return new PagedResult<UserSummary>(items, total, index, size);
+    }
+
+    public async Task<UserDirectorySummary> GetSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return await dbContext.Users.AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(group => new UserDirectorySummary(
+                group.Count(),
+                group.Count(user => user.Status == AccountStatus.Active),
+                group.Count(user => user.Status == AccountStatus.PendingActivation),
+                group.Count(user => user.Status == AccountStatus.Blocked)))
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? new UserDirectorySummary(0, 0, 0, 0);
     }
 
     private static IQueryable<ApplicationUser> Matching(D3ParkingDbContext dbContext, string? search)
@@ -87,6 +129,35 @@ public sealed class UserAdminService(
         return query.Where(u =>
             EF.Functions.Like(u.Email!, term) ||
             (u.DisplayName != null && EF.Functions.Like(u.DisplayName, term)));
+    }
+
+    private static IQueryable<ApplicationUser> Matching(D3ParkingDbContext dbContext, UserListQuery filter)
+    {
+        var query = Matching(dbContext, filter.Search);
+
+        if (filter.Status is { } status)
+        {
+            query = query.Where(user => user.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Role))
+        {
+            var role = filter.Role;
+            query = query.Where(user =>
+                (from userRole in dbContext.UserRoles
+                 join candidateRole in dbContext.Roles on userRole.RoleId equals candidateRole.Id
+                 where userRole.UserId == user.Id && candidateRole.Name == role
+                 select userRole).Any());
+        }
+
+        query = filter.Source switch
+        {
+            UserAccountSourceFilter.Local => query.Where(user => user.ExternalProvider == null),
+            UserAccountSourceFilter.Federated => query.Where(user => user.ExternalProvider != null),
+            _ => query,
+        };
+
+        return query;
     }
 
     /// <summary>
@@ -112,6 +183,12 @@ public sealed class UserAdminService(
                 u.Email,
                 u.DisplayName,
                 u.Status,
+                u.EmailConfirmed,
+                u.ExternalProvider,
+                LastActivityUtc = dbContext.AccountAuditEvents
+                    .Where(audit => audit.UserId == u.Id)
+                    .Select(audit => (DateTimeOffset?)audit.OccurredAtUtc)
+                    .Max(),
                 Roles = (from ur in dbContext.UserRoles
                          join r in dbContext.Roles on ur.RoleId equals r.Id
                          where ur.UserId == u.Id
@@ -121,7 +198,9 @@ public sealed class UserAdminService(
             .ToListAsync(cancellationToken);
 
         return rows
-            .Select(r => new UserSummary(r.Id, r.Email!, r.DisplayName, r.Status, r.Roles))
+            .Select(r => new UserSummary(
+                r.Id, r.Email!, r.DisplayName, r.Status, r.Roles,
+                r.EmailConfirmed, r.ExternalProvider, r.LastActivityUtc))
             .ToArray();
     }
 
