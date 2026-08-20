@@ -20,8 +20,9 @@ ve špičce a s obsazeností, takže vzácná místa proudí tam, kde jsou nejv�
 **reputační body**, které odměňují ohleduplné chování (včasné uvolnění a sdílení vyhrazeného místa).
 Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
 
-> **Výchozí administrátor:** `admin@d3parking.local` / `Admin123$` (viz `IdentitySeed` v
-> `src/D3Parking.Web/appsettings.json`). **Jazyky UI:** čeština (výchozí) a angličtina.
+> **Výchozí vývojový administrátor:** `admin@d3parking.local` / `Admin123$` (viz `IdentitySeed` v
+> `src/D3Parking.Web/appsettings.Development.json`; produkce musí použít vlastní přihlašovací údaje).
+> **Jazyky UI:** čeština (výchozí) a angličtina.
 
 > **Technická dokumentace** — architektura, nasazení, konfigurace, vývoj a technické poznámky jsou
 > v samostatném dokumentu [docs/TECHNICAL.md](docs/TECHNICAL.md).
@@ -36,9 +37,9 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
   - [Fronta při plném obsazení](#fronta-při-plném-obsazení)
   - [„Nemůžu zaparkovat" a omluvný kupón](#nemůžu-zaparkovat-a-omluvný-kupón)
   - [Body a reputace](#body-a-reputace)
-  - [Série, úrovně a výhody](#série-úrovně-a-výhody)
+  - [Úrovně a výhody](#úrovně-a-výhody)
   - [Rezidentní místa](#rezidentní-místa)
-  - [Dojezdová vzdálenost](#dojezdová-vzdálenost)
+  - [Poloha a ověřování adres](#poloha-a-ověřování-adres)
   - [Ochrana proti zneužití](#ochrana-proti-zneužití)
   - [Provozní dohled](#provozní-dohled)
   - [Plocha parkoviště pro správce](#plocha-parkoviště-pro-správce)
@@ -60,8 +61,8 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
 - **Výhody za reputaci** — vyšší tier = přednost ve frontě, větší příděl a sleva na cenu.
 - **Rozklad reputace** — body časem slábnou, takže skóre odráží *současné* chování (a tresty se hojí).
 - **Týmové žebříčky** — porovnání oddělení a sociální srovnání s průměrem vlastního týmu.
-- **Graf důvěry** — skóre důvěry (PageRank nad reálnými sdílecími interakcemi) + odznak „Důvěryhodný".
-- **Anti-collusion** — detekce recipročních kruhů sdílení + cap váhy hrany v grafu důvěry; flagy k revizi.
+- **Historický graf důvěry** — PageRank a detekce recipročních dvojic nad staršími potvrzenými
+  interakcemi; nový plánovač bez potvrzování přítomnosti do grafu nové hrany nepřidává.
 - **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
 - **Rezidentní místa** — místa držená pro vlastníka s odstupňovanou odměnou za sdílení do fondu.
 - **Vozový park s typy vozidel** — evidence vozidel podle SPZ s bezpečným párováním na účty
@@ -70,10 +71,10 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
   z fondu — vlastní místo mu přidělit nejde.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
-  (nebo plnou vratku) bez rizika no-show (max. 2 záznamy na uživatele a den). Záznam vyžaduje
+  (nebo plnou vratku) bez sankce (max. 2 záznamy na uživatele a den). Záznam vyžaduje
   **fotografii zablokovaného místa** jako důkaz; každou fotku lze použít jen jednou (SHA-256 otisk
   s unikátním indexem). Správce u každé neshody vidí fotodůkaz i rezervace, které se s oknem na
-  místě potkaly (typicky nedostavení), a může držitele rovnou kontaktovat e-mailem. Jako omluva
+  místě potkaly, a může držitele rovnou kontaktovat e-mailem. Jako omluva
   náleží **kupón na jednu rezervaci zdarma** (i ve špičce, max. 1 nevyčerpaný; včasné zrušení ho
   vrací) — kupón ale nejdřív podle fotky **schválí správce parkovacích míst**, platí 30 dní od
   schválení.
@@ -85,8 +86,8 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
   historie a otevřený dotaz správce. Řidič může doplnit informaci, odpovědět, hlášení **vzít zpět**
   (čekající kupón tím zaniká) a proti zamítnutému kupónu se **jednou odvolat**. Než odpoví, lhůta
   případu neběží.
-- **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě, volitelně
-  s fotkou; vzniká z toho případ pro správu míst.
+- **Hlášení závad** — pokud je správce povolí, uživatel nahlásí nefunkční závoru, zhaslé světlo nebo
+  překážku na místě, volitelně s fotkou; vzniká z toho případ pro správu míst.
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -95,9 +96,9 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
   a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
 - **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
   Calendar) včetně připomínky 30 minut před začátkem.
-- **Nápověda v aplikaci** — stránka `/help` vysvětluje uživatelům rezervace, kredity, body, frontu,
-  rezidentní místa i postup, když se nedá zaparkovat; správci navíc vidí sekci o návštěvách,
-  neshodách a pravidlech. Lokalizovaná (cs/en).
+- **Živá nápověda v aplikaci** — stránka `/help` načítá aktuální ceny, odměny, lhůty a přepínače
+  funkcí z databáze. Kapitoly vypnutých funkcí a správcovské části bez příslušného oprávnění
+  nezobrazuje. Lokalizovaná (cs/en).
 - **Návštěvy** — recepce rezervuje návštěvnická místa hostům **bez účtu** (jméno, firma, SPZ,
   hostitel — ten dostane notifikaci, kde jeho návštěva parkuje). Místa typu *Návštěvnické* jsou
   vyčleněná z fondu zaměstnanců a SPZ návštěvy se automaticky páruje v neshodách obsazenosti.
@@ -122,7 +123,7 @@ volných míst — a nahoře banner **omluvného kupónu** na rezervaci zdarma:
 
 ![Rezervace místa](docs/screenshots/reserve.png)
 
-**Žebříček** — úroveň s prstencem postupu, skóre, série dokončení, důvěra a pořadí kolegů:
+**Žebříček** — úroveň, reputační skóre a pořadí kolegů; u starších dat také historické statistiky:
 
 ![Žebříček](docs/screenshots/leaderboard.png)
 
@@ -135,13 +136,16 @@ rezervace, které se s oknem potkaly, kontakt e-mailem a historie případu:
 
 ![Registrace](docs/screenshots/registration.gif)
 
-**Přihlášení a používání** — přihlášení, peněženka v hlavičce, rezervace místa s živým náhledem ceny
-a žebříček s úrovní a skóre důvěry:
+**Přihlášení a používání** — přihlášení vývojového správce a přechod na osobní přehled:
 
 ![Přihlášení a používání](docs/screenshots/login.gif)
 
-**Administrace** — správa účtů, parkovací místa, *Pravidla a ceny* v záložkách (ekonomika, body
-a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita) a neshody obsazenosti:
+**Dynamická nápověda** — ceny, odměny, limity a dostupné části administrace se načítají z aktuálního
+nastavení systému a oprávnění přihlášeného uživatele:
+
+![Dynamická nápověda](docs/screenshots/help.gif)
+
+**Administrace** — správa účtů, parkovací místa, živá *Pravidla a ceny* v záložkách a provozní dohled:
 
 ![Administrace](docs/screenshots/administration.gif)
 
@@ -215,17 +219,17 @@ Propadlá nabídka pošle čekatele na konec fronty, takže další uvolněné m
 
 ### „Nemůžu zaparkovat" a omluvný kupón
 
-Když řidič dorazí a jeho rezervované místo je fyzicky zablokované cizím autem, nemusí to řešit
-nedostavením se: tlačítko **„Nemůžu zaparkovat"** (dostupné v okně check-inu) nabídne dvě cesty —
+Když řidič dorazí a jeho rezervované místo je fyzicky zablokované cizím autem, použije tlačítko
+**„Nemůžu zaparkovat"** (dostupné během okna rezervace), které nabídne dvě cesty —
 **„Najít mi jiné místo"** zarezervuje první volné místo pro stejné okno s převodem původní platby
 (peněženka net nula), **„Jen zaznamenat stav"** rezervaci zruší s plnou vratkou bez ohledu na cutoff.
-Obojí **bez rizika no-show penalizace**. Součástí záznamu je **povinná fotografie zablokovaného
+Obojí proběhne **bez sankce**. Součástí záznamu je **povinná fotografie zablokovaného
 místa** — důkaz, který následně posuzuje správce.
 
 - Pro řidiče je tok záměrně **pomocný, ne žalující**: nikde se nejmenuje ani neobviňuje kolega,
   eviduje se **stav místa** (neshoda obsazenosti). Správce ale na `/admin/parking/oversight` vidí
-  u každého záznamu i **rezervace, které se s oknem na místě potkaly** — typicky toho, kdo si místo
-  rezervoval a nedorazil — a může držitele i ohlašovatele rovnou **kontaktovat e-mailem**
+  u každého záznamu i **rezervace, které se s oknem na místě potkaly**, a může držitele i
+  ohlašovatele rovnou **kontaktovat e-mailem**
   (předvyplněný mailto s místem a dnem).
 - **SPZ blokujícího vozidla:** řidič ji může při záznamu rovnou opsat (nepovinné pole — stojí přímo
   u auta). Správce ji vidí spárovanou s **registrovanými vozidly zaměstnanců** (SPZ v profilu,
@@ -251,25 +255,22 @@ místa** — důkaz, který následně posuzuje správce.
 ### Body a reputace
 
 **Body** jsou čistě **reputační skóre** pro **žebříček** (`/parking/leaderboard`) a **odznaky**;
-získávají se za ověřené chování a **utrácení kreditu je nikdy nesnižuje**. Odměny se připisují **za
-ověřené výsledky** (při dokončení / reálném využití), nikdy jen za rezervaci, a zvyšují **současně
-reputaci i peněženku**:
+**utrácení kreditu je nikdy nesnižuje**. V režimu plánovaných bloků se odměňuje to, co lze ověřit
+bez sledování fyzické přítomnosti: včasné uvolnění rezervace a zpřístupnění rezidentního místa.
+Odměna zvyšuje **současně reputaci i peněženku**:
 
 | Důvod | Kdy | Poznámky |
 | --- | --- | --- |
-| Bonus mimo špičku | při dokončení | rezervace začala mimo špičkové okno |
 | Uvolnění | při včasném uvolnění | **škálováno obsazeností + délkou fronty**, zastropováno; denně omezeno na uživatele |
-| Série dokončení | při dokončení | rostoucí bonus za nepřerušenou řadu; no-show ji vynuluje; odměny za dokončení se vyplácí max. 1× za lokální den |
-| Obsazení sdíleného místa | při dokončení | obsazení sdíleného rezidentního místa; škálováno dojezdem |
-| Sdílení rezidenta | při proaktivním uvolnění | dle předstihu + měsíčního přídělu rezidenta |
-| Penalizace za no-show | údržbovou smyčkou | rezervace bez příjezdu po ochranné lhůtě; u rezervace vytvořené až po začátku okna běží lhůta od vytvoření |
-| Vratka sdílení | smyčkou / rekonciliací | promarněný nebo nerezervovaný sdílený den; součet srážek za den je zastropován přiznanou odměnou (den nikdy nejde do minusu) |
+| Sdílení rezidenta | při proaktivním uvolnění | podle předstihu, se stropem za den; bez měsíční kvóty |
+| Vratka sdílení | denní rekonciliací | uvolněný den, který si nikdo nenaplánoval, vrátí původně přiznanou odměnu |
 
 Účetní kniha (ledger) eviduje vedle reputačních důvodů i pohyby peněženky: **měsíční příděl kreditu**,
-**stržení za rezervaci** a **vrácení kreditu**. Odznaky: *Ohleduplný kolega*, *Šampion mimo špičku*,
-*Spolehlivý parkovač*, *Klub stovky*, *Důvěryhodný*.
+**stržení za rezervaci** a **vrácení kreditu**. Po přechodu na plánovač se nevytváří check-in,
+dokončení ani no-show, takže se neudělují nové odměny za dokončení, mimo špičku či sérii. Historické
+čítače a odznaky zůstávají čitelné kvůli kompatibilitě dat.
 
-### Série, úrovně a výhody
+### Úrovně a výhody
 
 Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatatelnými výhodami:
 
@@ -277,10 +278,6 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
   přirážka podle obsazenosti lotu pro dané okno **plus bonus za každého čekajícího ve frontě**,
   zastropováno. Uvolnit místo ve špičce, když čekají lidé, vynáší výrazně víc než uvolnit nežádané
   místo — zrcadlí to přirážku za obsazenost u ceny.
-- **Série dokončení (streak)** — za každou nepřerušenou řadu reálně využitých rezervací roste bonus
-  (do stropu) připisovaný do reputace i peněženky. Jakýkoli no-show sérii vynuluje. Check-in je možný
-  až krátce před začátkem okna a dokončení až po jeho začátku; balíček odměn za dokončení se vyplácí
-  nejvýše jednou za lokální den — smyčka rezervuj→check-in→dokonči se tedy nedá farmit.
 - **Loajalitní úrovně** — z reputačních bodů se odvozuje tier **Bronz → Stříbro → Zlato → Platina**
   (hranice jsou laditelné). Tier je vidět v žebříčku.
 - **Výhody vyššího tieru** — reputace se konečně vyplácí:
@@ -294,10 +291,9 @@ Aby systém nebyl jen restriktivní, odměňuje vytrvalost a loajalitu hmatateln
 - **Týmové žebříčky a sociální srovnání** — uživatel si v profilu nastaví **tým/oddělení**; žebříček pak
   ukazuje pořadí týmů (podle průměrné reputace členů) a kartu „můj tým" s pozicí v týmu a porovnáním
   vlastních čísel s průměrem týmu (normativní motivace).
-- **Graf důvěry** — z **dokončených** rezervací hostů na sdílených místech se sestaví graf interakcí a
-  váženým **PageRankem** se spočítá skóre důvěry (0–100, relativně k nejdůvěryhodnějšímu členu). Nad
-  laditelným prahem se udělí odznak **„Důvěryhodný"**. Hrany vyžadují reálné dokončené rezervace (stojí
-  kredit a obsazují místo), takže je drahé je farmit.
+- **Graf důvěry a anti-collusion** — zůstávají dostupné nad historickými rezervacemi ve stavu
+  `Completed`. Nový plánovač přítomnost nepotvrzuje a tento stav nevytváří, takže bez importovaných
+  či historických dat graf nezískává nové interakce.
 
 ### Rezidentní místa
 
@@ -324,58 +320,49 @@ pak řízeno **plánem využití rezidenta**:
 - Plánované dny nevyžadují denní potvrzení ani zvláštní rezidentní připomínku.
 
 **Odměna za sdílení** je `min(strop za den, hodiny_předstihu × sazba)`. Každý nově uvolněný den
-se hodnotí samostatně a žádný měsíční limit počtu uvolnění neexistuje. Odměna je podmíněna poptávkou:
+se hodnotí samostatně a žádný měsíční limit počtu uvolnění neexistuje. Odměna je podmíněna tím,
+že uvolnění skutečně pomohlo plánování:
 
-- host místo využil → odměna zůstává;
-- host rezervoval, ale nedorazil → částečná vratka;
-- nikdo uvolněný den nerezervoval → odměnu plně zruší denní rekonciliace.
+- někdo si na uvolněný den místo naplánoval → odměna zůstává;
+- nikdo si uvolněný den nenaplánoval → odměnu plně zruší denní rekonciliace;
+- rezident si den vezme zpět → odměna se odečte a případný plán hosta se bez sankce vrátí.
 
 </details>
 
-### Dojezdová vzdálenost
+### Poloha a ověřování adres
 
-Obsazení sdíleného místa je odměněno tím víc, čím dál dojíždí ten, kdo ho obsadí (se stropem), takže
-vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají **domácí adresu** v profilu; ta se
-**geokóduje** (Nominatim) a spočte se **vzdálenost k parkovišti**.
+Uživatel může v profilu zadat **domácí adresu**; geokódování (Nominatim) a souřadnice parkoviště
+umožní spočítat vzdálenost a podle konfigurace adresu automaticky ověřit. V aktuálním plánovacím
+režimu se vzdálenost nepoužívá k přidělování bodů — nastavení a uložené údaje zůstávají kvůli
+ověřování a kompatibilitě starších instalací.
 
 - Poskytovatel je zaměnitelný: **Haversine** (vzdušnou čarou, offline; výchozí) nebo **OSRM** silniční
   vzdálenost (`Distance:Provider = "Osrm"`), která **spadne zpět na Haversine**, je-li služba nedostupná.
-- Nahlášená adresa získá odměnu až po **ověření** — administrátorem, nebo **automaticky** v rámci limitu
-  vzdálenosti (`AutoVerifyHomeAddress`). Adresu lze kdykoli odstranit.
+- Adresu ověřuje administrátor, případně systém automaticky v nastaveném limitu
+  (`AutoVerifyHomeAddress`). Uživatel ji může kdykoli odstranit.
 
 ### Ochrana proti zneužití
 
-1. Cena rezervace + měsíční příděl tvoří uzavřenou ekonomiku; rezervace/uvolnění ve smyčce je v čisté
-   nule (stržení se vrátí), takže nic nevydělá.
-2. Odměny mimo špičku a za vzdálenost se platí **při dokončení**, ne při rezervaci.
-3. Odměněná **uvolnění jsou denně zastropována**.
-4. Uvolněné dny, které **nikdo nerezervoval, se rekonciliují** a odměna se zruší.
-5. Odměna za vzdálenost vyžaduje **ověřenou adresu**.
-6. **Cap váhy hrany v grafu důvěry** — jeden protějšek přispěje k důvěře jen do stropu, takže reciproční
-   kruh si nenapumpuje skóre.
-7. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
-   (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi**, ze kterého vznikne
-   případ v *Provozním dohledu*. Detekce sama **nikdy netrestá**: sráží body či kredity výhradně
-   člověk, a to jen s oprávněním `Parking.SanctionOversight`, jen vůči účastníkovi případu a jen
-   s odůvodněním, které dotčený uvidí.
-9. **Odměny za dokončení max. 1× za den**, check-in jen kolem okna rezervace a dokončení až po jeho
-   začátku — smyčka rezervuj→check-in→dokonči nefarmí ani body, ani kredity.
-10. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; záznam vyžaduje **fotodůkaz**,
-    jehož SHA-256 otisk je unikátní (stejná fotka nikdy nepodloží dva záznamy), a omluvný kupón
-    **odemyká až schválení recenzentem neshod** (vlastní kupón schválit nelze). Drží se
-    nejvýše jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají
-    co těžit.
+1. Cena rezervace + měsíční příděl tvoří uzavřenou ekonomiku; včasné uvolnění vrátí původní platbu
+   a samostatná odměna je denně zastropovaná.
+2. Uvolněné rezidentní dny, které si **nikdo nenaplánoval, se rekonciliují** a odměna se zruší.
+3. Správce může srazit body či kredity jen s oprávněním `Parking.SanctionOversight`, jen účastníkovi
+   konkrétního případu a s odůvodněním, které dotčený uvidí.
+4. **„Nemůžu zaparkovat" jen v okně rezervace a max. 2× denně**; záznam vyžaduje **fotodůkaz**,
+   jehož SHA-256 otisk je unikátní (stejná fotka nikdy nepodloží dva záznamy), a omluvný kupón
+   **odemyká až schválení recenzentem neshod** (vlastní kupón schválit nelze). Drží se
+   nejvýše jeden nevyčerpaný, expiruje za 30 dní a fronta je bez kupónů — falešná hlášení nemají
+   co těžit.
 
 ### Provozní dohled
 
 <details>
 <summary>Jedna fronta případů nad vším, co čeká na rozhodnutí člověka</summary>
 
-`/admin/parking/oversight` je jeden seznam nad čtyřmi zdroji: **neshodami obsazenosti** (hlášení
-řidičů), **podezřelými dvojicemi** (noční sken), **závadami** nahlášenými uživateli a **spory
-o nedostavení**. Co bylo
-dřív tabulkou signálů, je teď **případ**: má číslo, které se dá citovat, vlastníka, lhůtu a
-nemazatelnou historii.
+`/admin/parking/oversight` je jeden seznam nad **neshodami obsazenosti**, **podezřelými dvojicemi**
+a — pokud jsou povolená — **závadami nahlášenými uživateli**. Starší instalace zde mohou mít také
+historické spory o nedostavení; nový plánovač je už nevytváří. Každý signál čekající na člověka má
+vlastní **případ**: číslo, vlastníka, lhůtu a nemazatelnou historii.
 
 - **Případ je obálka nad signálem, ne jeho kopie.** Ukazuje na záznam s důkazy (hlášení, flag,
   závadu) a ten se čte za běhu — fotka, spárovaná SPZ i koncentrace dvojice mají jedno jediné místo.
@@ -413,8 +400,8 @@ nemazatelnou historii.
   zůstává rolí, ne jménem.
 - **Rozhodnutí vůči osobě** (výstraha, případně srážka bodů a kreditů) má vlastní oprávnění, míří jen
   na účastníka případu, nikdy na sebe a nikdy bez důvodu — ten dotčený uvidí. Zapíše se najednou do
-  historie případu, knihy bodů, auditu účtu i notifikace. Nejde přes no-show penalizaci: nikdo se
-  nedostavil, takže počítadla chování se nehýbou.
+  historie případu, knihy bodů, auditu účtu i notifikace. Je to samostatná ruční sankce a nemění
+  historická počítadla dokončení či nedostavení.
 
 </details>
 
@@ -443,8 +430,8 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
   i zmáčknout (kvůli klávesnici). Počet u sekce zůstává její skutečnou velikostí, ne počtem
   vykreslených dlaždic.
 - **Precedence stavu** je jedno jediné místo v kódu: neaktivní místo je mimo parkoviště bez ohledu na
-  vše ostatní, přítomný řidič přebíjí pouhou rezervaci a rezidentní místo je kapacita fondu teprve
-  tehdy, když je skutečně sdílené.
+  vše ostatní, živá rezervace přebíjí nabídku z fronty a rezidentní místo je kapacita fondu teprve
+  tehdy, když je skutečně sdílené. Stav `CheckedIn` se zobrazuje jen u historických dat.
 - **Detail místa** se otevře **kliknutím na dlaždici** jako modální okno: nastavení, plán využití
   rezidenta, stav dnes, graf zatížení místa, **kalendář na 14 dní** (rezervace, návštěvy a uvolněné
   dny, které nikdo nezabral), historie nahlášených neshod a vytíženost.
@@ -453,12 +440,11 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
     parkoviště, ne řidič, takže platí stejné bezvinné pravidlo jako u zablokovaného místa (včetně
     vrácení omluvného kupónu, a to i s jeho stropem, aby zásah nebyl cestou kolem něj);
   - **přesun rezervace na jiné volné místo** — rezervace se jen **přesměruje**, nezakládá se nová:
-    cena, potvrzený příjezd i historie zůstávají, takže se v peněžence nic nehýbe;
+    cena i historie zůstávají, takže se v peněžence nic nehýbe;
   - **odstavení místa** (údržba).
 
-  Zrušit lze jen rezervaci, na kterou nikdo nedorazil (stavový automat jiný přechod nepovoluje);
-  u potvrzené je čestný zásah přesun. Každý zásah držitele notifikuje a zapíše se do jeho auditu
-  (`ReservationOverridden`, aktér `admin:<id>`).
+  Zrušit lze živý plán ve stavu `Reserved`; historický `CheckedIn` lze už jen přesunout. Každý zásah
+  držitele notifikuje a zapíše se do jeho auditu (`ReservationOverridden`, aktér `admin:<id>`).
 - **Analytika** v okně 7 / 30 / 90 dní, vedená **grafy** ([Blazor-ApexCharts](https://apexcharts.com/docs/blazor-charts/),
   MIT; Fluent UI Blazor charty nemá a odkazuje právě na něj):
   - **zatížení v čase** — plošný graf, kolik míst každý den někdo skutečně obsadil;
@@ -467,12 +453,12 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
   - **kdy poptávka dopadá** — heatmapa den v týdnu × hodina;
   - **zatížení konkrétního místa** — pruhový pás 30 dnů v detailu místa.
 
-  Pod grafy zůstává **rozklikávací tabulka** všech míst s čísly, která graf nenese: nedostavení,
-  neshody, sdílené a promarněné dny.
+  Pod grafy zůstává **rozklikávací tabulka** všech míst s čísly, která graf nenese: neshody,
+  sdílené a promarněné dny; u starších dat také historická nedostavení.
 
-  Vytíženost počítá asfalt, ne papír — zrušená rezervace neobsadila nic a nedostavení obsadilo místo
-  jen na papíře, takže se do ní nezapočítávají. Poptávka se měří v **obsazených hodinách míst**, ne
-  v počtu rezervací, aby osmihodinová rezervace nesplynula s jedním tikem. Denní křivka škáluje
+  Vytíženost vychází z plánovaných bloků, které nebyly zrušené ani uvolněné. Poptávka se měří
+  v **obsazených hodinách míst**, ne v počtu rezervací, aby osmihodinová rezervace nesplynula
+  s jedním tikem. Denní křivka škáluje
   k **dnešní** kapacitě — historii toho, kolik míst bylo v provozu kdy, systém nevede, takže denní
   jmenovatel by byl vymyšlený.
 
@@ -481,78 +467,17 @@ jako čísla v čase) — nad nimi je souhrn, který platí pro oba.
 ### Mapa parkoviště
 
 <details>
-<summary>Editor, ve kterém se plán areálu nakreslí a jeho stání se napojí na parkovací místa</summary>
+<summary>Statický orientační plán pro řidiče</summary>
 
-`/admin/parking/map` (`Parking.ManageSpots`) je kreslicí nástroj: vznikne v něm plán areálu tak, jak
-skutečně vypadá, a jeho obdélníky se napojí na parkovací místa z katalogu.
+Správce s `Parking.ManageIncentives` nahraje v **Pravidlech a cenách** jeden orientační obrázek
+parkoviště ve formátu PNG, JPEG nebo WebP (max. 12 MiB). Obrázek se ukládá do databáze a změna se
+projeví bez nasazení nové verze.
 
-Mapa záměrně **není totéž co parkoviště**. Kreslí se celý areál včetně stání, která patří někomu
-jinému — řidič potřebuje vidět, že jeho 434 je uprostřed řady, ne osamoceně v prázdnu. Které
-z nakreslených stání je doopravdy rezervovatelné, rozhoduje napojení na místo, jedno po druhém.
-Nenapojené stání zůstává na plánu jako kontext.
-
-- **Podklad:** sken oficiálního plánu se nahraje pod kresbu a obtáhne se podle něj; průhlednost je
-  nastavitelná. Je to pomůcka při kreslení, ne součást výstupu. Přijímá se **PNG, JPEG a WebP** —
-  formát se pozná z obsahu souboru, ne z toho, co o sobě tvrdí. SVG záměrně ne: je to dokument
-  s možností nést skript a servírovat ho zpátky ze stejné adresy by byla bezpečnostní díra.
-- **Nástroje:** výběr (tažení, změna velikosti za osm úchytů, otáčení za rameno), kreslení a posun
-  plátna. Mřížka přichytává, Shift drží při otáčení násobky 15°, Delete maže výběr a šipky ho
-  posouvají po mřížce. Kolečko přibližuje k ukazateli.
-- **Řada:** jedno obtažené stání se zopakuje do celé řady — zadá se, kolik jich má být, mezera
-  a směr. Číslování pokračuje z popisku zdroje (`428` → `429`, `430`…) včetně případného odsazení
-  nulami. Řada se posouvá **po vlastní ose stání**, takže natočená řada zůstane natočená. Tohle je
-  ta věc, díky které je obtažení plánu o čtyřech stech stáních práce na odpoledne.
-- **Napojení:** *Napojit podle popisků* sváže každé dosud nenapojené stání, jehož popisek odpovídá
-  kódu parkovacího místa, a vypíše obojí, co zbylo — popisky bez místa (cizí stání) i místa bez
-  nakresleného stání. *Založit parkovací místa* jde opačným směrem: z popisků vybraných stání
-  vytvoří skutečná místa a rovnou je napojí. Obě operace jde spustit opakovaně, aniž by něco rozbily.
-- **Import plánu z SVG:** vyexportujte plán areálu z PDF nebo DWG do SVG a nahrajte ho — stání se
-  rozmístí sama, čísla natištěná uvnitř se z nich stanou popisky a mapa převezme rozměry kresby.
-  Rozdíl mezi otevřením souboru a odpolednem obtahování. Co se přečíst nedá (nepravoúhlé tvary,
-  texty mimo stání, nepodporované transformace), se **spočítá a vypíše** — import, který tiše ztratí
-  čtyřicet stání, je horší než ten, který řekne, že je nepřečetl. Soubor se jen přečte a zahodí;
-  neukládá se a nikdy se neservíruje zpět (proto je SVG vítané tady a odmítnuté jako podklad).
-  Naimportované tvary jdou vzít zpět jedním krokem.
-- **Srovnat mapu podle podkladu:** rozměry mapy se převezmou ze skutečných rozměrů skenu, takže se
-  plán neroztahuje. Bez toho se kreslí přes zdeformovaný podklad a nic na obrazovce neřekne, jaké
-  rozměry měly být zadané. Už nakreslené tvary se přeškálují s ním.
-- **Razítko a duplikát:** v režimu kreslení položí **kliknutí** (bez tažení) obdélník poslední
-  použité velikosti — a „poslední" je i rozměr právě vybraného stání, takže se dá jedno obtáhnout
-  a zbytek naklikat. **Ctrl+D** zkopíruje výběr vedle originálu; z hotové řady tak vznikne dvojřada
-  jedním hmatem.
-- **Přečíslovat výběr:** popisky se přiřadí v pořadí čtení — pásy shora, v pásu zleva — od zadaného
-  čísla a s volitelným krokem; zaškrtávátko obrátí pořadí pro sloupce číslované opačně. Řada
-  obtažená správně, ale začínající o jedna vedle, se tím spraví jedním krokem místo třinácti přepisů.
-- **Najít popisek:** políčko v liště vybere všechna stání s daným popiskem a najede na ně. Bez toho
-  nemá otázka „kde je 434?" na plánu o pěti stech tvarech jinou odpověď než hledání očima. Popisky
-  ve výpisu z auto-linku jsou klikací a vedou na totéž.
-- **Zarovnat a rozmístit:** vybraná stání se srovnají na společnou hranu nebo osu, případně
-  rozmístí rovnoměrně mezi krajní dva. Tvary se jen posouvají, nikdy nemění velikost, a měří se
-  podle skutečně zabrané plochy — takže i natočené stání se srovná tak, jak vypadá.
-- **Hromadná změna druhu:** deset obdélníků najednou na Komunikaci. Kolik to stálo napojení na
-  místa, se vypíše — napojit lze jen stání, takže změna druhu je ruší.
-- **Zpět (Ctrl+Z):** tažení, vznik tvaru či celé řady, duplikát, smazání výběru i hromadné
-  přečíslování se dají vzít zpět, padesát kroků do historie. Smazané tvary se vrací i s geometrií, popisky a napojením — jen se nikdy
-  nesváží s místem, které mezitím nakreslil někdo jiný. Historie patří jedné mapě a jednomu sezení.
-- **Tvar neuteče z mapy:** obdélník tažený za okraj se vrátí zpátky na plochu, stejně jako tvary,
-  které by zůstaly venku po zmenšení mapy. Jinak by nešly kliknout ani najet a byly by ztracené.
-- **Publikace:** publikovaná je vždy nejvýš jedna mapa — obrazovky pro řidiče se ptají na „tu" mapu
-  a dvě odpovědi by znamenaly, že záleží na pořadí řádků. Rozpracovaná mapa se ven nedostane.
-- **Na ploše dashboardu:** publikovaná mapa se dá zapnout na `/admin/parking/dashboard` přepínačem
-  **Mřížka / Mapa**. Stání nesou tytéž barvy stavu jako dlaždice a klik otevře stejný postranní
-  detail — přepnutí pohledu tedy není přeučení. Cizí stání, budovy a komunikace se kreslí tlumeně
-  jako kontext a klikat na ně nejde. Přepínač se nabízí, teprve když je nějaká mapa publikovaná;
-  dokud se plán obtahuje, je mřížka poctivější odpověď.
-- **V rezervaci pro řidiče:** po vyhledání volných míst se dá výsledek přepnout ze seznamu na
-  **mapu** a rezervovat kliknutím přímo na stání. Volná jsou zelená a klikatelná, naše obsazená
-  šedá (ale nakreslená — „naše, ale obsazené" a „cizí" jsou jiné odpovědi) a cizí zůstávají
-  kontextem. Seznam se nikdy neschovává: je to, co funguje na telefonu, co přečte čtečka obrazovky
-  a co zbyde, když je kresba špatně.
-- **Přenos:** mapu lze vyexportovat do JSON a naimportovat jinde (geometrie a popisky; napojení se
-  v cílové databázi obnoví jedním kliknutím na *Napojit podle popisků*).
-
-Geometrie tvaru je **obdélník s úhlem**, ne volný polygon: každé stání na plánu obdélník je, včetně
-těch ve vějíři, a pět čísel místo proměnného seznamu bodů dělá úchyty i aritmetiku řady přesnými.
+- Mapa je čistě **orientační**: neobsahuje klikací místa a neurčuje dostupnost ani rezervovatelnost.
+- Po rezervaci ji řidič otevře z detailu plánu a podle kódu místa se zorientuje v areálu.
+- Když mapa není nahraná, tlačítko ani prázdný náhled se nezobrazují.
+- Endpoint obrázku používá validovaný typ obsahu a veřejnou cache s verzovanou URL; po změně se
+  klientům načte nová verze.
 
 </details>
 
@@ -583,7 +508,9 @@ něj vidí, ale naložit práci kolegovi smí jen `AssignOversight` a rozhodnout
 `SanctionOversight`.
 
 Veškerá nastavení motivačního systému jsou **laditelná za běhu** v administraci; jejich přehled je
-v [technické dokumentaci](docs/TECHNICAL.md#konfigurace).
+v [technické dokumentaci](docs/TECHNICAL.md#konfigurace). README popisuje schopnosti projektu;
+pro skutečně zapnuté funkce, aktuální částky a lhůty konkrétní instalace je autoritativní živá
+nápověda na `/help`.
 
 ## Licence
 

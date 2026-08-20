@@ -615,34 +615,44 @@
   <data name="Nav_Short_Help" xml:space="preserve"><value>Nápověda</value></data>
   <data name="Help_Title" xml:space="preserve"><value>Nápověda</value></data>
   <data name="Home_Card_Help" xml:space="preserve"><value>Jak rezervovat, za co jsou body a co dělat, když něco nevyjde.</value></data>
-  <data name="Help_Intro" xml:space="preserve"><value>Jak si rezervovat místo, za co získáváte body a co dělat, když něco nevyjde. Klikněte na otázku a rozbalí se odpověď.</value></data>
+  <data name="Help_Intro" xml:space="preserve"><value>Jak si rezervovat místo a co dělat, když něco nevyjde. Obsah i uvedené hodnoty odpovídají aktuálnímu nastavení systému a vašim oprávněním.</value></data>
   <data name="Help_Reserve_Q" xml:space="preserve"><value>Jak si zarezervuji parkovací místo?</value></data>
-  <data name="Help_Reserve_A1" xml:space="preserve"><value>V sekci Rezervace místa vyberte datum a čas od–do a klikněte na Najít místa. Zobrazí se volná místa i cena v kreditech pro dané okno. U vybraného místa klikněte na Rezervovat.</value></data>
-  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho — nejpozději {0} před začátkem dostanete celý kredit zpět a ještě body za zpřístupnění ostatním.</value></data>
+  <data name="Help_Reserve_A1_Paid" xml:space="preserve"><value>V sekci Rezervace místa vyberte datum a čas od–do a klikněte na Najít místa. Zobrazí se volná místa i cena v kreditech pro dané okno. U vybraného místa klikněte na Rezervovat.</value></data>
+  <data name="Help_Reserve_A1_Free" xml:space="preserve"><value>V sekci Rezervace místa vyberte datum a čas od–do a klikněte na Najít místa. Zobrazí se volná místa pro dané okno; rezervace je při současném nastavení zdarma. U vybraného místa klikněte na Rezervovat.</value></data>
+  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho — nejpozději {0} před začátkem dostanete celý kredit zpět.</value></data>
+  <data name="Help_Reserve_A2_PaidRewarded" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho — nejpozději {0} před začátkem dostanete celý kredit zpět a také body za zpřístupnění ostatním.</value></data>
   <data name="Help_Reserve_A2_Free" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho co nejdřív, ať ho může využít někdo jiný.</value></data>
+  <data name="Help_Animation_Reserve_Alt" xml:space="preserve"><value>Animovaná ukázka výběru dne, zadání času a vyhledání volných parkovacích míst.</value></data>
+  <data name="Help_Animation_Reserve_Caption" xml:space="preserve"><value>Ukázka: vyberte den, nastavte čas a zobrazte dostupná místa. Samotná ukázka žádnou rezervaci nevytváří.</value></data>
   <data name="Help_Credits_Q" xml:space="preserve"><value>Co jsou kredity a proč se cena mění?</value></data>
-  <data name="Help_Credits_A1" xml:space="preserve"><value>Rezervace se platí kredity z vaší peněženky. Základní cena je {0}, ve špičce ({1}–{2}) a při vyšší obsazenosti roste — nejvýš na {3}. Vzácné termíny tak stojí víc a levnější časy zůstávají dostupné pro ty, kdo mohou přijet jindy.</value></data>
+  <data name="Help_Credits_A1" xml:space="preserve"><value>Rezervace se platí kredity z vaší peněženky. Aktuální základní cena je {0} a jedna rezervace stojí nejvýše {1}.</value></data>
+  <data name="Help_Credits_Peak" xml:space="preserve"><value>Ve špičce {0}–{1} se uplatní sazba {2} % základní ceny.</value></data>
+  <data name="Help_Credits_Occupancy" xml:space="preserve"><value>S rostoucí obsazeností se k ceně plynule přidá až {0} % základu.</value></data>
+  <data name="Help_Credits_Fixed" xml:space="preserve"><value>Špička ani obsazenost nyní cenu nezvyšují.</value></data>
   <data name="Help_Credits_Li1" xml:space="preserve"><value>Jednou měsíčně vám automaticky přijde {0}.</value></data>
-  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Jednou měsíčně vám automaticky přijde {0}, za každou dosaženou úroveň o {1} víc.</value></data>
+  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Jednou měsíčně vám automaticky přijde {0}, za každou dosaženou úroveň o dalších {1} víc.</value></data>
   <data name="Help_Credits_Li2" xml:space="preserve"><value>Zrušení nebo uvolnění nejpozději {0} před začátkem vrací celou zaplacenou částku.</value></data>
   <data name="Help_Credits_Li3" xml:space="preserve"><value>Kredit je plánovací rozpočet: po dobu rezervace zůstává přidělený danému časovému oknu.</value></data>
   <data name="Help_Points_Q" xml:space="preserve"><value>Za co získávám body a k čemu jsou?</value></data>
   <data name="Help_Points_A1" xml:space="preserve"><value>Body jsou reputační skóre v žebříčku — utrácení kreditů je nesnižuje. Získáváte je za chování, které pomáhá ostatním:</value></data>
+  <data name="Help_Points_A1_NoRewards" xml:space="preserve"><value>Body jsou reputační skóre v žebříčku — utrácení kreditů je nesnižuje. Při současném nastavení se nové bodové odměny neudělují; existující skóre však může dál určovat úroveň a její výhody.</value></data>
   <data name="Help_Points_Li1" xml:space="preserve"><value>Dokončení rezervace (reálné využití místa): každé v nepřerušené řadě přidá {0}, nejvýše {1}. Vyplácí se jednou denně.</value></data>
   <data name="Help_Points_Li2" xml:space="preserve"><value>Parkování mimo špičku: {0} navíc (špička je {1}–{2}).</value></data>
-  <data name="Help_Points_Li3" xml:space="preserve"><value>Včasné uvolnění nepotřebné rezervace: od {0} bodů až po {1} podle toho, jak moc je místo žádané; denně nejvýše {2}×.</value></data>
-  <data name="Help_Points_Li4" xml:space="preserve"><value>Sdílení vlastního rezidentního místa, případně obsazení sdíleného místa (podle ověřeného dojezdu).</value></data>
+  <data name="Help_Points_Li3" xml:space="preserve"><value>Včasné uvolnění nepotřebné rezervace: od {0} až po {1} podle toho, jak moc je místo žádané; denně nejvýše {2}×.</value></data>
+  <data name="Help_Points_Li4" xml:space="preserve"><value>Včasné sdílení vlastního rezidentního místa: {0} za každou hodinu předstihu, nejvýše {1} za uvolněný den.</value></data>
+  <data name="Help_Points_Li5" xml:space="preserve"><value>Využití sdíleného místa: odměna se řídí ověřeným dojezdem a může dosáhnout až {0}.</value></data>
   <data name="Help_Points_A2" xml:space="preserve"><value>Z bodů se odvozuje úroveň: Bronz, Stříbro od {0}, Zlato od {1} a Platina od {2}. Vyšší úroveň přináší:</value></data>
   <data name="Help_Points_Perk_Queue" xml:space="preserve"><value>přednost ve frontě (dlouho čekající nižší úroveň vás ale dožene),</value></data>
-  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>vyšší měsíční příděl kreditů (+{0} za úroveň),</value></data>
+  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>vyšší měsíční příděl (+{0} za úroveň),</value></data>
   <data name="Help_Points_Perk_Discount" xml:space="preserve"><value>slevu na rezervace ({0} % za úroveň).</value></data>
   <data name="Help_Points_Decay" xml:space="preserve"><value>Body se každých {1} sníží o {0} %, takže se udržují aktivitou — a staré penalizace se stejně tak časem zahojí.</value></data>
   <data name="Help_NoShow_Q" xml:space="preserve"><value>Musím potvrdit příjezd nebo odjezd?</value></data>
-  <data name="Help_NoShow_A1" xml:space="preserve"><value>Ne. Rezervace je plánovaný blok od začátku do konce a nevyžaduje žádné potvrzení přítomnosti. Před začátkem vám přijde pouze informační připomínka.</value></data>
-  <data name="Help_NoShow_A1_Penalty" xml:space="preserve"><value>Ne. Rezervace je plánovaný blok od začátku do konce a nevyžaduje žádné potvrzení přítomnosti. Před začátkem vám přijde pouze informační připomínka.</value></data>
-  <data name="Help_NoShow_A2" xml:space="preserve"><value>Pokud se plán změní, uvolněte místo pro ostatní. Včasné uvolnění vrátí kredity do plánovacího rozpočtu.</value></data>
+  <data name="Help_NoShow_A1_Reminder" xml:space="preserve"><value>Ne. Rezervace je plánovaný blok od začátku do konce a nevyžaduje potvrzení přítomnosti. Informační připomínka přijde přibližně {0} před začátkem.</value></data>
+  <data name="Help_NoShow_A1_NoReminder" xml:space="preserve"><value>Ne. Rezervace je plánovaný blok od začátku do konce a nevyžaduje potvrzení přítomnosti. Informační připomínky jsou při současném nastavení vypnuté.</value></data>
+  <data name="Help_NoShow_A2_Paid" xml:space="preserve"><value>Pokud se plán změní, uvolněte místo pro ostatní. Včasné uvolnění vrátí kredity do plánovacího rozpočtu.</value></data>
+  <data name="Help_NoShow_A2_Free" xml:space="preserve"><value>Pokud se plán změní, uvolněte místo co nejdřív, aby ho mohl využít někdo další.</value></data>
   <data name="Help_Queue_Q" xml:space="preserve"><value>Co když je na můj termín plno?</value></data>
-  <data name="Help_Queue_A1" xml:space="preserve"><value>Postavte se do fronty — je zdarma. Jakmile se místo pro vaše okno uvolní, systém ho pro vás na {0} minut přidrží a pošle vám upozornění i e-mail s tlačítkem Převzít místo. Do té doby ho nikdo jiný nezarezervuje.</value></data>
+  <data name="Help_Queue_A1" xml:space="preserve"><value>Postavte se do fronty — je zdarma. Jakmile se místo pro vaše okno uvolní, systém ho pro vás na {0} přidrží a pošle vám upozornění i e-mail s tlačítkem Převzít místo. Do té doby ho nikdo jiný nezarezervuje.</value></data>
   <data name="Help_Queue_A2" xml:space="preserve"><value>Obsluhuje se podle doby čekání. Když nabídku nestihnete převzít, místo dostane další v pořadí a vy se zařadíte na konec fronty.</value></data>
   <data name="Help_Queue_A2_Tiered" xml:space="preserve"><value>Pořadí se řídí vaší úrovní a dobou čekání, takže i nižší úroveň se dočká. Když nabídku nestihnete převzít, místo dostane další v pořadí a vy se zařadíte na konec fronty.</value></data>
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Pozor: nedostavení se na místo převzaté z fronty je penalizované přísněji — {0}, {1} a {2} bez možnosti se do fronty postavit.</value></data>
@@ -657,10 +667,12 @@
   <data name="Help_Resident_A3" xml:space="preserve"><value>Na svém místě máte konečnou přednost. Uvolněný den si můžete vzít zpět i po rezervaci kolegou; jeho plán se bez sankce zruší, rozpočet nebo kupón se vrátí a systém mu pošle notifikaci. Nabídka frontě se stáhne bez ztráty pořadí. Odměna za vrácený den se odečte.</value></data>
   <data name="Help_Resident_A4" xml:space="preserve"><value>V plánu využití zaškrtněte dny, kdy místo potřebujete, a zapněte automatické uvolňování. Ostatní dny se uvolní až {0} dní dopředu a získají odměnu za předstih. Kterýkoli uvolněný den si můžete vzít zpět; pokud ho už má kolega, systém mu vrátí rozpočet a upozorní ho.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifikace, e-maily a kalendář</value></data>
-  <data name="Help_Notifications_A1" xml:space="preserve"><value>Upozornění chodí do zvonečku v hlavičce. Aplikaci si můžete nainstalovat na plochu telefonu i počítače a zapnout push notifikace — pak se o nabídce z fronty nebo připomínce dozvíte, i když ji máte zavřenou. E-mailem posíláme jen to podstatné: nabídky z fronty s termínem, penalizace a bezpečnostní změny účtu.</value></data>
-  <data name="Help_Notifications_A2" xml:space="preserve"><value>U každé rezervace je tlačítko Do kalendáře — stáhne událost pro Outlook, Google i Apple kalendář, včetně připomínky 30 minut předem. V profilu si můžete notifikace dočasně ztlumit nebo vypnout tipy na volnou kapacitu.</value></data>
+  <data name="Help_Notifications_A1" xml:space="preserve"><value>Upozornění chodí do zvonečku v hlavičce. Pokud správce nakonfiguroval Web Push, můžete aplikaci nainstalovat na plochu a push zapnout; akční výzvy a bezpečnostní změny mohou přijít také e-mailem.</value></data>
+  <data name="Help_Notifications_Reminder" xml:space="preserve"><value>Aktuální předstih informační připomínky rezervace je {0}.</value></data>
+  <data name="Help_Notifications_A2" xml:space="preserve"><value>U každé rezervace je tlačítko Do kalendáře — stáhne událost pro Outlook, Google i Apple kalendář, včetně připomínky 30 minut předem. V profilu můžete notifikace dočasně ztlumit.</value></data>
+  <data name="Help_Notifications_Tips" xml:space="preserve"><value>Tipy na volnou kapacitu jsou nyní zapnuté; v profilu je můžete pro svůj účet vypnout.</value></data>
   <data name="Help_Profile_Q" xml:space="preserve"><value>Co si nastavit v profilu</value></data>
-  <data name="Help_Profile_A1" xml:space="preserve"><value>Profil ovlivňuje, co vám aplikace nabízí a za co dostáváte body:</value></data>
+  <data name="Help_Profile_A1" xml:space="preserve"><value>Údaje v profilu pomáhají aplikaci i správcům nabídnout správné možnosti:</value></data>
   <data name="Help_Profile_Li1" xml:space="preserve"><value>Domácí adresa — po ověření zvyšuje odměnu za obsazení sdíleného místa podle dojezdu.</value></data>
   <data name="Help_Profile_Li2" xml:space="preserve"><value>SPZ vozidla (uložíte si ji v Můj účet) — správce vás dohledá, kdyby vaše auto omylem blokovalo cizí rezervaci, a ozve se vám dřív, než se to řeší dál. Když SPZ odpovídá vozidlu z vozového parku, můžete se s ním spárovat: firemní vozidlo tím získá své vlastní místo, vozidlo zaměstnance ověřenou identifikaci.</value></data>
   <data name="Help_FleetAdmin_Q" xml:space="preserve"><value>Vozový park a typy vozidel</value></data>
@@ -673,17 +685,26 @@
   <data name="Help_Visitors_A2" xml:space="preserve"><value>Když vyberete hostitele, přijde mu upozornění, kde jeho návštěva parkuje. Návštěvnická místa jsou vyčleněná z běžného fondu, takže je zaměstnanci nemohou zabrat — spravují se jen tady.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>Zatím nemáte žádné aktivní místo typu „Pro návštěvy" — dokud ho nezaložíte ve Správě parkovacích míst, agenda návštěv nebude co nabídnout.</value></data>
   <data name="Help_MyReports_Q" xml:space="preserve"><value>Moje hlášení — co se s nimi děje a jak nahlásit závadu</value></data>
+  <data name="Help_MyReports_Q_Tracking" xml:space="preserve"><value>Moje hlášení — stav a komunikace se správcem</value></data>
   <data name="Help_MyReports_A1" xml:space="preserve"><value>Na stránce Moje hlášení vidíte u každého svého hlášení o zablokovaném místě jeho stav: jestli se prověřuje, jestli čeká na vás, nebo je vyřízené. Je tam i to, co vám k němu správce napsal.</value></data>
   <data name="Help_MyReports_A2" xml:space="preserve"><value>Když se správce na něco zeptá, odpovíte přímo tam — do té doby případu neběží lhůta, takže vás nikdo netlačí. Kdykoli můžete i sami něco doplnit. Pokud omluvný kupón zamítne a myslíte si, že neprávem, můžete se jednou odvolat; případ pak posoudí někdo další.</value></data>
   <data name="Help_MyReports_A3" xml:space="preserve"><value>Na téže stránce nahlásíte i závadu na parkovišti — nefunkční závoru, zhaslé světlo, chybějící čáry nebo překážku na místě. Nemusí jít o vaše místo ani o vaši rezervaci.</value></data>
-  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Provozní dohled — případy k rozhodnutí</value></data>
-  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Všechno, co čeká na rozhodnutí člověka, je v Provozním dohledu jako případ s číslem, vlastníkem a lhůtou: hlášení „nedalo se zaparkovat", podezřelé dvojice z noční kontroly i závady nahlášené uživateli. U hlášení vidíte fotodůkaz a rezervace, které se s oknem na tom místě potkaly — typicky toho, kdo si místo rezervoval a nedorazil — a můžete ho jedním klikem kontaktovat e-mailem.</value></data>
+  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Provozní dohled — zablokovaná místa</value></data>
+  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Hlášení „nedalo se zaparkovat" se v Provozním dohledu zobrazí jako případ s číslem, vlastníkem a lhůtou. Vidíte fotodůkaz i rezervace, které se s daným místem a časovým oknem potkaly, a držitele můžete jedním klikem kontaktovat e-mailem.</value></data>
   <data name="Help_Mismatch_A2" xml:space="preserve"><value>Pokud řidič opsal SPZ, systém ji spáruje s registrovanými vozidly zaměstnanců i s návštěvami. „Mimo systém" znamená vozidlo, které v aplikaci nikdo nemá — to je podklad pro ostrahu nebo řád parkoviště. Opakovaná hlášení na jednom místě založí případ rovnou s vyšší prioritou a ostatní otevřené případy na tom místě se o tom dozvědí.</value></data>
-  <data name="Help_Mismatch_A3" xml:space="preserve"><value>Případ si vezmete tlačítkem, můžete se zeptat řidiče (než odpoví, lhůta neběží) a uzavřít ho se závěrem. Schválení nebo zamítnutí omluvného kupónu případ zároveň uzavírá — je to totéž rozhodnutí. Historie případu se nemaže: interní poznámky vidíte jen vy, ty určené řidiči vidí i on.</value></data>
+  <data name="Help_Mismatch_A3" xml:space="preserve"><value>Případ si vezmete tlačítkem, můžete se zeptat řidiče (než odpoví, lhůta neběží) a uzavřít ho se závěrem. Schválení nebo zamítnutí omluvného kupónu případ zároveň uzavírá. Historie se nemaže: interní poznámky vidíte jen vy, ty určené řidiči vidí i on.</value></data>
   <data name="Help_Rules_Q" xml:space="preserve"><value>Pravidla, ceny a oznámení volné kapacity</value></data>
   <data name="Help_Rules_A1" xml:space="preserve"><value>V sekci Pravidla a ceny se za běhu ladí celá ekonomika: základní cena a přirážky, body a penalizace, úrovně a jejich výhody, fronta, rezidentní pravidla i ochrana proti zneužití. Změny platí okamžitě, není potřeba nasazovat novou verzi.</value></data>
+  <data name="Help_Animation_Admin_Alt" xml:space="preserve"><value>Animovaná ukázka provozního přehledu, analytiky a živého nastavení pravidel parkování.</value></data>
+  <data name="Help_Animation_Admin_Caption" xml:space="preserve"><value>Ukázka pro správce: přehled parkoviště, analytika a nastavení cen i pravidel za běhu.</value></data>
   <data name="Help_Rules_State_Pricing" xml:space="preserve"><value>Adaptivní ceny (regulátor sám ladí přirážku ke zvolené obsazenosti): {0}.</value></data>
   <data name="Help_Rules_State_Campaigns" xml:space="preserve"><value>Oznámení volné kapacity: {0}.</value></data>
+  <data name="Help_Rules_State_Trust" xml:space="preserve"><value>Graf důvěry: {0}.</value></data>
+  <data name="Help_Rules_State_Collusion" xml:space="preserve"><value>Detekce podezřelých dvojic: {0}.</value></data>
+  <data name="Help_Rules_State_Reports" xml:space="preserve"><value>Hlášení závad od uživatelů: {0}.</value></data>
+  <data name="Help_Rules_AdaptiveSetup" xml:space="preserve"><value>Regulátor míří na obsazenost {0} % s pásmem necitlivosti ±{1} %, vyhodnocuje nejvýše jednou za {2} a drží špičkovou sazbu mezi {3}–{4} %.</value></data>
+  <data name="Help_Rules_TrustSetup" xml:space="preserve"><value>Odznak Důvěryhodný se přidělí od skóre {0}; graf se přepočítává jednou za {1}.</value></data>
+  <data name="Help_Rules_CollusionSetup" xml:space="preserve"><value>Dvojice se začne posuzovat od {0} vzájemných interakcí a koncentrace {1} %; kontrola běží jednou za {2}.</value></data>
   <data name="Help_Rules_CampaignSetup" xml:space="preserve"><value>Tip se rozešle, jakmile výhled na {2} obsahuje souvislý úsek alespoň {0} s obsazeností pod {1} %. Odchází nejvýše jednou denně v {3}:00 (jen pracovní dny), pouze do zvonečku a push — nikdy e-mailem — a uživatelé si ho mohou v profilu vypnout.</value></data>
   <data name="Help_State_On" xml:space="preserve"><value>zapnuté</value></data>
   <data name="Help_State_Off" xml:space="preserve"><value>vypnuté</value></data>

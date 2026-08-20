@@ -60,22 +60,32 @@ službu Windows / systemd za reverzní proxy; přeposílané hlavičky se konfig
 Většina chování je **uložena v databázi a editovatelná za běhu** na `/admin/parking/settings`
 (`Parking.ManageIncentives`) — bez nasazování:
 
+Stránka `/help` čte stejné nastavení při každém požadavku: zobrazuje efektivní ceny, odměny a
+lhůty, skrývá vypnuté části a správcovské kapitoly filtruje podle skutečných oprávnění uživatele.
+README je proto přehled schopností projektu, ne autoritativní popis konkrétní instalace.
+
 | Skupina | Volby |
 | --- | --- |
 | **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
-| **Body** | odměna za včasné uvolnění plánu a sdílení rezidentního místa |
+| **Body** | odměna za včasné uvolnění plánu |
 | **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
-| **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
+| **Úrovně** | hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
 | **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
 | **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
 | **Graf důvěry** | zapnout, interval přepočtu (hodin), práh odznaku Důvěryhodný |
 | **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
 | **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), lhůta na napadení nedostavení (dní), přijímat hlášení závad od uživatelů |
+| **Oznámení volné kapacity** | zapnout, horizont (dní), práh volné kapacity, min. souvislý úsek, hodina odeslání |
 | **Okno špičky** | čas začátku / konce |
 | **Časování (min)** | cutoff pro vratku při uvolnění, předstih připomínky, interval údržby |
 | **Rezidenti** | body za hodinu předstihu, strop odměny za den a horizont plánu využití (dní); počet uvolněných dní nemá měsíční limit |
-| **Faktor vzdálenosti** | souřadnice parkoviště, základní body, referenční km, max. násobič |
+| **Poloha** | souřadnice parkoviště pro geokódování a ověření adres |
 | **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
+| **Orientační mapa** | jeden obrázek PNG/JPEG/WebP, nahrání nebo odstranění; slouží pouze řidičům k orientaci |
+
+Některá pole datového modelu (`OffPeakBonusPoints`, no-show sankce, streak, odměna hosta podle
+dojezdu) zůstávají kvůli migraci starších databází, ale nový plánovač bez potvrzování přítomnosti je
+nastavuje na nulu a administrace je nenabízí jako aktivní pravidla.
 
 ### Microsoft Entra ID
 
@@ -262,119 +272,12 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   unikátní; mrtvé subscriptions se mažou při 404/410 od push služby). Přihlášení zařízení řeší
   přepínač ve zvonečku (`push.js` + `PUT/DELETE /api/notifications/push/subscription`); service
   worker OS notifikaci potlačí, když je aplikace zrovna viditelná. Konfigurace: [VAPID klíče](#konfigurace).
-- **Editor mapy parkoviště:** kreslení běží celé v prohlížeči (`wwwroot/lot-map-editor.js`, ES modul
-  načítaný jen na `/admin/parking/map`), Blazor vlastní model a ukládání. Tažení, změna velikosti,
-  otáčení, výběr rámečkem i zoom se odehrávají nad DOMem lokálně; na server jde až **výsledek
-  gesta** jednou dávkou (`MoveShapesAsync`) — po SignalR by jinak šly desítky zpráv za sekundu
-  a plán o pěti stech tvarech by byl nepoužitelný. Dělba je stálá: Blazor vykresluje `<g class="map-shape">`
-  s geometrií v `data-*` atributech a nechává prázdné `<g class="map-overlay">`, do kterého JS kreslí
-  úchyty a gumičku — Blazor o těch uzlech neví, takže mu je překreslení nesmaže. Modul zpětně hlásí
-  aktivní nástroj v `data-tool` na plátně, což je i jediný spolehlivý signál pro E2E testy, že gesto
-  bude interpretováno správným nástrojem.
-
-  Geometrie je `MapRect` — obdélník plus úhel, ne polygon (zdůvodnění v XML komentáři typu).
-  Souřadnice se do SVG **musí** formátovat invariantně; česká desetinná čárka v atributu `points` je
-  rozbitý polygon, ne detail zaokrouhlení. Server každý příchozí obdélník sanitizuje a validuje
-  (`Sanitized()`/`IsValid()`) — čísla přicházejí z tažení myší v prohlížeči, takže NaN se nesmí
-  dostat do databáze; dávka se ověřuje celá předem, aby tažení nepřistálo z poloviny.
-
-  **Podklad mapy se určuje z bajtů, ne z hlavičky.** Deklarovaný content type přichází z uploadu,
-  tedy od útočníka, a co se uloží, to endpoint servíruje zpátky ze stejné origin — uložené HTML
-  vydávané za obrázek by bylo stored XSS. `ImageContentType.Detect` proto čte magic bytes a povoluje
-  jen PNG/JPEG/WebP; uloží se detekovaný typ a odpověď nese `X-Content-Type-Options: nosniff`.
-  SVG je vynechané schválně, byť by jako podklad bylo nejlepší: je to dokument nesoucí skript.
-
-  **Geometrie se ořezává do souřadnic mapy** (`MapRect.ClampedInto`, měřeno přes obálku, takže
-  natočený tvar zůstane celý uvnitř) při kreslení, posunu, tvorbě řady, importu i při zmenšení mapy.
-  Bez toho skončí tvar mimo plátno: nejde kliknout, zoom je omezený, takže na něj nejde ani najet —
-  je to tichá ztráta práce. Tvar se přitom nikdy nezmenšuje, jen posouvá; větší než mapa se přisadí
-  do rohu. `MoveShapesAsync` proto vrací **uloženou** geometrii a editor si jí opraví plátno na
-  místě — místo přenačtení celé kresby po každém tažení.
-
-  Historie **Zpět** je v komponentě, ne v databázi: bounded seznam inverzních kroků (posun, vznik,
-  smazání) vázaný na jednu mapu. Vrácení smazaných tvarů zakládá nové řádky (staré jsou pryč)
-  a napojení na místo obnovuje jen tam, kde je místo pořád volné — undo nesmí ukrást obdélník,
-  který mezitím nakreslil někdo jiný.
-
-  **Zarovnání nemá vlastní cestu do databáze.** `MapAlign` je čistá funkce, která vrací jen nové
-  pozice, a editor je posílá `MoveShapesAsync` — toutéž cestou jako tažení. Ořezání do mapy i krok
-  do historie Zpět tím dostane zadarmo a nemůže se s nimi rozejít. Pořadí pro přečíslování řeší
-  `MapShapeOrder.Reading`: pásy shora, v pásu zleva, s tolerancí půl typické výšky tvaru, takže
-  jedna funkce zvládne řadu, sloupec i blok, aniž by se musela ptát, co bylo nakresleno.
-
-  **Strop na velikost mapy je změřený, ne odhadnutý.** `MaxShapesPerMap` je 1500. Na plánu, pro
-  který se to stavělo — 460 stání — trvá výběr jednoho stání kolem 420 ms a značka má 134 KiB;
-  obojí roste s počtem tvarů, takže trojnásobek toho plánu je už vteřina a půl na klik. Editor
-  kreslí každý tvar do jediného SVG přes Blazor circuit a mapa, která přeroste to, co circuit stihne
-  překreslit, se nedá editovat — a jediná cesta ven by bylo ji smazat. Stejné číslo platí i pro
-  import z JSON (`MaxImportShapes`), protože ten zakládá celou mapu naráz, a tedy kolem kontroly
-  kapacity projde bokem. Areál, který skutečně potřebuje víc, chce mapu na parkoviště; model to umí.
-
-  Dotazy nad tvary **musí mít určené pořadí**. Bez `ORDER BY` vrací SQL Server, co se mu zrovna
-  hodí, a duplikace pak vracela kopie v pořadí závislém na zvoleném plánu — v izolaci test prošel,
-  v celé sadě padal. `Layered` i `DuplicateShapesAsync` proto řadí přes `MapShapeOrder`; vedlejším
-  přínosem je, že pořadí v DOMu zhruba odpovídá tomu, jak mapu čte oko.
-
-  **Zobrazení mapy je vlastní komponenta** (`LotMapView.razor`), sdílená záměrně: plocha správce
-  a později rezervace pro řidiče se ptají téže kresby na totéž a liší se jen tím, co znamená klik
-  a které stavy barví — obojí je parametr. Modul editoru se v ní spouští v režimu `readOnly`, kde
-  přináší jen zoom kolečkem a posun tažením.
-
-  Ten režim se dvěma věcem vyhýbá schválně, protože obě zabíjejí klik na tvar (což je obyčejný
-  Blazor handler): `setPointerCapture` přesměruje následné události včetně `click` na zachycující
-  element, takže by klik dorazil na `<svg>` místo na `<g>`, a `preventDefault` na `pointerdown`
-  podle specifikace Pointer Events potlačí kompatibilní myší události. Posun funguje i bez
-  zachycení; označování textu při tažení řeší `user-select` ve stylu.
-
-  Řidičova mapa v `/parking` používá tutéž komponentu s jiným významem parametrů: stav je „volné /
-  obsazené" podle posledního hledání (napojení na místo samo o sobě znamená „naše", takže se nic
-  dalšího nedotazuje) a klik rezervuje. Obsazené stání se kreslí barevně, ale bez `role`
-  a `tabindex` — tabstop, který nic neudělá, je horší než žádný.
-
-  **Import z SVG** (`SvgPlanReader`) není obecný renderer a netváří se tak. Hledá jedinou věc, ze
-  které je parkovací plán složený — uzavřené čtyřrohé tvary — ve čtyřech zápisech, kterými je
-  exportéry píšou: `rect`, `polygon`, `polyline` a `path` z rovných úseků. Ten poslední je klíčový:
-  **PDF převedené do SVG nemá v sobě jediný `rect`**, každý obdélník je cesta z `M`/`L`, takže
-  čtečka, která umí jen `rect`, nenajde v nejpravděpodobnějším vstupu vůbec nic.
-
-  Tři vlastnosti reálných exportů rozhodují o tom, jestli import uspěje, nebo tiše přijde o půlku
-  plánu:
-
-  - **Jedna cesta, mnoho stání.** Konvertory běžně nacpou celou řadu do jediného `d` jako
-    posloupnost podcest. `SvgPathPoints` proto vrací **seznam podcest**, ne jeden bod za druhým —
-    každé `M` uzavírá předchozí a začíná další, `Z` vrací pero na začátek podcesty (na čemž závisí
-    relativní `m` hned za ním). Číst cestu jako jeden tvar znamená vzít první stání a o zbytek řady
-    přijít.
-  - **Text bez `x` a `y`.** Atributy jsou nepovinné a výchozí je aktuální textová pozice; export
-    z PDF umisťuje každý běh vlastní maticí a `x` nenapíše vůbec. Podstrom `text`/`tspan` se proto
-    prochází vcelku, aby span bez vlastní pozice zdědil pozici svého `text` a neskončil v levém
-    horním rohu kresby.
-  - **Týž obdélník dvakrát.** Výplň a obrys téže cesty přijdou jako dva tvary. Shodné obdélníky —
-    shodné na střed, rozměr i úhel v úložné přesnosti, což žádná dvě skutečná stání nejsou — se
-    slučují a počítají do `Duplicates`; bez toho je každý počet na mapě dvojnásobný.
-
-  Transformace skupin se **skládají** cestou dolů (`SvgTransform`), protože skutečná poloha stání je
-  součin všech skupin nad ním; číst atributy obdélníku a skupiny ignorovat znamená položit každé
-  stání jinam. Čtyři rohy se pak převádějí zpět na `MapRect` — je to inverze `MapRect.Corners`:
-  sousední strany musí svírat pravý úhel a čtvrtý roh přistát tam, kam ho první tři posílají.
-  Popisky se přiřazují podle toho, uvnitř kterého obdélníku text leží, se záložním hledáním
-  nejbližšího do vzdálenosti 0,75 jeho rozměru (některé exporty kotví text na účaří kousek pod
-  rámečkem).
-
-  Vše, z čeho obdélník nevznikl, se počítá do `SvgPlanWarnings` a vypíše — a počítá se **i to, co
-  čtečka odmítla dřív, než se k obdélníku vůbec dostala** (křivka, kružnice, cesta s obloukem).
-  Čítač, který zůstane na nule, zatímco tvary mizí, je horší než žádný: import, který přijde
-  o čtyřicet stání, musí to říct. Naopak `style`, `image` a další neinkoustové elementy se
-  nepočítají, aby jediné varování, na které jde reagovat, nezapadlo v šumu.
-
-  Čtečka je čistá — řetězec dovnitř, obdélníky ven — a vrací nativní souřadnice kresby; vsazení do
-  souřadnicového prostoru mapy je rozhodnutí služby, ne čtečky. DTD zpracování zůstává vypnuté
-  (výchozí), aby naimportovaný soubor nemohl parser přimět něco stáhnout ani rozbalit entitní bombu.
-
-  Publikovaná mapa je nejvýš jedna, jištěno filtrovaným unikátním indexem. Přepnutí publikace proto
-  **nejde** jedním `SaveChanges`: EF zápisy sdruží do dávky a index se kontroluje po příkazech, takže
-  pořadí uvnitř dávky umí index porušit v půli. Odpublikování a publikování jsou dva `SaveChanges`
-  v jedné transakci.
+- **Orientační mapa parkoviště:** `ParkingSettings` drží jeden volitelný obrázek a jeho detekovaný
+  typ obsahu. `ImageContentType.Detect` ověřuje magic bytes a povoluje jen PNG/JPEG/WebP; SVG ani
+  deklarovaný typ z uploadu se nepovažují za důvěryhodné. Limit je 12 MiB. Čtení přes
+  `/api/parking/orientation-map` posílá `X-Content-Type-Options: nosniff`, veřejnou cache a ETag.
+  Po změně se invaliduje paměťová cache a UI používá verzovanou URL. Obrázek je pouze orientační —
+  dostupnost a rezervaci dál řídí katalog `ParkingSpot` a plánované bloky.
 - **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
   v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
 - **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.

@@ -615,34 +615,44 @@
   <data name="Nav_Short_Help" xml:space="preserve"><value>Help</value></data>
   <data name="Help_Title" xml:space="preserve"><value>Help</value></data>
   <data name="Home_Card_Help" xml:space="preserve"><value>How to book, what earns points, and what to do when something goes wrong.</value></data>
-  <data name="Help_Intro" xml:space="preserve"><value>How to book a spot, what earns you points, and what to do when something goes wrong. Click a question to expand the answer.</value></data>
+  <data name="Help_Intro" xml:space="preserve"><value>How to book a spot and what to do when something goes wrong. The content and values reflect the system's current settings and your permissions.</value></data>
   <data name="Help_Reserve_Q" xml:space="preserve"><value>How do I book a parking spot?</value></data>
-  <data name="Help_Reserve_A1" xml:space="preserve"><value>Under Reserve a spot, pick the date and the from–to time and click Find spots. You'll see the free spots and the price in credits for that window. Click Reserve on the spot you want.</value></data>
-  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it at least {0} before the start to get all credits back plus points for making it available.</value></data>
+  <data name="Help_Reserve_A1_Paid" xml:space="preserve"><value>Under Reserve a spot, pick the date and the from–to time and click Find spots. You'll see the free spots and the price in credits for that window. Click Reserve on the spot you want.</value></data>
+  <data name="Help_Reserve_A1_Free" xml:space="preserve"><value>Under Reserve a spot, pick the date and the from–to time and click Find spots. You'll see the free spots for that window; bookings are free under the current settings. Click Reserve on the spot you want.</value></data>
+  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it at least {0} before the start to get all credits back.</value></data>
+  <data name="Help_Reserve_A2_PaidRewarded" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it at least {0} before the start to get all credits back plus points for making it available.</value></data>
   <data name="Help_Reserve_A2_Free" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it early so somebody else can use it.</value></data>
+  <data name="Help_Animation_Reserve_Alt" xml:space="preserve"><value>Animated example of selecting a day, setting a time and finding available parking spots.</value></data>
+  <data name="Help_Animation_Reserve_Caption" xml:space="preserve"><value>Example: select a day, set the time and display available spots. The example itself creates no reservation.</value></data>
   <data name="Help_Credits_Q" xml:space="preserve"><value>What are credits and why does the price change?</value></data>
-  <data name="Help_Credits_A1" xml:space="preserve"><value>Bookings are paid with credits from your wallet. The base price is {0}; during peak hours ({1}–{2}) and when the lot fills up it rises, up to {3}. Scarce slots cost more, which keeps the cheaper times available for those who can arrive at another hour.</value></data>
+  <data name="Help_Credits_A1" xml:space="preserve"><value>Bookings are paid with credits from your wallet. The current base price is {0}, and one booking costs no more than {1}.</value></data>
+  <data name="Help_Credits_Peak" xml:space="preserve"><value>During the {0}–{1} peak window, the rate is {2}% of the base price.</value></data>
+  <data name="Help_Credits_Occupancy" xml:space="preserve"><value>As occupancy rises, up to {0}% of the base price is added gradually.</value></data>
+  <data name="Help_Credits_Fixed" xml:space="preserve"><value>Neither the peak window nor occupancy currently increases the price.</value></data>
   <data name="Help_Credits_Li1" xml:space="preserve"><value>Once a month you automatically receive {0}.</value></data>
-  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Once a month you automatically receive {0}, plus {1} more for every tier you have reached.</value></data>
+  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Once a month you automatically receive {0}, plus another {1} for every tier you have reached.</value></data>
   <data name="Help_Credits_Li2" xml:space="preserve"><value>Cancelling or releasing at least {0} before the start refunds the full amount you paid.</value></data>
   <data name="Help_Credits_Li3" xml:space="preserve"><value>Credits are a planning budget: during a reservation they remain allocated to that time window.</value></data>
   <data name="Help_Points_Q" xml:space="preserve"><value>What earns points and what are they for?</value></data>
   <data name="Help_Points_A1" xml:space="preserve"><value>Points are a reputation score for the leaderboard — spending credits never lowers them. You earn them for behaviour that helps everyone else:</value></data>
+  <data name="Help_Points_A1_NoRewards" xml:space="preserve"><value>Points are a reputation score for the leaderboard — spending credits never lowers them. The current settings award no new points, but an existing score may still determine a tier and its perks.</value></data>
   <data name="Help_Points_Li1" xml:space="preserve"><value>Completing a booking (actually using the spot): each one in an unbroken streak adds {0}, up to {1}. Paid once a day.</value></data>
   <data name="Help_Points_Li2" xml:space="preserve"><value>Parking outside the peak window: {0} extra (peak is {1}–{2}).</value></data>
-  <data name="Help_Points_Li3" xml:space="preserve"><value>Releasing a booking you don't need: from {0} points up to {1} depending on how badly the spot is wanted; at most {2}× a day.</value></data>
-  <data name="Help_Points_Li4" xml:space="preserve"><value>Sharing your own resident spot, or taking a shared one (scaled by your verified commute).</value></data>
+  <data name="Help_Points_Li3" xml:space="preserve"><value>Releasing a booking you don't need: from {0} up to {1} depending on how badly the spot is wanted; at most {2}× a day.</value></data>
+  <data name="Help_Points_Li4" xml:space="preserve"><value>Sharing your resident spot early: {0} for every hour of notice, up to {1} per released day.</value></data>
+  <data name="Help_Points_Li5" xml:space="preserve"><value>Using a shared spot: the reward follows your verified commute and can reach up to {0}.</value></data>
   <data name="Help_Points_A2" xml:space="preserve"><value>Points determine your tier: Bronze, Silver from {0}, Gold from {1} and Platinum from {2}. A higher tier brings:</value></data>
   <data name="Help_Points_Perk_Queue" xml:space="preserve"><value>queue priority (a long-waiting lower tier still catches up),</value></data>
-  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>a bigger monthly credit allowance (+{0} per tier),</value></data>
+  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>a bigger monthly allowance (+{0} per tier),</value></data>
   <data name="Help_Points_Perk_Discount" xml:space="preserve"><value>a discount on bookings ({0} % per tier).</value></data>
   <data name="Help_Points_Decay" xml:space="preserve"><value>Points drop by {0} % every {1}, so they are kept up by staying active — and old penalties heal the same way.</value></data>
   <data name="Help_NoShow_Q" xml:space="preserve"><value>Do I need to confirm arrival or departure?</value></data>
-  <data name="Help_NoShow_A1" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. You only receive an informational reminder before it starts.</value></data>
-  <data name="Help_NoShow_A1_Penalty" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. You only receive an informational reminder before it starts.</value></data>
-  <data name="Help_NoShow_A2" xml:space="preserve"><value>If your plans change, release the spot for somebody else. A timely release returns credits to your planning budget.</value></data>
+  <data name="Help_NoShow_A1_Reminder" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. An informational reminder arrives about {0} before it starts.</value></data>
+  <data name="Help_NoShow_A1_NoReminder" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. Informational reminders are disabled under the current settings.</value></data>
+  <data name="Help_NoShow_A2_Paid" xml:space="preserve"><value>If your plans change, release the spot for somebody else. A timely release returns credits to your planning budget.</value></data>
+  <data name="Help_NoShow_A2_Free" xml:space="preserve"><value>If your plans change, release the spot early so somebody else can use it.</value></data>
   <data name="Help_Queue_Q" xml:space="preserve"><value>What if my slot is fully booked?</value></data>
-  <data name="Help_Queue_A1" xml:space="preserve"><value>Join the queue — it's free. As soon as a spot frees up for your window, the system holds it for you for {0} minutes and sends a notification and an email with a Claim the spot button. Until then nobody else can book it.</value></data>
+  <data name="Help_Queue_A1" xml:space="preserve"><value>Join the queue — it's free. As soon as a spot frees up for your window, the system holds it for you for {0} and sends a notification and an email with a Claim the spot button. Until then nobody else can book it.</value></data>
   <data name="Help_Queue_A2" xml:space="preserve"><value>The queue is served by waiting time. If you miss the claim window, the spot goes to the next in line and you rejoin at the back.</value></data>
   <data name="Help_Queue_A2_Tiered" xml:space="preserve"><value>The order blends your tier with how long you've waited, so a lower tier still gets served. If you miss the claim window, the spot goes to the next in line and you rejoin at the back.</value></data>
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Note: a no-show on a spot claimed from the queue is penalised more heavily — {0}, {1} and {2} without access to the queue.</value></data>
@@ -657,10 +667,12 @@
   <data name="Help_Resident_A3" xml:space="preserve"><value>You have final claim on your assigned spot. You may take a released day back even after a colleague plans it; their plan is cancelled without penalty, their budget or voucher is restored, and the system notifies them. A waitlist offer is withdrawn without losing position. The sharing reward is returned.</value></data>
   <data name="Help_Resident_A4" xml:space="preserve"><value>Tick the days you need and enable automatic release. Other days are shared up to {0} days ahead and earn the advance reward. You can take any released day back; if a colleague already planned it, the system refunds and notifies them.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifications, emails and the calendar</value></data>
-  <data name="Help_Notifications_A1" xml:space="preserve"><value>Alerts arrive in the bell in the header. You can install the app on your phone or desktop and enable push notifications — then a queue offer or a reminder reaches you even with the app closed. We only email what matters: deadline-driven queue offers, penalties and account security changes.</value></data>
-  <data name="Help_Notifications_A2" xml:space="preserve"><value>Every booking has an Add to calendar button — it downloads an event for Outlook, Google and Apple Calendar, including a reminder 30 minutes ahead. In your profile you can mute notifications temporarily or turn off the free-capacity tips.</value></data>
+  <data name="Help_Notifications_A1" xml:space="preserve"><value>Alerts arrive in the bell in the header. If Web Push has been configured by an administrator, you can install the app and enable push; actionable requests and security changes may also arrive by email.</value></data>
+  <data name="Help_Notifications_Reminder" xml:space="preserve"><value>The current lead time for an informational booking reminder is {0}.</value></data>
+  <data name="Help_Notifications_A2" xml:space="preserve"><value>Every booking has an Add to calendar button — it downloads an event for Outlook, Google and Apple Calendar, including a reminder 30 minutes ahead. You can temporarily mute notifications in your profile.</value></data>
+  <data name="Help_Notifications_Tips" xml:space="preserve"><value>Free-capacity tips are currently enabled; you can switch them off for your account in your profile.</value></data>
   <data name="Help_Profile_Q" xml:space="preserve"><value>What to set up in your profile</value></data>
-  <data name="Help_Profile_A1" xml:space="preserve"><value>Your profile shapes what the app offers you and what you earn points for:</value></data>
+  <data name="Help_Profile_A1" xml:space="preserve"><value>Your profile details help the application and administrators offer the right options:</value></data>
   <data name="Help_Profile_Li1" xml:space="preserve"><value>Home address — once verified, it increases the reward for taking a shared spot based on your commute.</value></data>
   <data name="Help_Profile_Li2" xml:space="preserve"><value>License plate (saved under My account) — lets the admin find you if your car ever blocks someone's booking, so you hear about it first. When the plate matches a fleet vehicle you can pair with it: a company vehicle brings its dedicated spot, an employee vehicle a verified identity.</value></data>
   <data name="Help_FleetAdmin_Q" xml:space="preserve"><value>The fleet registry and vehicle types</value></data>
@@ -673,17 +685,26 @@
   <data name="Help_Visitors_A2" xml:space="preserve"><value>If you pick a host, they get a notification telling them where their guest parks. Visitor spots are carved out of the regular pool, so employees cannot take them — they are managed only here.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>There is no active "Visitor" spot yet — until you create one under Parking spots, the visitor agenda has nothing to offer.</value></data>
   <data name="Help_MyReports_Q" xml:space="preserve"><value>My reports — what happens to them, and how to report a defect</value></data>
+  <data name="Help_MyReports_Q_Tracking" xml:space="preserve"><value>My reports — status and communication with the manager</value></data>
   <data name="Help_MyReports_A1" xml:space="preserve"><value>The My reports page shows where each of your blocked-spot reports stands: being checked, waiting on you, or settled. Whatever the manager has written to you about it is there too.</value></data>
   <data name="Help_MyReports_A2" xml:space="preserve"><value>When the manager asks you something, you answer right there — and the case deadline is paused until you do, so nobody is rushing you. You can add something unprompted at any time. If your apology voucher is rejected and you believe that is wrong, you can appeal once; somebody else then looks at the case.</value></data>
   <data name="Help_MyReports_A3" xml:space="preserve"><value>The same page is where you report something wrong with the lot — a stuck barrier, a light out, missing markings, something left on a bay. It does not have to be your spot or your booking.</value></data>
-  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Operations oversight — cases to decide</value></data>
-  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Everything waiting on a human decision sits in Operations oversight as a case with a number, an owner and a deadline: "couldn't park" reports, suspicious pairs from the nightly scan, and defects people have reported. On a report you see the photo proof and the bookings that met the window on that spot — typically whoever booked it and never arrived — and you can email them in one click.</value></data>
+  <data name="Help_Mismatch_Q" xml:space="preserve"><value>Operations oversight — blocked spots</value></data>
+  <data name="Help_Mismatch_A1" xml:space="preserve"><value>Each "couldn't park" report appears in Operations oversight as a case with a number, an owner and a deadline. You see the photo proof and the bookings that overlap that spot and time window, and you can email a holder in one click.</value></data>
   <data name="Help_Mismatch_A2" xml:space="preserve"><value>If the driver noted the plate, the system matches it against registered employee vehicles and visitor bookings. "Not in the system" means a vehicle nobody has registered — grounds for security or the lot rules. Repeated reports on one spot open their case at a higher priority, and the other open cases on that spot are told about it.</value></data>
-  <data name="Help_Mismatch_A3" xml:space="preserve"><value>You take a case with a button, you can ask the driver something (the deadline pauses until they answer), and you close it with a verdict. Approving or rejecting the apology voucher closes the case with it — it is the same decision. The case history is never erased: internal notes are yours alone, the ones meant for the driver are visible to them too.</value></data>
+  <data name="Help_Mismatch_A3" xml:space="preserve"><value>You take a case with a button, you can ask the driver something (the deadline pauses until they answer), and you close it with a verdict. Approving or rejecting the apology voucher closes the case too. The history is never erased: internal notes are yours alone, the ones meant for the driver are visible to them too.</value></data>
   <data name="Help_Rules_Q" xml:space="preserve"><value>Rules, pricing and free-capacity announcements</value></data>
   <data name="Help_Rules_A1" xml:space="preserve"><value>Rules and pricing tunes the whole economy at runtime: base price and surcharges, points and penalties, tiers and their perks, the queue, resident rules and the anti-abuse limits. Changes take effect immediately, with no redeployment.</value></data>
+  <data name="Help_Animation_Admin_Alt" xml:space="preserve"><value>Animated example of the operations dashboard, analytics and live parking-rule settings.</value></data>
+  <data name="Help_Animation_Admin_Caption" xml:space="preserve"><value>Administrator example: parking overview, analytics, and live pricing and rule settings.</value></data>
   <data name="Help_Rules_State_Pricing" xml:space="preserve"><value>Adaptive pricing (a controller tunes the peak surcharge toward a target occupancy): {0}.</value></data>
   <data name="Help_Rules_State_Campaigns" xml:space="preserve"><value>Free-capacity announcements: {0}.</value></data>
+  <data name="Help_Rules_State_Trust" xml:space="preserve"><value>Trust graph: {0}.</value></data>
+  <data name="Help_Rules_State_Collusion" xml:space="preserve"><value>Suspicious-pair detection: {0}.</value></data>
+  <data name="Help_Rules_State_Reports" xml:space="preserve"><value>User defect reports: {0}.</value></data>
+  <data name="Help_Rules_AdaptiveSetup" xml:space="preserve"><value>The controller targets {0}% occupancy with a ±{1}% deadband, evaluates at most once every {2}, and keeps the peak rate between {3}–{4}%.</value></data>
+  <data name="Help_Rules_TrustSetup" xml:space="preserve"><value>The Trusted badge is awarded from score {0}; the graph is recomputed once every {1}.</value></data>
+  <data name="Help_Rules_CollusionSetup" xml:space="preserve"><value>A pair is considered from {0} mutual interactions and {1}% concentration; the scan runs once every {2}.</value></data>
   <data name="Help_Rules_CampaignSetup" xml:space="preserve"><value>The tip goes out once the lookahead of {2} contains a consecutive stretch of at least {0} below {1} % occupancy. It is sent at most once a day at {3}:00 (workdays only), to the bell and push only — never email — and users can switch it off in their profile.</value></data>
   <data name="Help_State_On" xml:space="preserve"><value>on</value></data>
   <data name="Help_State_Off" xml:space="preserve"><value>off</value></data>

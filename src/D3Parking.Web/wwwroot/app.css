@@ -4001,6 +4001,29 @@ h1:focus {
     margin-bottom: 4px;
 }
 
+.help-demo {
+    margin: 16px 0 4px;
+    overflow: hidden;
+    border: 1px solid var(--neutral-stroke-divider-rest, #e3e6ea);
+    border-radius: 10px;
+    background: var(--neutral-layer-2, #f7f8fa);
+}
+
+.help-demo__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.help-demo figcaption {
+    padding: 9px 12px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .count-chip {
     display: inline-flex;
     align-items: center;
