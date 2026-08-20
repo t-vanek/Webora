@@ -43,6 +43,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
 
+    public DbSet<ParkingSpotResident> ParkingSpotResidents => Set<ParkingSpotResident>();
+
+    public DbSet<SpotDayAssignment> SpotDayAssignments => Set<SpotDayAssignment>();
+
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     public DbSet<ParkerScore> ParkerScores => Set<ParkerScore>();
@@ -355,11 +359,34 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             spot.Property(s => s.Type).HasConversion<string>().HasMaxLength(32);
             spot.Property(s => s.Notes).HasMaxLength(512);
             spot.Property(s => s.PlannedUseDays).HasConversion<int>();
+            spot.Property(s => s.ResidentCapacity).HasDefaultValue(1);
             spot.HasIndex(s => s.Code).IsUnique();
             // One spot per resident: every resident flow resolves "the user's spot" with a single
             // FirstOrDefault, so duplicate ownership would make those flows nondeterministic.
             // AssignOwnerAsync checks first; the filtered unique index is the backstop.
             spot.HasIndex(s => s.OwnerId).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
+            spot.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<ParkingSpotResident>(resident =>
+        {
+            resident.ToTable("ParkingSpotResidents");
+            resident.HasKey(r => r.Id);
+            resident.HasIndex(r => new { r.SpotId, r.UserId }).IsUnique();
+            resident.Property(r => r.PlannedUseDays).HasConversion<int>();
+            resident.HasIndex(r => r.UserId).IsUnique().HasFilter("[RemovedAtUtc] IS NULL");
+            resident.HasIndex(r => new { r.SpotId, r.RemovedAtUtc });
+            resident.HasOne<ParkingSpot>().WithMany().HasForeignKey(r => r.SpotId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SpotDayAssignment>(assignment =>
+        {
+            assignment.ToTable("SpotDayAssignments");
+            assignment.HasKey(a => a.Id);
+            assignment.HasIndex(a => new { a.SpotId, a.Date }).IsUnique();
+            assignment.HasIndex(a => new { a.ResidentId, a.Date });
+            assignment.HasOne<ParkingSpot>().WithMany().HasForeignKey(a => a.SpotId).OnDelete(DeleteBehavior.Cascade);
+            assignment.HasOne<ParkingSpotResident>().WithMany().HasForeignKey(a => a.ResidentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<SpotRelease>(release =>
@@ -403,7 +430,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             vehicle.HasIndex(v => v.NormalizedPlate).IsUnique();
             // A spot hosts at most one vehicle and a user pairs with at most one vehicle;
             // both mirror the one-spot-per-resident invariant the pairing materializes into.
-            vehicle.HasIndex(v => v.AssignedSpotId).IsUnique().HasFilter("[AssignedSpotId] IS NOT NULL");
+            vehicle.HasIndex(v => v.AssignedSpotId).HasFilter("[AssignedSpotId] IS NOT NULL");
             vehicle.HasIndex(v => v.PairedUserId).IsUnique().HasFilter("[PairedUserId] IS NOT NULL");
             // Shadow rowversion: two users confirming a claim on the same vehicle (or an admin
             // editing while a user pairs) must not overwrite each other silently.
@@ -511,6 +538,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             reservation.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
             reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
             reservation.HasIndex(r => new { r.UserId, r.StartUtc });
+            reservation.HasIndex(r => new { r.SharedByResidentId, r.Status });
             reservation.HasIndex(r => r.Status);
             // Conflict and availability checks first narrow to a live status and then an interval;
             // EndUtc remains a residual overlap predicate but is covered by the index.

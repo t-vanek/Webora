@@ -35,8 +35,10 @@ public sealed class ParkingSpotService(
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.ResidentCapacity))
             .ToListAsync(cancellationToken);
+        spots = await DecorateResidentsAsync(dbContext, spots, cancellationToken);
         return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
 
@@ -123,8 +125,10 @@ public sealed class ParkingSpotService(
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.ResidentCapacity))
             .ToListAsync(cancellationToken);
+        items = await DecorateResidentsAsync(dbContext, items, cancellationToken);
 
         // An IN (…) read comes back in whatever order the server finds convenient; put the page back
         // into the code order it was picked in.
@@ -150,13 +154,20 @@ public sealed class ParkingSpotService(
     public async Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await dbContext.ParkingSpots.AsNoTracking()
+        var spot = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.Id == id)
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
+                s.ResidentCapacity))
             .FirstOrDefaultAsync(cancellationToken);
+        if (spot is null)
+        {
+            return null;
+        }
+
+        return (await DecorateResidentsAsync(dbContext, [spot], cancellationToken))[0];
     }
 
     public async Task<ParkingResult> CreateAsync(string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default)
@@ -413,13 +424,46 @@ public sealed class ParkingSpotService(
         // FirstOrDefault, so a second assignment would make confirm/release/allowance act on a
         // nondeterministic one of the two. The filtered unique index on OwnerId backs this.
         if (ownerId is { } candidate
-            && await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.OwnerId == candidate, cancellationToken))
+            && (await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.OwnerId == candidate, cancellationToken)
+                || await dbContext.ParkingSpotResidents.AnyAsync(
+                    r => r.SpotId != id && r.UserId == candidate && r.RemovedAtUtc == null, cancellationToken)))
         {
             return ParkingResult.Failure("Parking_Error_OwnerHasSpot");
         }
 
         var previousOwner = spot.OwnerId;
         spot.AssignOwner(ownerId);
+
+        var now = timeProvider.GetUtcNow();
+        var memberships = await dbContext.ParkingSpotResidents
+            .Where(r => r.SpotId == spot.Id && r.RemovedAtUtc == null)
+            .ToListAsync(cancellationToken);
+        foreach (var membership in memberships.Where(r => r.UserId != ownerId))
+        {
+            membership.Remove(now);
+        }
+
+        if (previousOwner != ownerId)
+        {
+            var assignments = await dbContext.SpotDayAssignments
+                .Where(a => a.SpotId == id)
+                .ToListAsync(cancellationToken);
+            dbContext.SpotDayAssignments.RemoveRange(assignments);
+        }
+
+        if (ownerId is { } selected && memberships.All(r => r.UserId != selected || r.RemovedAtUtc is not null))
+        {
+            var existing = await dbContext.ParkingSpotResidents
+                .FirstOrDefaultAsync(r => r.SpotId == spot.Id && r.UserId == selected, cancellationToken);
+            if (existing is null)
+            {
+                dbContext.ParkingSpotResidents.Add(new ParkingSpotResident(spot.Id, selected, now));
+            }
+            else
+            {
+                existing.Reactivate(now);
+            }
+        }
 
         if (previousOwner != ownerId)
         {
@@ -435,7 +479,6 @@ public sealed class ParkingSpotService(
 
             if (futureReleases.Count > 0)
             {
-                var now = timeProvider.GetUtcNow();
                 foreach (var ownerRevocations in futureReleases
                     .Where(r => r.AwardedPoints > 0)
                     .GroupBy(r => r.OwnerId))
@@ -481,6 +524,196 @@ public sealed class ParkingSpotService(
         }
 
         return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> SetResidentCapacityAsync(Guid id, int capacity, CancellationToken cancellationToken = default)
+    {
+        if (capacity is < 1 or > 20)
+        {
+            return ParkingResult.Failure("Parking_Error_ResidentCapacityRange");
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        if (spot is null)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+        }
+
+        var active = await dbContext.ParkingSpotResidents.CountAsync(
+            r => r.SpotId == id && r.RemovedAtUtc == null, cancellationToken);
+        if (active == 0 && spot.OwnerId is not null)
+        {
+            active = 1;
+        }
+        if (active > capacity)
+        {
+            return ParkingResult.Failure("Parking_Error_ResidentCapacityBelowCount");
+        }
+
+        spot.SetResidentCapacity(capacity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public Task<ParkingResult> AddResidentAsync(Guid id, Guid userId, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => AddResidentCoreAsync(id, userId, cancellationToken), cancellationToken);
+
+    private async Task<ParkingResult> AddResidentCoreAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        if (spot is null)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+        }
+
+        if (spot.Type == ParkingSpotType.Visitor)
+        {
+            return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
+        }
+
+        if (!await dbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_UserNotFound");
+        }
+
+        var membership = await dbContext.ParkingSpotResidents
+            .FirstOrDefaultAsync(r => r.SpotId == id && r.UserId == userId, cancellationToken);
+        if (membership?.RemovedAtUtc is null && membership is not null)
+        {
+            return ParkingResult.Success;
+        }
+
+        if (await dbContext.ParkingSpotResidents.AnyAsync(
+                r => r.UserId == userId && r.SpotId != id && r.RemovedAtUtc == null, cancellationToken)
+            || await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.OwnerId == userId, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_OwnerHasSpot");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var active = await dbContext.ParkingSpotResidents.CountAsync(
+            r => r.SpotId == id && r.RemovedAtUtc == null, cancellationToken);
+        if (spot.OwnerId is { } legacyOwner
+            && !await dbContext.ParkingSpotResidents.AnyAsync(
+                r => r.SpotId == id && r.UserId == legacyOwner && r.RemovedAtUtc == null, cancellationToken))
+        {
+            dbContext.ParkingSpotResidents.Add(new ParkingSpotResident(id, legacyOwner, now));
+            active++;
+        }
+        if (active >= spot.ResidentCapacity)
+        {
+            return ParkingResult.Failure("Parking_Error_ResidentCapacityReached");
+        }
+
+        var staleAssignments = await dbContext.SpotDayAssignments
+            .Where(a => a.SpotId == id)
+            .ToListAsync(cancellationToken);
+        dbContext.SpotDayAssignments.RemoveRange(staleAssignments);
+        if (membership is null)
+        {
+            dbContext.ParkingSpotResidents.Add(new ParkingSpotResident(id, userId, now));
+        }
+        else
+        {
+            membership.Reactivate(now);
+        }
+
+        if (spot.OwnerId is null)
+        {
+            spot.AssignOwner(userId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await notifications.NotifyAsync(userId, NotificationCategory.Administrative, NotificationLevel.Info,
+            messages["Parking_Notify_ResidentAssigned_Title"],
+            messages["Parking_Notify_ResidentAssigned_Body", spot.Code], email: true, cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    public async Task<ParkingResult> RemoveResidentAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        if (spot is null)
+        {
+            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+        }
+
+        var membership = await dbContext.ParkingSpotResidents
+            .FirstOrDefaultAsync(r => r.SpotId == id && r.UserId == userId && r.RemovedAtUtc == null, cancellationToken);
+        if (membership is null)
+        {
+            if (spot.OwnerId != userId)
+            {
+                return ParkingResult.Success;
+            }
+        }
+        else
+        {
+            membership.Remove(timeProvider.GetUtcNow());
+            var assignments = await dbContext.SpotDayAssignments
+                .Where(a => a.SpotId == id)
+                .ToListAsync(cancellationToken);
+            dbContext.SpotDayAssignments.RemoveRange(assignments);
+        }
+
+        var nextResident = await dbContext.ParkingSpotResidents
+            .Where(r => r.SpotId == id && r.RemovedAtUtc == null && r.UserId != userId)
+            .OrderBy(r => r.AssignedAtUtc)
+            .Select(r => (Guid?)r.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (spot.OwnerId == userId)
+        {
+            spot.AssignOwner(nextResident);
+        }
+
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
+        var releases = await dbContext.SpotReleases
+            .Where(r => r.SpotId == id && r.OwnerId == userId && r.Date >= today)
+            .ToListAsync(cancellationToken);
+        dbContext.SpotReleases.RemoveRange(releases);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await notifications.NotifyAsync(userId, NotificationCategory.Administrative, NotificationLevel.Info,
+            messages["Parking_Notify_ResidentUnassigned_Title"],
+            messages["Parking_Notify_ResidentUnassigned_Body", spot.Code], email: true, cancellationToken);
+        return ParkingResult.Success;
+    }
+
+    private static async Task<List<ParkingSpotDto>> DecorateResidentsAsync(
+        D3ParkingDbContext dbContext, IReadOnlyList<ParkingSpotDto> spots, CancellationToken cancellationToken)
+    {
+        if (spots.Count == 0)
+        {
+            return [];
+        }
+
+        var spotIds = spots.Select(s => s.Id).ToList();
+        var rows = await (from resident in dbContext.ParkingSpotResidents.AsNoTracking()
+                          join user in dbContext.Users.AsNoTracking() on resident.UserId equals user.Id
+                          where spotIds.Contains(resident.SpotId) && resident.RemovedAtUtc == null
+                          orderby resident.AssignedAtUtc
+                          select new
+                          {
+                              resident.SpotId,
+                              resident.Id,
+                              resident.UserId,
+                              Name = user.DisplayName ?? user.Email ?? string.Empty,
+                          }).ToListAsync(cancellationToken);
+        var grouped = rows.ToLookup(r => r.SpotId);
+        return spots.Select(spot => spot with
+        {
+            Residents = grouped[spot.Id]
+                .Select(r => new ParkingSpotResidentDto(r.Id, r.UserId, r.Name, r.UserId == spot.OwnerId))
+                .ToList(),
+        }).ToList();
     }
 
     public Task<IReadOnlyList<OccupancyMismatchDto>> GetOccupancyMismatchesAsync(int take = 100, CancellationToken cancellationToken = default) =>

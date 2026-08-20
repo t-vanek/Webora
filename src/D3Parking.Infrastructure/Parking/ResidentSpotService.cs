@@ -29,11 +29,15 @@ public sealed class ResidentSpotService(
         var today = SiteTime.Today(now, timeZone);
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var spot = await dbContext.ParkingSpots.AsNoTracking().FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
-        if (spot is null)
+        var resident = await FindResidentSpotAsync(dbContext, userId, cancellationToken);
+        if (resident is null)
         {
             return null;
         }
+        var spot = resident.Spot;
+        var horizonEnd = policy.ResidentPlanHorizonEnd(today);
+        var assignedDates = await AssignedDatesAsync(dbContext, spot, userId, today, horizonEnd, cancellationToken);
+        var assignedToday = assignedDates.Contains(today);
 
         var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
         var releasedToday = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == today, cancellationToken);
@@ -43,7 +47,11 @@ public sealed class ResidentSpotService(
             && r.StartUtc < dayEnd && r.EndUtc > dayStart, cancellationToken);
 
         OwnedSpotDayState state;
-        if (takenByOther)
+        if (!assignedToday)
+        {
+            state = OwnedSpotDayState.NotAssigned;
+        }
+        else if (takenByOther)
         {
             state = OwnedSpotDayState.SharedTaken;
         }
@@ -58,13 +66,14 @@ public sealed class ResidentSpotService(
 
         // The shown potential is exactly what ReleaseAsync(today, today) would award, including the
         // same skipped-day and advance-notice rules.
-        var potential = (await PlanReleaseRewardsAsync(dbContext, spot, userId, today, today, policy, timeZone, now, cancellationToken))
+        var potential = (await PlanReleaseRewardsAsync(dbContext, spot, userId, today, today, policy, timeZone, now, cancellationToken,
+                date => assignedDates.Contains(date)))
             .Sum(day => day.Points);
 
         // Today-or-later released days, each marked with whether taking it back will displace a
         // guest plan. Both free and taken days remain reclaimable by the assigned resident.
         var upcomingDates = await dbContext.SpotReleases
-            .Where(r => r.SpotId == spot.Id && r.Date >= today)
+            .Where(r => r.SpotId == spot.Id && r.OwnerId == userId && r.Date >= today)
             .OrderBy(r => r.Date)
             .Select(r => r.Date)
             .ToListAsync(cancellationToken);
@@ -72,12 +81,12 @@ public sealed class ResidentSpotService(
         if (upcomingDates.Count > 0)
         {
             var (horizonStart, _) = SiteTime.Day(upcomingDates[0], timeZone);
-            var (_, horizonEnd) = SiteTime.Day(upcomingDates[^1], timeZone);
+            var (_, releaseHorizonEnd) = SiteTime.Day(upcomingDates[^1], timeZone);
             var guestBookings = await dbContext.Reservations
                 .Where(r => r.SpotId == spot.Id && r.UserId != userId
                     && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
                     && r.EndUtc > now
-                    && r.StartUtc < horizonEnd && r.EndUtc > horizonStart)
+                    && r.StartUtc < releaseHorizonEnd && r.EndUtc > horizonStart)
                 .Select(r => new { r.StartUtc, r.EndUtc })
                 .ToListAsync(cancellationToken);
             foreach (var date in upcomingDates)
@@ -88,8 +97,9 @@ public sealed class ResidentSpotService(
         }
 
         return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, state, releasedToday, potential, upcoming,
-            spot.PlannedUseDays, spot.AutoReleaseUnplannedDays,
-            policy.ResidentPlanHorizonEnd(today).DayNumber - today.DayNumber);
+            resident.Membership?.PlannedUseDays ?? spot.PlannedUseDays,
+            resident.Membership?.AutoReleaseUnplannedDays ?? spot.AutoReleaseUnplannedDays,
+            horizonEnd.DayNumber - today.DayNumber, assignedDates.Order().ToList());
     }
 
     public Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default) =>
@@ -123,13 +133,16 @@ public sealed class ResidentSpotService(
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
-        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
-        if (spot is null)
+        var resident = await FindResidentSpotAsync(dbContext, userId, cancellationToken);
+        if (resident is null)
         {
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
         }
+        var spot = resident.Spot;
+        var assignedDates = await AssignedDatesAsync(dbContext, spot, userId, fromDate, toDate, cancellationToken);
 
-        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken);
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken,
+            date => assignedDates.Contains(date));
         if (plan.Count == 0)
         {
             return ParkingResult.Failure("Parking_Error_NothingToRelease");
@@ -168,15 +181,18 @@ public sealed class ResidentSpotService(
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var spot = await dbContext.ParkingSpots.AsNoTracking().FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
-        if (spot is null)
+        var resident = await FindResidentSpotAsync(dbContext, userId, cancellationToken);
+        if (resident is null)
         {
             return 0;
         }
+        var spot = resident.Spot;
+        var assignedDates = await AssignedDatesAsync(dbContext, spot, userId, fromDate, toDate, cancellationToken);
 
         // No serializable transaction here: the preview is advisory and the actual award is
         // re-derived inside ReleaseCoreAsync's transaction.
-        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken);
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken,
+            date => assignedDates.Contains(date));
         return plan.Sum(day => day.Points);
     }
 
@@ -283,14 +299,15 @@ public sealed class ResidentSpotService(
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
-        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
-        if (spot is null)
+        var resident = await FindResidentSpotAsync(dbContext, userId, cancellationToken);
+        if (resident is null)
         {
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
         }
+        var spot = resident.Spot;
 
         var releases = await dbContext.SpotReleases
-            .Where(r => r.SpotId == spot.Id && r.Date >= fromDate && r.Date <= toDate)
+            .Where(r => r.SpotId == spot.Id && r.OwnerId == userId && r.Date >= fromDate && r.Date <= toDate)
             .ToListAsync(cancellationToken);
         if (releases.Count == 0)
         {
@@ -429,13 +446,20 @@ public sealed class ResidentSpotService(
         bool autoReleaseUnplannedDays, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
-        if (spot is null)
+        var resident = await FindResidentSpotAsync(dbContext, userId, cancellationToken);
+        if (resident is null)
         {
             return ParkingResult.Failure("Parking_Error_NoOwnedSpot");
         }
 
-        spot.SetUsagePlan(plannedUseDays, autoReleaseUnplannedDays);
+        if (resident.Membership is null)
+        {
+            resident.Spot.SetUsagePlan(plannedUseDays, autoReleaseUnplannedDays);
+        }
+        else
+        {
+            resident.Membership.SetUsagePlan(plannedUseDays, autoReleaseUnplannedDays);
+        }
         await dbContext.SaveChangesAsync(cancellationToken);
         return ParkingResult.Success;
     }
@@ -453,8 +477,15 @@ public sealed class ResidentSpotService(
         // Inactive spots never reach the pool, so planning them would only produce release rows
         // nobody can book.
         var candidates = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && s.OwnerId != null && s.AutoReleaseUnplannedDays)
+            .Where(s => s.IsActive && s.OwnerId != null && s.AutoReleaseUnplannedDays
+                && !dbContext.ParkingSpotResidents.Any(r => r.SpotId == s.Id && r.RemovedAtUtc == null))
             .Select(s => new { s.Id, s.PlanAppliedThrough })
+            .ToListAsync(cancellationToken);
+
+        var residentCandidates = await (from resident in dbContext.ParkingSpotResidents.AsNoTracking()
+                                        join spot in dbContext.ParkingSpots.AsNoTracking() on resident.SpotId equals spot.Id
+                                        where resident.RemovedAtUtc == null && resident.AutoReleaseUnplannedDays && spot.IsActive
+                                        select new { resident.Id, resident.PlanAppliedThrough })
             .ToListAsync(cancellationToken);
 
         var released = 0;
@@ -474,7 +505,69 @@ public sealed class ResidentSpotService(
                 cancellationToken);
         }
 
+        foreach (var candidate in residentCandidates)
+        {
+            if (candidate.PlanAppliedThrough >= horizonEnd)
+            {
+                continue;
+            }
+
+            released += await OptimisticConcurrency.RetryAsync(
+                () => ApplyPlanForResidentAsync(candidate.Id, today, horizonEnd, policy, timeZone, now, cancellationToken),
+                cancellationToken);
+        }
+
         return released;
+    }
+
+    private async Task<int> ApplyPlanForResidentAsync(Guid residentId, DateOnly today, DateOnly horizonEnd,
+        IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        var resident = await dbContext.ParkingSpotResidents
+            .FirstOrDefaultAsync(r => r.Id == residentId, cancellationToken);
+        if (resident is null || resident.RemovedAtUtc is not null || !resident.AutoReleaseUnplannedDays)
+        {
+            return 0;
+        }
+
+        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == resident.SpotId, cancellationToken);
+        if (spot is null || !spot.IsActive)
+        {
+            return 0;
+        }
+
+        var fromDate = resident.PlanAppliedThrough is { } appliedThrough
+            ? Max(today, appliedThrough.AddDays(1))
+            : today;
+        if (fromDate > horizonEnd)
+        {
+            return 0;
+        }
+
+        var assignedDates = await AssignedDatesAsync(
+            dbContext, spot, resident.UserId, fromDate, horizonEnd, cancellationToken);
+        var plan = await PlanReleaseRewardsAsync(dbContext, spot, resident.UserId, fromDate, horizonEnd,
+            policy, timeZone, now, cancellationToken,
+            date => assignedDates.Contains(date) && !resident.PlannedUseDays.Includes(date));
+
+        await AwardReleasePlanAsync(dbContext, spot, resident.UserId, plan, now, cancellationToken);
+        resident.MarkPlanApplied(horizonEnd);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        if (plan.Count > 0)
+        {
+            await notifications.NotifyAsync(resident.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_PlanReleased_Title"],
+                messages.ForEconomy(policy, "Parking_Notify_PlanReleased_Body", spot.Code, plan.Count, plan.Sum(day => day.Points)),
+                cancellationToken);
+        }
+
+        return plan.Count;
     }
 
     private async Task<int> ApplyPlanForSpotAsync(Guid spotId, DateOnly today, DateOnly horizonEnd,
@@ -602,4 +695,34 @@ public sealed class ResidentSpotService(
 
         return score;
     }
+
+    private static async Task<ResidentSpotContext?> FindResidentSpotAsync(
+        D3ParkingDbContext dbContext, Guid userId, CancellationToken cancellationToken)
+    {
+        var membership = await dbContext.ParkingSpotResidents
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.RemovedAtUtc == null, cancellationToken);
+        if (membership is not null)
+        {
+            var memberSpot = await dbContext.ParkingSpots
+                .FirstOrDefaultAsync(s => s.Id == membership.SpotId, cancellationToken);
+            return memberSpot is null ? null : new ResidentSpotContext(memberSpot, membership);
+        }
+
+        // Compatibility for tests and databases that have not run the membership backfill yet.
+        var legacySpot = await dbContext.ParkingSpots
+            .FirstOrDefaultAsync(s => s.OwnerId == userId, cancellationToken);
+        return legacySpot is null ? null : new ResidentSpotContext(legacySpot, null);
+    }
+
+    /// <summary>
+    /// Resolves the physical entitlement for each day. Explicit rows are authoritative; days without
+    /// an override rotate deterministically across active residents. A single resident retains the
+    /// historical all-days entitlement without requiring assignment rows for every calendar day.
+    /// </summary>
+    private static async Task<HashSet<DateOnly>> AssignedDatesAsync(
+        D3ParkingDbContext dbContext, ParkingSpot spot, Guid userId,
+        DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken) =>
+        await ResidentAllocation.AssignedDatesAsync(dbContext, spot, userId, fromDate, toDate, cancellationToken);
+
+    private sealed record ResidentSpotContext(ParkingSpot Spot, ParkingSpotResident? Membership);
 }

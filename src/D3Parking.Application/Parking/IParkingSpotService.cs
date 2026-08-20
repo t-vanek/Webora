@@ -53,6 +53,15 @@ public interface IParkingSpotService
     /// <summary>Assigns a resident to the spot, or clears ownership when ownerId is null.</summary>
     Task<ParkingResult> AssignOwnerAsync(Guid id, Guid? ownerId, CancellationToken cancellationToken = default);
 
+    /// <summary>Changes how many active residents may share the physical spot.</summary>
+    Task<ParkingResult> SetResidentCapacityAsync(Guid id, int capacity, CancellationToken cancellationToken = default);
+
+    /// <summary>Adds one resident without replacing existing memberships.</summary>
+    Task<ParkingResult> AddResidentAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Removes only the selected resident; other residents keep the spot.</summary>
+    Task<ParkingResult> RemoveResidentAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Recorded "could not park at the reserved spot" events, newest first — the admin trend view
     /// behind the driver-facing "I can't park" flow, including each report's photo proof flag and

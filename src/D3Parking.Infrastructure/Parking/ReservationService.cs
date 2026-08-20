@@ -229,16 +229,25 @@ public sealed class ReservationService(
         // A reserved (owned) spot can only be booked by a non-owner once it is shared — and every
         // local day the window touches must be shared, not just the first. A Wed–Fri booking with
         // only Wednesday released would otherwise occupy the owner's spot on Thu and Fri.
-        if (spot.OwnerId is { } owner && owner != userId)
-        {
-            var firstDay = SiteTime.Today(effectiveStartUtc, timeZone);
-            var lastDay = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
-            var releasedDates = (await dbContext.SpotReleases
-                .Where(r => r.SpotId == spotId && r.Date >= firstDay && r.Date <= lastDay)
-                .Select(r => r.Date)
-                .ToListAsync(cancellationToken)).ToHashSet();
+        var firstResidentDay = SiteTime.Today(effectiveStartUtc, timeZone);
+        var lastResidentDay = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
+        var assignedResidentDates = await ResidentAllocation.AssignedDatesAsync(
+            dbContext, spot, userId, firstResidentDay, lastResidentDay, cancellationToken);
+        var assignedForWholeWindow = assignedResidentDates.Count == lastResidentDay.DayNumber - firstResidentDay.DayNumber + 1;
+        var hasResidentMemberships = spot.OwnerId is not null || await dbContext.ParkingSpotResidents
+            .AnyAsync(r => r.SpotId == spot.Id && r.RemovedAtUtc == null, cancellationToken);
 
-            for (var date = firstDay; date <= lastDay; date = date.AddDays(1))
+        Guid? sharedByResidentId = null;
+        if (hasResidentMemberships && !assignedForWholeWindow)
+        {
+            var releaseRows = await dbContext.SpotReleases
+                .Where(r => r.SpotId == spotId && r.Date >= firstResidentDay && r.Date <= lastResidentDay)
+                .Select(r => new { r.Date, r.OwnerId })
+                .ToListAsync(cancellationToken);
+            var releasedDates = releaseRows.Select(r => r.Date).ToHashSet();
+            sharedByResidentId = releaseRows.OrderBy(r => r.Date).Select(r => (Guid?)r.OwnerId).FirstOrDefault();
+
+            for (var date = firstResidentDay; date <= lastResidentDay; date = date.AddDays(1))
             {
                 if (!releasedDates.Contains(date))
                 {
@@ -260,7 +269,7 @@ public sealed class ReservationService(
         // offer (a hold is not a booking). The withdrawn waiter keeps their queue position and
         // hears about it after the commit; the maintenance loop deals them the next freed spot.
         var withdrawnWaiters = new List<Guid>();
-        if (spot.OwnerId == userId)
+        if (assignedForWholeWindow)
         {
             var holds = await dbContext.QueueEntries
                 .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId == spotId
@@ -340,6 +349,7 @@ public sealed class ReservationService(
         }
 
         var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, voucher is null ? cost : 0, fromQueue);
+        reservation.AttributeSharedCapacity(sharedByResidentId);
         dbContext.Reservations.Add(reservation);
         if (voucher is not null)
         {
@@ -754,6 +764,11 @@ public sealed class ReservationService(
                 // nets to zero for the wallet while the ledger keeps a clean trail of the move.
                 replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
                     reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue);
+                var replacementDate = SiteTime.Today(effectiveStartUtc, timeZone);
+                replacement.AttributeSharedCapacity(await dbContext.SpotReleases.AsNoTracking()
+                    .Where(r => r.SpotId == replacementSpotId && r.Date == replacementDate)
+                    .Select(r => (Guid?)r.OwnerId)
+                    .FirstOrDefaultAsync(cancellationToken));
                 dbContext.Reservations.Add(replacement);
                 if (reservation.CreditsCharged > 0)
                 {

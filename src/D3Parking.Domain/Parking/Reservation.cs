@@ -35,6 +35,12 @@ public class Reservation : Entity
     /// <summary>True when this booking was claimed from the waitlist; a no-show on it is punished harder.</summary>
     public bool FromQueue { get; private set; }
 
+    /// <summary>
+    /// Resident who released the capacity used by this booking, captured at booking time so later
+    /// membership changes cannot rewrite trust, rewards or collusion history.
+    /// </summary>
+    public Guid? SharedByResidentId { get; private set; }
+
     private Reservation() { }
 
     public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc, int creditsCharged = 0, bool fromQueue = false)
@@ -43,6 +49,7 @@ public class Reservation : Entity
             throw new ArgumentException("Reservation end must be after its start.", nameof(endUtc));
 
         SpotId = spotId;
+        SharedByResidentId = null;
         UserId = userId;
         StartUtc = startUtc;
         EndUtc = endUtc;
@@ -68,6 +75,7 @@ public class Reservation : Entity
             throw new InvalidOperationException($"Cannot move a {Status} reservation.");
 
         SpotId = spotId;
+        SharedByResidentId = null;
     }
 
     public void CheckIn(DateTimeOffset at)
@@ -100,6 +108,8 @@ public class Reservation : Entity
     }
 
     public void MarkReminderSent(DateTimeOffset at) => ReminderSentAtUtc ??= at;
+
+    public void AttributeSharedCapacity(Guid? residentId) => SharedByResidentId = residentId;
 
     private void TransitionTo(ReservationStatus target)
     {

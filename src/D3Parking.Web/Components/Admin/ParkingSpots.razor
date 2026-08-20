@@ -198,8 +198,8 @@
                     }
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Parking_Admin_Resident"]">
-                    <div class="resident-cell @(context.OwnerId is null ? "resident-cell--empty" : null)">
-                        @if (context.OwnerId is null)
+                    <div class="resident-cell @(context.ResidentCount == 0 ? "resident-cell--empty" : null)">
+                        @if (context.ResidentCount == 0)
                         {
                             <div class="resident-cell__state">
                                 <span class="resident-cell__dot" aria-hidden="true"></span>
@@ -212,10 +212,10 @@
                         else
                         {
                             <div class="resident-cell__person">
-                                <span class="resident-avatar" aria-hidden="true">@Initials(OwnerLabel(context))</span>
+                                <span class="resident-avatar" aria-hidden="true">@context.ResidentCount</span>
                                 <div>
-                                    <strong>@OwnerLabel(context)</strong>
-                                    <small>@L["Parking_Admin_ResidentOfSpot"]</small>
+                                    <strong>@ResidentNames(context)</strong>
+                                    <small>@L["Parking_Admin_ResidentCountOfCapacity", context.ResidentCount, context.ResidentCapacity]</small>
                                 </div>
                             </div>
                         }
@@ -224,8 +224,8 @@
                 <TemplateColumn Title="@L["Common_Actions"]" Align="Align.End">
                     <div class="spot-row-actions">
                         <details class="resident-editor resident-editor--action" name="resident-assignment">
-                            <summary>@L[context.OwnerId is null ? "Parking_Admin_AssignResident" : "Parking_Admin_ChangeResident"]</summary>
-                            @ResidentSelect(context)
+                            <summary>@L["Parking_Admin_ManageResidents"]</summary>
+                            @ResidentEditor(context)
                         </details>
                         @if (context.IsActive)
                         {
@@ -251,7 +251,7 @@
                     </div>
                     <div class="spots-mobile-row__facts">
                         <span>@L[$"Parking_SpotType_{spot.Type}"]</span>
-                        <span>@(spot.OwnerId is null ? L["Parking_Admin_SharedPool"] : OwnerLabel(spot))</span>
+                        <span>@(spot.ResidentCount == 0 ? L["Parking_Admin_SharedPool"] : ResidentNames(spot))</span>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(spot.Notes))
                     {
@@ -259,8 +259,8 @@
                     }
                     <div class="spots-mobile-row__actions">
                         <details class="resident-editor" name="resident-assignment">
-                            <summary>@L[spot.OwnerId is null ? "Parking_Admin_AssignResident" : "Parking_Admin_ChangeResident"]</summary>
-                            @ResidentSelect(spot)
+                            <summary>@L["Parking_Admin_ManageResidents"]</summary>
+                            @ResidentEditor(spot)
                         </details>
                         <FluentButton OnClick="() => SetActiveAsync(spot.Id, !spot.IsActive)" Appearance="Appearance.Stealth">
                             @L[spot.IsActive ? "Parking_Admin_Deactivate" : "Parking_Admin_Activate"]
@@ -422,6 +422,10 @@
                 ? UserLabel(spot.OwnerId.Value.ToString())
                 : spot.OwnerName;
 
+    private string ResidentNames(ParkingSpotDto spot) => spot.ResidentList.Count > 0
+        ? string.Join(", ", spot.ResidentList.Select(r => r.Name))
+        : OwnerLabel(spot);
+
     private static string Initials(string label)
     {
         var parts = label.Split([' ', '.', '@', '_', '-'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -433,22 +437,48 @@
         return string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
     }
 
-    private RenderFragment ResidentSelect(ParkingSpotDto spot) => __builder =>
+    private RenderFragment ResidentEditor(ParkingSpotDto spot) => __builder =>
     {
+        <div class="resident-editor__members">
+            @foreach (var resident in spot.ResidentList)
+            {
+                <div class="resident-editor__member">
+                    <span>@resident.Name</span>
+                    <FluentButton Appearance="Appearance.Stealth"
+                                  OnClick="() => RemoveResidentAsync(spot.Id, resident.UserId)">@L["Common_Remove"]</FluentButton>
+                </div>
+            }
+        </div>
+        <label class="resident-editor__capacity">
+            <span>@L["Parking_Admin_ResidentCapacity"]</span>
+            <input type="number" min="1" max="20" value="@spot.ResidentCapacity"
+                   aria-label="@L["Parking_Admin_ResidentCapacity"]"
+                   @oninput="args => ChangeResidentCapacityAsync(spot.Id, args)" />
+        </label>
         <FluentSelect TOption="string"
-                      Items="@_userOptions"
+                      Items="@ResidentOptions(spot)"
                       OptionValue="@(id => id)"
                       OptionText="@(id => UserLabel(id))"
-                      Value="@(spot.OwnerId?.ToString() ?? string.Empty)"
-                      ValueChanged="@(v => AssignAsync(spot.Id, v))"
+                      Value="@string.Empty"
+                      ValueChanged="@(v => AddResidentAsync(spot.Id, v))"
                       Style="width:100%; min-width:210px" />
     };
 
-    private async Task AssignAsync(Guid spotId, string? userId)
+    private IReadOnlyList<string> ResidentOptions(ParkingSpotDto spot)
     {
+        var assigned = spot.ResidentList.Select(r => r.UserId.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return _userOptions.Where(id => string.IsNullOrEmpty(id) || !assigned.Contains(id)).ToList();
+    }
+
+    private async Task AddResidentAsync(Guid spotId, string? userId)
+    {
+        if (!Guid.TryParse(userId, out var residentId))
+        {
+            return;
+        }
+
         _error = _info = null;
-        Guid? ownerId = Guid.TryParse(userId, out var parsed) ? parsed : null;
-        var result = await Spots.AssignOwnerAsync(spotId, ownerId);
+        var result = await Spots.AddResidentAsync(spotId, residentId);
         if (!result.Succeeded)
         {
             _error = result.Errors.FirstOrDefault();
@@ -599,6 +629,36 @@
         // A new search starts at the front; page 5 of the old result set means nothing in the new one.
         _pageIndex = 0;
         await ReloadAsync();
+    }
+
+    private async Task RemoveResidentAsync(Guid spotId, Guid userId)
+    {
+        _error = _info = null;
+        var result = await Spots.RemoveResidentAsync(spotId, userId);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+        await ReloadAsync();
+    }
+
+    private async Task SetResidentCapacityAsync(Guid spotId, int capacity)
+    {
+        _error = _info = null;
+        var result = await Spots.SetResidentCapacityAsync(spotId, capacity);
+        if (!result.Succeeded)
+        {
+            _error = result.Errors.FirstOrDefault();
+        }
+        await ReloadAsync();
+    }
+
+    private async Task ChangeResidentCapacityAsync(Guid spotId, ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var capacity))
+        {
+            await SetResidentCapacityAsync(spotId, capacity);
+        }
     }
 
     private async Task FilterAsync()

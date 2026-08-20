@@ -42,8 +42,9 @@ public sealed class TrustService(
             from r in dbContext.Reservations.AsNoTracking()
             where r.Status == ReservationStatus.Completed
             join s in dbContext.ParkingSpots on r.SpotId equals s.Id
-            where s.OwnerId != null && s.OwnerId != r.UserId
-            group r by new { Owner = s.OwnerId!.Value, Guest = r.UserId } into g
+            let provider = r.SharedByResidentId ?? s.OwnerId
+            where provider != null && provider != r.UserId
+            group r by new { Owner = provider!.Value, Guest = r.UserId } into g
             select new CompletedSharePair(g.Key.Owner, g.Key.Guest, g.Count()))
             .ToListAsync(cancellationToken);
 

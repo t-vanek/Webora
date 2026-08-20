@@ -20,7 +20,12 @@ internal static class EmployeeLifecycleCleanup
         CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        var ownedSpots = await dbContext.ParkingSpots.CountAsync(s => s.OwnerId == userId, cancellationToken);
+        var ownedSpots = await dbContext.ParkingSpotResidents.CountAsync(
+            r => r.UserId == userId && r.RemovedAtUtc == null, cancellationToken);
+        if (ownedSpots == 0)
+        {
+            ownedSpots = await dbContext.ParkingSpots.CountAsync(s => s.OwnerId == userId, cancellationToken);
+        }
         var pairedVehicles = await dbContext.CompanyVehicles.CountAsync(v => v.PairedUserId == userId, cancellationToken);
         var activeReservations = await dbContext.Reservations.CountAsync(r => r.UserId == userId
             && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn), cancellationToken);
@@ -67,14 +72,32 @@ internal static class EmployeeLifecycleCleanup
     {
         var todayUtc = DateOnly.FromDateTime(now.UtcDateTime.Date);
 
-        await dbContext.ParkingSpots
+        var memberships = await dbContext.ParkingSpotResidents
+            .Where(r => r.UserId == userId && r.RemovedAtUtc == null)
+            .ToListAsync(cancellationToken);
+        foreach (var membership in memberships)
+        {
+            membership.Remove(now);
+        }
+
+        var affectedSpotIds = memberships.Select(r => r.SpotId).Distinct().ToList();
+        var assignments = await dbContext.SpotDayAssignments
+            .Where(a => affectedSpotIds.Contains(a.SpotId))
+            .ToListAsync(cancellationToken);
+        dbContext.SpotDayAssignments.RemoveRange(assignments);
+
+        var primarySpots = await dbContext.ParkingSpots
             .Where(s => s.OwnerId == userId)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(x => x.OwnerId, (Guid?)null)
-                .SetProperty(x => x.MonthlyShareAllowance, 0)
-                .SetProperty(x => x.PlannedUseDays, Weekday.None)
-                .SetProperty(x => x.AutoReleaseUnplannedDays, false)
-                .SetProperty(x => x.PlanAppliedThrough, (DateOnly?)null), cancellationToken);
+            .ToListAsync(cancellationToken);
+        foreach (var spot in primarySpots)
+        {
+            var next = await dbContext.ParkingSpotResidents
+                .Where(r => r.SpotId == spot.Id && r.UserId != userId && r.RemovedAtUtc == null)
+                .OrderBy(r => r.AssignedAtUtc)
+                .Select(r => (Guid?)r.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
+            spot.AssignOwner(next);
+        }
 
         await dbContext.SpotReleases
             .Where(r => r.OwnerId == userId && r.Date >= todayUtc)

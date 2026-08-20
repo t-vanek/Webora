@@ -9,7 +9,16 @@ public sealed record ParkingSpotDto(
     bool IsActive,
     string? Notes,
     Guid? OwnerId,
-    string? OwnerName);
+    string? OwnerName,
+    int ResidentCapacity = 1,
+    IReadOnlyList<ParkingSpotResidentDto>? Residents = null)
+{
+    public IReadOnlyList<ParkingSpotResidentDto> ResidentList => Residents ?? [];
+
+    public int ResidentCount => ResidentList.Count > 0 ? ResidentList.Count : OwnerId is null ? 0 : 1;
+}
+
+public sealed record ParkingSpotResidentDto(Guid MembershipId, Guid UserId, string Name, bool IsPrimary);
 
 public enum ParkingSpotStateFilter
 {

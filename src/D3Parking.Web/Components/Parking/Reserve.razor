@@ -223,12 +223,12 @@
         <div class="availability-toolbar">
             <div class="availability-toolbar__title">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_Available"]</FluentLabel>
-                <span>@L["Parking_Available_Count", VisibleAvailableSpots.Count, AvailableTotal]</span>
+                <span>@L["Parking_Available_Count", AvailableVisibleCount, AvailableTotal]</span>
             </div>
             <div class="availability-toolbar__controls">
                 <label class="select-field">
                     <span>@L["Parking_Filter_Type"]</span>
-                    <select class="parking-input" @bind="_spotTypeFilter">
+                    <select class="parking-input" @bind="_spotTypeFilter" @bind:after="ResetAvailablePage">
                         <option value="">@L["Parking_Filter_AllTypes"]</option>
                         @foreach (var type in ReservableSpotTypes)
                         {
@@ -238,7 +238,7 @@
                 </label>
                 <label class="select-field">
                     <span>@L["Parking_Sort"]</span>
-                    <select class="parking-input" @bind="_availableSort">
+                    <select class="parking-input" @bind="_availableSort" @bind:after="ResetAvailablePage">
                         <option value="@AvailableSort.Recommended">@L["Parking_Sort_Recommended"]</option>
                         <option value="@AvailableSort.Code">@L["Parking_Sort_Code"]</option>
                         <option value="@AvailableSort.Type">@L["Parking_Sort_Type"]</option>
@@ -263,7 +263,7 @@
                 </div>
             </div>
         }
-        else if (VisibleAvailableSpots.Count == 0)
+        else if (SortedAvailableSpots.Count == 0)
         {
             <div class="empty-state">
                 <FluentIcon Value="@(new Icons.Regular.Size32.Filter())" Color="Color.Neutral" />
@@ -294,35 +294,18 @@
                 </section>
             }
 
-            <div class="spot-groups">
-                @{
-                    var groups = AvailableSpotGroups;
-                }
-                @for (var i = 0; i < groups.Count; i++)
-                {
-                    var group = groups[i];
-                    @if (i == 0)
-                    {
-                        <section class="spot-group spot-group--featured">
-                            <div class="spot-group__summary spot-group__summary--static">
-                                <span>@L["Parking_Group_Title", group.Label]</span>
-                                <span class="count-chip">@group.Spots.Count</span>
-                            </div>
-                            @SpotGrid(group)
-                        </section>
-                    }
-                    else
-                    {
-                        <details class="spot-group">
-                            <summary class="spot-group__summary">
-                                <span>@L["Parking_Group_Title", group.Label]</span>
-                                <span class="count-chip">@group.Spots.Count</span>
-                            </summary>
-                            @SpotGrid(group)
-                        </details>
-                    }
-                }
-            </div>
+            @SpotGrid(PagedAvailableSpots)
+
+            @if (AvailablePageCount > 1)
+            {
+                <nav class="pager availability-pager" aria-label="@L["Parking_Available"]">
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_availablePageIndex == 0)"
+                                  OnClick="() => GoToAvailablePage(_availablePageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                    <span>@L["Common_PageOf", _availablePageIndex + 1, AvailablePageCount]</span>
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@(_availablePageIndex >= AvailablePageCount - 1)"
+                                  OnClick="() => GoToAvailablePage(_availablePageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+                </nav>
+            }
         }
     }
 
@@ -606,7 +589,12 @@
     private ReservationView _reservationView = ReservationView.Upcoming;
     private string _spotTypeFilter = string.Empty;
     private AvailableSort _availableSort = AvailableSort.Recommended;
+    private int _availablePageIndex;
     private ReleasePreset _releasePreset = ReleasePreset.OneDay;
+
+    // Twenty-four stays compact on a phone and fills common 2/3/4/6/8-column desktop grids
+    // without the hundreds of cards that the former zone accordions kept in the document.
+    private const int AvailablePageSize = 24;
 
     private enum AvailableSort
     {
@@ -622,8 +610,6 @@
         OneWeek,
         TwoWeeks,
     }
-
-    private sealed record SpotGroup(string Label, IReadOnlyList<ParkingSpotDto> Spots);
 
     private DateOnly PlannerToday => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
 
@@ -657,6 +643,7 @@
     private bool ResidentOwnsDay(DateOnly date) =>
         date >= PlannerToday
         && _ownedSpot is not null
+        && _ownedSpot.ResidentAssignedDates.Contains(date)
         && ResidentRelease(date) is null;
 
     private ReleasedDayDto? ResidentRelease(DateOnly date) =>
@@ -707,13 +694,6 @@
             .OrderBy(spot => spot.Code, SpotCodeComparer)
             .FirstOrDefault();
 
-    private IReadOnlyList<SpotGroup> AvailableSpotGroups =>
-        VisibleAvailableSpots
-            .GroupBy(SpotGroupLabel)
-            .OrderBy(group => group.Key, SpotCodeComparer)
-            .Select(group => new SpotGroup(group.Key, group.ToList()))
-            .ToList();
-
     private IEnumerable<ParkingSpotDto> FilteredAvailableSpots
     {
         get
@@ -742,7 +722,7 @@
         }
     }
 
-    private IReadOnlyList<ParkingSpotDto> VisibleAvailableSpots
+    private IReadOnlyList<ParkingSpotDto> SortedAvailableSpots
     {
         get
         {
@@ -757,17 +737,25 @@
         }
     }
 
-    private string SpotGroupLabel(ParkingSpotDto spot)
-    {
-        var code = spot.Code.Trim();
-        var dash = code.LastIndexOf('-');
-        if (dash > 0 && dash < code.Length - 1 && code[(dash + 1)..].All(char.IsDigit))
-        {
-            return code[..dash];
-        }
+    private IReadOnlyList<ParkingSpotDto> AvailableListSpots => RecommendedAvailableSpot is { } recommended
+        ? SortedAvailableSpots.Where(spot => spot.Id != recommended.Id).ToList()
+        : SortedAvailableSpots;
 
-        return string.IsNullOrWhiteSpace(code) ? L["Parking_Group_Other"].Value : code;
-    }
+    private int AvailablePageCount => Math.Max(1,
+        (AvailableListSpots.Count + AvailablePageSize - 1) / AvailablePageSize);
+
+    private IReadOnlyList<ParkingSpotDto> PagedAvailableSpots => AvailableListSpots
+        .Skip(_availablePageIndex * AvailablePageSize)
+        .Take(AvailablePageSize)
+        .ToList();
+
+    private int AvailableVisibleCount => PagedAvailableSpots.Count
+        + (RecommendedAvailableSpot is null ? 0 : 1);
+
+    private void ResetAvailablePage() => _availablePageIndex = 0;
+
+    private void GoToAvailablePage(int pageIndex) =>
+        _availablePageIndex = Math.Clamp(pageIndex, 0, AvailablePageCount - 1);
 
     private static int CompareSpotCodes(string? left, string? right)
     {
@@ -991,10 +979,10 @@
         </section>
     };
 
-    private RenderFragment SpotGrid(SpotGroup group) => __builder =>
+    private RenderFragment SpotGrid(IReadOnlyList<ParkingSpotDto> spots) => __builder =>
     {
         <div class="spot-grid">
-            @foreach (var spot in group.Spots)
+            @foreach (var spot in spots)
             {
                 <div class="spot-card spot-card--@spot.Type">
                     <div class="spot-card__top">
@@ -1065,7 +1053,7 @@
             var to = DateOnly.FromDateTime(_releaseTo);
             for (var date = from; date <= to; date = date.AddDays(1))
             {
-                if (!released.Contains(date))
+                if (_ownedSpot.ResidentAssignedDates.Contains(date) && !released.Contains(date))
                 {
                     return true;
                 }
@@ -1164,7 +1152,9 @@
     // A resident who kept their assigned spot for the selected day has nothing to reserve from the
     // shared pool. Only explicitly released days expose the ordinary search.
     private bool HasHeldResidentSpotForSelectedDay =>
-        _ownedSpot is not null && SelectedResidentRelease is null;
+        _ownedSpot is not null
+        && _ownedSpot.ResidentAssignedDates.Contains(_day)
+        && SelectedResidentRelease is null;
 
     private bool _sharedSearchRequested;
     private bool SharedSearchExpanded => _sharedSearchRequested || _available is not null || _quote is not null || _highlightSearch;
@@ -1199,12 +1189,15 @@
         OwnedSpotDayState.Held => L["Parking_Owned_TodayHeldText"].Value,
         OwnedSpotDayState.SharedFree => L["Parking_Owned_TodaySharedFreeText"].Value,
         OwnedSpotDayState.SharedTaken => L["Parking_Owned_TodaySharedTakenText"].Value,
+        OwnedSpotDayState.NotAssigned => L["Parking_Owned_TodayNotAssignedText"].Value,
         _ => L["Parking_AlternateSearch_Text"].Value,
     };
 
     private OwnedSpotDayState SelectedResidentDayState => _day == PlannerToday
         ? _ownedSpot?.TodayState ?? OwnedSpotDayState.Held
-        : SelectedResidentRelease switch
+        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
+            ? OwnedSpotDayState.NotAssigned
+            : SelectedResidentRelease switch
         {
             { TakenByGuest: true } => OwnedSpotDayState.SharedTaken,
             { TakenByGuest: false } => OwnedSpotDayState.SharedFree,
@@ -1213,6 +1206,8 @@
 
     private string SelectedResidentDayTitle => _day == PlannerToday
         ? L[$"Parking_OwnedState_{_ownedSpot!.TodayState}"].Value
+        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
+            ? L["Parking_OwnedState_NotAssigned"].Value
         : SelectedResidentRelease switch
         {
             { TakenByGuest: true } => L["Parking_ResidentState_SharedTaken_Title", _ownedSpot!.Code].Value,
@@ -1222,6 +1217,8 @@
 
     private string SelectedResidentDayText => _day == PlannerToday
         ? TodayResidentParkingText
+        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
+            ? L["Parking_Owned_TodayNotAssignedText"].Value
         : SelectedResidentRelease switch
         {
             { TakenByGuest: true } => L["Parking_ResidentState_SharedTaken_Text"].Value,
@@ -1493,6 +1490,7 @@
     // a reservation goes through a fresh search (the visitor agenda does the same).
     private void InvalidateSearch()
     {
+        ResetAvailablePage();
         _available = null;
         _quote = null;
     }
@@ -1691,11 +1689,10 @@
     private void ResetReleaseRangeToNextHeldDay()
     {
         var released = _ownedSpot?.UpcomingReleases.Select(day => day.Date).ToHashSet() ?? [];
-        var date = ReleaseToday;
-        while (released.Contains(date))
-        {
-            date = date.AddDays(1);
-        }
+        var date = _ownedSpot?.ResidentAssignedDates
+            .Where(candidate => candidate >= ReleaseToday && !released.Contains(candidate))
+            .Order()
+            .FirstOrDefault() ?? ReleaseToday;
 
         _releasePreset = ReleasePreset.OneDay;
         _releaseFrom = date.ToDateTime(TimeOnly.MinValue);
@@ -1822,6 +1819,7 @@
         if (!keepMessages)
         {
             _error = _info = null;
+            ResetAvailablePage();
         }
 
         if (End <= Start)
@@ -1834,6 +1832,7 @@
 
         _available = await Reservations.GetAvailableSpotsAsync(Start, End);
         _quote = await Reservations.GetQuoteAsync(_userId, Start, End);
+        _availablePageIndex = Math.Clamp(_availablePageIndex, 0, AvailablePageCount - 1);
         if (!keepMessages)
         {
             await SavePreferencesAsync();

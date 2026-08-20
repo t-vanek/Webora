@@ -76,6 +76,16 @@ public sealed class LotDashboardService(
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
+        var residentNames = (await (from resident in dbContext.ParkingSpotResidents.AsNoTracking()
+                                    join user in dbContext.Users.AsNoTracking() on resident.UserId equals user.Id
+                                    where resident.RemovedAtUtc == null
+                                    select new
+                                    {
+                                        resident.SpotId,
+                                        Name = user.DisplayName ?? user.Email ?? string.Empty,
+                                    }).ToListAsync(cancellationToken))
+            .GroupBy(r => r.SpotId)
+            .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(r => r.Name)));
 
         // Live bookings touching the day, with the holder's name resolved in the same query — a tile
         // without a name would send the manager to another screen to answer "who is that".
@@ -146,7 +156,7 @@ public sealed class LotDashboardService(
             var to = reservation?.EndUtc ?? visitor?.EndUtc;
 
             tiles.Add(new SpotTileDto(spot.Id, spot.Code, SectionOf(spot.Code), spot.Type, spot.IsActive,
-                spot.OwnerId, spot.OwnerName, state, holder, from, to,
+                spot.OwnerId, residentNames.TryGetValue(spot.Id, out var names) ? names : spot.OwnerName, state, holder, from, to,
                 mismatchesPerSpot.GetValueOrDefault(spot.Id)));
         }
 

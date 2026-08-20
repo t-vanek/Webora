@@ -605,21 +605,26 @@ public sealed class FleetService(
         {
             var owner = await dbContext.ParkingSpots.AsNoTracking()
                 .Where(s => s.Id == spotId)
-                .Select(s => new { s.OwnerId })
+                .Select(s => new
+                {
+                    s.ResidentCapacity,
+                    IsMember = dbContext.ParkingSpotResidents.Any(r =>
+                        r.SpotId == s.Id && r.UserId == userId && r.RemovedAtUtc == null),
+                    ResidentCount = dbContext.ParkingSpotResidents.Count(r =>
+                        r.SpotId == s.Id && r.RemovedAtUtc == null),
+                })
                 .FirstOrDefaultAsync(cancellationToken);
             if (owner is null)
             {
                 return ParkingResult.Failure("Parking_Error_SpotNotFound");
             }
 
-            // A different manual resident on the vehicle's spot is an administrative conflict the
-            // pairing must not resolve by evicting anyone.
-            if (owner.OwnerId is { } existing && existing != userId)
+            if (!owner.IsMember && owner.ResidentCount >= owner.ResidentCapacity)
             {
                 return ParkingResult.Failure("Fleet_Error_SpotOccupied");
             }
 
-            if (owner.OwnerId != userId)
+            if (!owner.IsMember)
             {
                 pendingSpot = spotId;
             }
@@ -639,7 +644,7 @@ public sealed class FleetService(
 
         if (pendingSpot is { } assign)
         {
-            var assigned = await parkingSpots.AssignOwnerAsync(assign, userId, cancellationToken);
+            var assigned = await parkingSpots.AddResidentAsync(assign, userId, cancellationToken);
             if (!assigned.Succeeded)
             {
                 // The residency is the point of the pairing; without it the pairing must not
@@ -675,11 +680,12 @@ public sealed class FleetService(
 
         if (vehicle.AssignedSpotId is { } spotId)
         {
-            var ownedByPairedUser = await dbContext.ParkingSpots.AsNoTracking()
-                .AnyAsync(s => s.Id == spotId && s.OwnerId == pairedUser, cancellationToken);
-            if (ownedByPairedUser)
+            var isResident = await dbContext.ParkingSpotResidents.AsNoTracking()
+                .AnyAsync(r => r.SpotId == spotId && r.UserId == pairedUser && r.RemovedAtUtc == null, cancellationToken);
+            if (isResident || await dbContext.ParkingSpots.AsNoTracking()
+                    .AnyAsync(s => s.Id == spotId && s.OwnerId == pairedUser, cancellationToken))
             {
-                var released = await parkingSpots.AssignOwnerAsync(spotId, null, cancellationToken);
+                var released = await parkingSpots.RemoveResidentAsync(spotId, pairedUser, cancellationToken);
                 if (!released.Succeeded)
                 {
                     return released;
@@ -739,7 +745,7 @@ public sealed class FleetService(
     {
         if (previousSpotId is { } previous)
         {
-            var released = await parkingSpots.AssignOwnerAsync(previous, null, cancellationToken);
+            var released = await parkingSpots.RemoveResidentAsync(previous, pairedUser, cancellationToken);
             if (!released.Succeeded)
             {
                 return released;
@@ -748,7 +754,7 @@ public sealed class FleetService(
 
         if (newSpotId is { } next)
         {
-            var assigned = await parkingSpots.AssignOwnerAsync(next, pairedUser, cancellationToken);
+            var assigned = await parkingSpots.AddResidentAsync(next, pairedUser, cancellationToken);
             if (!assigned.Succeeded)
             {
                 return assigned;
@@ -774,12 +780,6 @@ public sealed class FleetService(
         if (spot.Type == ParkingSpotType.Visitor)
         {
             return ParkingResult.Failure("Fleet_Error_VisitorSpot");
-        }
-
-        if (await dbContext.CompanyVehicles.AnyAsync(
-                v => v.AssignedSpotId == spotId && v.Id != vehicleId, cancellationToken))
-        {
-            return ParkingResult.Failure("Fleet_Error_SpotTaken");
         }
 
         return null;

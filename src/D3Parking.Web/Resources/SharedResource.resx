@@ -461,8 +461,6 @@
   <data name="Parking_Available_FilterEmpty" xml:space="preserve"><value>Pro vybraný typ tu nejsou žádná volná místa.</value></data>
   <data name="Parking_Recommended_Label" xml:space="preserve"><value>Doporučené místo</value></data>
   <data name="Parking_Recommended_Reserve" xml:space="preserve"><value>Rezervovat doporučené</value></data>
-  <data name="Parking_Group_Title" xml:space="preserve"><value>Zóna {0}</value></data>
-  <data name="Parking_Group_Other" xml:space="preserve"><value>Ostatní</value></data>
   <data name="Parking_ActiveReservation_Title" xml:space="preserve"><value>Aktivní rezervace</value></data>
   <data name="Parking_ActiveReservation_Subtitle" xml:space="preserve"><value>Rychlé akce pro rezervaci, která je teď aktuální.</value></data>
   <data name="Parking_TryLater_30" xml:space="preserve"><value>Zkusit +30 min</value></data>
@@ -2118,5 +2116,14 @@
   <data name="Admin_Users_CreateIntro" xml:space="preserve"><value>Založte místní účet a nastavte jeho počáteční přístupy.</value></data>
   <data name="Admin_Users_CreateIdentityHint" xml:space="preserve"><value>Přihlašovací a kontaktní údaje nového uživatele.</value></data>
   <data name="Admin_Users_CreateRolesHint" xml:space="preserve"><value>Role lze později změnit v detailu účtu.</value></data>
+  <data name="Common_Remove" xml:space="preserve"><value>Odebrat</value></data>
+  <data name="Parking_Admin_ManageResidents" xml:space="preserve"><value>Spravovat rezidenty</value></data>
+  <data name="Parking_Admin_ResidentCapacity" xml:space="preserve"><value>Kapacita rezidentů</value></data>
+  <data name="Parking_Admin_ResidentCountOfCapacity" xml:space="preserve"><value>{0} z {1} rezidentů</value></data>
+  <data name="Parking_Error_ResidentCapacityRange" xml:space="preserve"><value>Kapacita rezidentů musí být od 1 do 20.</value></data>
+  <data name="Parking_Error_ResidentCapacityBelowCount" xml:space="preserve"><value>Kapacita nesmí být nižší než aktuální počet rezidentů.</value></data>
+  <data name="Parking_Error_ResidentCapacityReached" xml:space="preserve"><value>Parkovací místo už má maximální počet rezidentů.</value></data>
+  <data name="Parking_OwnedState_NotAssigned" xml:space="preserve"><value>Dnes je místo přiřazeno jinému rezidentovi</value></data>
+  <data name="Parking_Owned_TodayNotAssignedText" xml:space="preserve"><value>Pro tento den vám sdílené rezidentní místo není přiděleno. Můžete vyhledat místo ve společném fondu.</value></data>
   <data name="Parking_Defect_Close" xml:space="preserve"><value>Zavřít hlášení</value></data>
 </root>

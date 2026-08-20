@@ -4,6 +4,7 @@ using D3Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace D3Parking.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D3ParkingDbContext))]
-    partial class D3ParkingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820142449_SupportMultipleResidentsPerSpot")]
+    partial class SupportMultipleResidentsPerSpot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1350,9 +1353,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ReminderSentAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid?>("SharedByResidentId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("SpotId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1375,8 +1375,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Status");
-
-                    b.HasIndex("SharedByResidentId", "Status");
 
                     b.HasIndex("SpotId", "StartUtc");
 

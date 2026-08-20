@@ -16,7 +16,15 @@ public class ParkingSpot : Entity
     public string? Notes { get; private set; }
 
     /// <summary>The resident this spot is reserved for, or null when it is a shared pool spot.</summary>
+    /// <remarks>
+    /// Compatibility pointer to the primary resident. New code uses <see cref="ParkingSpotResident"/>
+    /// memberships; keeping this value during the transition lets older databases and integrations
+    /// continue to classify a spot as resident-owned.
+    /// </remarks>
     public Guid? OwnerId { get; private set; }
+
+    /// <summary>Maximum number of active resident memberships on this physical spot.</summary>
+    public int ResidentCapacity { get; private set; } = 1;
 
     /// <summary>
     /// Legacy persisted value retained while older databases are upgraded. It no longer limits
@@ -84,6 +92,16 @@ public class ParkingSpot : Entity
             AutoReleaseUnplannedDays = false;
             PlanAppliedThrough = null;
         }
+    }
+
+    public void SetResidentCapacity(int capacity)
+    {
+        if (capacity is < 1 or > 20)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity), "Resident capacity must be between 1 and 20.");
+        }
+
+        ResidentCapacity = capacity;
     }
 
     /// <summary>Compatibility hook for legacy data and migration regression tests only.</summary>

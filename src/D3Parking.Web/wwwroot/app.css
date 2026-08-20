@@ -1717,72 +1717,6 @@ h1:focus {
     font-weight: 600;
 }
 
-.spot-groups {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.spot-group {
-    border: 1px solid var(--brand-hairline, #ececec);
-    border-radius: var(--brand-radius-lg);
-    background: var(--neutral-layer-1, #fff);
-    overflow: hidden;
-}
-
-.spot-group__summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 14px;
-    color: var(--neutral-foreground-rest, #242424);
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    list-style: none;
-}
-
-.spot-group__summary--static {
-    cursor: default;
-}
-
-    .spot-group__summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .spot-group__summary::after {
-        content: "+";
-        margin-left: auto;
-        color: var(--accent-foreground-rest, var(--brand-violet));
-        font-weight: 900;
-    }
-
-    .spot-group__summary--static::after {
-        content: "";
-        display: none;
-    }
-
-.spot-group[open] .spot-group__summary {
-    border-bottom: 1px solid var(--brand-hairline, #ececec);
-}
-
-.spot-group--featured {
-    border-color: rgba(136, 77, 255, .20);
-}
-
-    .spot-group--featured .spot-group__summary {
-        border-bottom: 1px solid var(--brand-hairline, #ececec);
-        background: rgba(136, 77, 255, .04);
-    }
-
-    .spot-group[open] .spot-group__summary::after {
-        content: "-";
-    }
-
-.spot-group .spot-grid {
-    padding: 14px;
-}
-
 .spot-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -4555,6 +4489,39 @@ h1:focus {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 14px;
+}
+
+.availability-pager {
+    justify-content: center;
+}
+
+.resident-editor__members {
+    display: grid;
+    gap: .35rem;
+    margin-bottom: .65rem;
+}
+
+.resident-editor__member {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+.resident-editor__capacity {
+    display: grid;
+    gap: .3rem;
+    margin-bottom: .65rem;
+    font-size: .8rem;
+}
+
+.resident-editor__capacity input {
+    min-height: 36px;
+    padding: .4rem .55rem;
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: 4px;
+    background: var(--neutral-fill-input-rest);
+    color: inherit;
 }
 
 .role-card {

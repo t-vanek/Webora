@@ -5,6 +5,9 @@ namespace D3Parking.Application.Parking;
 /// <summary>Today's state of a resident's reserved spot.</summary>
 public enum OwnedSpotDayState
 {
+    /// <summary>The shared-residency schedule assigns the physical spot to another resident.</summary>
+    NotAssigned,
+
     /// <summary>Still held for the resident (before the cutoff, not yet claimed or released).</summary>
     Held,
 
@@ -33,4 +36,8 @@ public sealed record OwnedSpotDto(
     // released ahead of time, and how far ahead that reaches.
     Weekday PlannedUseDays,
     bool AutoReleaseUnplannedDays,
-    int PlanHorizonDays);
+    int PlanHorizonDays,
+    IReadOnlyList<DateOnly>? AssignedDates = null)
+{
+    public IReadOnlyList<DateOnly> ResidentAssignedDates => AssignedDates ?? [];
+}

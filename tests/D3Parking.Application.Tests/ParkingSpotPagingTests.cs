@@ -228,6 +228,68 @@ public class ParkingSpotPagingTests
         });
     }
 
+    [Test]
+    public async Task A_spot_accepts_residents_up_to_capacity_and_removes_only_the_selected_membership()
+    {
+        var first = new ApplicationUser
+        {
+            UserName = $"first-{Guid.NewGuid():N}@example.test",
+            Email = $"first-{Guid.NewGuid():N}@example.test",
+        };
+        first.NormalizedUserName = first.UserName.ToUpperInvariant();
+        first.NormalizedEmail = first.Email.ToUpperInvariant();
+        var second = new ApplicationUser
+        {
+            UserName = $"second-{Guid.NewGuid():N}@example.test",
+            Email = $"second-{Guid.NewGuid():N}@example.test",
+        };
+        second.NormalizedUserName = second.UserName.ToUpperInvariant();
+        second.NormalizedEmail = second.Email.ToUpperInvariant();
+        var spot = new ParkingSpot("MR-SERVICE", ParkingSpotType.Standard);
+        spot.SetResidentCapacity(2);
+
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            dbContext.Users.AddRange(first, second);
+            dbContext.ParkingSpots.Add(spot);
+            await dbContext.SaveChangesAsync();
+        }
+
+        Assert.That((await _spots.AddResidentAsync(spot.Id, first.Id)).Succeeded, Is.True);
+        Assert.That((await _spots.AddResidentAsync(spot.Id, second.Id)).Succeeded, Is.True);
+
+        var shared = await _spots.GetAsync(spot.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(shared!.ResidentCount, Is.EqualTo(2));
+            Assert.That(shared.ResidentCapacity, Is.EqualTo(2));
+            Assert.That(shared.ResidentList.Select(r => r.UserId), Is.EquivalentTo(new[] { first.Id, second.Id }));
+        });
+
+        var residentSpots = new ResidentSpotService(new TestDbContextFactory(_options),
+            new FakeParkingSettings(), new FakeSiteSettings(), new FixedTimeProvider(Now),
+            new NullNotificationService(), new PassthroughLocalizer<ParkingMessages>());
+        var firstView = await residentSpots.GetMyOwnedSpotAsync(first.Id);
+        var secondView = await residentSpots.GetMyOwnedSpotAsync(second.Id);
+        var firstDays = firstView!.ResidentAssignedDates.ToHashSet();
+        var secondDays = secondView!.ResidentAssignedDates.ToHashSet();
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstDays.Intersect(secondDays), Is.Empty, "A physical day belongs to one resident only.");
+            Assert.That(firstDays.Union(secondDays).Count(), Is.EqualTo(firstView.PlanHorizonDays + 1),
+                "The rotation must not leave a day without a resident entitlement.");
+        });
+
+        Assert.That((await _spots.RemoveResidentAsync(spot.Id, second.Id)).Succeeded, Is.True);
+        var remaining = await _spots.GetAsync(spot.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(remaining!.ResidentCount, Is.EqualTo(1));
+            Assert.That(remaining.ResidentList.Single().UserId, Is.EqualTo(first.Id));
+            Assert.That(remaining.OwnerId, Is.EqualTo(first.Id));
+        });
+    }
+
     /// <summary>Spots <paramref name="from"/>…<paramref name="to"/> of one section, created out of order.</summary>
     private async Task SeedAsync(string section, int from, int to)
     {

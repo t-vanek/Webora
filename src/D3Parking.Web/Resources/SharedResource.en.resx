@@ -461,8 +461,6 @@
   <data name="Parking_Available_FilterEmpty" xml:space="preserve"><value>No available spots match the selected type.</value></data>
   <data name="Parking_Recommended_Label" xml:space="preserve"><value>Recommended spot</value></data>
   <data name="Parking_Recommended_Reserve" xml:space="preserve"><value>Reserve recommended</value></data>
-  <data name="Parking_Group_Title" xml:space="preserve"><value>Zone {0}</value></data>
-  <data name="Parking_Group_Other" xml:space="preserve"><value>Other</value></data>
   <data name="Parking_ActiveReservation_Title" xml:space="preserve"><value>Active reservation</value></data>
   <data name="Parking_ActiveReservation_Subtitle" xml:space="preserve"><value>Quick actions for the reservation that matters right now.</value></data>
   <data name="Parking_TryLater_30" xml:space="preserve"><value>Try +30 min</value></data>
@@ -2118,5 +2116,14 @@
   <data name="Admin_Users_CreateIntro" xml:space="preserve"><value>Create a local account and set its initial access.</value></data>
   <data name="Admin_Users_CreateIdentityHint" xml:space="preserve"><value>Sign-in and contact details for the new user.</value></data>
   <data name="Admin_Users_CreateRolesHint" xml:space="preserve"><value>Roles can be changed later in the account detail.</value></data>
+  <data name="Common_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Parking_Admin_ManageResidents" xml:space="preserve"><value>Manage residents</value></data>
+  <data name="Parking_Admin_ResidentCapacity" xml:space="preserve"><value>Resident capacity</value></data>
+  <data name="Parking_Admin_ResidentCountOfCapacity" xml:space="preserve"><value>{0} of {1} residents</value></data>
+  <data name="Parking_Error_ResidentCapacityRange" xml:space="preserve"><value>Resident capacity must be between 1 and 20.</value></data>
+  <data name="Parking_Error_ResidentCapacityBelowCount" xml:space="preserve"><value>Capacity cannot be lower than the current resident count.</value></data>
+  <data name="Parking_Error_ResidentCapacityReached" xml:space="preserve"><value>The parking spot has reached its resident capacity.</value></data>
+  <data name="Parking_OwnedState_NotAssigned" xml:space="preserve"><value>The spot is assigned to another resident today</value></data>
+  <data name="Parking_Owned_TodayNotAssignedText" xml:space="preserve"><value>The shared resident spot is not allocated to you on this day. You can search the shared pool instead.</value></data>
   <data name="Parking_Defect_Close" xml:space="preserve"><value>Close report form</value></data>
 </root>
