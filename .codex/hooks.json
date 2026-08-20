@@ -1,12 +1,17 @@
 {
+  "description": "Prepare the D3Parking development environment for Codex.",
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "^(startup|resume)$",
         "hooks": [
           {
             "type": "command",
-            "command": "'C:\\Users\\tvanek\\source\\repos\\Webora\\.codex\\hooks\\session-start.sh'",
-            "timeout": 900
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/session-start.sh\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$(git rev-parse --show-toplevel)/.codex/hooks/session-start.ps1\"",
+            "timeout": 900,
+            "statusMessage": "Preparing D3Parking build, test, and database dependencies",
+            "additionalContextLimit": 500
           }
         ]
       }
