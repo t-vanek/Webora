@@ -18,4 +18,11 @@
   <data name="Bell_NoNotifications" xml:space="preserve"><value>Žádné notifikace.</value></data>
   <data name="Bell_PushToggle" xml:space="preserve"><value>Oznámení v tomto zařízení</value></data>
   <data name="Bell_PushBlocked" xml:space="preserve"><value>Oznámení jsou v prohlížeči zablokovaná. Povolte je v nastavení webu.</value></data>
+  <data name="Bell_Settings" xml:space="preserve"><value>Nastavení notifikací</value></data>
+  <data name="Bell_MuteAll" xml:space="preserve"><value>Ztlumit živá upozornění a e-maily</value></data>
+  <data name="Bell_Scope" xml:space="preserve"><value>Co chci dostávat</value></data>
+  <data name="Bell_ScopeAll" xml:space="preserve"><value>Vlastní, provozní i administrativní zprávy</value></data>
+  <data name="Bell_ScopeSelf" xml:space="preserve"><value>Pouze zprávy k mým vlastním akcím</value></data>
+  <data name="Bell_Availability" xml:space="preserve"><value>Doporučení volných parkovacích míst</value></data>
+  <data name="Bell_SecurityAlways" xml:space="preserve"><value>Bezpečnostní a kritické provozní události se vždy uloží a nelze je ztlumit.</value></data>
 </root>

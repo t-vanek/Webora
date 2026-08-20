@@ -178,7 +178,7 @@
             {
                 <div class="today-card today-card--reserve">
                     <span class="today-card__label">@L["Home_NextReservation"]</span>
-                    <span class="today-card__value">@r.SpotCode · @Local(r.StartUtc, "g") – @Local(r.EndUtc, "t")</span>
+                    <span class="today-card__value">@r.SpotCode · @WindowWhen(r.StartUtc, r.EndUtc)</span>
                     <span class="today-card__meta">@L[$"Parking_State_{r.Status}"]</span>
                     <span class="today-card__actions">
                         @if (r.Status == ReservationStatus.Reserved)
@@ -209,7 +209,7 @@
                     }
                     else
                     {
-                        <span class="today-card__value">@Local(q.StartUtc, "g") – @Local(q.EndUtc, "t")</span>
+                        <span class="today-card__value">@WindowWhen(q.StartUtc, q.EndUtc)</span>
                         <span class="today-card__meta">@L["Parking_Queue_Position"]: @q.Position</span>
                         <span class="today-card__actions">
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
@@ -487,4 +487,17 @@
 
     private string Local(DateTimeOffset utc, string format) =>
         TimeZoneInfo.ConvertTime(utc, _tz).ToString(format);
+
+    private string WindowWhen(DateTimeOffset startUtc, DateTimeOffset endUtc)
+    {
+        var start = TimeZoneInfo.ConvertTime(startUtc, _tz);
+        var end = TimeZoneInfo.ConvertTime(endUtc, _tz);
+        if (start.TimeOfDay == TimeSpan.Zero && end.TimeOfDay == TimeSpan.Zero
+            && DateOnly.FromDateTime(end.DateTime) == DateOnly.FromDateTime(start.DateTime).AddDays(1))
+        {
+            return $"{start:d} · {L["Parking_AllDay"]}";
+        }
+
+        return $"{start:g} – {end:t}";
+    }
 }

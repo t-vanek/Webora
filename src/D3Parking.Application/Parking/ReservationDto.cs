@@ -15,4 +15,6 @@ public sealed record ReservationDto(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? CheckedInAtUtc,
     DateTimeOffset? ReleasedAtUtc,
-    DateTimeOffset? CompletedAtUtc);
+    DateTimeOffset? CompletedAtUtc,
+    int CalendarSequence,
+    DateTimeOffset CalendarUpdatedAtUtc);

@@ -44,7 +44,6 @@ public sealed class ReservationService(
 
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var requestDate = SiteTime.Today(startUtc, timeZone);
@@ -102,7 +101,8 @@ public sealed class ReservationService(
             .Select(x => new ReservationDto(
                 x.r.Id, x.r.SpotId, x.Code, x.Type, x.r.UserId,
                 x.r.StartUtc, x.r.EndUtc, x.r.Status, x.r.IsOffPeak, x.r.CreatedAtUtc,
-                x.r.CheckedInAtUtc, x.r.ReleasedAtUtc, x.r.CompletedAtUtc))
+                x.r.CheckedInAtUtc, x.r.ReleasedAtUtc, x.r.CompletedAtUtc,
+                x.r.CalendarSequence, x.r.CalendarUpdatedAtUtc))
             .ToListAsync(cancellationToken);
     }
 
@@ -130,7 +130,8 @@ public sealed class ReservationService(
                            select new ReservationDto(
                                r.Id, r.SpotId, s.Code, s.Type, r.UserId,
                                r.StartUtc, r.EndUtc, r.Status, r.IsOffPeak, r.CreatedAtUtc,
-                               r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc))
+                               r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc,
+                               r.CalendarSequence, r.CalendarUpdatedAtUtc))
             .Skip(index * size)
             .Take(size)
             .ToListAsync(cancellationToken);
@@ -147,7 +148,8 @@ public sealed class ReservationService(
                       select new ReservationDto(
                           r.Id, r.SpotId, s.Code, s.Type, r.UserId,
                           r.StartUtc, r.EndUtc, r.Status, r.IsOffPeak, r.CreatedAtUtc,
-                          r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc))
+                          r.CheckedInAtUtc, r.ReleasedAtUtc, r.CompletedAtUtc,
+                          r.CalendarSequence, r.CalendarUpdatedAtUtc))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -190,6 +192,25 @@ public sealed class ReservationService(
 
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+
+        // The UI is not the authority here: an already-open browser can outlive an administrator's
+        // rule change. Queue claims are grandfathered because their window was accepted when the
+        // user joined the queue; every new direct booking must match the current mode.
+        if (!fromQueue && !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
+        }
+
+        if (!fromQueue && !policy.IsWithinReservationHorizon(startUtc, now, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationHorizon");
+        }
+
+        if (!fromQueue && !policy.IsReservationWeekdayAllowed(startUtc, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // The conflict checks below and the insert have to be one atomic step: at plain read-committed
@@ -256,6 +277,19 @@ public sealed class ReservationService(
             }
         }
 
+        // A resident's own allocated spot is their entitlement, not a draw from the shared weekly
+        // capacity. Direct plans on pool/shared spots consume the quota; queue claims were already
+        // admitted under the same rule when the user joined the queue.
+        if (!fromQueue && !assignedForWholeWindow)
+        {
+            var plannerError = await ValidateWeeklyPlannerLimitAsync(
+                dbContext, userId, startUtc, policy, timeZone, now, cancellationToken);
+            if (plannerError is not null)
+            {
+                return ParkingResult.Failure(plannerError);
+            }
+        }
+
         var spotTaken = await dbContext.Reservations.AnyAsync(r => r.SpotId == spotId
             && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
             && r.StartUtc < endUtc && r.EndUtc > startUtc, cancellationToken);
@@ -301,18 +335,17 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_OwnConflict");
         }
 
-        // Off-peak and distance rewards are granted on completion (actual use), not at booking, so a
-        // reserve/release loop earns nothing. IsOffPeak is captured now for use at completion.
-        var isOffPeak = policy.IsOffPeak(effectiveStartUtc, timeZone);
+        // Peak pricing and off-peak rewards are retired. Keep the historical column false for new
+        // rows so old reports remain readable without letting a removed rule affect new bookings.
+        const bool isOffPeak = false;
 
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
-        var tierRank = IncentivePolicy.TierRank(policy.TierFor(score.Points));
 
-        // Higher loyalty tiers get a bigger monthly allowance while the economy is enabled. With
-        // free planning we leave the wallet untouched, including its grant watermark, so switching
-        // the economy back on grants the then-current allowance normally.
+        // The optional budget is deliberately equal for everyone. With free planning we leave the
+        // wallet untouched, including its grant watermark, so enabling it later starts normally.
         var granted = policy.CreditsEnabled
-            ? score.GrantMonthlyCreditIfDue(policy.AllowanceForTier(tierRank), ParkerScore.PeriodOf(now), now)
+            ? score.GrantCreditIfDue(policy.MonthlyCreditAllowance,
+                ParkerScore.PeriodOf(now, policy.BudgetRenewalPeriod, timeZone), now)
             : 0;
         if (granted > 0)
         {
@@ -320,11 +353,11 @@ public sealed class ReservationService(
                 userId, IncentiveReason.MonthlyCreditGrant, granted, null, now));
         }
 
-        // Dynamic price (peak × occupancy for the window), then a loyalty-tier discount.
+        // Occupancy remains useful context, but the optional planning price is fixed for everyone.
         var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
-        var cost = policy.ApplyTierDiscount(policy.ComputeReservationCost(!isOffPeak, occupancy), tierRank);
+        var cost = policy.ComputeReservationCost(occupancy);
 
-        // The apology voucher absorbs the whole dynamic price — peak surcharge included — instead
+        // The apology voucher absorbs the fixed planning price instead
         // of the wallet. It is redeemed inside this transaction; a timely cancel/release restores
         // it (see RestoreVoucherAsync), the same terms under which credits would be refunded.
         // Only an approved voucher counts: one still pending the spot manager's review holds no
@@ -431,39 +464,36 @@ public sealed class ReservationService(
     public async Task<ReservationQuoteDto> GetQuoteAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
-        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        // Mirror ReserveCoreAsync: an in-progress window is classified (and priced) by its
-        // effective start, so the quote always matches what reserving would actually charge.
+        // Quote and booking share one fixed price. Occupancy is returned only as planning context.
         var now = timeProvider.GetUtcNow();
-        var effectiveStartUtc = startUtc > now ? startUtc : now;
-        var isPeak = policy.IsPeak(effectiveStartUtc, timeZone);
         var occupancy = endUtc > startUtc
             ? await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken)
             : 0.0;
 
         var score = await dbContext.ParkerScores.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
-        var tierRank = IncentivePolicy.TierRank(policy.TierFor(score?.Points ?? 0));
-        var cost = policy.ApplyTierDiscount(policy.ComputeReservationCost(isPeak, occupancy), tierRank);
+        var cost = policy.ComputeReservationCost(occupancy);
 
-        // Reflect the (tier-boosted) monthly allowance the user would receive at booking, so affordability matches reserve.
+        // Reflect the next configured top-up the user would receive at booking, so affordability matches reserve.
         // PreviewAllowance applies any pending queue no-show penalty exactly as the grant will.
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var period = ParkerScore.PeriodOf(now, policy.BudgetRenewalPeriod, timeZone);
         var balance = score?.Credits ?? 0;
-        if (score is null || score.LastCreditGrantPeriod < ParkerScore.PeriodOf(now))
+        if (score is null || score.LastCreditGrantPeriod < period)
         {
-            var allowance = policy.AllowanceForTier(tierRank);
+            var allowance = policy.MonthlyCreditAllowance;
             balance += score?.PreviewAllowance(allowance) ?? allowance;
         }
 
-        return new ReservationQuoteDto(cost, (int)Math.Round(occupancy * 100), isPeak, balance, balance >= cost);
+        return new ReservationQuoteDto(cost, (int)Math.Round(occupancy * 100), IsPeak: false, balance, balance >= cost);
     }
 
     private static async Task<double> ComputeOccupancyAsync(D3ParkingDbContext dbContext, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
     {
         // Visitor spots are outside the employee pool, so they must not dilute the occupancy
-        // (and with it the dynamic price and the release rewards).
+        // context shown to employees or any retained optional release-reward calculation.
         var activeSpots = await dbContext.ParkingSpots.CountAsync(
             s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
         if (activeSpots == 0)
@@ -479,6 +509,56 @@ public sealed class ReservationService(
             .CountAsync(cancellationToken);
 
         return Math.Min(1.0, (double)occupied / activeSpots);
+    }
+
+    private static async Task<string?> ValidateWeeklyPlannerLimitAsync(
+        D3ParkingDbContext dbContext,
+        Guid userId,
+        DateTimeOffset startUtc,
+        IncentivePolicy policy,
+        TimeZoneInfo timeZone,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!policy.WeeklyReservationLimitEnabled || policy.IsLastMinute(startUtc, now))
+        {
+            return null;
+        }
+
+        var plannedDate = SiteTime.Today(startUtc, timeZone);
+        var (weekStartDate, weekEndDate) = IncentivePolicy.WeekOf(plannedDate);
+        var (weekStartUtc, _) = SiteTime.Day(weekStartDate, timeZone);
+        var (weekEndUtc, _) = SiteTime.Day(weekEndDate, timeZone);
+
+        var reservationStarts = await dbContext.Reservations.AsNoTracking()
+            .Where(r => r.UserId == userId
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc >= weekStartUtc && r.StartUtc < weekEndUtc)
+            .Select(r => r.StartUtc)
+            .ToListAsync(cancellationToken);
+        var queueStarts = await dbContext.QueueEntries.AsNoTracking()
+            .Where(q => q.UserId == userId
+                && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+                && q.StartUtc >= weekStartUtc && q.StartUtc < weekEndUtc)
+            .Select(q => q.StartUtc)
+            .ToListAsync(cancellationToken);
+
+        var plannedDays = reservationStarts.Concat(queueStarts)
+            // Days already inside the close-in window no longer consume advance-planning quota;
+            // this is what lets otherwise unused capacity open to everyone as the date approaches.
+            .Where(start => !policy.IsLastMinute(start, now))
+            .Select(start => SiteTime.Today(start, timeZone))
+            .ToHashSet();
+        plannedDays.Add(plannedDate);
+
+        if (plannedDays.Count <= Math.Clamp(policy.WeeklyReservationLimit, 1, 7))
+        {
+            return null;
+        }
+
+        return policy.LastMinuteUnlimitedHours > 0
+            ? "Parking_Error_WeeklyReservationLimit"
+            : "Parking_Error_WeeklyReservationLimit_NoLastMinute";
     }
 
     // User-facing planner mutations run under optimistic-concurrency retry: a double click or a
@@ -610,7 +690,7 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
-        reservation.Cancel();
+        reservation.Cancel(now);
 
         // Cancelling early enough to re-let the spot refunds the charge (or restores the apology
         // voucher that paid for it); a late cancel forfeits them.
@@ -732,7 +812,7 @@ public sealed class ReservationService(
         // of their own, so the charge comes back in full no matter how close to the start. The
         // spot stays bookable in the system (the squatter may leave any minute); repeated
         // mismatches on one spot surface in the admin trend view instead.
-        reservation.Cancel();
+        reservation.Cancel(now);
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
         if (reservation.CreditsCharged > 0)
         {
@@ -800,7 +880,7 @@ public sealed class ReservationService(
             await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
         }
 
-        // The apology: one reservation free of charge, peak included — granted pending the spot
+        // The apology: one reservation free of charge — granted pending the spot
         // manager's review of the photo proof, so value only materializes from a human-confirmed
         // report. At most one pending-or-approved unredeemed voucher per user and it expires,
         // which caps what faked reports could ever stage. Evaluated after any voucher restore
@@ -839,6 +919,7 @@ public sealed class ReservationService(
     public async Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
 
@@ -851,6 +932,9 @@ public sealed class ReservationService(
             .Where(r => r.Status == ReservationStatus.Reserved && r.ReminderSentAtUtc == null
                 && r.StartUtc > remindFrom && r.StartUtc <= remindTo)
             .ToListAsync(cancellationToken);
+
+        // A timed reminder just before midnight is actively misleading for a calendar-day booking.
+        due.RemoveAll(r => ReservationWindowRules.IsFullLocalDay(r.StartUtc, r.EndUtc, timeZone));
 
         if (due.Count == 0)
         {
@@ -897,7 +981,8 @@ public sealed class ReservationService(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
-        var period = ParkerScore.PeriodOf(now);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var period = ParkerScore.PeriodOf(now, policy.BudgetRenewalPeriod, timeZone);
 
         var due = await dbContext.ParkerScores
             .Where(s => s.LastCreditGrantPeriod < period)
@@ -915,8 +1000,7 @@ public sealed class ReservationService(
         var granted = new List<(Guid UserId, int Amount)>();
         foreach (var score in due)
         {
-            var rank = IncentivePolicy.TierRank(policy.TierFor(score.Points));
-            var amount = score.GrantMonthlyCreditIfDue(policy.AllowanceForTier(rank), period, now);
+            var amount = score.GrantCreditIfDue(policy.MonthlyCreditAllowance, period, now);
             if (amount > 0)
             {
                 dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
@@ -946,8 +1030,7 @@ public sealed class ReservationService(
                 messages["Parking_Notify_MonthlyCredit_Body", amount], cancellationToken);
         }
 
-        // The maintenance log reports this as "monthly credit grants", so count actual grants,
-        // not rows examined.
+        // Count actual grants, not rows examined.
         return granted.Count;
     }
 
@@ -1116,6 +1199,23 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        if (!ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
+        }
+
+        if (!policy.IsWithinReservationHorizon(startUtc, now, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationHorizon");
+        }
+
+        if (!policy.IsReservationWeekdayAllowed(startUtc, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // A queue no-show bars the user from the waitlist for a cooldown.
@@ -1164,6 +1264,14 @@ public sealed class ReservationService(
         if (queuedMeanwhile)
         {
             return ParkingResult.Failure("Parking_Queue_Error_Already");
+        }
+
+
+        var plannerError = await ValidateWeeklyPlannerLimitAsync(
+            dbContext, userId, startUtc, policy, timeZone, now, cancellationToken);
+        if (plannerError is not null)
+        {
+            return ParkingResult.Failure(plannerError);
         }
 
         dbContext.QueueEntries.Add(new QueueEntry(userId, startUtc, endUtc, now));
@@ -1216,11 +1324,10 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Queue_Error_OfferExpired");
         }
 
-        // Claiming is just reserving the held spot — same dynamic price and balance check as any booking,
-        // but flagged so a no-show on it is punished harder. The offer is re-checked and marked claimed
-        // inside that booking's transaction, so the two can't come apart. Vouchers stay out of the
-        // queue path on purpose — a scarce claimed spot carries the harsher no-show package, and a
-        // "free" claim would make walking away from it painless.
+        // Claiming is just reserving the held spot with the same fixed price and balance check as
+        // any booking. The offer is re-checked and marked claimed inside that booking's transaction,
+        // so the two cannot come apart. Vouchers stay out of the queue path because they are selected
+        // explicitly during a direct booking, not retroactively when a waitlist offer arrives.
         return await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, queueEntryId, useVoucher: false, cancellationToken);
     }
 

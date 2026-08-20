@@ -4,6 +4,7 @@ using D3Parking.Application;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
@@ -40,6 +41,28 @@ public sealed class ParkingSpotService(
             .ToListAsync(cancellationToken);
         spots = await DecorateResidentsAsync(dbContext, spots, cancellationToken);
         return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
+    }
+
+    public async Task<IReadOnlyList<ResidentCandidateDto>> ListResidentCandidatesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var assignedUserIds = await dbContext.ParkingSpotResidents.AsNoTracking()
+            .Where(r => r.RemovedAtUtc == null)
+            .Select(r => r.UserId)
+            .Union(dbContext.ParkingSpots.AsNoTracking()
+                .Where(s => s.OwnerId != null)
+                .Select(s => s.OwnerId!.Value))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return await dbContext.Users.AsNoTracking()
+            .Where(u => u.Status == AccountStatus.Active && !assignedUserIds.Contains(u.Id))
+            .OrderBy(u => u.DisplayName ?? u.Email)
+            .ThenBy(u => u.Email)
+            .Select(u => new ResidentCandidateDto(u.Id, u.Email!, u.DisplayName))
+            .Take(500)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<PagedResult<ParkingSpotDto>> ListPageAsync(
@@ -574,9 +597,10 @@ public sealed class ParkingSpotService(
             return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
         }
 
-        if (!await dbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken))
+        if (!await dbContext.Users.AnyAsync(
+                u => u.Id == userId && u.Status == AccountStatus.Active, cancellationToken))
         {
-            return ParkingResult.Failure("Parking_Error_UserNotFound");
+            return ParkingResult.Failure("Parking_Error_ResidentUnavailable");
         }
 
         var membership = await dbContext.ParkingSpotResidents

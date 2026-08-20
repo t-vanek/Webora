@@ -964,7 +964,7 @@ public class OversightCaseTests
     private async Task<Guid> SeedNoShowAsync(Guid userId, Guid spotId, int points, int credits, int banDays)
     {
         var reservation = new Reservation(spotId, userId, Now.AddDays(-2), Now.AddDays(-2).AddHours(8), false, Now.AddDays(-3), creditsCharged: 0);
-        reservation.MarkNoShow();
+        reservation.MarkNoShow(Now);
 
         // Starts from nothing and is docked, so "exactly what was taken came back" reads as a
         // return to zero rather than as arithmetic against some seeded starting balance.

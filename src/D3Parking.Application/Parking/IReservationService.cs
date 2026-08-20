@@ -33,7 +33,7 @@ public interface IReservationService
 
     /// <summary>
     /// Books a spot. With <paramref name="useVoucher"/> the caller's apology voucher covers the
-    /// whole dynamic price (peak included) instead of the wallet.
+    /// fixed planning-budget price instead of the wallet.
     /// </summary>
     Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default);
 

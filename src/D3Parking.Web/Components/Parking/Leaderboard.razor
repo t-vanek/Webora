@@ -58,15 +58,14 @@
 
                     <div class="hero__stats">
                         <div class="stat"><span class="stat__num">@_score.ReservationsReleased</span><span class="stat__lbl">@L["Parking_Stat_Released"]</span></div>
-                        <div class="stat"><span class="stat__num">@_score.OffPeakReservations</span><span class="stat__lbl">@L["Parking_Stat_OffPeak"]</span></div>
                         <div class="stat"><span class="stat__num">@_score.ReservationsCompleted</span><span class="stat__lbl">@L["Parking_Stat_Completed"]</span></div>
                         <div class="stat"><span class="stat__num">@_score.NoShows</span><span class="stat__lbl">@L["Parking_Stat_NoShows"]</span></div>
                     </div>
 
-                    @if (_score.Badges.Count > 0)
+                    @if (VisibleBadges(_score.Badges).Count > 0)
                     {
                         <div class="hero__chips">
-                            @foreach (var badge in _score.Badges)
+                            @foreach (var badge in VisibleBadges(_score.Badges))
                             {
                                 <FluentBadge Appearance="Appearance.Accent">@L[$"Parking_Badge_{badge}"]</FluentBadge>
                             }
@@ -85,7 +84,6 @@
                 <FluentLabel Typo="Typography.Body">@L["Parking_Team_Rank", _peer.RankInTeam, _peer.TeamSize]</FluentLabel>
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
                     <FluentLabel Typo="Typography.Body">@L["Parking_Points"]: <strong>@_peer.MyPoints</strong> · @L["Parking_Team_Avg"]: @_peer.TeamAveragePoints</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Stat_OffPeak"]: <strong>@_peer.MyOffPeak</strong> · @L["Parking_Team_Avg"]: @_peer.TeamAverageOffPeak</FluentLabel>
                 </FluentStack>
             </FluentStack>
         </FluentCard>
@@ -103,7 +101,7 @@
     {
         <div class="admin-panel">
         <FluentDataGrid Items="@_leaderboard.AsQueryable()" TGridItem="LeaderboardEntryDto"
-                        GridTemplateColumns="auto 2fr 1fr 1fr 1fr 2fr">
+                        GridTemplateColumns="auto 2fr 1fr 1fr 2fr">
             <TemplateColumn Title="@L["Parking_Rank"]">
                 @if (context.Rank <= 3)
                 {
@@ -117,10 +115,9 @@
             <PropertyColumn Property="@(e => e.DisplayName)" Title="@L["Parking_Name"]" />
             <PropertyColumn Property="@(e => e.Points)" Title="@L["Parking_Points"]" />
             <PropertyColumn Property="@(e => e.ReservationsReleased)" Title="@L["Parking_Stat_Released"]" />
-            <PropertyColumn Property="@(e => e.OffPeakReservations)" Title="@L["Parking_Stat_OffPeak"]" />
             <TemplateColumn Title="@L["Parking_Badges"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4" Wrap="true">
-                    @foreach (var badge in context.Badges)
+                    @foreach (var badge in VisibleBadges(context.Badges))
                     {
                         <FluentBadge>@L[$"Parking_Badge_{badge}"]</FluentBadge>
                     }
@@ -135,12 +132,11 @@
         <FluentLabel Typo="Typography.Subject">@L["Parking_Team_Leaderboard"]</FluentLabel>
         <div class="admin-panel">
         <FluentDataGrid Items="@_teams.AsQueryable()" TGridItem="TeamLeaderboardEntryDto"
-                        GridTemplateColumns="auto 2fr 1fr 1fr 1fr">
+                        GridTemplateColumns="auto 2fr 1fr 1fr">
             <PropertyColumn Property="@(t => t.Rank)" Title="@L["Parking_Rank"]" />
             <PropertyColumn Property="@(t => t.Department)" Title="@L["Parking_Team_Name"]" />
             <PropertyColumn Property="@(t => t.MemberCount)" Title="@L["Parking_Team_Members"]" />
             <PropertyColumn Property="@(t => t.AveragePoints)" Title="@L["Parking_Team_AvgPoints"]" />
-            <PropertyColumn Property="@(t => t.AverageOffPeak)" Title="@L["Parking_Stat_OffPeak"]" />
         </FluentDataGrid>
         </div>
     }
@@ -154,6 +150,9 @@
     private IReadOnlyList<TeamLeaderboardEntryDto>? _teams;
     private PeerComparisonDto? _peer;
     private IncentivePolicy? _policy;
+
+    private static IReadOnlyList<ParkingBadge> VisibleBadges(IReadOnlyList<ParkingBadge> badges) =>
+        badges.Where(badge => badge != ParkingBadge.OffPeakChampion).ToList();
 
     protected override async Task OnInitializedAsync()
     {

@@ -20,6 +20,15 @@ public class Reservation : Entity
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    /// <summary>
+    /// Monotonically increasing revision exposed to subscribed calendars. Keeping the same UID and
+    /// increasing SEQUENCE lets calendar clients replace an older copy after a move or cancellation.
+    /// </summary>
+    public int CalendarSequence { get; private set; }
+
+    /// <summary>The instant of the latest change that affects the calendar representation.</summary>
+    public DateTimeOffset CalendarUpdatedAtUtc { get; private set; }
+
     public DateTimeOffset? CheckedInAtUtc { get; private set; }
 
     public DateTimeOffset? ReleasedAtUtc { get; private set; }
@@ -55,6 +64,7 @@ public class Reservation : Entity
         EndUtc = endUtc;
         IsOffPeak = isOffPeak;
         CreatedAtUtc = createdAtUtc;
+        CalendarUpdatedAtUtc = createdAtUtc;
         CreditsCharged = creditsCharged;
         FromQueue = fromQueue;
     }
@@ -69,19 +79,21 @@ public class Reservation : Entity
     /// or re-charged and the holder keeps their check-in and any voucher that paid for it. A finished
     /// booking (completed, released, no-showed, cancelled) is history and cannot be moved.
     /// </summary>
-    public void MoveTo(Guid spotId)
+    public void MoveTo(Guid spotId, DateTimeOffset at)
     {
         if (Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
             throw new InvalidOperationException($"Cannot move a {Status} reservation.");
 
         SpotId = spotId;
         SharedByResidentId = null;
+        MarkCalendarChanged(at);
     }
 
     public void CheckIn(DateTimeOffset at)
     {
         TransitionTo(ReservationStatus.CheckedIn);
         CheckedInAtUtc = at;
+        MarkCalendarChanged(at);
     }
 
     /// <summary>The holder gives the spot up ahead of time so someone else can take it.</summary>
@@ -89,22 +101,26 @@ public class Reservation : Entity
     {
         TransitionTo(ReservationStatus.Released);
         ReleasedAtUtc = at;
+        MarkCalendarChanged(at);
     }
 
-    public void Cancel()
+    public void Cancel(DateTimeOffset at)
     {
         TransitionTo(ReservationStatus.Cancelled);
+        MarkCalendarChanged(at);
     }
 
-    public void MarkNoShow()
+    public void MarkNoShow(DateTimeOffset at)
     {
         TransitionTo(ReservationStatus.NoShow);
+        MarkCalendarChanged(at);
     }
 
     public void Complete(DateTimeOffset at)
     {
         TransitionTo(ReservationStatus.Completed);
         CompletedAtUtc = at;
+        MarkCalendarChanged(at);
     }
 
     public void MarkReminderSent(DateTimeOffset at) => ReminderSentAtUtc ??= at;
@@ -117,5 +133,11 @@ public class Reservation : Entity
             throw new InvalidOperationException($"Cannot move a reservation from {Status} to {target}.");
 
         Status = target;
+    }
+
+    private void MarkCalendarChanged(DateTimeOffset at)
+    {
+        CalendarSequence++;
+        CalendarUpdatedAtUtc = at;
     }
 }

@@ -3,8 +3,8 @@ using D3Parking.Domain.Common;
 namespace D3Parking.Domain.Parking;
 
 /// <summary>
-/// An apology for a blocked reserved spot: one reservation free of charge, dynamic price and peak
-/// surcharge included. The voucher is born pending — a spot manager reviews the report's photo
+/// An apology for a blocked reserved spot: one reservation free of charge. The voucher is born
+/// pending — a spot manager reviews the report's photo
 /// proof and approves or rejects it, so value only ever flows from a human-confirmed mismatch.
 /// A user holds at most one pending-or-approved unredeemed voucher at a time and it expires, so
 /// faking mismatch reports cannot stockpile value. A timely cancel/release of the voucher-paid
@@ -33,7 +33,7 @@ public class ApologyVoucher : Entity
 
     public Guid? RedeemedReservationId { get; private set; }
 
-    /// <summary>The dynamic price the voucher absorbed, kept for economy stats.</summary>
+    /// <summary>The fixed planning-budget price the voucher absorbed, kept for economy stats.</summary>
     public int WaivedCredits { get; private set; }
 
     private ApologyVoucher() { }

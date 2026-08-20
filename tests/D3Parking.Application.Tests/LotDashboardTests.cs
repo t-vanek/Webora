@@ -733,10 +733,10 @@ public class LotDashboardTests
                 reservation.Complete(Noon);
                 break;
             case ReservationStatus.NoShow:
-                reservation.MarkNoShow();
+                reservation.MarkNoShow(Noon);
                 break;
             case ReservationStatus.Cancelled:
-                reservation.Cancel();
+                reservation.Cancel(Noon);
                 break;
         }
 

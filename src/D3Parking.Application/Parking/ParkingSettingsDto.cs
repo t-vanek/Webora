@@ -1,3 +1,5 @@
+using D3Parking.Domain.Parking;
+
 namespace D3Parking.Application.Parking;
 
 /// <summary>The editable parking and incentive settings.</summary>
@@ -8,6 +10,12 @@ public sealed record ParkingSettingsDto(
     TimeSpan ReleaseCutoff,
     TimeSpan NoShowGracePeriod,
     TimeSpan ReminderLeadTime,
+    ReservationTimeMode ReservationTimeMode,
+    int ReservationHorizonDays,
+    Weekday AllowedReservationWeekdays,
+    bool WeeklyReservationLimitEnabled,
+    int WeeklyReservationLimit,
+    int LastMinuteUnlimitedHours,
     TimeOnly PeakStart,
     TimeOnly PeakEnd,
     TimeSpan SweepInterval,
@@ -30,6 +38,7 @@ public sealed record ParkingSettingsDto(
     int OccupancyPricePercent,
     int MaxReservationCost,
     int MonthlyCreditAllowance,
+    BudgetRenewalPeriod BudgetRenewalPeriod,
     int QueueOfferMinutes,
     int QueueNoShowPenaltyPoints,
     int QueueNoShowCreditPenalty,
@@ -78,4 +87,10 @@ public sealed record ParkingSettingsDto(
     int OversightDigestHourLocal,
     int OversightInfoDeadlineDays,
     bool OversightAllowUserReports,
-    int OversightDisputeWindowDays);
+    int OversightDisputeWindowDays,
+    ResidentReclaimPolicy ResidentReclaimPolicy,
+    bool ManualReleasesAreBinding,
+    ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode,
+    int ResidentProtectionLeadHours,
+    TimeOnly ResidentProtectionPreviousDayTime,
+    ResidentNoReplacementAction ResidentNoReplacementAction);

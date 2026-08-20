@@ -1,3 +1,5 @@
+using D3Parking.Domain.Common;
+
 namespace D3Parking.Domain.Parking.Incentives;
 
 /// <summary>
@@ -15,7 +17,7 @@ public class ParkerScore
     /// <summary>Spendable wallet balance: monthly allowance plus behaviour rewards, drawn down by reservation charges.</summary>
     public int Credits { get; private set; }
 
-    /// <summary>The year×100+month for which the monthly allowance was last granted, so it is granted once per month.</summary>
+    /// <summary>The YYYYMMDD key of the last budget period start, so a top-up happens once per configured period.</summary>
     public int LastCreditGrantPeriod { get; private set; }
 
     public int ReservationsCompleted { get; private set; }
@@ -50,21 +52,41 @@ public class ParkerScore
 
     public ParkerScore(Guid userId) => UserId = userId;
 
-    /// <summary>The budget period (year×100+month) an instant falls in.</summary>
-    public static int PeriodOf(DateTimeOffset at) => at.Year * 100 + at.Month;
+    /// <summary>The YYYYMMDD key of the configured local budget period's first day.</summary>
+    public static int PeriodOf(DateTimeOffset at, BudgetRenewalPeriod renewalPeriod, TimeZoneInfo timeZone)
+    {
+        var date = SiteTime.Today(at, timeZone);
+        var start = renewalPeriod switch
+        {
+            BudgetRenewalPeriod.Daily => date,
+            BudgetRenewalPeriod.Weekly => date.AddDays(-(((int)date.DayOfWeek + 6) % 7)),
+            BudgetRenewalPeriod.Yearly => new DateOnly(date.Year, 1, 1),
+            _ => new DateOnly(date.Year, date.Month, 1),
+        };
+
+        return start.Year * 10_000 + start.Month * 100 + start.Day;
+    }
+
+    /// <summary>Compatibility helper for monthly callers.</summary>
+    public static int PeriodOf(DateTimeOffset at) =>
+        PeriodOf(at, BudgetRenewalPeriod.Monthly, TimeZoneInfo.Utc);
 
     /// <summary>
-    /// What the next monthly grant would actually pay out: the allowance less any pending penalty.
-    /// Price quotes use this so the balance they promise matches what <see cref="GrantMonthlyCreditIfDue"/>
+    /// What the next recurring grant would actually pay out: the allowance less any pending penalty.
+    /// Price quotes use this so the balance they promise matches what <see cref="GrantCreditIfDue"/>
     /// really grants.
     /// </summary>
-    public int PreviewAllowance(int allowance) => Math.Max(0, Math.Max(0, allowance) - NextAllowancePenalty);
+    public int PreviewAllowance(int allowance)
+    {
+        var target = Math.Max(0, Math.Max(0, allowance) - NextAllowancePenalty);
+        return Math.Max(0, target - Credits);
+    }
 
     /// <summary>
-    /// Tops the wallet up with the monthly allowance, but only once per calendar month. Returns the
-    /// amount actually granted (0 when this month's allowance was already given).
+    /// Tops the wallet up with the allowance, but only once per configured period. Returns the
+    /// amount actually granted (0 when this period's allowance was already given).
     /// </summary>
-    public int GrantMonthlyCreditIfDue(int allowance, int period, DateTimeOffset at)
+    public int GrantCreditIfDue(int allowance, int period, DateTimeOffset at)
     {
         if (LastCreditGrantPeriod >= period)
         {

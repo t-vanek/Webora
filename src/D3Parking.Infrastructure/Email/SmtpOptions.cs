@@ -23,6 +23,9 @@ public sealed class SmtpOptions
 
     public int Port { get; set; } = 25;
 
+    /// <summary>Upper bound for one SMTP network operation.</summary>
+    public int TimeoutSeconds { get; set; } = 30;
+
     public SmtpSecurity Security { get; set; } = SmtpSecurity.Auto;
 
     public SmtpAuthMode Authentication { get; set; } = SmtpAuthMode.None;

@@ -30,7 +30,7 @@ public enum IncentiveReason
     /// <summary>Awarded for taking a shared reserved spot, scaled by the taker's commute distance.</summary>
     SharedSpotTaken,
 
-    /// <summary>The recurring monthly credit allowance added to a user's wallet.</summary>
+    /// <summary>The recurring planning-budget allowance added to a user's wallet.</summary>
     MonthlyCreditGrant,
 
     /// <summary>Credits charged for booking a spot (dynamic peak/occupancy price).</summary>

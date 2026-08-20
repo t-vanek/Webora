@@ -1,0 +1,310 @@
+@page "/admin/notifications"
+@attribute [HasPermission(Permissions.Settings.View)]
+@rendermode InteractiveServer
+@using D3Parking.Application.Notifications
+@using D3Parking.Domain.Notifications
+@inject INotificationDeliveryAdminService Deliveries
+@inject ISiteSettingsService SiteSettings
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Admin_Notifications_Title"]</PageTitle>
+
+<FluentStack Class="page-shell delivery-page" Orientation="Orientation.Vertical" VerticalGap="20">
+    <div class="admin-head">
+        <div class="admin-head__titles">
+            <div class="admin-head__title-row">
+                <FluentLabel Typo="Typography.PageTitle">@L["Admin_Notifications_Title"]</FluentLabel>
+                @if (_items is not null)
+                {
+                    <span class="count-chip">@_total</span>
+                }
+            </div>
+            <p class="admin-head__intro">@L["Admin_Notifications_Intro"]</p>
+        </div>
+    </div>
+
+    @if (_summary is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else
+    {
+        <section class="delivery-overview" aria-label="@L["Admin_Notifications_Overview"]">
+            @Metric(L["Admin_Notifications_Pending"], _summary.Pending, "pending")
+            @Metric(L["Admin_Notifications_DueNow"], _summary.DueNow, _summary.DueNow > 0 ? "warning" : "due")
+            @Metric(L["Admin_Notifications_Failed"], _summary.Failed, _summary.Failed > 0 ? "failed" : "healthy")
+            @Metric(L["Admin_Notifications_Sent24h"], _summary.SentLast24Hours, "sent")
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
+    }
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@_error</FluentMessageBar>
+    }
+
+    <div class="delivery-commandbar">
+        <FluentSearch @bind-Value="_search" @bind-Value:after="FilterAsync"
+                      Immediate="true" ImmediateDelay="300"
+                      Placeholder="@L["Admin_Notifications_Search"]" Class="delivery-search" />
+        <select class="parking-input delivery-filter" @bind="_status" @bind:after="FilterAsync"
+                aria-label="@L["Admin_Notifications_StatusFilter"]">
+            <option value="">@L["Admin_Notifications_AllStatuses"]</option>
+            @foreach (var status in Enum.GetValues<NotificationDeliveryStatus>())
+            {
+                <option value="@status">@StatusText(status)</option>
+            }
+        </select>
+        @if (!string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_status))
+        {
+            <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.Dismiss())"
+                          OnClick="ClearFiltersAsync">@L["Common_ClearFilters"]</FluentButton>
+        }
+        <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.ArrowClockwise())"
+                      OnClick="ReloadAsync">@L["Admin_Notifications_Refresh"]</FluentButton>
+    </div>
+
+    <div class="delivery-results-head">
+        <span>@L["Admin_Notifications_Results", _total]</span>
+        <small>@L["Admin_Notifications_ResultHint"]</small>
+    </div>
+
+    @if (_items is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else if (_items.Count == 0)
+    {
+        <div class="empty-state">@L["Admin_Notifications_Empty"]</div>
+    }
+    else
+    {
+        <div class="delivery-workspace @(_selected is not null ? "has-detail" : null)">
+            <div class="delivery-list-pane admin-panel">
+                <div class="delivery-table-wrap">
+                    <table class="delivery-table">
+                        <thead>
+                            <tr>
+                                <th>@L["Admin_Notifications_ColumnCreated"]</th>
+                                <th>@L["Admin_Notifications_ColumnRecipient"]</th>
+                                <th>@L["Admin_Notifications_ColumnMessage"]</th>
+                                <th>@L["Admin_Notifications_ColumnStatus"]</th>
+                                <th>@L["Admin_Notifications_ColumnAttempts"]</th>
+                                <th aria-label="@L["Common_Actions"]"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _items)
+                            {
+                                <tr class="@(_selected?.Id == item.Id ? "is-selected" : null)" @onclick="() => Select(item)">
+                                    <td><time datetime="@item.CreatedAtUtc.ToString("O")">@Fmt(item.CreatedAtUtc)</time></td>
+                                    <td><strong>@Recipient(item)</strong><small>@item.RecipientEmail</small></td>
+                                    <td><strong>@item.Title</strong><small>@item.Message</small></td>
+                                    <td><span class="state-pill state-pill--@StatusClass(item.Status)">@StatusText(item.Status)</span></td>
+                                    <td>@item.Attempts / 5</td>
+                                    <td><FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.ChevronRight())"
+                                                      Title="@L["Admin_Notifications_OpenDetail"]" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if (_selected is not null)
+            {
+                <aside class="delivery-detail-pane">
+                    <div class="delivery-detail-head">
+                        <div>
+                            <small>@L["Admin_Notifications_Detail"]</small>
+                            <h2>@_selected.Title</h2>
+                        </div>
+                        <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.Dismiss())"
+                                      Title="@L["Common_Close"]" OnClick="CloseDetail" />
+                    </div>
+
+                    <span class="state-pill state-pill--@StatusClass(_selected.Status)">@StatusText(_selected.Status)</span>
+                    <dl class="delivery-detail-facts">
+                        <div><dt>@L["Admin_Notifications_Recipient"]</dt><dd>@Recipient(_selected)<small>@_selected.RecipientEmail</small></dd></div>
+                        <div><dt>@L["Admin_Notifications_Created"]</dt><dd>@Fmt(_selected.CreatedAtUtc)</dd></div>
+                        <div><dt>@L["Admin_Notifications_LastAttempt"]</dt><dd>@FmtOptional(_selected.LastAttemptUtc)</dd></div>
+                        <div><dt>@L["Admin_Notifications_NextAttempt"]</dt><dd>@NextAttempt(_selected)</dd></div>
+                        <div><dt>@L["Admin_Notifications_Attempts"]</dt><dd>@_selected.Attempts / 5</dd></div>
+                        <div><dt>@L["Admin_Notifications_ManualRetries"]</dt><dd>@_selected.ManualRetryCount</dd></div>
+                    </dl>
+
+                    <div class="delivery-payload">
+                        <small>@L["Admin_Notifications_Message"]</small>
+                        <p>@_selected.Message</p>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_selected.DeadlineText))
+                    {
+                        <div class="delivery-payload"><small>@L["Admin_Notifications_Deadline"]</small><p>@_selected.DeadlineText</p></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_selected.ActionUrl))
+                    {
+                        <div class="delivery-payload"><small>@L["Admin_Notifications_Action"]</small><code>@_selected.ActionText — @_selected.ActionUrl</code></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_selected.LastError))
+                    {
+                        <div class="delivery-error"><small>@L["Admin_Notifications_LastError"]</small><pre>@_selected.LastError</pre></div>
+                    }
+
+                    @if (_selected.Status == NotificationDeliveryStatus.Failed)
+                    {
+                        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Settings.Edit)" Context="retryPermission">
+                            <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.ArrowClockwise())"
+                                          Disabled="@(_retrying == _selected.Id)"
+                                          OnClick="() => RetryAsync(_selected.Id)">
+                                @(_retrying == _selected.Id ? L["Admin_Notifications_Retrying"] : L["Admin_Notifications_Retry"])
+                            </FluentButton>
+                        </AuthorizeView>
+                    }
+                </aside>
+            }
+        </div>
+
+        @if (_total > PageSize)
+        {
+            <div class="pager">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                              OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                              OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+            </div>
+        }
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private const int PageSize = 40;
+    private NotificationDeliverySummary? _summary;
+    private IReadOnlyList<NotificationDeliveryListItem>? _items;
+    private NotificationDeliveryListItem? _selected;
+    private TimeZoneInfo _tz = TimeZoneInfo.Local;
+    private Guid _actingUserId;
+    private Guid? _retrying;
+    private string? _search;
+    private string _status = string.Empty;
+    private string? _message;
+    private string? _error;
+    private int _pageIndex;
+    private int _total;
+
+    private int PageCount => _total == 0 ? 1 : (_total + PageSize - 1) / PageSize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tz = await SiteSettings.GetTimeZoneAsync();
+        var state = await AuthState!;
+        _actingUserId = (await UserManager.GetUserAsync(state.User))?.Id ?? Guid.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var summaryTask = Deliveries.GetSummaryAsync();
+        var pageTask = Deliveries.SearchAsync(_search, ParseStatus(), _pageIndex, PageSize);
+        await Task.WhenAll(summaryTask, pageTask);
+
+        _summary = await summaryTask;
+        var page = await pageTask;
+        _items = page.Items;
+        _total = page.TotalCount;
+        _pageIndex = page.PageIndex;
+        if (_selected is not null)
+        {
+            _selected = _items.FirstOrDefault(item => item.Id == _selected.Id);
+        }
+    }
+
+    private async Task FilterAsync()
+    {
+        _pageIndex = 0;
+        _message = null;
+        _error = null;
+        await ReloadAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _search = null;
+        _status = string.Empty;
+        await FilterAsync();
+    }
+
+    private async Task GoToPageAsync(int pageIndex)
+    {
+        _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
+        await ReloadAsync();
+    }
+
+    private async Task RetryAsync(Guid deliveryId)
+    {
+        if (_actingUserId == Guid.Empty || _retrying is not null)
+        {
+            return;
+        }
+
+        _retrying = deliveryId;
+        _message = null;
+        _error = null;
+        try
+        {
+            var result = await Deliveries.RetryAsync(deliveryId, _actingUserId);
+            if (result == NotificationDeliveryRetryResult.Queued)
+            {
+                _message = L["Admin_Notifications_RetryQueued"];
+            }
+            else
+            {
+                _error = result == NotificationDeliveryRetryResult.NotFound
+                    ? L["Admin_Notifications_NotFound"]
+                    : L["Admin_Notifications_NotFailed"];
+            }
+            await ReloadAsync();
+        }
+        catch
+        {
+            _error = L["Admin_Notifications_RetryError"];
+        }
+        finally
+        {
+            _retrying = null;
+        }
+    }
+
+    private NotificationDeliveryStatus? ParseStatus() =>
+        Enum.TryParse<NotificationDeliveryStatus>(_status, out var status) ? status : null;
+
+    private void Select(NotificationDeliveryListItem item) => _selected = item;
+    private void CloseDetail() => _selected = null;
+    private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
+    private string FmtOptional(DateTimeOffset? utc) => utc is { } value ? Fmt(value) : "—";
+    private string Recipient(NotificationDeliveryListItem item) =>
+        string.IsNullOrWhiteSpace(item.RecipientName) ? item.RecipientEmail ?? L["Admin_Notifications_UnknownRecipient"] : item.RecipientName;
+    private string NextAttempt(NotificationDeliveryListItem item) => item.Status switch
+    {
+        NotificationDeliveryStatus.Sent => item.SentAtUtc is { } sent ? Fmt(sent) : "—",
+        NotificationDeliveryStatus.Failed => L["Admin_Notifications_NoRetryScheduled"],
+        _ => Fmt(item.NextAttemptUtc),
+    };
+    private string StatusText(NotificationDeliveryStatus status) => L[$"Admin_Notifications_Status_{status}"];
+    private static string StatusClass(NotificationDeliveryStatus status) => status switch
+    {
+        NotificationDeliveryStatus.Sent => "on",
+        NotificationDeliveryStatus.Failed => "alert",
+        _ => "warn",
+    };
+
+    private RenderFragment Metric(string label, int value, string style) => @<div class="delivery-metric delivery-metric--@style">
+        <span>@label</span><strong>@value</strong>
+    </div>;
+}

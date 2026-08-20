@@ -2,18 +2,16 @@
 @attribute [HasPermission(Permissions.Parking.ManageIncentives)]
 @rendermode InteractiveServer
 @using D3Parking.Application.Parking.Maps
+@using D3Parking.Application.Notifications
+@using D3Parking.Domain.Notifications
 @inject IParkingSettingsService SettingsService
+@inject INotificationRuleService NotificationRules
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
-@* Every feature group carries its own on/off switch in the section head. Off = the group's
-   driving values save as zero, which is exactly how the domain already understands "disabled"
-   (zero decay percent skips decay, zero base cost makes bookings free, …) — no schema change.
-   The switch state is derived back from the values on load, and re-enabling a zeroed group
-   seeds the documented defaults so the admin doesn't resurrect a feature into a dead config.
-
-   Bounded percentages render as sliders; open-ended numbers stay stepper fields — fewer places
-   to type, none where a slider would just be a worse keyboard. *@
+@* Planner-first configuration: mode, access rules and an optional fixed budget stay prominent.
+   Legacy incentive fields remain in the persisted DTO for upgrade compatibility, but saving this
+   page keeps them neutral instead of exposing the old live-parking control panel. *@
 
 <PageTitle>@L["Parking_Settings_Title"]</PageTitle>
 
@@ -31,11 +29,6 @@
     }
     else
     {
-        <section class="parking-settings-overview" aria-label="@L["Parking_Settings_Overview"]">
-            <div><span>@L["Parking_Settings_EnabledFeatures"]</span><strong>@EnabledFeatureCount</strong></div>
-            <div><span>@L["Parking_Settings_MapSection"]</span><strong>@L[_hasOrientationMap ? "Parking_Settings_MapReady" : "Parking_Settings_MapMissing"]</strong></div>
-            <div><span>@L["Parking_Settings_ConfigurationState"]</span><strong>@L["Parking_Settings_ChangesApplyImmediately"]</strong></div>
-        </section>
         @if (!string.IsNullOrEmpty(_message))
         {
             <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
@@ -75,59 +68,132 @@
         </details>
 
         <FluentTabs @bind-ActiveTabId="_activeTab" Class="parking-settings-tabs">
-            <FluentTab Id="economy" Label="@L["Parking_Settings_Tab_Economy"]">
+            <FluentTab Id="planner" Label="@L["Parking_Settings_Tab_Planner"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_EconomySection"]</FluentLabel>
-                        <FluentSwitch Value="@_economyOn" ValueChanged="ToggleEconomy" Label="@L["Parking_Settings_SectionEnabled"]" />
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ReservationModeSection"]</FluentLabel>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_EconomyHelp"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ReservationModeHelp"]</FluentLabel>
+                    <div class="reservation-mode-options" role="radiogroup" aria-label="@L["Parking_Settings_ReservationModeSection"]">
+                        <button type="button" role="radio"
+                                aria-checked="@(_form.ReservationTimeMode == ReservationTimeMode.AllDay)"
+                                class="reservation-mode-option @(_form.ReservationTimeMode == ReservationTimeMode.AllDay ? "is-selected" : null)"
+                                @onclick="() => _form.ReservationTimeMode = ReservationTimeMode.AllDay">
+                            <span class="reservation-mode-option__marker">
+                                @if (_form.ReservationTimeMode == ReservationTimeMode.AllDay)
+                                {
+                                    <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Accent" />
+                                    <strong>@L["Parking_Settings_ModeActive"]</strong>
+                                }
+                            </span>
+                            <strong>@L["Parking_Settings_Mode_AllDay_Title"]</strong>
+                            <span>@L["Parking_Settings_Mode_AllDay_Description"]</span>
+                        </button>
+                        <button type="button" role="radio"
+                                aria-checked="@(_form.ReservationTimeMode == ReservationTimeMode.TimeWindow)"
+                                class="reservation-mode-option @(_form.ReservationTimeMode == ReservationTimeMode.TimeWindow ? "is-selected" : null)"
+                                @onclick="() => _form.ReservationTimeMode = ReservationTimeMode.TimeWindow">
+                            <span class="reservation-mode-option__marker">
+                                @if (_form.ReservationTimeMode == ReservationTimeMode.TimeWindow)
+                                {
+                                    <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Accent" />
+                                    <strong>@L["Parking_Settings_ModeActive"]</strong>
+                                }
+                            </span>
+                            <strong>@L["Parking_Settings_Mode_TimeWindow_Title"]</strong>
+                            <span>@L["Parking_Settings_Mode_TimeWindow_Description"]</span>
+                        </button>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PlannerAccessSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.WeeklyReservationLimitEnabled" Label="@L["Parking_Settings_WeeklyLimitEnabled"]" />
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PlannerAccessHelp"]</FluentLabel>
                     <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.BaseReservationCost" Min="0" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.PeakPricePercent" Min="100" Step="10" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_PeakPercent"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OccupancyPricePercent" Min="0" Step="10" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_OccupancyPercent"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.MaxReservationCost" Min="0" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_MaxCost"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
+                        <label class="parking-field">
+                            <span>@L["Parking_Settings_ReservationHorizonDays"]</span>
+                            <select class="parking-input" @bind="_form.ReservationHorizonDays">
+                                @foreach (var option in ReservationHorizonOptions)
+                                {
+                                    <option value="@option.Days">@L[option.LabelKey]</option>
+                                }
+                            </select>
+                        </label>
+                        <FluentNumberField TValue="int" @bind-Value="_form.WeeklyReservationLimit" Min="1" Max="@(AllowedReservationWeekdayCount.ToString())"
+                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
+                                           Label="@L["Parking_Settings_WeeklyReservationLimit"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.LastMinuteUnlimitedHours" Min="0" Max="168"
+                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
+                                           Label="@L["Parking_Settings_LastMinuteUnlimitedHours"]" Style="width:100%" />
+                    </div>
+                    <div class="settings-field settings-field--wide">
+                        <span class="settings-field__label">@L["Parking_Settings_AllowedWeekdays"]</span>
+                        <span class="settings-field__help">@L["Parking_Settings_AllowedWeekdaysHelp"]</span>
+                        <div class="weekday-picker" role="group" aria-label="@L["Parking_Settings_AllowedWeekdays"]">
+                            @foreach (var option in ReservationWeekdayOptions)
+                            {
+                                <button type="button"
+                                        class="weekday-picker__day @(IsReservationWeekdaySelected(option.Flag) ? "is-selected" : null)"
+                                        aria-pressed="@IsReservationWeekdaySelected(option.Flag)"
+                                        @onclick="() => ToggleReservationWeekday(option.Flag)">
+                                    @L[option.LabelKey]
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="settings-rule-summary">
+                        <strong>@L["Parking_Settings_CurrentRule"]</strong>
+                        <span>@(_form.WeeklyReservationLimitEnabled
+                            ? _form.LastMinuteUnlimitedHours > 0
+                                ? L["Parking_Settings_PlannerAccessSummaryEnabled", EffectiveWeeklyReservationLimit, _form.LastMinuteUnlimitedHours]
+                                : L["Parking_Settings_PlannerAccessSummaryNoLastMinute", EffectiveWeeklyReservationLimit]
+                            : L["Parking_Settings_PlannerAccessSummaryDisabled"])</span>
+                        <span>@L["Parking_Settings_AllowedWeekdaysSummary", AllowedReservationWeekdaysText]</span>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueueSection"]</FluentLabel>
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_QueueHelp"]</FluentLabel>
+                    <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
                                            Label="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AdaptiveSection"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.AdaptivePricingEnabled" Label="@L["Parking_Settings_SectionEnabled"]" Disabled="@(!_economyOn)" />
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PlannerBudgetSection"]</FluentLabel>
+                        <FluentSwitch Value="@_economyOn" ValueChanged="ToggleEconomy" Label="@L["Parking_Settings_PlannerBudgetEnabled"]" />
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_AdaptiveHelp"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PlannerBudgetHelp"]</FluentLabel>
                     <div class="settings-grid">
-                        <div class="settings-field settings-field--wide">
-                            <span class="settings-field__label">@L["Parking_Settings_AdaptiveTarget"] <span class="settings-field__val">@_form.AdaptiveTargetOccupancyPercent %</span></span>
-                            <FluentSlider TValue="int" Min="1" Max="100" Step="1" @bind-Value="_form.AdaptiveTargetOccupancyPercent"
-                                          Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)" Style="width:100%" />
-                        </div>
-                        <div class="settings-field settings-field--wide">
-                            <span class="settings-field__label">@L["Parking_Settings_AdaptiveDeadband"] <span class="settings-field__val">@_form.AdaptiveDeadbandPercent %</span></span>
-                            <FluentSlider TValue="int" Min="0" Max="50" Step="1" @bind-Value="_form.AdaptiveDeadbandPercent"
-                                          Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)" Style="width:100%" />
-                        </div>
-                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveIntervalMinutes" Min="1" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
-                                           Label="@L["Parking_Settings_AdaptiveInterval"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveGainPercent" Min="0" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
-                                           Label="@L["Parking_Settings_AdaptiveGain"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptiveStepMaxPercent" Min="0" Step="5" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
-                                           Label="@L["Parking_Settings_AdaptiveStepMax"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMinPercent" Min="100" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
-                                           Label="@L["Parking_Settings_AdaptivePeakMin"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AdaptivePeakMaxPercent" Min="100" Step="10" Disabled="@(!_economyOn || !_form.AdaptivePricingEnabled)"
-                                           Label="@L["Parking_Settings_AdaptivePeakMax"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.BaseReservationCost" Min="0" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
+                        <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10" Disabled="@(!_economyOn)"
+                                           Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
+                        <label class="parking-field">
+                            <span>@L["Parking_Settings_BudgetRenewalPeriod"]</span>
+                            <select class="parking-input" @bind="_form.BudgetRenewalPeriod" disabled="@(!_economyOn)">
+                                <option value="@BudgetRenewalPeriod.Daily">@L["Parking_Settings_BudgetPeriod_Daily"]</option>
+                                <option value="@BudgetRenewalPeriod.Weekly">@L["Parking_Settings_BudgetPeriod_Weekly"]</option>
+                                <option value="@BudgetRenewalPeriod.Monthly">@L["Parking_Settings_BudgetPeriod_Monthly"]</option>
+                                <option value="@BudgetRenewalPeriod.Yearly">@L["Parking_Settings_BudgetPeriod_Yearly"]</option>
+                            </select>
+                        </label>
                     </div>
+                    <div class="settings-rule-summary">
+                        <strong>@L["Parking_Settings_BudgetResult"]</strong>
+                        <span>@(_economyOn
+                            ? L["Parking_Settings_BudgetSummaryEnabled", _form.MonthlyCreditAllowance,
+                                L[$"Parking_Settings_BudgetPeriod_{_form.BudgetRenewalPeriod}"], _form.BaseReservationCost]
+                            : L["Parking_Settings_BudgetSummaryDisabled"])</span>
+                    </div>
+
                 </div>
             </FluentTab>
 
-            <FluentTab Id="points" Label="@L["Parking_Settings_Tab_Points"]">
+            @* Legacy live-parking score controls are intentionally not rendered by the planner. *@
+            @* <FluentTab Id="points" Label="@L["Parking_Settings_Tab_Points"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PointsSection"]</FluentLabel>
@@ -198,10 +264,13 @@
                         </div>
                     </div>
                 </div>
-            </FluentTab>
+            </FluentTab> *@
 
-            <FluentTab Id="trust" Label="@L["Parking_Settings_Tab_Trust"]">
+            <FluentTab Id="operations" Label="@L["Parking_Settings_Tab_Operations"]">
                 <div class="settings-panel">
+                    @* Trust and collusion depended on live Completed events. The planner keeps
+                       confirmed plans by time, so those controls stay legacy-only. *@
+                    @*
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TrustSection"]</FluentLabel>
                         <FluentSwitch @bind-Value="_form.TrustEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
@@ -238,6 +307,7 @@
                     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewCollusion)" Context="collusionLink">
                         <FluentAnchor Href="/admin/parking/oversight/collusion" Appearance="Appearance.Hypertext">@L["Parking_Settings_CollusionReviewLink"]</FluentAnchor>
                     </AuthorizeView>
+                    *@
 
                     @* The desk itself sits here rather than under its own tab: what it holds are the
                        signals this section produces, and its deadlines are what turn them into work. *@
@@ -286,23 +356,9 @@
                 </div>
             </FluentTab>
 
-            <FluentTab Id="queue" Label="@L["Parking_Settings_Tab_Queue"]">
+            @* Sweep/cutoff controls are implementation details of the retired live workflow. *@
+            @* <FluentTab Id="queue" Label="@L["Parking_Settings_Tab_Queue"]">
                 <div class="settings-panel">
-                    <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PeakSection"]</FluentLabel>
-                    </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PeakHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <div class="settings-field">
-                            <span class="settings-field__label">@L["Parking_Settings_PeakStart"]</span>
-                            <input type="time" @bind="_form.PeakStart" class="parking-input" />
-                        </div>
-                        <div class="settings-field">
-                            <span class="settings-field__label">@L["Parking_Settings_PeakEnd"]</span>
-                            <input type="time" @bind="_form.PeakEnd" class="parking-input" />
-                        </div>
-                    </div>
-
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_TimingSection"]</FluentLabel>
                     </div>
@@ -316,7 +372,7 @@
                                            Label="@L["Parking_Settings_SweepInterval"]" Style="width:100%" />
                     </div>
                 </div>
-            </FluentTab>
+            </FluentTab> *@
 
             <FluentTab Id="residents" Label="@L["Parking_Settings_Tab_Residents"]">
                 <div class="settings-panel">
@@ -325,13 +381,74 @@
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentsHelp"]</FluentLabel>
                     <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleasePointsPerHour" Min="0"
-                                           Label="@L["Parking_Settings_ResidentPointsPerHour"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleaseMaxPoints" Min="0" Step="5"
-                                           Label="@L["Parking_Settings_ResidentMaxPoints"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.ResidentPlanHorizonDays" Min="1" Max="366"
                                            Label="@L["Parking_Settings_ResidentPlanHorizon"]" Style="width:100%" />
                     </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentPrioritySection"]</FluentLabel>
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentPriorityHelp"]</FluentLabel>
+                    <div class="settings-grid">
+                        <label class="parking-field">
+                            <span>@L["Parking_Settings_ResidentReclaimPolicy"]</span>
+                            <select class="parking-input" @bind="_form.ResidentReclaimPolicy">
+                                <option value="@ResidentReclaimPolicy.ConfirmedBookingProtected">@L["Parking_Settings_Reclaim_Protected"]</option>
+                                <option value="@ResidentReclaimPolicy.AdvancePriority">@L["Parking_Settings_Reclaim_Advance"]</option>
+                                <option value="@ResidentReclaimPolicy.ReplacementOnly">@L["Parking_Settings_Reclaim_Replacement"]</option>
+                                <option value="@ResidentReclaimPolicy.AdvanceOrReplacement">@L["Parking_Settings_Reclaim_Balanced"]</option>
+                                <option value="@ResidentReclaimPolicy.AbsolutePriority">@L["Parking_Settings_Reclaim_Absolute"]</option>
+                            </select>
+                        </label>
+                        @if (ResidentPolicyUsesDeadline)
+                        {
+                            <label class="parking-field">
+                                <span>@L["Parking_Settings_ProtectionDeadlineMode"]</span>
+                                <select class="parking-input" @bind="_form.ResidentProtectionDeadlineMode">
+                                    <option value="@ResidentProtectionDeadlineMode.PreviousDayAtTime">@L["Parking_Settings_Deadline_PreviousDay"]</option>
+                                    <option value="@ResidentProtectionDeadlineMode.HoursBeforeStart">@L["Parking_Settings_Deadline_Hours"]</option>
+                                </select>
+                            </label>
+                            @if (_form.ResidentProtectionDeadlineMode == ResidentProtectionDeadlineMode.PreviousDayAtTime)
+                            {
+                                <label class="parking-field">
+                                    <span>@L["Parking_Settings_ProtectionPreviousDayTime"]</span>
+                                    <input class="parking-input" type="time" @bind="_form.ResidentProtectionPreviousDayTime" />
+                                </label>
+                            }
+                            else
+                            {
+                                <FluentNumberField TValue="int" @bind-Value="_form.ResidentProtectionLeadHours" Min="1" Max="168"
+                                                   Label="@L["Parking_Settings_ProtectionLeadHours"]" Style="width:100%" />
+                            }
+                        }
+                        @if (ResidentPolicyUsesFallback)
+                        {
+                            <label class="parking-field">
+                                <span>@L["Parking_Settings_NoReplacementAction"]</span>
+                                <select class="parking-input" @bind="_form.ResidentNoReplacementAction">
+                                    <option value="@ResidentNoReplacementAction.Deny">@L["Parking_Settings_NoReplacement_Deny"]</option>
+                                    <option value="@ResidentNoReplacementAction.ManagerOnly">@L["Parking_Settings_NoReplacement_Manager"]</option>
+                                    <option value="@ResidentNoReplacementAction.CancelAndQueue">@L["Parking_Settings_NoReplacement_Queue"]</option>
+                                    <option value="@ResidentNoReplacementAction.CancelAndNotify">@L["Parking_Settings_NoReplacement_Notify"]</option>
+                                </select>
+                            </label>
+                        }
+                    </div>
+                    @if (ResidentPolicyUsesManualBinding)
+                    {
+                        <FluentSwitch @bind-Value="_form.ManualReleasesAreBinding" Label="@L["Parking_Settings_ManualReleaseBinding"]" />
+                    }
+                    @if (_form.ResidentNoReplacementAction == ResidentNoReplacementAction.CancelAndNotify
+                         && ResidentPolicyUsesFallback)
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">
+                            @L["Parking_Settings_NoReplacement_NotifyWarning"]
+                        </FluentMessageBar>
+                    }
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
+                        @L["Parking_Settings_ResidentPriorityRecommended"]
+                    </FluentMessageBar>
                 </div>
             </FluentTab>
 
@@ -363,6 +480,54 @@
                     </div>
                 </div>
             </FluentTab>
+
+            <FluentTab Id="notifications" Label="@L["Parking_Settings_Tab_Notifications"]">
+                <div class="settings-panel">
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_NotificationMatrix"]</FluentLabel>
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_NotificationMatrixHelp"]</FluentLabel>
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
+                        @L["Parking_Settings_NotificationSecurityHelp"]
+                    </FluentMessageBar>
+
+                    @foreach (var category in Enum.GetValues<NotificationCategory>())
+                    {
+                        <div class="settings-section__head">
+                            <FluentLabel Typo="Typography.Subject">@L[$"Parking_NotificationCategory_{category}"]</FluentLabel>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="notification-rule-table">
+                                <thead>
+                                    <tr>
+                                        <th>@L["Parking_Settings_NotificationLevel"]</th>
+                                        <th>@L["Parking_Settings_NotificationInbox"]</th>
+                                        <th>@L["Parking_Settings_NotificationLive"]</th>
+                                        <th>@L["Parking_Settings_NotificationEmail"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var rule in _notificationRules.Where(r => r.Category == category))
+                                    {
+                                        <tr>
+                                            <td>@L[$"Parking_NotificationLevel_{rule.Level}"]</td>
+                                            <td><FluentSwitch @bind-Value="rule.InboxEnabled" Disabled="@rule.InboxMandatory" /></td>
+                                            <td><FluentSwitch @bind-Value="rule.LiveEnabled" Disabled="@(!rule.InboxEnabled)" /></td>
+                                            <td>
+                                                <select class="parking-input" @bind="rule.EmailMode">
+                                                    <option value="@NotificationEmailMode.Never">@L["Parking_NotificationEmail_Never"]</option>
+                                                    <option value="@NotificationEmailMode.WhenRequested">@L["Parking_NotificationEmail_Requested"]</option>
+                                                    <option value="@NotificationEmailMode.Always">@L["Parking_NotificationEmail_Always"]</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </FluentTab>
         </FluentTabs>
 
         <div class="settings-savebar">
@@ -379,7 +544,8 @@
     private Guid _adminId;
     private string? _message;
     private string? _error;
-    private string _activeTab = "economy";
+    private string _activeTab = "planner";
+    private List<NotificationRuleForm> _notificationRules = [];
     private bool _hasOrientationMap;
     private long _orientationMapVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -393,10 +559,40 @@
     private bool _perksOn;
     private bool _decayOn;
 
-    private int EnabledFeatureCount => new[]
-    {
-        _economyOn, _pointsOn, _demandOn, _perksOn, _decayOn,
-    }.Count(enabled => enabled);
+    private static readonly (int Days, string LabelKey)[] ReservationHorizonOptions =
+    [
+        (7, "Parking_Settings_Horizon_1Week"),
+        (14, "Parking_Settings_Horizon_2Weeks"),
+        (21, "Parking_Settings_Horizon_3Weeks"),
+        (28, "Parking_Settings_Horizon_4Weeks"),
+        (30, "Parking_Settings_Horizon_1Month"),
+        (90, "Parking_Settings_Horizon_3Months"),
+        (183, "Parking_Settings_Horizon_6Months"),
+        (365, "Parking_Settings_Horizon_1Year"),
+    ];
+
+    private static readonly (Weekday Flag, string LabelKey)[] ReservationWeekdayOptions =
+    [
+        (Weekday.Monday, "Parking_Weekday_Monday"),
+        (Weekday.Tuesday, "Parking_Weekday_Tuesday"),
+        (Weekday.Wednesday, "Parking_Weekday_Wednesday"),
+        (Weekday.Thursday, "Parking_Weekday_Thursday"),
+        (Weekday.Friday, "Parking_Weekday_Friday"),
+        (Weekday.Saturday, "Parking_Weekday_Saturday"),
+        (Weekday.Sunday, "Parking_Weekday_Sunday"),
+    ];
+
+    private int AllowedReservationWeekdayCount => ReservationWeekdayOptions.Count(option =>
+        IsReservationWeekdaySelected(option.Flag));
+
+    private int EffectiveWeeklyReservationLimit => Math.Clamp(
+        _form?.WeeklyReservationLimit ?? 1,
+        1,
+        Math.Max(1, AllowedReservationWeekdayCount));
+
+    private string AllowedReservationWeekdaysText => string.Join(", ", ReservationWeekdayOptions
+        .Where(option => IsReservationWeekdaySelected(option.Flag))
+        .Select(option => L[option.LabelKey].Value));
 
     protected override async Task OnInitializedAsync()
     {
@@ -415,10 +611,37 @@
         if (on && _form!.BaseReservationCost == 0)
         {
             _form.BaseReservationCost = 10;
-            _form.PeakPricePercent = 200;
-            _form.OccupancyPricePercent = 100;
-            _form.MaxReservationCost = 40;
+            _form.OccupancyPricePercent = 0;
+            _form.MaxReservationCost = 10;
+            if (_form.MonthlyCreditAllowance == 0)
+            {
+                _form.MonthlyCreditAllowance = 100;
+            }
         }
+    }
+
+    private bool IsReservationWeekdaySelected(Weekday day) =>
+        (_form!.AllowedReservationWeekdays & day) != 0;
+
+    private void ToggleReservationWeekday(Weekday day)
+    {
+        if (IsReservationWeekdaySelected(day))
+        {
+            if (AllowedReservationWeekdayCount == 1)
+            {
+                return;
+            }
+
+            _form!.AllowedReservationWeekdays &= ~day;
+        }
+        else
+        {
+            _form!.AllowedReservationWeekdays |= day;
+        }
+
+        _form.WeeklyReservationLimit = Math.Min(
+            EffectiveWeeklyReservationLimit,
+            AllowedReservationWeekdayCount);
     }
 
     private void TogglePoints(bool on)
@@ -462,7 +685,19 @@
 
     private async Task LoadAsync()
     {
-        var s = await SettingsService.GetAsync();
+        var settingsTask = SettingsService.GetAsync();
+        var notificationTask = NotificationRules.GetAsync();
+        await Task.WhenAll(settingsTask, notificationTask);
+        var s = settingsTask.Result;
+        _notificationRules = notificationTask.Result.Select(r => new NotificationRuleForm
+        {
+            Category = r.Category,
+            Level = r.Level,
+            InboxEnabled = r.InboxEnabled,
+            LiveEnabled = r.LiveEnabled,
+            EmailMode = r.EmailMode,
+            InboxMandatory = r.InboxMandatory,
+        }).ToList();
         _form = new SettingsForm
         {
             ReleasePoints = s.ReleasePoints,
@@ -471,6 +706,12 @@
             ReleaseCutoffMinutes = (int)s.ReleaseCutoff.TotalMinutes,
             NoShowGraceMinutes = (int)s.NoShowGracePeriod.TotalMinutes,
             ReminderLeadMinutes = (int)s.ReminderLeadTime.TotalMinutes,
+            ReservationTimeMode = s.ReservationTimeMode,
+            ReservationHorizonDays = s.ReservationHorizonDays,
+            AllowedReservationWeekdays = s.AllowedReservationWeekdays,
+            WeeklyReservationLimitEnabled = s.WeeklyReservationLimitEnabled,
+            WeeklyReservationLimit = s.WeeklyReservationLimit,
+            LastMinuteUnlimitedHours = s.LastMinuteUnlimitedHours,
             SweepIntervalMinutes = (int)s.SweepInterval.TotalMinutes,
             PeakStart = s.PeakStart,
             PeakEnd = s.PeakEnd,
@@ -479,6 +720,12 @@
             ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
             ResidentPlanHorizonDays = s.ResidentPlanHorizonDays,
+            ResidentReclaimPolicy = s.ResidentReclaimPolicy,
+            ManualReleasesAreBinding = s.ManualReleasesAreBinding,
+            ResidentProtectionDeadlineMode = s.ResidentProtectionDeadlineMode,
+            ResidentProtectionLeadHours = s.ResidentProtectionLeadHours,
+            ResidentProtectionPreviousDayTime = s.ResidentProtectionPreviousDayTime,
+            ResidentNoReplacementAction = s.ResidentNoReplacementAction,
             LotLatitude = s.LotLatitude,
             LotLongitude = s.LotLongitude,
             SharedTakenBasePoints = s.SharedTakenBasePoints,
@@ -493,6 +740,7 @@
             OccupancyPricePercent = s.OccupancyPricePercent,
             MaxReservationCost = s.MaxReservationCost,
             MonthlyCreditAllowance = s.MonthlyCreditAllowance,
+            BudgetRenewalPeriod = s.BudgetRenewalPeriod,
             QueueOfferMinutes = s.QueueOfferMinutes,
             QueueNoShowPenaltyPoints = s.QueueNoShowPenaltyPoints,
             QueueNoShowCreditPenalty = s.QueueNoShowCreditPenalty,
@@ -597,17 +845,23 @@
     {
         _message = _error = null;
         var dto = new ParkingSettingsDto(
-            _pointsOn ? _form!.ReleasePoints : 0,
             0,
             0,
-            TimeSpan.FromMinutes(_form!.ReleaseCutoffMinutes),
+            0,
             TimeSpan.Zero,
-            TimeSpan.FromMinutes(_form.ReminderLeadMinutes),
+            TimeSpan.Zero,
+            TimeSpan.Zero,
+            _form!.ReservationTimeMode,
+            _form.ReservationHorizonDays,
+            _form.AllowedReservationWeekdays,
+            _form.WeeklyReservationLimitEnabled,
+            EffectiveWeeklyReservationLimit,
+            _form.LastMinuteUnlimitedHours,
             _form.PeakStart, _form.PeakEnd,
             TimeSpan.FromMinutes(_form.SweepIntervalMinutes),
             _form.ResidentHoldUntil,
-            _form.ResidentReleasePointsPerHour,
-            _form.ResidentReleaseMaxPoints,
+            0,
+            0,
             0,
             _form.ResidentPlanHorizonDays,
             _form.LotLatitude,
@@ -617,32 +871,33 @@
             _form.SharedTakenMaxMultiplier,
             _form.AutoVerifyHomeAddress,
             _form.AutoVerifyMaxDistanceKm,
-            _form.MaxRewardedReleasesPerDay,
+            0,
             _form.MaxReleaseRangeDays,
             _economyOn ? _form.BaseReservationCost : 0,
-            _economyOn ? _form.PeakPricePercent : 100,
-            _economyOn ? _form.OccupancyPricePercent : 0,
-            _economyOn ? _form.MaxReservationCost : 0,
-            _form.MonthlyCreditAllowance,
+            100,
+            0,
+            _economyOn ? _form.BaseReservationCost : 0,
+            _economyOn ? _form.MonthlyCreditAllowance : 0,
+            _form.BudgetRenewalPeriod,
             _form.QueueOfferMinutes,
             0,
             0,
             0,
             0,
-            _demandOn ? _form.DemandReleaseOccupancyPercent : 0,
-            _demandOn ? _form.DemandReleaseQueueBonus : 0,
-            _form.MaxReleaseReward,
+            0,
+            0,
+            0,
             0,
             0,
             _form.TierSilverPoints,
             _form.TierGoldPoints,
             _form.TierPlatinumPoints,
-            _perksOn ? _form.QueuePriorityPerTier : 0,
-            _perksOn ? _form.TierAllowanceBonus : 0,
-            _perksOn ? _form.TierDiscountPercent : 0,
-            _decayOn ? _form.ReputationDecayPercent : 0,
+            0,
+            0,
+            0,
+            0,
             _form.ReputationDecayIntervalDays,
-            _form.AdaptivePricingEnabled && _economyOn,
+            false,
             _form.AdaptiveTargetOccupancyPercent,
             _form.AdaptiveGainPercent,
             _form.AdaptiveDeadbandPercent,
@@ -650,11 +905,11 @@
             _form.AdaptivePeakMinPercent,
             _form.AdaptivePeakMaxPercent,
             _form.AdaptiveIntervalMinutes,
-            _form.TrustEnabled,
+            false,
             _form.TrustIntervalHours,
             _form.TrustedBadgeThreshold,
             _form.MaxPairTrustWeight,
-            _form.AntiCollusionEnabled,
+            false,
             _form.CollusionMinInteractions,
             _form.CollusionConcentrationPercent,
             _form.CollusionScanIntervalHours,
@@ -667,11 +922,17 @@
             _form.OversightSlaNormalHours, _form.OversightSlaLowHours,
             _form.OversightRecurrenceWindowDays, _form.OversightRecurrenceThreshold,
             _form.OversightDigestHourLocal, _form.OversightInfoDeadlineDays,
-            _form.OversightAllowUserReports, _form.OversightDisputeWindowDays);
+            _form.OversightAllowUserReports, _form.OversightDisputeWindowDays,
+            _form.ResidentReclaimPolicy, _form.ManualReleasesAreBinding,
+            _form.ResidentProtectionDeadlineMode, _form.ResidentProtectionLeadHours,
+            _form.ResidentProtectionPreviousDayTime, _form.ResidentNoReplacementAction);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
         {
+            await NotificationRules.UpdateAsync(_notificationRules.Select(r => new NotificationDeliveryRuleDto(
+                r.Category, r.Level, r.InboxEnabled, r.InboxEnabled && r.LiveEnabled,
+                r.EmailMode, r.InboxMandatory)).ToList(), _adminId);
             _message = L["Parking_Settings_Saved"];
             await LoadAsync();
         }
@@ -681,6 +942,15 @@
         }
     }
 
+    private bool ResidentPolicyUsesDeadline => _form?.ResidentReclaimPolicy is
+        ResidentReclaimPolicy.AdvancePriority or ResidentReclaimPolicy.AdvanceOrReplacement;
+
+    private bool ResidentPolicyUsesFallback => _form?.ResidentReclaimPolicy is
+        ResidentReclaimPolicy.AdvancePriority or ResidentReclaimPolicy.AdvanceOrReplacement or ResidentReclaimPolicy.AbsolutePriority;
+
+    private bool ResidentPolicyUsesManualBinding => _form?.ResidentReclaimPolicy is
+        ResidentReclaimPolicy.AdvancePriority or ResidentReclaimPolicy.AdvanceOrReplacement;
+
     private sealed class SettingsForm
     {
         public int ReleasePoints { get; set; }
@@ -689,6 +959,12 @@
         public int ReleaseCutoffMinutes { get; set; }
         public int NoShowGraceMinutes { get; set; }
         public int ReminderLeadMinutes { get; set; }
+        public ReservationTimeMode ReservationTimeMode { get; set; }
+        public int ReservationHorizonDays { get; set; }
+        public Weekday AllowedReservationWeekdays { get; set; } = Weekday.Everyday;
+        public bool WeeklyReservationLimitEnabled { get; set; }
+        public int WeeklyReservationLimit { get; set; }
+        public int LastMinuteUnlimitedHours { get; set; }
         public int SweepIntervalMinutes { get; set; }
         public TimeOnly PeakStart { get; set; }
         public TimeOnly PeakEnd { get; set; }
@@ -697,6 +973,12 @@
         public int ResidentReleaseMaxPoints { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
         public int ResidentPlanHorizonDays { get; set; }
+        public ResidentReclaimPolicy ResidentReclaimPolicy { get; set; }
+        public bool ManualReleasesAreBinding { get; set; }
+        public ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode { get; set; }
+        public int ResidentProtectionLeadHours { get; set; }
+        public TimeOnly ResidentProtectionPreviousDayTime { get; set; }
+        public ResidentNoReplacementAction ResidentNoReplacementAction { get; set; }
         public double? LotLatitude { get; set; }
         public double? LotLongitude { get; set; }
         public int SharedTakenBasePoints { get; set; }
@@ -711,6 +993,7 @@
         public int OccupancyPricePercent { get; set; }
         public int MaxReservationCost { get; set; }
         public int MonthlyCreditAllowance { get; set; }
+        public BudgetRenewalPeriod BudgetRenewalPeriod { get; set; } = BudgetRenewalPeriod.Monthly;
         public int QueueOfferMinutes { get; set; }
         public int QueueNoShowPenaltyPoints { get; set; }
         public int QueueNoShowCreditPenalty { get; set; }
@@ -770,5 +1053,15 @@
         public bool OversightAllowUserReports { get; set; }
 
         public int OversightDisputeWindowDays { get; set; }
+    }
+
+    private sealed class NotificationRuleForm
+    {
+        public NotificationCategory Category { get; init; }
+        public NotificationLevel Level { get; init; }
+        public bool InboxEnabled { get; set; }
+        public bool LiveEnabled { get; set; }
+        public NotificationEmailMode EmailMode { get; set; }
+        public bool InboxMandatory { get; init; }
     }
 }

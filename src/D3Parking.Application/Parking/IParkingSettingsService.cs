@@ -17,6 +17,9 @@ public interface IParkingSettingsService
     /// <summary>The full settings read model for the admin editor.</summary>
     Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Live capacity facts derived from spots, resident memberships and registered vehicles.</summary>
+    Task<PlannerCapacityDto> GetPlannerCapacityAsync(CancellationToken cancellationToken = default);
+
     Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default);
 
     Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default);
@@ -33,3 +36,10 @@ public interface IParkingSettingsService
 }
 
 public sealed record ParkingMapImageDto(byte[] Content, string ContentType);
+
+public sealed record PlannerCapacityDto(
+    int ActiveSpots,
+    int ResidentSpots,
+    int SharedSpots,
+    int ActiveResidents,
+    int RegisteredVehicles);

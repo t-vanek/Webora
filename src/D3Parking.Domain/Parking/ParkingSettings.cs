@@ -14,17 +14,34 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public const int MaxOrientationMapBytes = 12 * 1024 * 1024;
 
-    public int ReleasePoints { get; private set; } = 10;
+    public int ReleasePoints { get; private set; }
 
     public int OffPeakBonusPoints { get; private set; }
 
     public int NoShowPenaltyPoints { get; private set; }
 
-    public TimeSpan ReleaseCutoff { get; private set; } = TimeSpan.FromHours(1);
+    public TimeSpan ReleaseCutoff { get; private set; }
 
     public TimeSpan NoShowGracePeriod { get; private set; }
 
-    public TimeSpan ReminderLeadTime { get; private set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan ReminderLeadTime { get; private set; }
+
+    public ReservationTimeMode ReservationTimeMode { get; private set; } = ReservationTimeMode.TimeWindow;
+
+    /// <summary>How many local calendar days ahead a new plan may start.</summary>
+    public int ReservationHorizonDays { get; private set; } = 14;
+
+    /// <summary>Local weekdays on which employees may start a new reservation.</summary>
+    public Weekday AllowedReservationWeekdays { get; private set; } = Weekday.Everyday;
+
+    /// <summary>Whether advance plans are limited per user and local calendar week.</summary>
+    public bool WeeklyReservationLimitEnabled { get; private set; } = true;
+
+    /// <summary>Maximum advance plans in one local Monday-Sunday week.</summary>
+    public int WeeklyReservationLimit { get; private set; } = 2;
+
+    /// <summary>Inside this window unused capacity opens without the weekly limit.</summary>
+    public int LastMinuteUnlimitedHours { get; private set; } = 24;
 
     public TimeOnly PeakStart { get; private set; } = new(7, 30);
 
@@ -34,9 +51,9 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public TimeOnly ResidentHoldUntil { get; private set; } = new(8, 0);
 
-    public int ResidentReleasePointsPerHour { get; private set; } = 2;
+    public int ResidentReleasePointsPerHour { get; private set; }
 
-    public int ResidentReleaseMaxPoints { get; private set; } = 40;
+    public int ResidentReleaseMaxPoints { get; private set; }
 
     /// <summary>Legacy persisted setting; release planning no longer has a monthly quota.</summary>
     public int ResidentMaxShareAllowance { get; private set; }
@@ -46,7 +63,19 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
 
-    public int ResidentPlanHorizonDays { get; private set; } = 14;
+    public int ResidentPlanHorizonDays { get; private set; } = 21;
+
+    public ResidentReclaimPolicy ResidentReclaimPolicy { get; private set; } = ResidentReclaimPolicy.AdvanceOrReplacement;
+
+    public bool ManualReleasesAreBinding { get; private set; } = true;
+
+    public ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode { get; private set; } = ResidentProtectionDeadlineMode.PreviousDayAtTime;
+
+    public int ResidentProtectionLeadHours { get; private set; } = 24;
+
+    public TimeOnly ResidentProtectionPreviousDayTime { get; private set; } = new(18, 0);
+
+    public ResidentNoReplacementAction ResidentNoReplacementAction { get; private set; } = ResidentNoReplacementAction.CancelAndQueue;
 
     public double? LotLatitude { get; private set; }
 
@@ -62,21 +91,23 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int AutoVerifyMaxDistanceKm { get; private set; } = 50;
 
-    public int MaxRewardedReleasesPerDay { get; private set; } = 2;
+    public int MaxRewardedReleasesPerDay { get; private set; }
 
     public int MaxReleaseRangeDays { get; private set; } = 92;
 
-    public int BaseReservationCost { get; private set; } = 10;
+    public int BaseReservationCost { get; private set; }
 
     public int PeakPricePercent { get; private set; } = 200;
 
-    public int OccupancyPricePercent { get; private set; } = 100;
+    public int OccupancyPricePercent { get; private set; }
 
-    public int MaxReservationCost { get; private set; } = 40;
+    public int MaxReservationCost { get; private set; }
 
-    public int MonthlyCreditAllowance { get; private set; } = 100;
+    public int MonthlyCreditAllowance { get; private set; }
 
-    public int QueueOfferMinutes { get; private set; } = 15;
+    public BudgetRenewalPeriod BudgetRenewalPeriod { get; private set; } = BudgetRenewalPeriod.Monthly;
+
+    public int QueueOfferMinutes { get; private set; } = 30;
 
     public int QueueNoShowPenaltyPoints { get; private set; }
 
@@ -86,11 +117,11 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int QueueNoShowAllowancePenalty { get; private set; }
 
-    public int DemandReleaseOccupancyPercent { get; private set; } = 100;
+    public int DemandReleaseOccupancyPercent { get; private set; }
 
-    public int DemandReleaseQueueBonus { get; private set; } = 5;
+    public int DemandReleaseQueueBonus { get; private set; }
 
-    public int MaxReleaseReward { get; private set; } = 40;
+    public int MaxReleaseReward { get; private set; }
 
     public int StreakBonusPerLevel { get; private set; }
 
@@ -102,13 +133,13 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int TierPlatinumPoints { get; private set; } = 300;
 
-    public int QueuePriorityPerTier { get; private set; } = 30;
+    public int QueuePriorityPerTier { get; private set; }
 
-    public int TierAllowanceBonus { get; private set; } = 20;
+    public int TierAllowanceBonus { get; private set; }
 
-    public int TierDiscountPercent { get; private set; } = 5;
+    public int TierDiscountPercent { get; private set; }
 
-    public int ReputationDecayPercent { get; private set; } = 10;
+    public int ReputationDecayPercent { get; private set; }
 
     public int ReputationDecayIntervalDays { get; private set; } = 30;
 
@@ -135,7 +166,7 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     // --- Trust graph (EigenTrust/PageRank over sharing interactions) ---
 
-    public bool TrustEnabled { get; private set; } = true;
+    public bool TrustEnabled { get; private set; }
 
     public int TrustIntervalHours { get; private set; } = 24;
 
@@ -148,7 +179,7 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MaxPairTrustWeight { get; private set; } = 3;
 
-    public bool AntiCollusionEnabled { get; private set; } = true;
+    public bool AntiCollusionEnabled { get; private set; }
 
     public int CollusionMinInteractions { get; private set; } = 4;
 
@@ -167,10 +198,10 @@ public class ParkingSettings : Entity, IAggregateRoot
     public int AvailabilityLookaheadDays { get; private set; } = 14;
 
     /// <summary>A day counts as "wide open" below this projected occupancy.</summary>
-    public int AvailabilityFreeThresholdPercent { get; private set; } = 25;
+    public int AvailabilityFreeThresholdPercent { get; private set; } = 60;
 
     /// <summary>Minimum run of consecutive wide-open days before a campaign fires.</summary>
-    public int AvailabilityMinConsecutiveDays { get; private set; } = 3;
+    public int AvailabilityMinConsecutiveDays { get; private set; } = 1;
 
     /// <summary>Local hour of day at which a due campaign is sent (weekdays only).</summary>
     public int AvailabilitySendHourLocal { get; private set; } = 9;
@@ -247,6 +278,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         TimeSpan releaseCutoff,
         TimeSpan noShowGracePeriod,
         TimeSpan reminderLeadTime,
+        ReservationTimeMode reservationTimeMode,
+        int reservationHorizonDays,
+        Weekday allowedReservationWeekdays,
+        bool weeklyReservationLimitEnabled,
+        int weeklyReservationLimit,
+        int lastMinuteUnlimitedHours,
         TimeOnly peakStart,
         TimeOnly peakEnd,
         TimeSpan sweepInterval,
@@ -271,6 +308,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         int occupancyPricePercent,
         int maxReservationCost,
         int monthlyCreditAllowance,
+        BudgetRenewalPeriod budgetRenewalPeriod,
         int queueOfferMinutes,
         int queueNoShowPenaltyPoints,
         int queueNoShowCreditPenalty,
@@ -319,7 +357,13 @@ public class ParkingSettings : Entity, IAggregateRoot
         int oversightDigestHourLocal,
         int oversightInfoDeadlineDays,
         bool oversightAllowUserReports,
-        int oversightDisputeWindowDays)
+        int oversightDisputeWindowDays,
+        ResidentReclaimPolicy residentReclaimPolicy,
+        bool manualReleasesAreBinding,
+        ResidentProtectionDeadlineMode residentProtectionDeadlineMode,
+        int residentProtectionLeadHours,
+        TimeOnly residentProtectionPreviousDayTime,
+        ResidentNoReplacementAction residentNoReplacementAction)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -327,6 +371,14 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReleaseCutoff = Clamp(releaseCutoff);
         NoShowGracePeriod = Clamp(noShowGracePeriod);
         ReminderLeadTime = Clamp(reminderLeadTime);
+        ReservationTimeMode = reservationTimeMode;
+        ReservationHorizonDays = Math.Clamp(reservationHorizonDays, 1, 366);
+        AllowedReservationWeekdays = allowedReservationWeekdays.Sanitize() is Weekday.None
+            ? Weekday.Everyday
+            : allowedReservationWeekdays.Sanitize();
+        WeeklyReservationLimitEnabled = weeklyReservationLimitEnabled;
+        WeeklyReservationLimit = Math.Clamp(weeklyReservationLimit, 1, 7);
+        LastMinuteUnlimitedHours = Math.Clamp(lastMinuteUnlimitedHours, 0, 168);
         PeakStart = peakStart;
         PeakEnd = peakEnd;
         // A floor keeps the maintenance loop from busy-spinning on a misconfigured tiny interval.
@@ -338,6 +390,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
         ResidentWastedShareClawbackPercent = Math.Clamp(residentWastedShareClawbackPercent, 0, 100);
         ResidentPlanHorizonDays = Math.Clamp(residentPlanHorizonDays, 1, 366);
+        ResidentReclaimPolicy = residentReclaimPolicy;
+        ManualReleasesAreBinding = manualReleasesAreBinding;
+        ResidentProtectionDeadlineMode = residentProtectionDeadlineMode;
+        ResidentProtectionLeadHours = Math.Clamp(residentProtectionLeadHours, 1, 168);
+        ResidentProtectionPreviousDayTime = residentProtectionPreviousDayTime;
+        ResidentNoReplacementAction = residentNoReplacementAction;
         LotLatitude = lotLatitude;
         LotLongitude = lotLongitude;
         SharedTakenBasePoints = Math.Max(0, sharedTakenBasePoints);
@@ -352,6 +410,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = Math.Max(0, occupancyPricePercent);
         MaxReservationCost = Math.Max(BaseReservationCost, maxReservationCost);
         MonthlyCreditAllowance = Math.Max(0, monthlyCreditAllowance);
+        BudgetRenewalPeriod = Enum.IsDefined(budgetRenewalPeriod)
+            ? budgetRenewalPeriod
+            : BudgetRenewalPeriod.Monthly;
         QueueOfferMinutes = Math.Max(1, queueOfferMinutes);
         QueueNoShowPenaltyPoints = Math.Max(0, queueNoShowPenaltyPoints);
         QueueNoShowCreditPenalty = Math.Max(0, queueNoShowCreditPenalty);
@@ -463,6 +524,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReleaseCutoff = ReleaseCutoff,
         NoShowGracePeriod = NoShowGracePeriod,
         ReminderLeadTime = ReminderLeadTime,
+        ReservationTimeMode = ReservationTimeMode,
+        ReservationHorizonDays = ReservationHorizonDays,
+        AllowedReservationWeekdays = AllowedReservationWeekdays,
+        WeeklyReservationLimitEnabled = WeeklyReservationLimitEnabled,
+        WeeklyReservationLimit = WeeklyReservationLimit,
+        LastMinuteUnlimitedHours = LastMinuteUnlimitedHours,
         PeakStart = PeakStart,
         PeakEnd = PeakEnd,
         ResidentHoldUntil = ResidentHoldUntil,
@@ -472,6 +539,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentSharePercentPerAllowance = ResidentSharePercentPerAllowance,
         ResidentWastedShareClawbackPercent = ResidentWastedShareClawbackPercent,
         ResidentPlanHorizonDays = ResidentPlanHorizonDays,
+        ResidentReclaimPolicy = ResidentReclaimPolicy,
+        ManualReleasesAreBinding = ManualReleasesAreBinding,
+        ResidentProtectionDeadlineMode = ResidentProtectionDeadlineMode,
+        ResidentProtectionLeadHours = ResidentProtectionLeadHours,
+        ResidentProtectionPreviousDayTime = ResidentProtectionPreviousDayTime,
+        ResidentNoReplacementAction = ResidentNoReplacementAction,
         SharedTakenBasePoints = SharedTakenBasePoints,
         SharedTakenReferenceKm = SharedTakenReferenceKm,
         SharedTakenMaxMultiplier = SharedTakenMaxMultiplier,
@@ -484,6 +557,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         OccupancyPricePercent = OccupancyPricePercent,
         MaxReservationCost = MaxReservationCost,
         MonthlyCreditAllowance = MonthlyCreditAllowance,
+        BudgetRenewalPeriod = BudgetRenewalPeriod,
         QueueOfferMinutes = QueueOfferMinutes,
         QueueNoShowPenaltyPoints = QueueNoShowPenaltyPoints,
         QueueNoShowCreditPenalty = QueueNoShowCreditPenalty,

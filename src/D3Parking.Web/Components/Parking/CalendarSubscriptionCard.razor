@@ -1,0 +1,146 @@
+@inject ICalendarSubscriptionService Subscriptions
+@inject ISiteSettingsService SiteSettings
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+<FluentCard Class="calendar-subscription">
+    <div class="calendar-subscription__copy">
+        <div class="section-head">
+            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarLtr())" Color="Color.Accent" />
+            <span>@L["Parking_CalendarSync_Title"]</span>
+        </div>
+        <p>@L["Parking_CalendarSync_Description"]</p>
+        <small>@L["Parking_CalendarSync_ReadOnly"]</small>
+    </div>
+
+    @if (_loading)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        <div class="calendar-subscription__actions">
+            <span class="calendar-subscription__state @(_status.Enabled ? "is-enabled" : null)">
+                @L[_status.Enabled ? "Parking_CalendarSync_Enabled" : "Parking_CalendarSync_Disabled"]
+            </span>
+            <div class="calendar-subscription__buttons">
+                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateOrRotateAsync">
+                    @L[_status.Enabled ? "Parking_CalendarSync_Rotate" : "Parking_CalendarSync_Enable"]
+                </FluentButton>
+                @if (_status.Enabled)
+                {
+                    <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="DisableAsync">
+                        @L["Parking_CalendarSync_Disable"]
+                    </FluentButton>
+                }
+            </div>
+        </div>
+    }
+
+    @if (_feedUrl is not null)
+    {
+        <div class="calendar-subscription__secret">
+            <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">
+                @L["Parking_CalendarSync_UrlOnce"]
+            </FluentMessageBar>
+            <div class="calendar-subscription__url-row">
+                <input class="calendar-subscription__url" value="@_feedUrl" readonly aria-label="@L["Parking_CalendarSync_Url"]" />
+                <FluentButton Appearance="Appearance.Outline" OnClick="CopyAsync">@L["Parking_CalendarSync_Copy"]</FluentButton>
+                <FluentAnchor Href="@WebcalUrl" Appearance="Appearance.Outline">@L["Parking_CalendarSync_Open"]</FluentAnchor>
+            </div>
+        </div>
+    }
+
+    @if (_message is not null)
+    {
+        <FluentMessageBar Intent="@_messageIntent" Type="MessageType.MessageBar">@L[_message]</FluentMessageBar>
+    }
+</FluentCard>
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+
+    private CalendarSubscriptionStatus _status = new(false, null, null);
+    private bool _loading = true;
+    private bool _busy;
+    private string? _feedUrl;
+    private string? _message;
+    private MessageIntent _messageIntent = MessageIntent.Info;
+
+    private string? WebcalUrl => _feedUrl is null
+        ? null
+        : _feedUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? "webcal://" + _feedUrl[8..]
+            : _feedUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                ? "webcal://" + _feedUrl[7..]
+                : _feedUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await Subscriptions.GetStatusAsync(UserId);
+        _loading = false;
+    }
+
+    private async Task CreateOrRotateAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var secret = await Subscriptions.CreateOrRotateAsync(UserId);
+            _status = secret.Status;
+            var configuredBase = await SiteSettings.GetCanonicalBaseUrlAsync();
+            var baseUrl = string.IsNullOrWhiteSpace(configuredBase) ? Nav.BaseUri : configuredBase;
+            _feedUrl = $"{baseUrl.TrimEnd('/')}/api/parking/calendar/{secret.Token}.ics";
+        }
+        catch
+        {
+            _messageIntent = MessageIntent.Error;
+            _message = "Parking_CalendarSync_Error";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DisableAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            await Subscriptions.DisableAsync(UserId);
+            _status = new CalendarSubscriptionStatus(false, null, null);
+            _feedUrl = null;
+            _messageIntent = MessageIntent.Success;
+            _message = "Parking_CalendarSync_DisabledMessage";
+        }
+        catch
+        {
+            _messageIntent = MessageIntent.Error;
+            _message = "Parking_CalendarSync_Error";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CopyAsync()
+    {
+        if (_feedUrl is null) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _feedUrl);
+            _messageIntent = MessageIntent.Success;
+            _message = "Parking_CalendarSync_Copied";
+        }
+        catch (JSException)
+        {
+            _messageIntent = MessageIntent.Warning;
+            _message = "Parking_CalendarSync_CopyError";
+        }
+    }
+}

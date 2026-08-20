@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using D3Parking.Contracts.Notifications;
+using D3Parking.Domain.Notifications;
 
 namespace D3Parking.Web.Client.Api;
 
@@ -38,6 +39,27 @@ public sealed class NotificationsApiClient(HttpClient http, AntiforgeryTokenProv
 
     public Task MarkAllReadAsync(CancellationToken cancellationToken = default) =>
         SendPostAsync($"{Base}/read-all", cancellationToken);
+
+    public Task SetMutedAsync(bool muted, CancellationToken cancellationToken = default) =>
+        SendPostAsync($"{Base}/preferences/{(muted ? "mute" : "unmute")}", cancellationToken);
+
+    public async Task SetScopeAsync(NotificationScope scope, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendUnsafeAsync(() => new HttpRequestMessage(HttpMethod.Put, $"{Base}/preferences/scope")
+        {
+            Content = JsonContent.Create(new { Scope = scope }, options: JsonOptions),
+        }, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SetAvailabilityAsync(bool allow, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendUnsafeAsync(() => new HttpRequestMessage(HttpMethod.Put, $"{Base}/preferences/availability")
+        {
+            Content = JsonContent.Create(new { Allow = allow }, options: JsonOptions),
+        }, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 
     /// <summary>Null means Web Push is not configured on the server (the endpoint returns 204).</summary>
     public async Task<PushPublicKeyDto?> GetPushPublicKeyAsync(CancellationToken cancellationToken = default)

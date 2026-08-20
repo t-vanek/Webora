@@ -34,8 +34,10 @@ internal static class EmployeeLifecycleCleanup
         var visitors = await dbContext.VisitorBookings.CountAsync(v => v.Status == VisitorBookingStatus.Booked
             && v.EndUtc > now && (v.HostUserId == userId || v.CreatedById == userId), cancellationToken);
         var personalMessages = await dbContext.Notifications.CountAsync(n => n.UserId == userId, cancellationToken)
+            + await dbContext.NotificationEmailDeliveries.CountAsync(d => d.UserId == userId, cancellationToken)
             + await dbContext.PushSubscriptions.CountAsync(p => p.UserId == userId, cancellationToken)
-            + await dbContext.NotificationPreferences.CountAsync(p => p.UserId == userId, cancellationToken);
+            + await dbContext.NotificationPreferences.CountAsync(p => p.UserId == userId, cancellationToken)
+            + await dbContext.CalendarSubscriptions.CountAsync(p => p.UserId == userId, cancellationToken);
         var assignedCases = await dbContext.OversightCases.CountAsync(c => c.AssigneeId == userId
             && c.Status != OversightCaseStatus.Resolved, cancellationToken);
 
@@ -148,7 +150,7 @@ internal static class EmployeeLifecycleCleanup
         {
             if (reservation.Status == ReservationStatus.Reserved)
             {
-                reservation.Cancel();
+                reservation.Cancel(now);
             }
             else
             {
@@ -191,8 +193,10 @@ internal static class EmployeeLifecycleCleanup
                 .SetProperty(c => c.UpdatedAtUtc, now), cancellationToken);
 
         await dbContext.PushSubscriptions.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await dbContext.NotificationEmailDeliveries.Where(d => d.UserId == userId).ExecuteDeleteAsync(cancellationToken);
         await dbContext.Notifications.Where(n => n.UserId == userId).ExecuteDeleteAsync(cancellationToken);
         await dbContext.NotificationPreferences.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await dbContext.CalendarSubscriptions.Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
         if (revokeAccess)
         {

@@ -26,7 +26,10 @@ public sealed class SmtpEmailSender(
         mime.Subject = message.Subject;
         mime.Body = BuildBody(message, charset);
 
-        using var client = new SmtpClient();
+        using var client = new SmtpClient
+        {
+            Timeout = checked(settings.TimeoutSeconds * 1000),
+        };
         await client.ConnectAsync(settings.Host, settings.Port, ToSocketOptions(settings.Security), cancellationToken);
 
         switch (settings.Authentication)
@@ -56,7 +59,17 @@ public sealed class SmtpEmailSender(
         }
 
         await client.SendAsync(mime, cancellationToken);
-        await client.DisconnectAsync(quit: true, cancellationToken);
+
+        // Once SendAsync succeeds the SMTP server has accepted responsibility for the message.
+        // A broken QUIT response must not turn that success into an outbox retry and a duplicate.
+        try
+        {
+            await client.DisconnectAsync(quit: true, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "SMTP accepted email to {Recipient}, but disconnect failed.", message.To);
+        }
 
         logger.LogInformation("Sent email to {Recipient} (subject: {Subject})", message.To, message.Subject);
     }

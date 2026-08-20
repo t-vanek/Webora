@@ -33,6 +33,9 @@ public interface IParkingSpotService
 
     Task<ParkingSpotDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Active accounts available for a new resident assignment.</summary>
+    Task<IReadOnlyList<ResidentCandidateDto>> ListResidentCandidatesAsync(CancellationToken cancellationToken = default);
+
     Task<ParkingSpotDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CreateAsync(string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default);

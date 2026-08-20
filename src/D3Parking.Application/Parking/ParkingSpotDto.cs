@@ -20,6 +20,12 @@ public sealed record ParkingSpotDto(
 
 public sealed record ParkingSpotResidentDto(Guid MembershipId, Guid UserId, string Name, bool IsPrimary);
 
+/// <summary>An active account that does not currently hold another resident spot.</summary>
+public sealed record ResidentCandidateDto(Guid UserId, string Email, string? DisplayName)
+{
+    public string Name => string.IsNullOrWhiteSpace(DisplayName) ? Email : DisplayName;
+}
+
 public enum ParkingSpotStateFilter
 {
     All,

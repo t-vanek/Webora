@@ -94,8 +94,11 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
 - **Promyšlené notifikace** — zvoneček + push pro všechno; e-mail jen pro akční výzvy s termínem
   (nabídka z fronty s CTA tlačítkem a deadlinem), formální záznamy (penalizace, přiřazení místa)
   a bezpečnost (změna hesla/e-mailu). Všechny e-maily v jednotné brandované šabloně.
-- **Export do kalendáře** — rezervaci lze jedním klikem stáhnout jako `.ics` (Outlook, Google i Apple
-  Calendar) včetně připomínky 30 minut před začátkem.
+- **Synchronizace s kalendářem** — vedle jednorázového `.ics` exportu lze vytvořit soukromý,
+  odvolatelný odběr pro Outlook, Google nebo Apple Calendar. Nové rezervace, přesuny i zrušení se
+  propisují pod stabilním UID a rostoucí revizí; časové rezervace mají připomínku 30 minut předem.
+  Odběr je záměrně jen pro čtení: změny rezervace se provádějí v plánovači, který jako jediný může
+  bezpečně vynutit dostupnost, rezidentní prioritu a firemní pravidla.
 - **Živá nápověda v aplikaci** — stránka `/help` načítá aktuální ceny, odměny, lhůty a přepínače
   funkcí z databáze. Kapitoly vypnutých funkcí a správcovské části bez příslušného oprávnění
   nezobrazuje. Lokalizovaná (cs/en).

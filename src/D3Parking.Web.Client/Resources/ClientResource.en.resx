@@ -18,4 +18,11 @@
   <data name="Bell_NoNotifications" xml:space="preserve"><value>No notifications.</value></data>
   <data name="Bell_PushToggle" xml:space="preserve"><value>Notifications on this device</value></data>
   <data name="Bell_PushBlocked" xml:space="preserve"><value>Notifications are blocked in the browser. Allow them in the site settings.</value></data>
+  <data name="Bell_Settings" xml:space="preserve"><value>Notification settings</value></data>
+  <data name="Bell_MuteAll" xml:space="preserve"><value>Mute live alerts and emails</value></data>
+  <data name="Bell_Scope" xml:space="preserve"><value>What I want to receive</value></data>
+  <data name="Bell_ScopeAll" xml:space="preserve"><value>Personal, operational and administrative messages</value></data>
+  <data name="Bell_ScopeSelf" xml:space="preserve"><value>Only messages about my own actions</value></data>
+  <data name="Bell_Availability" xml:space="preserve"><value>Free parking capacity suggestions</value></data>
+  <data name="Bell_SecurityAlways" xml:space="preserve"><value>Security and critical operational events are always stored and cannot be muted.</value></data>
 </root>

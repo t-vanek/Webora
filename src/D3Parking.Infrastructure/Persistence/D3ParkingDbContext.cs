@@ -35,6 +35,10 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<NotificationPreferences> NotificationPreferences => Set<NotificationPreferences>();
 
+    public DbSet<NotificationDeliveryRule> NotificationDeliveryRules => Set<NotificationDeliveryRule>();
+
+    public DbSet<NotificationEmailDelivery> NotificationEmailDeliveries => Set<NotificationEmailDelivery>();
+
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
@@ -48,6 +52,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     public DbSet<SpotDayAssignment> SpotDayAssignments => Set<SpotDayAssignment>();
 
     public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    public DbSet<CalendarSubscription> CalendarSubscriptions => Set<CalendarSubscription>();
 
     public DbSet<ParkerScore> ParkerScores => Set<ParkerScore>();
 
@@ -214,6 +220,33 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             prefs.HasKey(p => p.UserId);
             prefs.Property(p => p.UserId).ValueGeneratedNever();
             prefs.Property(p => p.Scope).HasConversion<string>().HasMaxLength(32);
+        });
+
+        builder.Entity<NotificationDeliveryRule>(rule =>
+        {
+            rule.ToTable("NotificationDeliveryRules");
+            rule.HasKey(r => r.Id);
+            rule.Property(r => r.Category).HasConversion<string>().HasMaxLength(32);
+            rule.Property(r => r.Level).HasConversion<string>().HasMaxLength(32);
+            rule.Property(r => r.EmailMode).HasConversion<string>().HasMaxLength(32);
+            rule.HasIndex(r => new { r.Category, r.Level }).IsUnique();
+        });
+
+        builder.Entity<NotificationEmailDelivery>(delivery =>
+        {
+            delivery.ToTable("NotificationEmailDeliveries");
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(32);
+            delivery.Property(d => d.Title).HasMaxLength(256).IsRequired();
+            delivery.Property(d => d.Message).HasMaxLength(2048).IsRequired();
+            delivery.Property(d => d.ActionText).HasMaxLength(256);
+            delivery.Property(d => d.ActionUrl).HasMaxLength(2048);
+            delivery.Property(d => d.DeadlineText).HasMaxLength(512);
+            delivery.Property(d => d.LastError).HasMaxLength(1000);
+            delivery.Property(d => d.Version).IsRowVersion();
+            delivery.HasIndex(d => new { d.Status, d.NextAttemptUtc });
+            delivery.HasIndex(d => new { d.Status, d.CreatedAtUtc });
+            delivery.HasIndex(d => d.UserId);
         });
 
         builder.Entity<PushSubscription>(subscription =>
@@ -395,6 +428,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             release.HasKey(r => r.Id);
             release.HasIndex(r => new { r.SpotId, r.Date }).IsUnique();
             release.HasIndex(r => new { r.OwnerId, r.Date });
+            release.Property(r => r.Source).HasConversion<string>().HasMaxLength(32);
         });
 
         builder.Entity<QueueEntry>(entry =>
@@ -536,6 +570,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             reservation.ToTable("Reservations");
             reservation.HasKey(r => r.Id);
             reservation.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
+            reservation.Property(r => r.CalendarSequence).HasDefaultValue(0);
+            reservation.Property(r => r.CalendarUpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
             reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
             reservation.HasIndex(r => new { r.UserId, r.StartUtc });
             reservation.HasIndex(r => new { r.SharedByResidentId, r.Status });
@@ -551,6 +587,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // context's stale copy, so the last blind UPDATE used to win — with the token a stale
             // write throws DbUpdateConcurrencyException and the caller re-reads instead.
             reservation.Property<byte[]>("Version").IsRowVersion();
+        });
+
+        builder.Entity<CalendarSubscription>(subscription =>
+        {
+            subscription.ToTable("CalendarSubscriptions");
+            subscription.HasKey(s => s.Id);
+            subscription.Property(s => s.TokenHash).HasMaxLength(64).IsRequired();
+            subscription.HasIndex(s => s.UserId).IsUnique();
+            subscription.HasIndex(s => s.TokenHash).IsUnique();
         });
 
         builder.Entity<ParkerScore>(score =>
@@ -588,29 +633,45 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.ToTable("ParkingSettings");
             settings.HasKey(s => s.Id);
             settings.Property(s => s.Id).ValueGeneratedNever();
+            settings.Property(s => s.ReservationTimeMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(ReservationTimeMode.TimeWindow);
+            settings.Property(s => s.ReservationHorizonDays).HasDefaultValue(14);
+            settings.Property(s => s.AllowedReservationWeekdays)
+                .HasDefaultValue(Weekday.Everyday)
+                .HasSentinel((Weekday)(-1));
+            settings.Property(s => s.WeeklyReservationLimitEnabled).HasDefaultValue(true);
+            settings.Property(s => s.WeeklyReservationLimit).HasDefaultValue(2);
+            settings.Property(s => s.LastMinuteUnlimitedHours).HasDefaultValue(24);
             // Economy defaults so existing settings rows get sensible pricing when the columns are added.
-            settings.Property(s => s.BaseReservationCost).HasDefaultValue(10);
+            settings.Property(s => s.BaseReservationCost).HasDefaultValue(0);
             settings.Property(s => s.PeakPricePercent).HasDefaultValue(200);
-            settings.Property(s => s.OccupancyPricePercent).HasDefaultValue(100);
-            settings.Property(s => s.MaxReservationCost).HasDefaultValue(40);
-            settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(100);
-            settings.Property(s => s.QueueOfferMinutes).HasDefaultValue(15);
+            settings.Property(s => s.OccupancyPricePercent).HasDefaultValue(0);
+            settings.Property(s => s.MaxReservationCost).HasDefaultValue(0);
+            settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(0);
+            settings.Property(s => s.BudgetRenewalPeriod)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(BudgetRenewalPeriod.Monthly)
+                .HasSentinel((BudgetRenewalPeriod)(-1));
+            settings.Property(s => s.QueueOfferMinutes).HasDefaultValue(30);
             settings.Property(s => s.QueueNoShowPenaltyPoints).HasDefaultValue(0);
             settings.Property(s => s.QueueNoShowCreditPenalty).HasDefaultValue(0);
             settings.Property(s => s.QueueNoShowBanDays).HasDefaultValue(0);
             settings.Property(s => s.QueueNoShowAllowancePenalty).HasDefaultValue(0);
-            settings.Property(s => s.DemandReleaseOccupancyPercent).HasDefaultValue(100);
-            settings.Property(s => s.DemandReleaseQueueBonus).HasDefaultValue(5);
-            settings.Property(s => s.MaxReleaseReward).HasDefaultValue(40);
+            settings.Property(s => s.DemandReleaseOccupancyPercent).HasDefaultValue(0);
+            settings.Property(s => s.DemandReleaseQueueBonus).HasDefaultValue(0);
+            settings.Property(s => s.MaxReleaseReward).HasDefaultValue(0);
             settings.Property(s => s.StreakBonusPerLevel).HasDefaultValue(0);
             settings.Property(s => s.StreakBonusCap).HasDefaultValue(0);
             settings.Property(s => s.TierSilverPoints).HasDefaultValue(50);
             settings.Property(s => s.TierGoldPoints).HasDefaultValue(150);
             settings.Property(s => s.TierPlatinumPoints).HasDefaultValue(300);
-            settings.Property(s => s.QueuePriorityPerTier).HasDefaultValue(30);
-            settings.Property(s => s.TierAllowanceBonus).HasDefaultValue(20);
-            settings.Property(s => s.TierDiscountPercent).HasDefaultValue(5);
-            settings.Property(s => s.ReputationDecayPercent).HasDefaultValue(10);
+            settings.Property(s => s.QueuePriorityPerTier).HasDefaultValue(0);
+            settings.Property(s => s.TierAllowanceBonus).HasDefaultValue(0);
+            settings.Property(s => s.TierDiscountPercent).HasDefaultValue(0);
+            settings.Property(s => s.ReputationDecayPercent).HasDefaultValue(0);
             settings.Property(s => s.ReputationDecayIntervalDays).HasDefaultValue(30);
             settings.Property(s => s.AdaptivePricingEnabled).HasDefaultValue(false);
             settings.Property(s => s.AdaptiveTargetOccupancyPercent).HasDefaultValue(85);
@@ -620,11 +681,11 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.AdaptivePeakMinPercent).HasDefaultValue(100);
             settings.Property(s => s.AdaptivePeakMaxPercent).HasDefaultValue(400);
             settings.Property(s => s.AdaptiveIntervalMinutes).HasDefaultValue(60);
-            settings.Property(s => s.TrustEnabled).HasDefaultValue(true);
+            settings.Property(s => s.TrustEnabled).HasDefaultValue(false);
             settings.Property(s => s.TrustIntervalHours).HasDefaultValue(24);
             settings.Property(s => s.TrustedBadgeThreshold).HasDefaultValue(60);
             settings.Property(s => s.MaxPairTrustWeight).HasDefaultValue(3);
-            settings.Property(s => s.AntiCollusionEnabled).HasDefaultValue(true);
+            settings.Property(s => s.AntiCollusionEnabled).HasDefaultValue(false);
             settings.Property(s => s.CollusionMinInteractions).HasDefaultValue(4);
             settings.Property(s => s.CollusionConcentrationPercent).HasDefaultValue(70);
             settings.Property(s => s.CollusionScanIntervalHours).HasDefaultValue(24);

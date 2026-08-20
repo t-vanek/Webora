@@ -16,7 +16,7 @@
   <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Your planned parking on spot {0} starts soon. If your plans changed, cancel the reservation and release the spot for others.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>No demand for your shared spot</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>There was no demand for your shared spot {0} that day – nobody booked it, so {1} points of the reward were reversed.</value></data>
-  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Monthly budget added</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Planning budget topped up</value></data>
   <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>We're sorry about the parking disruption</value></data>
   <data name="Parking_Notify_VoucherGranted_Title_NoCredits" xml:space="preserve"><value>We're sorry about the parking disruption</value></data>
   <data name="Parking_Notify_Availability_Title" xml:space="preserve"><value>The lot is wide open</value></data>
@@ -40,7 +40,7 @@
   <data name="Parking_Notify_OfferLapsed_Title" xml:space="preserve"><value>Offer expired</value></data>
   <data name="Parking_Notify_OfferLapsed_Body" xml:space="preserve"><value>Spot {0} went to the next in line. You remain queued, just at the back.</value></data>
   <data name="Parking_Notify_TierUp_Title" xml:space="preserve"><value>You reached the {0} tier!</value></data>
-  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>New perks: higher queue priority, a bigger monthly planning budget and a lower reservation price.</value></data>
+  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>New perks: higher queue priority, a bigger planning budget and a lower reservation price.</value></data>
   <data name="Parking_Notify_TierUp_Body_NoCredits" xml:space="preserve"><value>New perk: higher priority in the queue for released spots.</value></data>
   <data name="Parking_TierName_Bronze" xml:space="preserve"><value>Bronze</value></data>
   <data name="Parking_TierName_Silver" xml:space="preserve"><value>Silver</value></data>
@@ -48,7 +48,7 @@
   <data name="Parking_TierName_Platinum" xml:space="preserve"><value>Platinum</value></data>
   <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>{0} credits were added to your planning budget.</value></data>
   <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Your planning budget is running low</value></data>
-  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>Your planning budget has {0} credits left. That may not cover your next parking plan; the budget renews with next month's allowance.</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>Your planning budget has {0} credits left. That may not cover the next reservation; the balance is topped up at the start of the next configured period.</value></data>
   <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Parking planned</value></data>
   <data name="Parking_Notify_Reserved_Title_NoCredits" xml:space="preserve"><value>Parking planned</value></data>
   <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Spot {0} is planned for you. Planning budget: −{1} credits.</value></data>
@@ -126,4 +126,13 @@
   <data name="Fleet_Mismatch_Vehicle" xml:space="preserve"><value>Company vehicle {0}</value></data>
   <data name="Fleet_Notify_Pairable_Title" xml:space="preserve"><value>A company vehicle awaits pairing</value></data>
   <data name="Fleet_Notify_Pairable_Body" xml:space="preserve"><value>Your plate {0} matches a company vehicle. Finish the pairing under My account with a confirmation code.</value></data>
+  <data name="Parking_Notify_ResidentMoved_Title" xml:space="preserve"><value>Your plan has a replacement spot</value></data>
+  <data name="Parking_Notify_ResidentMoved_Body" xml:space="preserve"><value>The resident needs spot {0}, so we safely moved your parking to {1}. The time and budget usage stay the same.</value></data>
+  <data name="Parking_Notify_ResidentMoved_Body_NoCredits" xml:space="preserve"><value>The resident needs spot {0}, so we safely moved your parking to {1}. The time stays the same.</value></data>
+  <data name="Parking_Notify_ResidentQueued_Title" xml:space="preserve"><value>The resident needs their spot</value></data>
+  <data name="Parking_Notify_ResidentQueued_Body" xml:space="preserve"><value>The resident reclaimed spot {0} before the protection deadline and no replacement was free. We refunded your full budget and any voucher and returned you to the queue for the same time.</value></data>
+  <data name="Parking_Notify_ResidentQueued_Body_NoCredits" xml:space="preserve"><value>The resident reclaimed spot {0} before the protection deadline and no replacement was free. We returned you to the queue for the same time.</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Title" xml:space="preserve"><value>The resident reclaimed their spot</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Body" xml:space="preserve"><value>The resident needs spot {0} and no replacement is available. Your reservation has therefore ended; we refunded your full budget and any voucher.</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Body_NoCredits" xml:space="preserve"><value>The resident needs spot {0} and no replacement is available. Your reservation has therefore ended.</value></data>
 </root>

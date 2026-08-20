@@ -1,4 +1,5 @@
 using D3Parking.Domain.Common;
+using D3Parking.Domain.Parking;
 
 namespace D3Parking.Domain.Parking.Incentives;
 
@@ -10,7 +11,7 @@ namespace D3Parking.Domain.Parking.Incentives;
 public sealed record IncentivePolicy
 {
     /// <summary>Points awarded for releasing a reservation early enough to free the spot.</summary>
-    public int ReleasePoints { get; init; } = 10;
+    public int ReleasePoints { get; init; }
 
     /// <summary>Points awarded for booking outside the peak window.</summary>
     public int OffPeakBonusPoints { get; init; }
@@ -19,13 +20,25 @@ public sealed record IncentivePolicy
     public int NoShowPenaltyPoints { get; init; }
 
     /// <summary>How far ahead of the start a release must happen to earn the reward.</summary>
-    public TimeSpan ReleaseCutoff { get; init; } = TimeSpan.FromHours(1);
+    public TimeSpan ReleaseCutoff { get; init; }
 
     /// <summary>Grace period after the start before an un-used reservation becomes a no-show.</summary>
     public TimeSpan NoShowGracePeriod { get; init; }
 
     /// <summary>How long before the planned start to remind the holder about the reservation.</summary>
-    public TimeSpan ReminderLeadTime { get; init; } = TimeSpan.FromMinutes(5);
+    public TimeSpan ReminderLeadTime { get; init; }
+
+    public ReservationTimeMode ReservationTimeMode { get; init; } = ReservationTimeMode.TimeWindow;
+
+    public int ReservationHorizonDays { get; init; } = 14;
+
+    public Weekday AllowedReservationWeekdays { get; init; } = Weekday.Everyday;
+
+    public bool WeeklyReservationLimitEnabled { get; init; } = true;
+
+    public int WeeklyReservationLimit { get; init; } = 2;
+
+    public int LastMinuteUnlimitedHours { get; init; } = 24;
 
     /// <summary>Start of the daily high-demand window (local time of the reservation).</summary>
     public TimeOnly PeakStart { get; init; } = new(7, 30);
@@ -37,10 +50,10 @@ public sealed record IncentivePolicy
     public TimeOnly ResidentHoldUntil { get; init; } = new(8, 0);
 
     /// <summary>Points per hour of advance notice when a resident proactively releases their spot.</summary>
-    public int ResidentReleasePointsPerHour { get; init; } = 2;
+    public int ResidentReleasePointsPerHour { get; init; }
 
     /// <summary>Cap on the advance-notice part of a resident's release reward.</summary>
-    public int ResidentReleaseMaxPoints { get; init; } = 40;
+    public int ResidentReleaseMaxPoints { get; init; }
 
     /// <summary>Legacy setting retained for reading older configuration rows.</summary>
     public int ResidentMaxShareAllowance { get; init; }
@@ -55,7 +68,19 @@ public sealed record IncentivePolicy
     /// How many days ahead a resident's usage plan releases the days they do not need. Bounded by
     /// <see cref="MaxReleaseRangeDays"/> — the planner may never reach further than a manual release.
     /// </summary>
-    public int ResidentPlanHorizonDays { get; init; } = 14;
+    public int ResidentPlanHorizonDays { get; init; } = 21;
+
+    public ResidentReclaimPolicy ResidentReclaimPolicy { get; init; } = ResidentReclaimPolicy.AdvanceOrReplacement;
+
+    public bool ManualReleasesAreBinding { get; init; } = true;
+
+    public ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode { get; init; } = ResidentProtectionDeadlineMode.PreviousDayAtTime;
+
+    public int ResidentProtectionLeadHours { get; init; } = 24;
+
+    public TimeOnly ResidentProtectionPreviousDayTime { get; init; } = new(18, 0);
+
+    public ResidentNoReplacementAction ResidentNoReplacementAction { get; init; } = ResidentNoReplacementAction.CancelAndQueue;
 
     /// <summary>Base points for taking a shared reserved spot, before the distance multiplier.</summary>
     public int SharedTakenBasePoints { get; init; }
@@ -73,13 +98,13 @@ public sealed record IncentivePolicy
     public int AutoVerifyMaxDistanceKm { get; init; } = 50;
 
     /// <summary>Most releases a user can be rewarded for in a day; bounds reserve/release farming.</summary>
-    public int MaxRewardedReleasesPerDay { get; init; } = 2;
+    public int MaxRewardedReleasesPerDay { get; init; }
 
     /// <summary>Largest day range a resident may release in one action.</summary>
     public int MaxReleaseRangeDays { get; init; } = 92;
 
     /// <summary>Base credit cost to book a spot off-peak in an empty lot, before peak/occupancy surcharges.</summary>
-    public int BaseReservationCost { get; init; } = 10;
+    public int BaseReservationCost { get; init; }
 
     /// <summary>
     /// Whether the parking economy is enabled. A zero base cost is the persisted switch used by
@@ -92,16 +117,19 @@ public sealed record IncentivePolicy
     public int PeakPricePercent { get; init; } = 200;
 
     /// <summary>Extra percent of the base cost added at full occupancy, scaled linearly with how full the lot is.</summary>
-    public int OccupancyPricePercent { get; init; } = 100;
+    public int OccupancyPricePercent { get; init; }
 
     /// <summary>Hard cap on the credit cost of a single reservation, however high peak/occupancy push it.</summary>
-    public int MaxReservationCost { get; init; } = 40;
+    public int MaxReservationCost { get; init; }
 
-    /// <summary>Credits granted to each user's wallet at the start of every calendar month.</summary>
-    public int MonthlyCreditAllowance { get; init; } = 100;
+    /// <summary>Credits used as the wallet top-up target for each configured budget period.</summary>
+    public int MonthlyCreditAllowance { get; init; }
+
+    /// <summary>How often the wallet is topped up to <see cref="MonthlyCreditAllowance"/>.</summary>
+    public BudgetRenewalPeriod BudgetRenewalPeriod { get; init; } = BudgetRenewalPeriod.Monthly;
 
     /// <summary>Minutes a freed spot is held for the next in the waitlist before the offer lapses.</summary>
-    public int QueueOfferMinutes { get; init; } = 15;
+    public int QueueOfferMinutes { get; init; } = 30;
 
     /// <summary>Reputation points deducted for a no-show on a spot claimed from the waitlist (harsher than a normal no-show).</summary>
     public int QueueNoShowPenaltyPoints { get; init; }
@@ -116,13 +144,13 @@ public sealed record IncentivePolicy
     public int QueueNoShowAllowancePenalty { get; init; }
 
     /// <summary>Extra percent added to the release reward at full occupancy (mirrors the occupancy price surcharge).</summary>
-    public int DemandReleaseOccupancyPercent { get; init; } = 100;
+    public int DemandReleaseOccupancyPercent { get; init; }
 
     /// <summary>Extra release-reward points per person waiting in the queue for the freed window.</summary>
-    public int DemandReleaseQueueBonus { get; init; } = 5;
+    public int DemandReleaseQueueBonus { get; init; }
 
     /// <summary>Cap on the demand-scaled release reward, however high occupancy and the queue push it.</summary>
-    public int MaxReleaseReward { get; init; } = 40;
+    public int MaxReleaseReward { get; init; }
 
     /// <summary>Points/credits added per consecutive completion (streak), rewarding reliability.</summary>
     public int StreakBonusPerLevel { get; init; }
@@ -140,16 +168,16 @@ public sealed record IncentivePolicy
     public int TierPlatinumPoints { get; init; } = 300;
 
     /// <summary>Minutes of head start in the waitlist per loyalty tier rank (higher tiers are served sooner).</summary>
-    public int QueuePriorityPerTier { get; init; } = 30;
+    public int QueuePriorityPerTier { get; init; }
 
     /// <summary>Extra monthly credit allowance per loyalty tier rank.</summary>
-    public int TierAllowanceBonus { get; init; } = 20;
+    public int TierAllowanceBonus { get; init; }
 
     /// <summary>Reservation price discount (percent) per loyalty tier rank, capped so a booking is never free.</summary>
-    public int TierDiscountPercent { get; init; } = 5;
+    public int TierDiscountPercent { get; init; }
 
     /// <summary>Percent of reputation faded toward zero each decay interval (0 disables decay).</summary>
-    public int ReputationDecayPercent { get; init; } = 10;
+    public int ReputationDecayPercent { get; init; }
 
     /// <summary>Days between reputation decay steps.</summary>
     public int ReputationDecayIntervalDays { get; init; } = 30;
@@ -179,7 +207,7 @@ public sealed record IncentivePolicy
     public int AdaptiveIntervalMinutes { get; init; } = 60;
 
     /// <summary>Whether the trust graph is computed from sharing interactions.</summary>
-    public bool TrustEnabled { get; init; } = true;
+    public bool TrustEnabled { get; init; }
 
     /// <summary>Hours between trust-graph recomputations.</summary>
     public int TrustIntervalHours { get; init; } = 24;
@@ -191,7 +219,7 @@ public sealed record IncentivePolicy
     public int MaxPairTrustWeight { get; init; } = 3;
 
     /// <summary>Whether suspicious reciprocal sharing pairs are detected and flagged.</summary>
-    public bool AntiCollusionEnabled { get; init; } = true;
+    public bool AntiCollusionEnabled { get; init; }
 
     /// <summary>Minimum mutual interactions before a pair can be flagged for collusion.</summary>
     public int CollusionMinInteractions { get; init; } = 4;
@@ -208,13 +236,37 @@ public sealed record IncentivePolicy
 
     public int AvailabilityLookaheadDays { get; init; } = 14;
 
-    public int AvailabilityFreeThresholdPercent { get; init; } = 25;
+    public int AvailabilityFreeThresholdPercent { get; init; } = 60;
 
-    public int AvailabilityMinConsecutiveDays { get; init; } = 3;
+    public int AvailabilityMinConsecutiveDays { get; init; } = 1;
 
     public int AvailabilitySendHourLocal { get; init; } = 9;
 
     public static IncentivePolicy Default { get; } = new();
+
+    /// <summary>Whether a plan starts inside the rolling local-calendar booking horizon.</summary>
+    public bool IsWithinReservationHorizon(DateTimeOffset start, DateTimeOffset now, TimeZoneInfo timeZone)
+    {
+        var today = SiteTime.Today(now, timeZone);
+        var startDate = SiteTime.Today(start, timeZone);
+        return startDate <= today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366));
+    }
+
+    /// <summary>Whether a reservation may start on this local weekday.</summary>
+    public bool IsReservationWeekdayAllowed(DateTimeOffset start, TimeZoneInfo timeZone) =>
+        AllowedReservationWeekdays.Sanitize().Includes(SiteTime.Today(start, timeZone));
+
+    /// <summary>Close-in plans consume capacity that would otherwise stay empty and bypass the advance quota.</summary>
+    public bool IsLastMinute(DateTimeOffset start, DateTimeOffset now) =>
+        LastMinuteUnlimitedHours > 0 && start <= now.AddHours(LastMinuteUnlimitedHours);
+
+    /// <summary>The local Monday-Sunday week containing a date.</summary>
+    public static (DateOnly Start, DateOnly End) WeekOf(DateOnly date)
+    {
+        var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
+        var start = date.AddDays(-daysFromMonday);
+        return (start, start.AddDays(7));
+    }
 
     /// <summary>
     /// The peak surcharge the adaptive controller would set given the measured peak occupancy:
@@ -233,7 +285,7 @@ public sealed record IncentivePolicy
         return Math.Clamp(PeakPricePercent + step, AdaptivePeakMinPercent, Math.Max(AdaptivePeakMinPercent, AdaptivePeakMaxPercent));
     }
 
-    /// <summary>The monthly allowance for a user of the given tier rank (base plus the tier bonus).</summary>
+    /// <summary>The recurring allowance for a user of the given tier rank (base plus the tier bonus).</summary>
     public int AllowanceForTier(int tierRank) =>
         Math.Max(0, MonthlyCreditAllowance) + Math.Max(0, TierAllowanceBonus) * Math.Max(0, tierRank);
 
@@ -317,17 +369,14 @@ public sealed record IncentivePolicy
     public bool IsPeak(DateTimeOffset start, TimeZoneInfo timeZone) => !IsOffPeak(start, timeZone);
 
     /// <summary>
-    /// The credit cost to book a spot: the base cost multiplied by a peak surcharge and an occupancy
-    /// surcharge that grows linearly with how full the lot is, then floored at the base and capped.
+    /// Fixed planning-budget cost. Occupancy is deliberately ignored: a higher price cannot create
+    /// another physical space and would merely penalise the person who planned later. The parameter
+    /// remains for compatibility with historical quote callers and analytics.
     /// </summary>
-    public int ComputeReservationCost(bool isPeak, double occupancyRatio)
+    public int ComputeReservationCost(double occupancyRatio)
     {
-        var ratio = Math.Clamp(occupancyRatio, 0.0, 1.0);
-        var peakFactor = isPeak ? Math.Max(100, PeakPricePercent) / 100.0 : 1.0;
-        var occupancyFactor = 1.0 + Math.Max(0, OccupancyPricePercent) / 100.0 * ratio;
-        var raw = (int)Math.Ceiling(BaseReservationCost * peakFactor * occupancyFactor);
-        var cap = Math.Max(BaseReservationCost, MaxReservationCost);
-        return Math.Clamp(raw, BaseReservationCost, cap);
+        _ = occupancyRatio;
+        return Math.Max(0, BaseReservationCost);
     }
 
     /// <summary>Whether a release at the given moment is early enough to be rewarded.</summary>
@@ -363,4 +412,18 @@ public sealed record IncentivePolicy
     /// </summary>
     public DateOnly ResidentPlanHorizonEnd(DateOnly today) =>
         today.AddDays(Math.Clamp(ResidentPlanHorizonDays, 1, Math.Max(1, MaxReleaseRangeDays)));
+
+    public DateTimeOffset ResidentProtectionDeadline(DateTimeOffset reservationStart, TimeZoneInfo timeZone)
+    {
+        if (ResidentProtectionDeadlineMode == ResidentProtectionDeadlineMode.HoursBeforeStart)
+        {
+            return reservationStart - TimeSpan.FromHours(Math.Clamp(ResidentProtectionLeadHours, 1, 168));
+        }
+
+        var localDate = SiteTime.Today(reservationStart, timeZone);
+        return SiteTime.At(localDate.AddDays(-1), ResidentProtectionPreviousDayTime, timeZone);
+    }
+
+    public bool IsBeforeResidentProtectionDeadline(DateTimeOffset reservationStart, DateTimeOffset now, TimeZoneInfo timeZone) =>
+        now < ResidentProtectionDeadline(reservationStart, timeZone);
 }

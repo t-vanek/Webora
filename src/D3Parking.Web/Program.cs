@@ -81,6 +81,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // Background maintenance: sends planning reminders and maintains budgets, queues and shared days.
 builder.Services.AddHostedService<ParkingMaintenanceService>();
+builder.Services.AddHostedService<NotificationDeliveryWorker>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();

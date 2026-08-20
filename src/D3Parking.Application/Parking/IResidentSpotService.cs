@@ -27,10 +27,10 @@ public interface IResidentSpotService
     Task<int> PreviewReleaseRewardAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Takes released days in [fromDate, toDate] back out of the shared pool. The resident has the
-    /// final claim on their assigned spot: overlapping guest plans are cancelled with a full budget
-    /// refund (and voucher restoration) and their holders are notified. A waitlist offer is withdrawn
-    /// without changing the waiter's position. The reward each taken-back day earned is returned.
+    /// Takes still-unbooked released days in [fromDate, toDate] back out of the shared pool. A
+    /// confirmed guest plan is never displaced by self-service; exceptional changes belong to the
+    /// manager workflow. A pending waitlist offer is withdrawn without changing the waiter's
+    /// position. Any reward previously attached to a reclaimed day is returned.
     /// </summary>
     Task<ParkingResult> ReclaimAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 

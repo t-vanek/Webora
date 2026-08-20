@@ -61,7 +61,14 @@ public class ReservationConcurrencyTests
         await dbContext.Database.EnsureCreatedAsync();
 
         _factory = new TestDbContextFactory(_options);
-        _policy = IncentivePolicy.Default;
+        // This fixture also exercises the legacy optional release reward. Planner defaults keep it
+        // off, so the test opts in explicitly instead of depending on a punitive production default.
+        _policy = IncentivePolicy.Default with
+        {
+            ReleasePoints = 10,
+            MaxReleaseReward = 40,
+            MaxRewardedReleasesPerDay = 2,
+        };
         var parkingSettings = new FixedParkingSettings(_policy);
         var siteSettings = new FakeSiteSettings();
         var time = new FixedTimeProvider(Now);
@@ -185,6 +192,37 @@ public class ReservationConcurrencyTests
         Assert.That(results.Count(r => r is { Succeeded: true }), Is.LessThanOrEqualTo(1));
     }
 
+    [Test]
+    public async Task Advance_plans_obey_the_weekly_limit_but_last_minute_capacity_stays_open()
+    {
+        var userId = Guid.NewGuid();
+        var spots = new[]
+        {
+            new ParkingSpot($"WL-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard),
+            new ParkingSpot($"WL-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard),
+            new ParkingSpot($"WL-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard),
+        };
+        await SeedAsync(db => db.ParkingSpots.AddRange(spots));
+
+        var friday = new DateTimeOffset(2026, 7, 17, 8, 0, 0, TimeSpan.Zero);
+        var saturday = friday.AddDays(1);
+        var sunday = saturday.AddDays(1);
+
+        Assert.That((await _reservations.ReserveAsync(userId, spots[0].Id, friday, friday.AddHours(8))).Succeeded, Is.True);
+        Assert.That((await _reservations.ReserveAsync(userId, spots[1].Id, saturday, saturday.AddHours(8))).Succeeded, Is.True);
+
+        var advance = await _reservations.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8));
+        Assert.That(advance.Succeeded, Is.False);
+        Assert.That(advance.Errors, Does.Contain("Parking_Error_WeeklyReservationLimit"));
+
+        var closeInService = new ReservationService(
+            _factory, new FixedParkingSettings(_policy), new FakeSiteSettings(),
+            new FixedTimeProvider(saturday.AddHours(4)), new NullNotificationService(),
+            new PassthroughLocalizer<ParkingMessages>());
+        Assert.That((await closeInService.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8))).Succeeded,
+            Is.True, "Unused Sunday capacity is inside the 24-hour last-minute window.");
+    }
+
     private async Task SeedAsync(Action<D3ParkingDbContext> seed)
     {
         await using var db = new D3ParkingDbContext(_options);
@@ -224,6 +262,9 @@ public class ReservationConcurrencyTests
         public Task<GeoPoint?> GetLotLocationAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<PlannerCapacityDto> GetPlannerCapacityAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PlannerCapacityDto(0, 0, 0, 0, 0));
 
         public Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

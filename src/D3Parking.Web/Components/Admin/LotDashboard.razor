@@ -771,29 +771,13 @@
                 {
                     @SectionHead(L["Lot_Demand"], L["Lot_Demand_Hint"], "hint-demand")
 
-                    @* The one place this chart turns into an action: the busiest stretch the data
-                       actually shows, next to the peak window the pricing charges for. When they
-                       disagree, the fix is one field on the settings page. *@
+                    @* Keep the observed busiest hour as operational analytics. It no longer drives
+                       a pricing rule or compares itself with a configured peak window. *@
                     <div class="lot-peak">
                         <span class="lot-peak__item">
                             <span class="lot-peak__label">@L["Lot_Peak_Hottest"]</span>
                             <strong>@PeakLabel(_analytics)</strong>
                         </span>
-                        <span class="lot-peak__item">
-                            <span class="lot-peak__label">@L["Lot_Peak_Suggested"]</span>
-                            <strong>@SuggestedPeakLabel(_analytics.Peak)</strong>
-                        </span>
-                        <span class="lot-peak__item">
-                            <span class="lot-peak__label">@L["Lot_Peak_Configured"]</span>
-                            <strong>@($"{_analytics.Peak.ConfiguredStart:H\\:mm}–{_analytics.Peak.ConfiguredEnd:H\\:mm}")</strong>
-                        </span>
-                        @if (_analytics.Peak.SuggestedStartHour is not null)
-                        {
-                            <span class="state-pill state-pill--@(_analytics.Peak.Matches ? "on" : "warn")">
-                                @L[_analytics.Peak.Matches ? "Lot_Peak_Matches" : "Lot_Peak_Differs"]
-                            </span>
-                        }
-                        <FluentAnchor Href="/admin/parking/settings" Appearance="Appearance.Hypertext">@L["Nav_AdminParkingSettings"]</FluentAnchor>
                     </div>
 
                     @* One heatmap series per weekday, Monday first — the row order is the series
@@ -819,7 +803,6 @@
                     @Stat(L["Lot_Stat_Charged"], _analytics.Economy.CreditsCharged.ToString(), null, L["Parking_Credits"])
                     @Stat(L["Lot_Stat_Refunded"], _analytics.Economy.CreditsRefunded.ToString(),
                         _analytics.Economy.CreditsRefunded > 0 ? "warn" : null, L["Parking_Credits"])
-                    @Stat(L["Lot_Stat_OffPeak"], $"{_analytics.Economy.OffPeakPercent} %", null)
                     @Stat(L["Lot_Stat_FromQueue"], $"{_analytics.Economy.FromQueuePercent} %", null)
                 </div>
 
@@ -1285,12 +1268,6 @@
     private string PeakLabel(LotAnalyticsDto analytics) =>
         analytics is { PeakHour: { } hour, PeakDayOfWeek: { } day }
             ? $"{ShortDay(day)} {hour}:00"
-            : "—";
-
-    /// <summary>The busiest stretch the window shows, on the hour — or nothing, when nothing was booked.</summary>
-    private static string SuggestedPeakLabel(PeakWindowDto peak) =>
-        peak is { SuggestedStartHour: { } start, SuggestedEndHour: { } end }
-            ? $"{start}:00–{end}:00"
             : "—";
 
     /// <summary>

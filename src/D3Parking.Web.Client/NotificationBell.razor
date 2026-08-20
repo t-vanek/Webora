@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Localization
 @using D3Parking.Contracts.Notifications
+@using D3Parking.Domain.Notifications
 @using D3Parking.Web.Client.Api
 @implements IAsyncDisposable
 @inject NotificationsApiClient Api
@@ -66,6 +67,29 @@
                         </FluentSwitch>
                     }
 
+                    <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => _showSettings = !_showSettings)">
+                        @L["Bell_Settings"]
+                    </FluentButton>
+                    @if (_showSettings)
+                    {
+                        <div style="padding:10px; border:1px solid var(--neutral-stroke-divider-rest); border-radius:8px; display:grid; gap:10px">
+                            <FluentSwitch Value="@_muted" ValueChanged="OnMutedChangedAsync">
+                                @L["Bell_MuteAll"]
+                            </FluentSwitch>
+                            <label style="display:grid; gap:4px; font-size:.85rem">
+                                <span>@L["Bell_Scope"]</span>
+                                <select class="parking-input" @bind="_scope" @bind:after="OnScopeChangedAsync">
+                                    <option value="@NotificationScope.All">@L["Bell_ScopeAll"]</option>
+                                    <option value="@NotificationScope.SelfServiceOnly">@L["Bell_ScopeSelf"]</option>
+                                </select>
+                            </label>
+                            <FluentSwitch Value="@_allowAvailability" ValueChanged="OnAvailabilityChangedAsync">
+                                @L["Bell_Availability"]
+                            </FluentSwitch>
+                            <small>@L["Bell_SecurityAlways"]</small>
+                        </div>
+                    }
+
                     @* The list arrives on first open, so "nothing here" must not be shown while it
                        is still on its way — that would read as an empty inbox. *@
                     @if (_itemsLoading)
@@ -104,6 +128,10 @@
     private bool _authenticated;
     private bool _open;
     private bool _muted;
+    private bool _showSettings;
+    private bool _preferenceBusy;
+    private NotificationScope _scope = NotificationScope.All;
+    private bool _allowAvailability = true;
     private int _unreadCount;
     private List<NotificationDto> _items = [];
 
@@ -154,7 +182,12 @@
             var prefs = Api.GetPreferencesAsync();
             await Task.WhenAll(count, prefs);
             _unreadCount = count.Result;
-            _muted = prefs.Result?.IsCurrentlyMuted ?? false;
+            if (prefs.Result is { } preferences)
+            {
+                _muted = preferences.IsCurrentlyMuted;
+                _scope = preferences.Scope;
+                _allowAvailability = preferences.AllowAvailability;
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or NotSupportedException or JsonException)
         {
@@ -373,6 +406,35 @@
 
         _unreadCount = 0;
         _items = [.. _items.Select(n => n with { IsRead = true })];
+    }
+
+    private async Task OnMutedChangedAsync(bool muted)
+    {
+        if (_preferenceBusy) return;
+        _preferenceBusy = true;
+        try
+        {
+            await Api.SetMutedAsync(muted);
+            _muted = muted;
+        }
+        catch (HttpRequestException) { }
+        finally { _preferenceBusy = false; }
+    }
+
+    private async Task OnScopeChangedAsync()
+    {
+        try { await Api.SetScopeAsync(_scope); }
+        catch (HttpRequestException) { await RefreshHeaderAsync(); }
+    }
+
+    private async Task OnAvailabilityChangedAsync(bool allow)
+    {
+        try
+        {
+            await Api.SetAvailabilityAsync(allow);
+            _allowAvailability = allow;
+        }
+        catch (HttpRequestException) { }
     }
 
     public async ValueTask DisposeAsync()

@@ -25,7 +25,11 @@ public class ResidentUsagePlanTests
     private static readonly DateOnly Today = new(2026, 9, 15);
     private static readonly DateTimeOffset Morning = new(2026, 9, 15, 6, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset NextMorning = Morning.AddDays(1);
-    private static readonly IncentivePolicy Policy = new();
+    private static readonly IncentivePolicy Policy = new()
+    {
+        ResidentReleasePointsPerHour = 2,
+        ResidentReleaseMaxPoints = 40,
+    };
 
     [OneTimeSetUp]
     public async Task SetUpAsync()
@@ -247,7 +251,7 @@ public class ResidentUsagePlanTests
 
     private ResidentSpotService CreateResidentService(DateTimeOffset now) =>
         new(new TestDbContextFactory(_options),
-            new FakeParkingSettings(),
+            new FakeParkingSettings(Policy),
             new FakeSiteSettings(),
             new FixedTimeProvider(now),
             new NullNotificationService(),

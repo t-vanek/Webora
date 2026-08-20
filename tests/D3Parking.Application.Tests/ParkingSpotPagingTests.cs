@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using D3Parking.Application.Parking;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Parking;
@@ -235,6 +236,7 @@ public class ParkingSpotPagingTests
         {
             UserName = $"first-{Guid.NewGuid():N}@example.test",
             Email = $"first-{Guid.NewGuid():N}@example.test",
+            Status = AccountStatus.Active,
         };
         first.NormalizedUserName = first.UserName.ToUpperInvariant();
         first.NormalizedEmail = first.Email.ToUpperInvariant();
@@ -242,6 +244,7 @@ public class ParkingSpotPagingTests
         {
             UserName = $"second-{Guid.NewGuid():N}@example.test",
             Email = $"second-{Guid.NewGuid():N}@example.test",
+            Status = AccountStatus.Active,
         };
         second.NormalizedUserName = second.UserName.ToUpperInvariant();
         second.NormalizedEmail = second.Email.ToUpperInvariant();
@@ -289,6 +292,46 @@ public class ParkingSpotPagingTests
             Assert.That(remaining.OwnerId, Is.EqualTo(first.Id));
         });
     }
+
+    [Test]
+    public async Task Resident_picker_offers_only_active_accounts_without_another_spot()
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var available = CreateUser($"available-{suffix}@example.test", AccountStatus.Active, "Anna Available");
+        var assigned = CreateUser($"assigned-{suffix}@example.test", AccountStatus.Active, "Boris Assigned");
+        var inactive = CreateUser($"inactive-{suffix}@example.test", AccountStatus.Blocked, "Cyril Blocked");
+        var assignedSpot = new ParkingSpot($"ASSIGNED-{suffix[..6]}", ParkingSpotType.Standard);
+
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            dbContext.Users.AddRange(available, assigned, inactive);
+            dbContext.ParkingSpots.Add(assignedSpot);
+            await dbContext.SaveChangesAsync();
+        }
+
+        Assert.That((await _spots.AddResidentAsync(assignedSpot.Id, assigned.Id)).Succeeded, Is.True);
+
+        var candidates = await _spots.ListResidentCandidatesAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(candidates.Select(candidate => candidate.UserId), Does.Contain(available.Id));
+            Assert.That(candidates.Select(candidate => candidate.UserId), Does.Not.Contain(assigned.Id));
+            Assert.That(candidates.Select(candidate => candidate.UserId), Does.Not.Contain(inactive.Id));
+            Assert.That(candidates.Single(candidate => candidate.UserId == available.Id).Name,
+                Is.EqualTo("Anna Available"));
+        });
+    }
+
+    private static ApplicationUser CreateUser(string email, AccountStatus status, string displayName) => new()
+    {
+        UserName = email,
+        NormalizedUserName = email.ToUpperInvariant(),
+        Email = email,
+        NormalizedEmail = email.ToUpperInvariant(),
+        DisplayName = displayName,
+        Status = status,
+    };
 
     /// <summary>Spots <paramref name="from"/>…<paramref name="to"/> of one section, created out of order.</summary>
     private async Task SeedAsync(string section, int from, int to)

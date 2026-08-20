@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Options;
 using D3Parking.Application.Notifications;
 using D3Parking.Contracts.Notifications;
+using D3Parking.Domain.Notifications;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace D3Parking.Web.Notifications;
@@ -62,6 +63,40 @@ public static class NotificationEndpoints
             return userId is null
                 ? Results.Unauthorized()
                 : Results.Ok(await service.GetPreferencesAsync(userId.Value, ct));
+        });
+
+        group.MapPost("/preferences/mute", async (ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
+        {
+            var userId = GetUserId(user);
+            if (userId is null) return Results.Unauthorized();
+            await service.MuteAsync(userId.Value, ct);
+            return Results.NoContent();
+        });
+
+        group.MapPost("/preferences/unmute", async (ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
+        {
+            var userId = GetUserId(user);
+            if (userId is null) return Results.Unauthorized();
+            await service.UnmuteAsync(userId.Value, ct);
+            return Results.NoContent();
+        });
+
+        group.MapPut("/preferences/scope", async (NotificationScopeRequest request, ClaimsPrincipal user,
+            INotificationService service, CancellationToken ct) =>
+        {
+            var userId = GetUserId(user);
+            if (userId is null) return Results.Unauthorized();
+            await service.SetScopeAsync(userId.Value, request.Scope, ct);
+            return Results.NoContent();
+        });
+
+        group.MapPut("/preferences/availability", async (AvailabilityPreferenceRequest request, ClaimsPrincipal user,
+            INotificationService service, CancellationToken ct) =>
+        {
+            var userId = GetUserId(user);
+            if (userId is null) return Results.Unauthorized();
+            await service.SetAvailabilityOptInAsync(userId.Value, request.Allow, ct);
+            return Results.NoContent();
         });
 
         group.MapPost("/{id:guid}/read", async (Guid id, ClaimsPrincipal user, INotificationService service, CancellationToken ct) =>
@@ -139,4 +174,7 @@ public static class NotificationEndpoints
 
     private static Guid? GetUserId(ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirstValue(Claims.Subject), out var id) ? id : null;
+
+    private sealed record NotificationScopeRequest(NotificationScope Scope);
+    private sealed record AvailabilityPreferenceRequest(bool Allow);
 }

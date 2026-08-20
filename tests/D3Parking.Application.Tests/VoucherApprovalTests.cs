@@ -327,6 +327,9 @@ public class VoucherApprovalTests
 
         public Task<ParkingSettingsDto> GetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<PlannerCapacityDto> GetPlannerCapacityAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PlannerCapacityDto(0, 0, 0, 0, 0));
+
         public Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> AdaptPeakSurchargeAsync(double measuredOccupancy, CancellationToken cancellationToken = default) => throw new NotSupportedException();

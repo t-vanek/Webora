@@ -55,6 +55,9 @@ public static class DependencyInjection
 
         // In-app notifications. The web host replaces the publisher with a SignalR implementation.
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationRuleService, NotificationRuleService>();
+        services.AddScoped<INotificationDeliveryDispatcher, NotificationDeliveryDispatcher>();
+        services.AddScoped<INotificationDeliveryAdminService, NotificationDeliveryAdminService>();
         services.TryAddSingleton<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
 
         // Web Push (VAPID). The publisher is only registered when keys are configured — the web
@@ -84,6 +87,7 @@ public static class DependencyInjection
         services.AddScoped<IParkingSettingsService, ParkingSettingsService>();
         services.AddScoped<IParkingSpotService, ParkingSpotService>();
         services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<ICalendarSubscriptionService, CalendarSubscriptionService>();
         services.AddScoped<IIncentiveService, IncentiveService>();
         services.AddScoped<IResidentSpotService, ResidentSpotService>();
         services.AddScoped<IUserLocationService, UserLocationService>();

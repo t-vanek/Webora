@@ -67,10 +67,10 @@
   <data name="Auth_HidePassword" xml:space="preserve"><value>Skrýt heslo</value></data>
   <data name="Auth_Optional" xml:space="preserve"><value>Nepovinné</value></data>
   <data name="Auth_Hero_Headline" xml:space="preserve"><value>Chytré parkování bez papírování</value></data>
-  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Rezervujte si místo, sdílejte ho, když ho nevyužijete, a sbírejte za to kredity i body.</value></data>
+  <data name="Auth_Hero_Lead" xml:space="preserve"><value>Naplánujte si místo dopředu a uvolněte ho včas, když se váš plán změní.</value></data>
   <data name="Auth_Hero_Feature1" xml:space="preserve"><value>Rezervace místa na pár kliknutí</value></data>
-  <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Kredity a dynamické ceny dle obsazenosti</value></data>
-  <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Žebříček, série a odznaky za spolehlivost</value></data>
+  <data name="Auth_Hero_Feature2" xml:space="preserve"><value>Jasná pravidla rezervací nastavená firmou</value></data>
+  <data name="Auth_Hero_Feature3" xml:space="preserve"><value>Transparentní kapacita a spolehlivé potvrzení</value></data>
   <data name="ForgotPassword_Title" xml:space="preserve"><value>Zapomenuté heslo</value></data>
   <data name="ForgotPassword_Submit" xml:space="preserve"><value>Poslat odkaz</value></data>
   <data name="ForgotPassword_Success" xml:space="preserve"><value>Pokud účet s touto adresou existuje, poslali jsme na něj odkaz pro obnovení hesla.</value></data>
@@ -361,7 +361,7 @@
   <data name="Settings_DefaultLanguageHelp" xml:space="preserve"><value>Použije se pro návštěvníky, kteří si jazyk sami nepřepnuli.</value></data>
   <data name="Settings_Automatic" xml:space="preserve"><value>Automaticky</value></data>
   <data name="Settings_DefaultTimeZone" xml:space="preserve"><value>Výchozí časové pásmo</value></data>
-  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Časové pásmo webu. Řídí zobrazování časů i denní okna parkování — špičku a držení míst rezidentům.</value></data>
+  <data name="Settings_DefaultTimeZoneHelp" xml:space="preserve"><value>Časové pásmo webu. Řídí zobrazování časů, hranice celodenních rezervací a držení míst rezidentům.</value></data>
   <data name="Settings_ServerLocal" xml:space="preserve"><value>Místní čas serveru</value></data>
   <data name="Settings_EncodingSection" xml:space="preserve"><value>Kódování</value></data>
   <data name="Settings_SaveEncoding" xml:space="preserve"><value>Uložit kódování</value></data>
@@ -429,10 +429,11 @@
   <data name="Nav_ParkingLeaderboard" xml:space="preserve"><value>Žebříček</value></data>
   <data name="Nav_AdminParking" xml:space="preserve"><value>Parkovací místa</value></data>
   <data name="Parking_Title" xml:space="preserve"><value>Rezervace parkování</value></data>
-  <data name="Parking_Intro" xml:space="preserve"><value>Naplánujte si parkovací místo na vybraný čas. Kredity tvoří váš měsíční plánovací rozpočet.</value></data>
+  <data name="Parking_Intro" xml:space="preserve"><value>Naplánujte si parkovací místo dopředu a dejte ostatním včas vědět, když ho nevyužijete.</value></data>
   <data name="Parking_FindTitle" xml:space="preserve"><value>Vyhledat volná místa</value></data>
   <data name="Parking_BookingTitle" xml:space="preserve"><value>Rezervace sdíleného místa</value></data>
   <data name="Parking_BookingIntro" xml:space="preserve"><value>Vyber čas a systém nabídne nejlepší volné místo ze sdíleného fondu.</value></data>
+  <data name="Parking_BookingIntro_AllDay" xml:space="preserve"><value>Vyber den a systém nabídne nejlepší volné místo na celý den.</value></data>
   <data name="Parking_Context_Label" xml:space="preserve"><value>Souhrn aktuálního hledání</value></data>
   <data name="Parking_Context_Summary" xml:space="preserve"><value>{0}, {1}–{2}</value></data>
   <data name="Parking_Context_Change" xml:space="preserve"><value>Upravit hledání</value></data>
@@ -449,7 +450,7 @@
   <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>Pro vybraný den je místo nabídnuté ostatním, ale zatím si ho nikdo nezarezervoval.</value></data>
   <data name="Parking_ResidentState_SharedFreeAuto_Text" xml:space="preserve"><value>Rezidentní místo se po uzávěrce nabídlo ostatním, ale zatím si ho nikdo nezarezervoval. Potvrzením příjezdu si ho můžeš vzít zpět.</value></data>
   <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Místo {0} má pro vybraný den rezervované někdo jiný</value></data>
-  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>Rezidentní místo už si rezervoval někdo jiný. Pokud ho potřebuješ, můžeš si ho vzít zpět; kolegovi vrátíme rozpočet a pošleme notifikaci.</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>Místo už má potvrzené kolega. Můžeš požádat o převzetí; systém nejdříve hledá náhradní místo a dodrží firemní ochrannou lhůtu.</value></data>
   <data name="Parking_Date" xml:space="preserve"><value>Datum</value></data>
   <data name="Parking_From" xml:space="preserve"><value>Od</value></data>
   <data name="Parking_To" xml:space="preserve"><value>Do</value></data>
@@ -523,6 +524,7 @@
   <data name="Parking_Error_SpotNotFound" xml:space="preserve"><value>Místo nebylo nalezeno.</value></data>
   <data name="Parking_Error_SpotInactive" xml:space="preserve"><value>Toto místo není k dispozici.</value></data>
   <data name="Parking_Error_InvalidWindow" xml:space="preserve"><value>Konec musí být po začátku.</value></data>
+  <data name="Parking_Error_ReservationTimeModeChanged" xml:space="preserve"><value>Pravidlo času rezervace se mezitím změnilo. Obnov stránku a vyber termín znovu.</value></data>
   <data name="Parking_Error_PastWindow" xml:space="preserve"><value>Nelze rezervovat čas v minulosti.</value></data>
   <data name="Parking_Error_SpotConflict" xml:space="preserve"><value>Toto místo je ve zvoleném čase už obsazené.</value></data>
   <data name="Parking_Error_OwnConflict" xml:space="preserve"><value>V tomto čase už máte jinou rezervaci.</value></data>
@@ -615,21 +617,21 @@
   <data name="Home_Card_Help" xml:space="preserve"><value>Jak rezervovat, za co jsou body a co dělat, když něco nevyjde.</value></data>
   <data name="Help_Intro" xml:space="preserve"><value>Jak si rezervovat místo a co dělat, když něco nevyjde. Obsah i uvedené hodnoty odpovídají aktuálnímu nastavení systému a vašim oprávněním.</value></data>
   <data name="Help_Reserve_Q" xml:space="preserve"><value>Jak si zarezervuji parkovací místo?</value></data>
-  <data name="Help_Reserve_A1_Paid" xml:space="preserve"><value>V sekci Rezervace místa vyberte datum a čas od–do a klikněte na Najít místa. Zobrazí se volná místa i cena v kreditech pro dané okno. U vybraného místa klikněte na Rezervovat.</value></data>
-  <data name="Help_Reserve_A1_Free" xml:space="preserve"><value>V sekci Rezervace místa vyberte datum a čas od–do a klikněte na Najít místa. Zobrazí se volná místa pro dané okno; rezervace je při současném nastavení zdarma. U vybraného místa klikněte na Rezervovat.</value></data>
+  <data name="Help_Reserve_A1_Paid" xml:space="preserve"><value>V sekci Rezervace místa vyberte den (a v časovém režimu také čas od–do) a klikněte na Najít místa. Uvidíte volná místa a pevnou cenu v kreditech. U vybraného místa klikněte na Rezervovat.</value></data>
+  <data name="Help_Reserve_A1_Free" xml:space="preserve"><value>V sekci Rezervace místa vyberte den (a v časovém režimu také čas od–do) a klikněte na Najít místa. Uvidíte volná místa; plánování je při současném nastavení zdarma.</value></data>
   <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho — nejpozději {0} před začátkem dostanete celý kredit zpět.</value></data>
   <data name="Help_Reserve_A2_PaidRewarded" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho — nejpozději {0} před začátkem dostanete celý kredit zpět a také body za zpřístupnění ostatním.</value></data>
   <data name="Help_Reserve_A2_Free" xml:space="preserve"><value>Rezervace je plánovaný blok a příjezd ani odjezd nepotvrzujete. Pokud místo nakonec nepotřebujete, uvolněte ho co nejdřív, ať ho může využít někdo jiný.</value></data>
   <data name="Help_Animation_Reserve_Alt" xml:space="preserve"><value>Animovaná ukázka výběru dne, zadání času a vyhledání volných parkovacích míst.</value></data>
   <data name="Help_Animation_Reserve_Caption" xml:space="preserve"><value>Ukázka: vyberte den, nastavte čas a zobrazte dostupná místa. Samotná ukázka žádnou rezervaci nevytváří.</value></data>
-  <data name="Help_Credits_Q" xml:space="preserve"><value>Co jsou kredity a proč se cena mění?</value></data>
-  <data name="Help_Credits_A1" xml:space="preserve"><value>Rezervace se platí kredity z vaší peněženky. Aktuální základní cena je {0} a jedna rezervace stojí nejvýše {1}.</value></data>
+  <data name="Help_Credits_Q" xml:space="preserve"><value>Co je volitelný plánovací rozpočet?</value></data>
+  <data name="Help_Credits_A1" xml:space="preserve"><value>Správce zapnul plánovací rozpočet. Každá rezervace stojí pevně {0} a rozpočet se obnovuje {1}.</value></data>
   <data name="Help_Credits_Peak" xml:space="preserve"><value>Ve špičce {0}–{1} se uplatní sazba {2} % základní ceny.</value></data>
   <data name="Help_Credits_Occupancy" xml:space="preserve"><value>S rostoucí obsazeností se k ceně plynule přidá až {0} % základu.</value></data>
-  <data name="Help_Credits_Fixed" xml:space="preserve"><value>Špička ani obsazenost nyní cenu nezvyšují.</value></data>
-  <data name="Help_Credits_Li1" xml:space="preserve"><value>Jednou měsíčně vám automaticky přijde {0}.</value></data>
-  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Jednou měsíčně vám automaticky přijde {0}, za každou dosaženou úroveň o dalších {1} víc.</value></data>
-  <data name="Help_Credits_Li2" xml:space="preserve"><value>Zrušení nebo uvolnění nejpozději {0} před začátkem vrací celou zaplacenou částku.</value></data>
+  <data name="Help_Credits_Fixed" xml:space="preserve"><value>Cena je pro všechny stejná; obsazenost ani reputace ji nemění.</value></data>
+  <data name="Help_Credits_Li1" xml:space="preserve"><value>Zůstatek se {1} doplní nejvýše na {0}; nevyužité kredity se nad tento limit nehromadí.</value></data>
+  <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Zůstatek se {2} doplní nejvýše na {0}, za každou dosaženou úroveň o dalších {1} víc.</value></data>
+  <data name="Help_Credits_Li2" xml:space="preserve"><value>Zrušením rezervace se zaplacené kredity vrátí.</value></data>
   <data name="Help_Credits_Li3" xml:space="preserve"><value>Kredit je plánovací rozpočet: po dobu rezervace zůstává přidělený danému časovému oknu.</value></data>
   <data name="Help_Points_Q" xml:space="preserve"><value>Za co získávám body a k čemu jsou?</value></data>
   <data name="Help_Points_A1" xml:space="preserve"><value>Body jsou reputační skóre v žebříčku — utrácení kreditů je nesnižuje. Získáváte je za chování, které pomáhá ostatním:</value></data>
@@ -641,7 +643,7 @@
   <data name="Help_Points_Li5" xml:space="preserve"><value>Využití sdíleného místa: odměna se řídí ověřeným dojezdem a může dosáhnout až {0}.</value></data>
   <data name="Help_Points_A2" xml:space="preserve"><value>Z bodů se odvozuje úroveň: Bronz, Stříbro od {0}, Zlato od {1} a Platina od {2}. Vyšší úroveň přináší:</value></data>
   <data name="Help_Points_Perk_Queue" xml:space="preserve"><value>přednost ve frontě (dlouho čekající nižší úroveň vás ale dožene),</value></data>
-  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>vyšší měsíční příděl (+{0} za úroveň),</value></data>
+  <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>vyšší příděl na každé rozpočtové období (+{0} za úroveň),</value></data>
   <data name="Help_Points_Perk_Discount" xml:space="preserve"><value>slevu na rezervace ({0} % za úroveň).</value></data>
   <data name="Help_Points_Decay" xml:space="preserve"><value>Body se každých {1} sníží o {0} %, takže se udržují aktivitou — a staré penalizace se stejně tak časem zahojí.</value></data>
   <data name="Help_NoShow_Q" xml:space="preserve"><value>Musím potvrdit příjezd nebo odjezd?</value></data>
@@ -656,18 +658,18 @@
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Pozor: nedostavení se na místo převzaté z fronty je penalizované přísněji — {0}, {1} a {2} bez možnosti se do fronty postavit.</value></data>
   <data name="Help_Blocked_Q" xml:space="preserve"><value>Na mém místě stojí cizí auto. Co teď?</value></data>
   <data name="Help_Blocked_A1" xml:space="preserve"><value>U rezervace klikněte na Nemůžu zaparkovat a přiložte fotografii zablokovaného místa (je povinná — podle ní situaci ověříme a každou fotku lze použít jen jednou). Buď vám najdeme jiné volné místo na stejné okno (platba se převede, nic navíc neplatíte), nebo rezervaci zrušíme s plnou vratkou.</value></data>
-  <data name="Help_Blocked_A2" xml:space="preserve"><value>Jako omluvu vám náleží kupón na jednu rezervaci zdarma — platí i ve špičce. Hlášení nejdřív podle fotografie prověříme; jakmile je kontrola hotová, kupón se aktivuje, platí 30 dní a uplatníte ho zaškrtnutím při rezervaci. Pomůže, když do formuláře opíšete SPZ blokujícího auta: správce pak pozná, jestli jde o kolegu, nebo o vozidlo mimo systém.</value></data>
+  <data name="Help_Blocked_A2" xml:space="preserve"><value>Pokud je zapnutý plánovací rozpočet, jako omluvu vám náleží kupón na jednu rezervaci zdarma. Hlášení nejdřív podle fotografie prověříme; po schválení kupón platí 30 dní a uplatníte ho zaškrtnutím při rezervaci. Pomůže, když do formuláře opíšete SPZ blokujícího auta: správce pak pozná, jestli jde o kolegu, nebo o vozidlo mimo systém.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>Mám přidělené vlastní (rezidentní) místo</value></data>
   <data name="Help_Resident_A0" xml:space="preserve"><value>Vlastní místo je vázané na firemní vozidlo z vozového parku: vzniká spárováním vašeho účtu s firemním vozidlem, kterému správce přidělil místo. Vozidla zaměstnanců vlastní místo nemají — parkují přes rezervace z fondu.</value></data>
   <data name="Help_Resident_A1" xml:space="preserve"><value>Plán využití určuje, ve které dny je místo vaše a ve které se nabídne ostatním. Příjezd se nepotvrzuje.</value></data>
   <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou) — dostanete {0} za každou hodinu předstihu, nejvýše {1} za každý uvolněný den. Měsíční limit není.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>Když víte dopředu, že místo nevyužijete, uvolněte ho (i na několik dní najednou), ať ho může využít někdo jiný.</value></data>
-  <data name="Help_Resident_A3" xml:space="preserve"><value>Na svém místě máte konečnou přednost. Uvolněný den si můžete vzít zpět i po rezervaci kolegou; jeho plán se bez sankce zruší, rozpočet nebo kupón se vrátí a systém mu pošle notifikaci. Nabídka frontě se stáhne bez ztráty pořadí. Odměna za vrácený den se odečte.</value></data>
-  <data name="Help_Resident_A4" xml:space="preserve"><value>V plánu využití zaškrtněte dny, kdy místo potřebujete, a zapněte automatické uvolňování. Ostatní dny se uvolní až {0} dní dopředu a získají odměnu za předstih. Kterýkoli uvolněný den si můžete vzít zpět; pokud ho už má kolega, systém mu vrátí rozpočet a upozorní ho.</value></data>
+  <data name="Help_Resident_A3" xml:space="preserve"><value>Uvolněný den si můžete vzít zpět jen do chvíle, než si ho potvrdí kolega. Potvrzená rezervace platí, aby se každý mohl na plán spolehnout; výjimku řeší správce parkoviště.</value></data>
+  <data name="Help_Resident_A4" xml:space="preserve"><value>V plánu využití zaškrtněte dny, kdy místo potřebujete, a zapněte automatické uvolňování. Ostatní dny se nabídnou ostatním až {0} dní dopředu. Zatím nezarezervovaný uvolněný den si můžete vzít zpět.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifikace, e-maily a kalendář</value></data>
   <data name="Help_Notifications_A1" xml:space="preserve"><value>Upozornění chodí do zvonečku v hlavičce. Pokud správce nakonfiguroval Web Push, můžete aplikaci nainstalovat na plochu a push zapnout; akční výzvy a bezpečnostní změny mohou přijít také e-mailem.</value></data>
   <data name="Help_Notifications_Reminder" xml:space="preserve"><value>Aktuální předstih informační připomínky rezervace je {0}.</value></data>
-  <data name="Help_Notifications_A2" xml:space="preserve"><value>U každé rezervace je tlačítko Do kalendáře — stáhne událost pro Outlook, Google i Apple kalendář, včetně připomínky 30 minut předem. V profilu můžete notifikace dočasně ztlumit.</value></data>
+  <data name="Help_Notifications_A2" xml:space="preserve"><value>Jednotlivou rezervaci lze stáhnout tlačítkem Do kalendáře. Na stránce Parkování si také můžete vytvořit soukromý odběr pro Outlook, Google nebo Apple Calendar; nové rezervace, přesuny a zrušení se aktualizují automaticky. Odběr je jen pro čtení, rezervace proto měňte v plánovači. V profilu můžete notifikace dočasně ztlumit.</value></data>
   <data name="Help_Notifications_Tips" xml:space="preserve"><value>Tipy na volnou kapacitu jsou nyní zapnuté; v profilu je můžete pro svůj účet vypnout.</value></data>
   <data name="Help_Profile_Q" xml:space="preserve"><value>Co si nastavit v profilu</value></data>
   <data name="Help_Profile_A1" xml:space="preserve"><value>Údaje v profilu pomáhají aplikaci i správcům nabídnout správné možnosti:</value></data>
@@ -718,10 +720,10 @@
   <data name="Help_Plural_Days_2" xml:space="preserve"><value>dny</value></data>
   <data name="Help_Plural_Days_5" xml:space="preserve"><value>dní</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Neshody obsazenosti →</value></data>
-  <data name="Parking_Voucher_Available" xml:space="preserve"><value>Velice se omlouváme za komplikace se zablokovaným místem. Jako omluvu máte jednu rezervaci zdarma, a to i ve špičce. Kupón můžete využít do {0}.</value></data>
+  <data name="Parking_Voucher_Available" xml:space="preserve"><value>Velice se omlouváme za komplikace se zablokovaným místem. Jako omluvu máte jednu rezervaci zdarma. Kupón můžete využít do {0}.</value></data>
   <data name="Parking_Voucher_Use" xml:space="preserve"><value>Použít kupón — tato rezervace bude zdarma</value></data>
   <data name="Parking_Voucher_Pending" xml:space="preserve"><value>Velice se omlouváme za komplikace se zablokovaným místem. Vaše hlášení právě prověřujeme. Po potvrzení vám aktivujeme kupón na jednu rezervaci zdarma a dáme vám vědět.</value></data>
-  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Velice se omlouváme za způsobené komplikace. Situaci na místě nyní prověříme. Po potvrzení vám jako omluvu aktivujeme kupón na jednu rezervaci zdarma, a to i ve špičce.</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>Velice se omlouváme za způsobené komplikace. Situaci na místě nyní prověříme. Po potvrzení vám jako omluvu aktivujeme kupón na jednu rezervaci zdarma.</value></data>
   <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>Omluvný kupón už není k dispozici.</value></data>
   <data name="Parking_AddToCalendar" xml:space="preserve"><value>Do kalendáře</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali na základě akce ve vašem účtu D3Parking.</value></data>
@@ -800,15 +802,23 @@
   <data name="Parking_Admin_Activate" xml:space="preserve"><value>Aktivovat</value></data>
   <data name="Nav_AdminParkingSettings" xml:space="preserve"><value>Pravidla a ceny</value></data>
   <data name="Parking_Settings_Title" xml:space="preserve"><value>Nastavení parkování</value></data>
-  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Ceny, body a ochranné mechanismy parkování na jednom místě. Uložené změny platí okamžitě pro všechny další rezervace.</value></data>
+  <data name="Parking_Settings_Intro" xml:space="preserve"><value>Pravidla plánování, rezervací a cen na jednom místě. Uložené změny platí okamžitě pro všechny další rezervace.</value></data>
   <data name="Parking_Settings_Tab_Economy" xml:space="preserve"><value>Ekonomika</value></data>
   <data name="Parking_Settings_Tab_Points" xml:space="preserve"><value>Body a úrovně</value></data>
   <data name="Parking_Settings_Tab_Trust" xml:space="preserve"><value>Důvěra a ochrana</value></data>
-  <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a špička</value></data>
+  <data name="Parking_Settings_Tab_Queue" xml:space="preserve"><value>Fronta a časování</value></data>
   <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Rezidenti</value></data>
   <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Lokalita a limity</value></data>
   <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Základní bodování</value></data>
   <data name="Parking_Settings_PointsHelp" xml:space="preserve"><value>Reputační body odměňují včasné uvolnění plánu a sdílení rezidentního místa. Odměna zároveň vrací stejný počet kreditů do plánovacího rozpočtu.</value></data>
+  <data name="Parking_Settings_ReservationModeSection" xml:space="preserve"><value>Režim času rezervace</value></data>
+  <data name="Parking_Settings_AllDayReservations" xml:space="preserve"><value>Celodenní rezervace</value></data>
+  <data name="Parking_Settings_ReservationModeHelp" xml:space="preserve"><value>Vyberte právě jeden režim. Změna ovlivní formulář všech nových rezervací.</value></data>
+  <data name="Parking_Settings_ModeActive" xml:space="preserve"><value>Aktivní režim</value></data>
+  <data name="Parking_Settings_Mode_AllDay_Title" xml:space="preserve"><value>Celodenní rezervace</value></data>
+  <data name="Parking_Settings_Mode_AllDay_Description" xml:space="preserve"><value>Uživatel vybere pouze datum. Místo je rezervované celý místní kalendářní den.</value></data>
+  <data name="Parking_Settings_Mode_TimeWindow_Title" xml:space="preserve"><value>Přesný čas od–do</value></data>
+  <data name="Parking_Settings_Mode_TimeWindow_Description" xml:space="preserve"><value>Uživatel vybere datum, čas začátku a čas konce rezervace.</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Špička</value></data>
   <data name="Parking_Settings_PeakHelp" xml:space="preserve"><value>Denní okno nejvyšší poptávky v čase parkoviště. Rezervace začínající ve špičce platí cenovou přirážku; rezervace mimo okno získávají bodový bonus.</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Časování</value></data>
@@ -832,7 +842,7 @@
   <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Dnes má místo rezervované kolega</value></data>
   <data name="Parking_Owned_TodayHeldText" xml:space="preserve"><value>Pokud ho dnes nepotřebuješ, můžeš ho uvolnit ostatním.</value></data>
   <data name="Parking_Owned_TodaySharedFreeText" xml:space="preserve"><value>Místo můžeš bez dopadu na ostatní vzít zpět.</value></data>
-  <data name="Parking_Owned_TodaySharedTakenText" xml:space="preserve"><value>Převzetím zrušíš rezervaci kolegy a systém ho upozorní.</value></data>
+  <data name="Parking_Owned_TodaySharedTakenText" xml:space="preserve"><value>Systém místo vrátí jen podle firemního pravidla: kolegu nejdříve bezpečně přesune, jinak může převzetí odmítnout.</value></data>
   <data name="Parking_Owned_ReleaseToday" xml:space="preserve"><value>Uvolnit dnes</value></data>
   <data name="Parking_Owned_ReclaimToday" xml:space="preserve"><value>Vzít dnes zpět</value></data>
   <data name="Parking_Owned_ReclaimTodayWarning" xml:space="preserve"><value>Místo má dnes rezervované kolega. Převzetím jeho rezervaci zrušíš; vrátíme mu plánovací rozpočet a pošleme upozornění.</value></data>
@@ -899,7 +909,7 @@
   <data name="Parking_Owned_ReclaimTo" xml:space="preserve"><value>Vzít zpět do</value></data>
   <data name="Parking_Owned_Reclaim" xml:space="preserve"><value>Vzít zpět</value></data>
   <data name="Parking_Owned_Reclaimed" xml:space="preserve"><value>Dny jsou zpět u tebe — místo se pro tebe zase drží.</value></data>
-  <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>Na svém místě máš konečnou přednost. Pokud už ho má kolega, jeho plán se zruší s plnou vratkou a systém ho upozorní. Přidržení frontě se stáhne bez ztráty pořadí. Odměna za vrácený den se odečte.</value></data>
+  <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>O převzetí můžeš požádat i u rezervovaného dne. Systém nejdříve hledá bezpečnou náhradu a pak použije firemní ochrannou lhůtu; pokud podmínky nesplní, nic nezmění.</value></data>
   <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Po uzávěrce se místo nabízí ostatním, ale dokud si ho nikdo nevzal, potvrzením příjezdu si ho vezmeš zpět.</value></data>
   <data name="Parking_Owned_PlanDays" xml:space="preserve"><value>Dny, kdy místo potřebuji</value></data>
   <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Auto uvolnění</value></data>
@@ -955,15 +965,15 @@
   <data name="Parking_MyCredits" xml:space="preserve"><value>Kredit</value></data>
   <data name="Parking_Error_InsufficientCredit" xml:space="preserve"><value>Nemáš dostatek kreditů na tuto rezervaci.</value></data>
   <data name="Parking_Settings_EconomySection" xml:space="preserve"><value>Ekonomika rezervací</value></data>
-  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace v kreditech: základ × přirážka ve špičce × přirážka podle zaplněnosti, vždy nejméně základ a nejvýše strop. Kredity se strhávají hned při rezervaci; včasné zrušení nebo uvolnění je vrací v plné výši.</value></data>
-  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Základní cena rezervace (kredity)</value></data>
+  <data name="Parking_Settings_EconomyHelp" xml:space="preserve"><value>Cena rezervace v kreditech: základ × přirážka podle zaplněnosti, vždy nejméně základ a nejvýše strop. Kredity se strhávají hned při rezervaci; včasné zrušení nebo uvolnění je vrací v plné výši.</value></data>
+  <data name="Parking_Settings_BaseCost" xml:space="preserve"><value>Cena jedné rezervace (kredity)</value></data>
   <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Cena ve špičce (% základní ceny)</value></data>
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Přirážka při plném parkovišti (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Nejvyšší cena rezervace (kredity)</value></data>
-  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Měsíční plánovací rozpočet</value></data>
+  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Rozpočet na období (kredity)</value></data>
   <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Platnost nabídky místa z fronty (min)</value></data>
   <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Postihy za nedostavení k místu z fronty</value></data>
-  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Kdo si převezme uvolněné místo z fronty a nepřijede, zablokoval ho ostatním čekajícím. Postih je proto přísnější než u běžného nedostavení: vyšší srážka bodů, kreditová pokuta, dočasný zákaz fronty a snížení příštího měsíčního přídělu.</value></data>
+  <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Kdo si převezme uvolněné místo z fronty a nepřijede, zablokoval ho ostatním čekajícím. Postih může zahrnout srážku bodů, kreditovou pokutu, dočasný zákaz fronty a snížení příštího rozpočtového přídělu.</value></data>
   <data name="Parking_Settings_QueueNoShowPoints" xml:space="preserve"><value>Srážka reputačních bodů</value></data>
   <data name="Parking_Settings_QueueNoShowCredits" xml:space="preserve"><value>Kreditová pokuta z peněženky</value></data>
   <data name="Parking_Settings_QueueNoShowBanDays" xml:space="preserve"><value>Zákaz fronty (dní)</value></data>
@@ -1220,9 +1230,9 @@
   <data name="Parking_Collusion_DetectedAt" xml:space="preserve"><value>Zjištěno</value></data>
   <data name="Parking_Collusion_UpdatedAt" xml:space="preserve"><value>Naposledy přeměřeno</value></data>
   <data name="Parking_Settings_TierPerksSection" xml:space="preserve"><value>Výhody úrovní</value></data>
-  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Hmatatelné výhody rostoucí s každou dosaženou úrovní: dřívější pořadí ve frontě na uvolněná místa, vyšší měsíční příděl kreditů a sleva z ceny rezervace.</value></data>
+  <data name="Parking_Settings_TierPerksHelp" xml:space="preserve"><value>Výhody rostoucí s každou dosaženou úrovní: dřívější pořadí ve frontě, vyšší rozpočtový příděl a sleva z ceny rezervace.</value></data>
   <data name="Parking_Settings_QueuePriorityPerTier" xml:space="preserve"><value>Náskok ve frontě za úroveň (min)</value></data>
-  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Kredity k měsíčnímu přídělu za úroveň</value></data>
+  <data name="Parking_Settings_TierAllowanceBonus" xml:space="preserve"><value>Kredity k přídělu za každou úroveň</value></data>
   <data name="Parking_Settings_TierDiscountPercent" xml:space="preserve"><value>Sleva z ceny rezervace za úroveň (%)</value></data>
   <data name="Profile_TeamTitle" xml:space="preserve"><value>Tým / oddělení</value></data>
   <data name="Profile_TeamHelp" xml:space="preserve"><value>Zařaď se do týmu nebo oddělení – objeví se týmový žebříček a porovnání s kolegy.</value></data>
@@ -1281,16 +1291,16 @@
   <data name="Nav_Collapse" xml:space="preserve"><value>Sbalit</value></data>
   <data name="Nav_Expand" xml:space="preserve"><value>Rozbalit</value></data>
   <data name="Landing_Headline" xml:space="preserve"><value>Firemní parkování, které se řídí samo</value></data>
-  <data name="Landing_Lead" xml:space="preserve"><value>Zarezervujte si místo předem, a když je plno, fronta vám sama nabídne první uvolněné. Za místo, které nevyužijete a uvolníte ostatním, získáte kredity a body.</value></data>
+  <data name="Landing_Lead" xml:space="preserve"><value>Zarezervujte si místo předem. Když je plno, fronta vám sama nabídne první uvolněné místo a změny se promítnou do vašeho kalendáře.</value></data>
   <data name="Landing_CtaLogin" xml:space="preserve"><value>Přihlásit se</value></data>
   <data name="Landing_CtaRegister" xml:space="preserve"><value>Vytvořit účet</value></data>
   <data name="Landing_FeaturesTitle" xml:space="preserve"><value>Co D3Parking umí</value></data>
   <data name="Landing_Feature1_Title" xml:space="preserve"><value>Rezervace na pár kliknutí</value></data>
   <data name="Landing_Feature1_Desc" xml:space="preserve"><value>Vyberte den a místo, zbytek pohlídá systém — včetně fronty, když je plno.</value></data>
-  <data name="Landing_Feature2_Title" xml:space="preserve"><value>Kredity a dynamické ceny</value></data>
-  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Cena místa se řídí obsazeností. Kdo parkuje mimo špičku, ušetří.</value></data>
-  <data name="Landing_Feature3_Title" xml:space="preserve"><value>Body, série a žebříček</value></data>
-  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Ohleduplné plánování se vyplácí: včasné uvolnění a sdílení míst přináší body i prostor ostatním.</value></data>
+  <data name="Landing_Feature2_Title" xml:space="preserve"><value>Nastavitelná pravidla</value></data>
+  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Firma určí plánovací horizont, povolené dny, týdenní maximum i využití zbývajících míst krátce před začátkem.</value></data>
+  <data name="Landing_Feature3_Title" xml:space="preserve"><value>Celý den nebo interval</value></data>
+  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Správce zvolí jednoduché celodenní plánování nebo přesný čas od–do podle provozu firmy.</value></data>
   <data name="Landing_HowTitle" xml:space="preserve"><value>Jak to funguje</value></data>
   <data name="Landing_Step1_Title" xml:space="preserve"><value>Vytvořte si účet</value></data>
   <data name="Landing_Step1_Desc" xml:space="preserve"><value>Registrace zabere minutu — stačí e-mail a heslo.</value></data>
@@ -2118,12 +2128,182 @@
   <data name="Admin_Users_CreateRolesHint" xml:space="preserve"><value>Role lze později změnit v detailu účtu.</value></data>
   <data name="Common_Remove" xml:space="preserve"><value>Odebrat</value></data>
   <data name="Parking_Admin_ManageResidents" xml:space="preserve"><value>Spravovat rezidenty</value></data>
+  <data name="Parking_Admin_ResidentsForSpot" xml:space="preserve"><value>Rezidenti místa {0}</value></data>
+  <data name="Parking_Admin_FindResident" xml:space="preserve"><value>Přidat rezidenta</value></data>
+  <data name="Parking_Admin_FindResidentPlaceholder" xml:space="preserve"><value>Hledat podle jména nebo e-mailu</value></data>
+  <data name="Parking_Admin_NoResidentCandidates" xml:space="preserve"><value>Žádný dostupný aktivní uživatel neodpovídá hledání.</value></data>
+  <data name="Parking_Admin_ResidentCapacityFull" xml:space="preserve"><value>Kapacita místa je naplněná. Pro přidání dalšího rezidenta nejprve zvyšte kapacitu.</value></data>
+  <data name="Parking_Admin_ResidentVisitorUnavailable" xml:space="preserve"><value>Návštěvnické místo nemůže mít rezidenta.</value></data>
   <data name="Parking_Admin_ResidentCapacity" xml:space="preserve"><value>Kapacita rezidentů</value></data>
   <data name="Parking_Admin_ResidentCountOfCapacity" xml:space="preserve"><value>{0} z {1} rezidentů</value></data>
   <data name="Parking_Error_ResidentCapacityRange" xml:space="preserve"><value>Kapacita rezidentů musí být od 1 do 20.</value></data>
   <data name="Parking_Error_ResidentCapacityBelowCount" xml:space="preserve"><value>Kapacita nesmí být nižší než aktuální počet rezidentů.</value></data>
   <data name="Parking_Error_ResidentCapacityReached" xml:space="preserve"><value>Parkovací místo už má maximální počet rezidentů.</value></data>
+  <data name="Parking_Error_ResidentUnavailable" xml:space="preserve"><value>Uživatel není aktivní nebo už není dostupný pro přiřazení.</value></data>
   <data name="Parking_OwnedState_NotAssigned" xml:space="preserve"><value>Dnes je místo přiřazeno jinému rezidentovi</value></data>
   <data name="Parking_Owned_TodayNotAssignedText" xml:space="preserve"><value>Pro tento den vám sdílené rezidentní místo není přiděleno. Můžete vyhledat místo ve společném fondu.</value></data>
   <data name="Parking_Defect_Close" xml:space="preserve"><value>Zavřít hlášení</value></data>
+  <data name="Parking_Settings_Tab_Planner" xml:space="preserve"><value>Plánování</value></data>
+  <data name="Parking_Settings_Tab_Operations" xml:space="preserve"><value>Provoz a přehled</value></data>
+  <data name="Parking_Settings_CapacityActiveSpots" xml:space="preserve"><value>Aktivní místa</value></data>
+  <data name="Parking_Settings_CapacityResidentSpots" xml:space="preserve"><value>Rezidentní místa</value></data>
+  <data name="Parking_Settings_CapacitySharedSpots" xml:space="preserve"><value>Sdílený fond</value></data>
+  <data name="Parking_Settings_CapacityResidents" xml:space="preserve"><value>Aktivní rezidenti</value></data>
+  <data name="Parking_Settings_CapacityVehicles" xml:space="preserve"><value>Registrovaná vozidla</value></data>
+  <data name="Parking_Settings_PlannerAccessSection" xml:space="preserve"><value>Limity rezervací dopředu</value></data>
+  <data name="Parking_Settings_WeeklyLimitEnabled" xml:space="preserve"><value>Použít týdenní limit</value></data>
+  <data name="Parking_Settings_PlannerAccessHelp" xml:space="preserve"><value>Nastavte, jak daleko dopředu lze plánovat, ve kterých dnech se smí rezervovat a kolik různých dnů může mít jeden člověk v jednom týdnu. Vlastní rezidentní místo se do týdenního limitu nepočítá.</value></data>
+  <data name="Parking_Settings_ReservationHorizonDays" xml:space="preserve"><value>Rezervace dopředu</value></data>
+  <data name="Parking_Settings_WeeklyReservationLimit" xml:space="preserve"><value>Maximum rezervovaných dnů na osobu za týden</value></data>
+  <data name="Parking_Settings_LastMinuteUnlimitedHours" xml:space="preserve"><value>Zrušit týdenní limit před začátkem (hodin)</value></data>
+  <data name="Parking_Settings_CurrentRule" xml:space="preserve"><value>Výsledek tohoto nastavení</value></data>
+  <data name="Parking_Settings_PlannerAccessSummaryEnabled" xml:space="preserve"><value>Počet různých dnů rezervovaných jedním člověkem dopředu je omezen na {0} za týden. Posledních {1} hodin lze rezervovat zbývající volná místa bez tohoto limitu.</value></data>
+  <data name="Parking_Settings_PlannerAccessSummaryNoLastMinute" xml:space="preserve"><value>Počet různých dnů rezervovaných jedním člověkem dopředu je omezen na {0} za týden. Výjimka krátce před začátkem je vypnutá.</value></data>
+  <data name="Parking_Settings_PlannerAccessSummaryDisabled" xml:space="preserve"><value>Týdenní limit je vypnutý. Jeden člověk může rezervovat libovolný počet volných dnů v povoleném plánovacím horizontu.</value></data>
+  <data name="Parking_Settings_QueueSection" xml:space="preserve"><value>Fronta při plné kapacitě</value></data>
+  <data name="Parking_Settings_QueueHelp" xml:space="preserve"><value>Když není volné místo, uživatel se může zařadit do fronty. Po uvolnění dostane nabídku na omezenou dobu.</value></data>
+  <data name="Parking_Settings_PlannerBudgetSection" xml:space="preserve"><value>Plánovací rozpočet</value></data>
+  <data name="Parking_Settings_PlannerBudgetEnabled" xml:space="preserve"><value>Používat kredity</value></data>
+  <data name="Parking_Settings_PlannerBudgetHelp" xml:space="preserve"><value>Každá rezervace stojí stejný počet kreditů. Na začátku zvoleného období se zůstatek každému doplní nejvýše na nastavený rozpočet; nevyčerpané kredity se nepřičítají nad tento limit.</value></data>
+  <data name="Parking_Settings_BudgetRenewalPeriod" xml:space="preserve"><value>Obnovovat rozpočet</value></data>
+  <data name="Parking_Settings_BudgetPeriod_Daily" xml:space="preserve"><value>denně</value></data>
+  <data name="Parking_Settings_BudgetPeriod_Weekly" xml:space="preserve"><value>týdně (v pondělí)</value></data>
+  <data name="Parking_Settings_BudgetPeriod_Monthly" xml:space="preserve"><value>měsíčně (1. den měsíce)</value></data>
+  <data name="Parking_Settings_BudgetPeriod_Yearly" xml:space="preserve"><value>ročně (1. ledna)</value></data>
+  <data name="Parking_Settings_BudgetResult" xml:space="preserve"><value>Výsledek rozpočtu</value></data>
+  <data name="Parking_Settings_BudgetSummaryEnabled" xml:space="preserve"><value>Zůstatek se doplní nejvýše na {0} kreditů {1}. Jedna rezervace stojí {2} kreditů.</value></data>
+  <data name="Parking_Settings_BudgetSummaryDisabled" xml:space="preserve"><value>Rezervace jsou bez kreditů a bez ceny.</value></data>
+  <data name="Parking_Settings_Horizon_1Week" xml:space="preserve"><value>1 týden</value></data>
+  <data name="Parking_Settings_Horizon_2Weeks" xml:space="preserve"><value>2 týdny</value></data>
+  <data name="Parking_Settings_Horizon_3Weeks" xml:space="preserve"><value>3 týdny</value></data>
+  <data name="Parking_Settings_Horizon_4Weeks" xml:space="preserve"><value>4 týdny</value></data>
+  <data name="Parking_Settings_Horizon_1Month" xml:space="preserve"><value>1 měsíc (30 dní)</value></data>
+  <data name="Parking_Settings_Horizon_3Months" xml:space="preserve"><value>3 měsíce (90 dní)</value></data>
+  <data name="Parking_Settings_Horizon_6Months" xml:space="preserve"><value>Půl roku (183 dní)</value></data>
+  <data name="Parking_Settings_Horizon_1Year" xml:space="preserve"><value>1 rok (365 dní)</value></data>
+  <data name="Parking_Settings_AllowedWeekdays" xml:space="preserve"><value>Dny, ve kterých lze rezervovat</value></data>
+  <data name="Parking_Settings_AllowedWeekdaysHelp" xml:space="preserve"><value>Vyberte alespoň jeden den. Omezení platí pro nové rezervace i zařazení do fronty.</value></data>
+  <data name="Parking_Settings_AllowedWeekdaysSummary" xml:space="preserve"><value>Rezervovat lze pouze v těchto dnech: {0}.</value></data>
+  <data name="Parking_Weekday_Monday" xml:space="preserve"><value>Pondělí</value></data>
+  <data name="Parking_Weekday_Tuesday" xml:space="preserve"><value>Úterý</value></data>
+  <data name="Parking_Weekday_Wednesday" xml:space="preserve"><value>Středa</value></data>
+  <data name="Parking_Weekday_Thursday" xml:space="preserve"><value>Čtvrtek</value></data>
+  <data name="Parking_Weekday_Friday" xml:space="preserve"><value>Pátek</value></data>
+  <data name="Parking_Weekday_Saturday" xml:space="preserve"><value>Sobota</value></data>
+  <data name="Parking_Weekday_Sunday" xml:space="preserve"><value>Neděle</value></data>
+  <data name="Parking_Error_ReservationHorizon" xml:space="preserve"><value>Tento den je mimo povolený plánovací horizont.</value></data>
+  <data name="Parking_Error_ReservationWeekdayNotAllowed" xml:space="preserve"><value>Pro tento den v týdnu nejsou rezervace povolené. Vyberte některý z povolených dnů.</value></data>
+  <data name="Parking_Error_WeeklyReservationLimit" xml:space="preserve"><value>Pro tento týden už máte naplánovaný povolený počet dnů. Další volné místo bude možné rezervovat v last-minute okně.</value></data>
+  <data name="Parking_Error_WeeklyReservationLimit_NoLastMinute" xml:space="preserve"><value>Pro tento týden už máte naplánovaný povolený počet dnů.</value></data>
+  <data name="Parking_Error_ResidentDayAlreadyBooked" xml:space="preserve"><value>Tento uvolněný den už má potvrzený kolega. Výjimečnou změnu může provést správce parkoviště.</value></data>
+  <data name="Parking_Planner_Rules" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je {1} dnů na osobu. Posledních {2} hodin před začátkem se limit na zbývající volná místa neuplatní.</value></data>
+  <data name="Parking_Planner_Rules_NoWeeklyLimit" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je vypnutý.</value></data>
+  <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je {1} dnů na osobu a platí až do začátku rezervace.</value></data>
+  <data name="Parking_Planner_AllowedWeekdays" xml:space="preserve"><value>Povolené dny: {0}.</value></data>
+  <data name="Help_Reserve_PlannerRules" xml:space="preserve"><value>Plánovací horizont je {0} dní a dopředu lze potvrdit nejvýše {1} různé dny v týdnu. V posledních {2} hodinách před začátkem se zbylá kapacita otevře bez týdenního limitu. Vlastní přidělené místo rezidenta se do limitu nepočítá.</value></data>
+  <data name="Help_Reserve_PlannerRules_NoLimit" xml:space="preserve"><value>Plánovací horizont je {0} dní a týdenní limit je vypnutý.</value></data>
+  <data name="Help_Reserve_PlannerRules_NoLastMinute" xml:space="preserve"><value>Plánovací horizont je {0} dní a dopředu lze potvrdit nejvýše {1} různé dny v týdnu. Vlastní přidělené místo rezidenta se do limitu nepočítá.</value></data>
+  <data name="Parking_Owned_ReclaimBookedUnavailable" xml:space="preserve"><value>Potvrzené dny už nelze vzít zpět.</value></data>
+  <data name="Parking_Settings_ResidentPrioritySection" xml:space="preserve"><value>Přednost rezidenta</value></data>
+  <data name="Parking_Settings_ResidentPriorityHelp" xml:space="preserve"><value>Určuje, kdy si rezident může vzít své místo zpět. Systém vždy nejdříve zkusí kolegu bezpečně přesunout.</value></data>
+  <data name="Parking_Settings_ResidentReclaimPolicy" xml:space="preserve"><value>Režim převzetí místa</value></data>
+  <data name="Parking_Settings_Reclaim_Protected" xml:space="preserve"><value>Potvrzená rezervace má přednost</value></data>
+  <data name="Parking_Settings_Reclaim_Advance" xml:space="preserve"><value>Rezident jen před ochrannou lhůtou</value></data>
+  <data name="Parking_Settings_Reclaim_Replacement" xml:space="preserve"><value>Kdykoli pouze s náhradním místem</value></data>
+  <data name="Parking_Settings_Reclaim_Balanced" xml:space="preserve"><value>Hybrid: předem, později s náhradou (doporučeno)</value></data>
+  <data name="Parking_Settings_Reclaim_Absolute" xml:space="preserve"><value>Absolutní přednost rezidenta</value></data>
+  <data name="Parking_Settings_ProtectionDeadlineMode" xml:space="preserve"><value>Ochranná lhůta</value></data>
+  <data name="Parking_Settings_Deadline_PreviousDay" xml:space="preserve"><value>Předchozí den v určený čas</value></data>
+  <data name="Parking_Settings_Deadline_Hours" xml:space="preserve"><value>Počet hodin před začátkem</value></data>
+  <data name="Parking_Settings_ProtectionPreviousDayTime" xml:space="preserve"><value>Čas předchozího dne</value></data>
+  <data name="Parking_Settings_ProtectionLeadHours" xml:space="preserve"><value>Hodin před začátkem</value></data>
+  <data name="Parking_Settings_NoReplacementAction" xml:space="preserve"><value>Když není náhradní místo</value></data>
+  <data name="Parking_Settings_NoReplacement_Deny" xml:space="preserve"><value>Převzetí odmítnout</value></data>
+  <data name="Parking_Settings_NoReplacement_Manager" xml:space="preserve"><value>Vyžádat zásah správce</value></data>
+  <data name="Parking_Settings_NoReplacement_Queue" xml:space="preserve"><value>Vrátit rozpočet a přesunout kolegu do fronty</value></data>
+  <data name="Parking_Settings_NoReplacement_Notify" xml:space="preserve"><value>Zrušit rezervaci, vrátit rozpočet a pouze upozornit</value></data>
+  <data name="Parking_Settings_NoReplacement_NotifyWarning" xml:space="preserve"><value>Pokud podmínky režimu dávají rezidentovi přednost a náhrada není volná, kolegova rezervace okamžitě skončí. Dostane upozornění a vrácení rozpočtu či voucheru, ale nebude zařazen do fronty.</value></data>
+  <data name="Parking_Settings_Tab_Notifications" xml:space="preserve"><value>Notifikace</value></data>
+  <data name="Parking_Settings_NotificationMatrix" xml:space="preserve"><value>Kanály podle typu a závažnosti</value></data>
+  <data name="Parking_Settings_NotificationMatrixHelp" xml:space="preserve"><value>Schránka ukládá zprávu do zvonku, živé upozornění ji ihned odešle do připojených zařízení a e-mail určuje, zda se zpráva kopíruje do pošty. Vypnutím schránky se automaticky vypne i živé upozornění.</value></data>
+  <data name="Parking_Settings_NotificationSecurityHelp" xml:space="preserve"><value>Bezpečnostní a kritické provozní události se vždy uloží do schránky a obejdou osobní ztlumení. Jejich živé upozornění a e-mail lze řídit.</value></data>
+  <data name="Parking_Settings_NotificationLevel" xml:space="preserve"><value>Závažnost</value></data>
+  <data name="Parking_Settings_NotificationInbox" xml:space="preserve"><value>Schránka</value></data>
+  <data name="Parking_Settings_NotificationLive" xml:space="preserve"><value>Živě / push</value></data>
+  <data name="Parking_Settings_NotificationEmail" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Parking_NotificationCategory_SelfService" xml:space="preserve"><value>Vlastní akce uživatele</value></data>
+  <data name="Parking_NotificationCategory_Administrative" xml:space="preserve"><value>Správce a systémové změny</value></data>
+  <data name="Parking_NotificationCategory_Availability" xml:space="preserve"><value>Doporučení volné kapacity</value></data>
+  <data name="Parking_NotificationLevel_Info" xml:space="preserve"><value>Informace</value></data>
+  <data name="Parking_NotificationLevel_Warning" xml:space="preserve"><value>Upozornění</value></data>
+  <data name="Parking_NotificationLevel_Security" xml:space="preserve"><value>Bezpečnost</value></data>
+  <data name="Parking_NotificationLevel_Critical" xml:space="preserve"><value>Kritická provozní změna</value></data>
+  <data name="Parking_NotificationEmail_Never" xml:space="preserve"><value>Nikdy</value></data>
+  <data name="Parking_NotificationEmail_Requested" xml:space="preserve"><value>Jen důležité události určené aplikací</value></data>
+  <data name="Parking_NotificationEmail_Always" xml:space="preserve"><value>Vždy</value></data>
+  <data name="Parking_Settings_ManualReleaseBinding" xml:space="preserve"><value>Ruční uvolnění je závazný příslib (bez náhrady jej nelze vzít zpět)</value></data>
+  <data name="Parking_Settings_ResidentPriorityRecommended" xml:space="preserve"><value>Doporučení: Hybrid, ruční uvolnění závazné, ochrana od 18:00 předchozího dne a před lhůtou případně přesun do fronty. V den parkování tak potvrzený kolega nepřijde o místo bez náhrady.</value></data>
+  <data name="Parking_Error_ResidentReplacementUnavailable" xml:space="preserve"><value>Rezident má přednost pouze při dostupném náhradním místě, ale žádné vhodné místo teď není volné.</value></data>
+  <data name="Parking_Error_ResidentReclaimManagerRequired" xml:space="preserve"><value>Po ochranné lhůtě nelze potvrzenou rezervaci bez náhradního místa změnit samoobslužně. Obraťte se na správce parkoviště.</value></data>
+  <data name="Nav_AdminNotifications" xml:space="preserve"><value>Doručování</value></data>
+  <data name="Nav_Short_Notifications" xml:space="preserve"><value>Pošta</value></data>
+  <data name="Audit_Type_NotificationDeliveryRetried" xml:space="preserve"><value>Opakování notifikačního e-mailu</value></data>
+  <data name="Admin_Notifications_Title" xml:space="preserve"><value>Doručování notifikací</value></data>
+  <data name="Admin_Notifications_Intro" xml:space="preserve"><value>Provozní přehled e-mailové fronty, pokusů o doručení a trvalých chyb.</value></data>
+  <data name="Admin_Notifications_Overview" xml:space="preserve"><value>Souhrn doručování</value></data>
+  <data name="Admin_Notifications_Pending" xml:space="preserve"><value>Čeká ve frontě</value></data>
+  <data name="Admin_Notifications_DueNow" xml:space="preserve"><value>Připraveno k odeslání</value></data>
+  <data name="Admin_Notifications_Failed" xml:space="preserve"><value>Trvale selhalo</value></data>
+  <data name="Admin_Notifications_Sent24h" xml:space="preserve"><value>Odesláno za 24 hodin</value></data>
+  <data name="Admin_Notifications_Search" xml:space="preserve"><value>Hledat příjemce, předmět nebo zprávu</value></data>
+  <data name="Admin_Notifications_StatusFilter" xml:space="preserve"><value>Filtrovat podle stavu</value></data>
+  <data name="Admin_Notifications_AllStatuses" xml:space="preserve"><value>Všechny stavy</value></data>
+  <data name="Admin_Notifications_Refresh" xml:space="preserve"><value>Obnovit</value></data>
+  <data name="Admin_Notifications_Results" xml:space="preserve"><value>Nalezeno doručení: {0}</value></data>
+  <data name="Admin_Notifications_ResultHint" xml:space="preserve"><value>Vyberte řádek pro zprávu, chybu a časovou osu pokusů.</value></data>
+  <data name="Admin_Notifications_Empty" xml:space="preserve"><value>Tomuto filtru neodpovídá žádné doručení.</value></data>
+  <data name="Admin_Notifications_ColumnCreated" xml:space="preserve"><value>Vytvořeno</value></data>
+  <data name="Admin_Notifications_ColumnRecipient" xml:space="preserve"><value>Příjemce</value></data>
+  <data name="Admin_Notifications_ColumnMessage" xml:space="preserve"><value>Zpráva</value></data>
+  <data name="Admin_Notifications_ColumnStatus" xml:space="preserve"><value>Stav</value></data>
+  <data name="Admin_Notifications_ColumnAttempts" xml:space="preserve"><value>Pokusy</value></data>
+  <data name="Admin_Notifications_OpenDetail" xml:space="preserve"><value>Otevřít detail doručení</value></data>
+  <data name="Admin_Notifications_Detail" xml:space="preserve"><value>Detail doručení</value></data>
+  <data name="Admin_Notifications_Recipient" xml:space="preserve"><value>Příjemce</value></data>
+  <data name="Admin_Notifications_Created" xml:space="preserve"><value>Zařazeno</value></data>
+  <data name="Admin_Notifications_LastAttempt" xml:space="preserve"><value>Poslední pokus</value></data>
+  <data name="Admin_Notifications_NextAttempt" xml:space="preserve"><value>Další pokus / odesláno</value></data>
+  <data name="Admin_Notifications_Attempts" xml:space="preserve"><value>Pokusy v aktuální sérii</value></data>
+  <data name="Admin_Notifications_ManualRetries" xml:space="preserve"><value>Ruční opakování</value></data>
+  <data name="Admin_Notifications_Message" xml:space="preserve"><value>Obsah zprávy</value></data>
+  <data name="Admin_Notifications_Deadline" xml:space="preserve"><value>Termín</value></data>
+  <data name="Admin_Notifications_Action" xml:space="preserve"><value>Akce v e-mailu</value></data>
+  <data name="Admin_Notifications_LastError" xml:space="preserve"><value>Poslední chyba</value></data>
+  <data name="Admin_Notifications_Retry" xml:space="preserve"><value>Zařadit k novému odeslání</value></data>
+  <data name="Admin_Notifications_Retrying" xml:space="preserve"><value>Zařazuji…</value></data>
+  <data name="Admin_Notifications_RetryQueued" xml:space="preserve"><value>E-mail byl vrácen do fronty a odešle se na pozadí.</value></data>
+  <data name="Admin_Notifications_NotFound" xml:space="preserve"><value>Doručení už neexistuje.</value></data>
+  <data name="Admin_Notifications_NotFailed" xml:space="preserve"><value>Doručení už není v trvale neúspěšném stavu.</value></data>
+  <data name="Admin_Notifications_RetryError" xml:space="preserve"><value>Opakování se nepodařilo zařadit. Zkuste stránku obnovit.</value></data>
+  <data name="Admin_Notifications_UnknownRecipient" xml:space="preserve"><value>Odstraněný uživatel</value></data>
+  <data name="Admin_Notifications_NoRetryScheduled" xml:space="preserve"><value>Čeká na ruční rozhodnutí</value></data>
+  <data name="Admin_Notifications_Status_Pending" xml:space="preserve"><value>Ve frontě</value></data>
+  <data name="Admin_Notifications_Status_Sent" xml:space="preserve"><value>Odesláno</value></data>
+  <data name="Admin_Notifications_Status_Failed" xml:space="preserve"><value>Selhalo</value></data>
+  <data name="Parking_CalendarSync_Title" xml:space="preserve"><value>Odběr parkování do kalendáře</value></data>
+  <data name="Parking_CalendarSync_Description" xml:space="preserve"><value>Přidejte si soukromý kalendář. Nové rezervace, přesuny i zrušení se v něm průběžně aktualizují.</value></data>
+  <data name="Parking_CalendarSync_ReadOnly" xml:space="preserve"><value>Kalendář je jen pro čtení. Rezervace měňte v plánovači, aby zůstala zachována dostupnost a firemní pravidla.</value></data>
+  <data name="Parking_CalendarSync_Enabled" xml:space="preserve"><value>Odběr je aktivní</value></data>
+  <data name="Parking_CalendarSync_Disabled" xml:space="preserve"><value>Odběr je vypnutý</value></data>
+  <data name="Parking_CalendarSync_Enable" xml:space="preserve"><value>Vytvořit soukromý odkaz</value></data>
+  <data name="Parking_CalendarSync_Rotate" xml:space="preserve"><value>Vytvořit nový odkaz</value></data>
+  <data name="Parking_CalendarSync_Disable" xml:space="preserve"><value>Vypnout odběr</value></data>
+  <data name="Parking_CalendarSync_UrlOnce" xml:space="preserve"><value>Uložte si tento odkaz nyní. Z bezpečnostních důvodů jej aplikace znovu nezobrazí; nový odkaz zneplatní předchozí.</value></data>
+  <data name="Parking_CalendarSync_Url" xml:space="preserve"><value>Soukromý odkaz kalendáře</value></data>
+  <data name="Parking_CalendarSync_Copy" xml:space="preserve"><value>Kopírovat</value></data>
+  <data name="Parking_CalendarSync_Open" xml:space="preserve"><value>Otevřít v kalendáři</value></data>
+  <data name="Parking_CalendarSync_Copied" xml:space="preserve"><value>Odkaz byl zkopírován.</value></data>
+  <data name="Parking_CalendarSync_CopyError" xml:space="preserve"><value>Automatické kopírování není dostupné. Označte a zkopírujte odkaz ručně.</value></data>
+  <data name="Parking_CalendarSync_DisabledMessage" xml:space="preserve"><value>Odběr byl vypnut a původní odkaz už není platný.</value></data>
+  <data name="Parking_CalendarSync_Error" xml:space="preserve"><value>Nastavení kalendáře se nepodařilo změnit. Zkuste to znovu.</value></data>
 </root>

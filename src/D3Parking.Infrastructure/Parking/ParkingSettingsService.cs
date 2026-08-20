@@ -59,6 +59,9 @@ public sealed class ParkingSettingsService(
         return new ParkingSettingsDto(
             s.ReleasePoints, s.OffPeakBonusPoints, s.NoShowPenaltyPoints,
             s.ReleaseCutoff, s.NoShowGracePeriod, s.ReminderLeadTime,
+            s.ReservationTimeMode,
+            s.ReservationHorizonDays, s.AllowedReservationWeekdays, s.WeeklyReservationLimitEnabled,
+            s.WeeklyReservationLimit, s.LastMinuteUnlimitedHours,
             s.PeakStart, s.PeakEnd, s.SweepInterval,
             s.ResidentHoldUntil, s.ResidentReleasePointsPerHour, s.ResidentReleaseMaxPoints,
             s.ResidentWastedShareClawbackPercent,
@@ -66,6 +69,7 @@ public sealed class ParkingSettingsService(
             s.LotLatitude, s.LotLongitude, s.SharedTakenBasePoints, s.SharedTakenReferenceKm, s.SharedTakenMaxMultiplier,
             s.AutoVerifyHomeAddress, s.AutoVerifyMaxDistanceKm, s.MaxRewardedReleasesPerDay, s.MaxReleaseRangeDays,
             s.BaseReservationCost, s.PeakPricePercent, s.OccupancyPricePercent, s.MaxReservationCost, s.MonthlyCreditAllowance,
+            s.BudgetRenewalPeriod,
             s.QueueOfferMinutes, s.QueueNoShowPenaltyPoints, s.QueueNoShowCreditPenalty, s.QueueNoShowBanDays, s.QueueNoShowAllowancePenalty,
             s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward,
             s.StreakBonusPerLevel, s.StreakBonusCap, s.TierSilverPoints, s.TierGoldPoints, s.TierPlatinumPoints,
@@ -80,34 +84,35 @@ public sealed class ParkingSettingsService(
             s.AvailabilityMinConsecutiveDays, s.AvailabilitySendHourLocal,
             s.OversightSlaCriticalHours, s.OversightSlaHighHours, s.OversightSlaNormalHours, s.OversightSlaLowHours,
             s.OversightRecurrenceWindowDays, s.OversightRecurrenceThreshold, s.OversightDigestHourLocal,
-            s.OversightInfoDeadlineDays, s.OversightAllowUserReports, s.OversightDisputeWindowDays);
+            s.OversightInfoDeadlineDays, s.OversightAllowUserReports, s.OversightDisputeWindowDays,
+            s.ResidentReclaimPolicy, s.ManualReleasesAreBinding, s.ResidentProtectionDeadlineMode,
+            s.ResidentProtectionLeadHours, s.ResidentProtectionPreviousDayTime, s.ResidentNoReplacementAction);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
     {
-        if (dto.PeakEnd <= dto.PeakStart)
-        {
-            return ParkingResult.Failure("Parking_Settings_Error_PeakRange");
-        }
-
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var settings = await GetOrCreateAsync(dbContext, cancellationToken);
         settings.Update(
             dto.ReleasePoints, dto.OffPeakBonusPoints, dto.NoShowPenaltyPoints,
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
+            dto.ReservationTimeMode,
+            dto.ReservationHorizonDays, dto.AllowedReservationWeekdays, dto.WeeklyReservationLimitEnabled,
+            dto.WeeklyReservationLimit, dto.LastMinuteUnlimitedHours,
             dto.PeakStart, dto.PeakEnd, dto.SweepInterval,
             dto.ResidentHoldUntil, dto.ResidentReleasePointsPerHour, dto.ResidentReleaseMaxPoints,
             0, 0, dto.ResidentWastedShareClawbackPercent,
             dto.ResidentPlanHorizonDays,
             dto.LotLatitude, dto.LotLongitude, dto.SharedTakenBasePoints, dto.SharedTakenReferenceKm, dto.SharedTakenMaxMultiplier,
             dto.AutoVerifyHomeAddress, dto.AutoVerifyMaxDistanceKm, dto.MaxRewardedReleasesPerDay, dto.MaxReleaseRangeDays,
-            dto.BaseReservationCost, dto.PeakPricePercent, dto.OccupancyPricePercent, dto.MaxReservationCost, dto.MonthlyCreditAllowance,
+            dto.BaseReservationCost, 100, dto.OccupancyPricePercent, dto.MaxReservationCost, dto.MonthlyCreditAllowance,
+            dto.BudgetRenewalPeriod,
             dto.QueueOfferMinutes, dto.QueueNoShowPenaltyPoints, dto.QueueNoShowCreditPenalty, dto.QueueNoShowBanDays, dto.QueueNoShowAllowancePenalty,
             dto.DemandReleaseOccupancyPercent, dto.DemandReleaseQueueBonus, dto.MaxReleaseReward,
             dto.StreakBonusPerLevel, dto.StreakBonusCap, dto.TierSilverPoints, dto.TierGoldPoints, dto.TierPlatinumPoints,
             dto.QueuePriorityPerTier, dto.TierAllowanceBonus, dto.TierDiscountPercent,
             dto.ReputationDecayPercent, dto.ReputationDecayIntervalDays,
-            dto.AdaptivePricingEnabled, dto.AdaptiveTargetOccupancyPercent, dto.AdaptiveGainPercent, dto.AdaptiveDeadbandPercent,
+            false, dto.AdaptiveTargetOccupancyPercent, dto.AdaptiveGainPercent, dto.AdaptiveDeadbandPercent,
             dto.AdaptiveStepMaxPercent, dto.AdaptivePeakMinPercent, dto.AdaptivePeakMaxPercent, dto.AdaptiveIntervalMinutes,
             dto.TrustEnabled, dto.TrustIntervalHours, dto.TrustedBadgeThreshold,
             dto.MaxPairTrustWeight, dto.AntiCollusionEnabled, dto.CollusionMinInteractions,
@@ -116,12 +121,17 @@ public sealed class ParkingSettingsService(
             dto.AvailabilityMinConsecutiveDays, dto.AvailabilitySendHourLocal,
             dto.OversightSlaCriticalHours, dto.OversightSlaHighHours, dto.OversightSlaNormalHours, dto.OversightSlaLowHours,
             dto.OversightRecurrenceWindowDays, dto.OversightRecurrenceThreshold, dto.OversightDigestHourLocal,
-            dto.OversightInfoDeadlineDays, dto.OversightAllowUserReports, dto.OversightDisputeWindowDays);
+            dto.OversightInfoDeadlineDays, dto.OversightAllowUserReports, dto.OversightDisputeWindowDays,
+            dto.ResidentReclaimPolicy, dto.ManualReleasesAreBinding, dto.ResidentProtectionDeadlineMode,
+            dto.ResidentProtectionLeadHours, dto.ResidentProtectionPreviousDayTime, dto.ResidentNoReplacementAction);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
-            $"Parking: release={settings.ReleasePoints} offPeak={settings.OffPeakBonusPoints} noShow={settings.NoShowPenaltyPoints} " +
-            $"peak={settings.PeakStart:HH\\:mm}-{settings.PeakEnd:HH\\:mm} sweep={settings.SweepInterval}",
+            $"Parking planner: mode={settings.ReservationTimeMode} horizon={settings.ReservationHorizonDays}d " +
+            $"weekdays={settings.AllowedReservationWeekdays} weeklyLimit={(settings.WeeklyReservationLimitEnabled ? settings.WeeklyReservationLimit : 0)} " +
+            $"lastMinute={settings.LastMinuteUnlimitedHours}h credits={settings.BaseReservationCost > 0} budgetPeriod={settings.BudgetRenewalPeriod} " +
+            $"residentReclaim={settings.ResidentReclaimPolicy} deadline={settings.ResidentProtectionDeadlineMode} " +
+            $"fallback={settings.ResidentNoReplacementAction}",
             timeProvider.GetUtcNow()));
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -129,6 +139,53 @@ public sealed class ParkingSettingsService(
 
         logger.LogInformation("Parking settings changed by {AdminId}.", actingUserId);
         return ParkingResult.Success;
+    }
+
+    public async Task<PlannerCapacityDto> GetPlannerCapacityAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var activeSpots = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor)
+            .Select(s => new { s.Id, s.OwnerId })
+            .ToListAsync(cancellationToken);
+        var activeSpotIds = activeSpots.Select(s => s.Id).ToList();
+        var memberships = await dbContext.ParkingSpotResidents.AsNoTracking()
+            .Where(r => r.RemovedAtUtc == null && activeSpotIds.Contains(r.SpotId))
+            .Select(r => new { r.SpotId, r.UserId })
+            .ToListAsync(cancellationToken);
+
+        var residentSpotIds = memberships.Select(r => r.SpotId)
+            .Concat(activeSpots.Where(s => s.OwnerId != null).Select(s => s.Id))
+            .Distinct()
+            .ToHashSet();
+        var residentUserIds = memberships.Select(r => r.UserId)
+            .Concat(activeSpots.Where(s => s.OwnerId != null).Select(s => s.OwnerId!.Value))
+            .Distinct()
+            .ToList();
+        var activeResidents = await dbContext.Users.AsNoTracking()
+            .CountAsync(u => u.Status == AccountStatus.Active && residentUserIds.Contains(u.Id), cancellationToken);
+
+        var userPlates = await dbContext.Users.AsNoTracking()
+            .Where(u => u.Status == AccountStatus.Active && u.LicensePlate != null && u.LicensePlate != "")
+            .Select(u => u.LicensePlate!)
+            .ToListAsync(cancellationToken);
+        var fleetPlates = await dbContext.CompanyVehicles.AsNoTracking()
+            .Where(v => v.IsActive)
+            .Select(v => v.Plate)
+            .ToListAsync(cancellationToken);
+        var registeredVehicles = userPlates.Concat(fleetPlates)
+            .Select(PlateNormalizer.Normalize)
+            .Where(p => p.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+
+        return new PlannerCapacityDto(
+            activeSpots.Count,
+            residentSpotIds.Count,
+            activeSpots.Count - residentSpotIds.Count,
+            activeResidents,
+            registeredVehicles);
     }
 
     public async Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default)

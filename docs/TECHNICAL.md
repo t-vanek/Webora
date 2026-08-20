@@ -209,7 +209,9 @@ E-maily míří na `localhost:25` bez autentizace, což je výchozí port lokál
 [smtp4dev](https://github.com/rnwood/smtp4dev) — buď desktopové sestavení, nebo .NET nástroj
 (`dotnet tool install -g Rnwood.Smtp4dev`). Zachycené zprávy zobrazuje ve svém okně, případně přes
 REST API na `/api/messages`. Pro produkci nastavte `Smtp:Host`/`Smtp:Port` na reálný relay
-a `Smtp:Authentication` na `Basic` nebo `OAuth2`.
+a `Smtp:Authentication` na `Basic` nebo `OAuth2`. `Smtp:TimeoutSeconds` (výchozí 30, povolené
+rozmezí 5–300) omezuje jeden síťový krok; host, port, odesílatel i povinné přihlašovací údaje se
+validují už při startu aplikace.
 
 Bez běžící záchytky aplikace funguje dál — odeslání se jen nezdaří na pozadí, request to neshodí
 (viz [Odesílání e-mailů](#technické-poznámky)).
@@ -286,12 +288,19 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   v zóně z `DefaultTimeZoneId` (Nastavení webu → Regionální; bez ní se použije zóna serveru). Převody
   řeší `SiteTime` v doménové vrstvě, offset se dohledává pro každý okamžik zvlášť, takže letní čas
   sedí. Zadaný čas rezervace je místní wall-clock a do UTC se převádí až na vstupu.
-- **Odesílání e-mailů:** `IEmailSender` zprávu jen zařadí do lokální Wolverine fronty
-  (`QueuedEmailSender`), takže request nečeká na SMTP a nedostupný mailserver ho neshodí.
-  Doručení obstará `EmailHandler` přes `IEmailTransport` (`SmtpEmailSender`) s opakováním
-  po 5 s / 30 s / 2 min. Fronta je v paměti — zprávy čekající při vypnutí procesu se ztratí;
-  všechny e-maily lze vyžádat znovu. Pro garantované doručení přidejte `WolverineFx.SqlServer`
-  a `PersistMessagesWithSqlServer` (využije stávající databázi, žádná nová infrastruktura).
+- **Odesílání e-mailů:** notifikační e-maily mají vlastní databázový outbox
+  `NotificationEmailDeliveries`. Dispatcher volá přímo `IEmailTransport` (`SmtpEmailSender`) a stav
+  `Sent` zapíše až po úspěšném `SMTP DATA`; při chybě používá progresivní backoff, lease proti
+  souběžnému odeslání a po vyčerpání pokusů umožní ruční opakování v administraci. Účtové e-maily
+  (registrace a reset hesla) nadále používají `IEmailSender` a lokální Wolverine frontu s opakováním
+  po 5 s / 30 s / 2 min; tato část fronty je v paměti a čekající zprávy při vypnutí procesu nepřežijí.
+- **Kalendář:** jednorázový export i soukromý odběr renderuje `CalendarIcsRenderer`. Odběr je dostupný
+  bez cookie přes 256bitový token v URL; v databázi je pouze jeho SHA-256 hash a uživatel jej může
+  rotovat nebo zrušit. Události drží stabilní `UID`, `SEQUENCE`, `LAST-MODIFIED` a zrušení jako
+  `STATUS:CANCELLED`; endpoint podporuje ETag. Feed vrací budoucnost a posledních 30 dní, aby klient
+  stihl převzít zrušení. iCalendar je formát, nikoli zapisovací protokol, proto změny z externího
+  kalendáře nejsou přijímány — plný opačný směr vyžaduje Graph/Google Calendar API nebo CalDAV a
+  nesmí obejít validační pravidla plánovače.
 - **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší informační
   připomínky, plán rezidentních míst, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
   a nakonec provozní dohled (viz níže). Každý krok je izolovaný — selhání jednoho nesmí přeskočit ty za ním.

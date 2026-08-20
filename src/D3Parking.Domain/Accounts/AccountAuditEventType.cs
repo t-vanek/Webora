@@ -22,6 +22,8 @@ public enum AccountAuditEventType
     ReservationOverridden,
     /// <summary>An oversight case ended in a warning or a deduction against this account.</summary>
     OversightSanctioned,
+    /// <summary>An administrator returned a permanently failed notification email to its outbox.</summary>
+    NotificationDeliveryRetried,
     PasswordChanged,
     PasswordResetRequested,
     PasswordReset,

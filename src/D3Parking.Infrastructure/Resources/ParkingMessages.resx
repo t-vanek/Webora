@@ -16,7 +16,7 @@
   <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Naplánované parkování na místě {0} brzy začíná. Pokud se tvůj plán změnil, rezervaci zruš a uvolni místo ostatním.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>O sdílené místo nebyl zájem</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>O tvé sdílené místo {0} nebyl ten den zájem – nikdo si ho nezarezervoval, proto se vrací {1} bodů z odměny.</value></data>
-  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Měsíční rozpočet doplněn</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Plánovací rozpočet doplněn</value></data>
   <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>Mrzí nás komplikace s parkováním</value></data>
   <data name="Parking_Notify_VoucherGranted_Title_NoCredits" xml:space="preserve"><value>Mrzí nás komplikace s parkováním</value></data>
   <data name="Parking_Notify_Availability_Title" xml:space="preserve"><value>Parkoviště je z velké části volné</value></data>
@@ -40,7 +40,7 @@
   <data name="Parking_Notify_OfferLapsed_Title" xml:space="preserve"><value>Nabídka vypršela</value></data>
   <data name="Parking_Notify_OfferLapsed_Body" xml:space="preserve"><value>Místo {0} šlo dalšímu v pořadí. Ve frontě zůstáváte, jen na jejím konci.</value></data>
   <data name="Parking_Notify_TierUp_Title" xml:space="preserve"><value>Postoupili jste na úroveň {0}!</value></data>
-  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>Nové výhody: vyšší přednost ve frontě, větší měsíční plánovací rozpočet a nižší cena rezervace.</value></data>
+  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>Nové výhody: vyšší přednost ve frontě, větší plánovací rozpočet a nižší cena rezervace.</value></data>
   <data name="Parking_Notify_TierUp_Body_NoCredits" xml:space="preserve"><value>Nová výhoda: vyšší přednost ve frontě na uvolněná místa.</value></data>
   <data name="Parking_TierName_Bronze" xml:space="preserve"><value>Bronz</value></data>
   <data name="Parking_TierName_Silver" xml:space="preserve"><value>Stříbro</value></data>
@@ -48,7 +48,7 @@
   <data name="Parking_TierName_Platinum" xml:space="preserve"><value>Platina</value></data>
   <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>Do plánovacího rozpočtu ti bylo připsáno {0} kreditů.</value></data>
   <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Dochází plánovací rozpočet</value></data>
-  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>V plánovacím rozpočtu zbývá {0} kreditů. Na další parkování to nemusí stačit; rozpočet se obnoví s příštím měsíčním přídělem.</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>V plánovacím rozpočtu zbývá {0} kreditů. Na další rezervaci to nemusí stačit; zůstatek se doplní na začátku dalšího nastaveného období.</value></data>
   <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Parkování naplánováno</value></data>
   <data name="Parking_Notify_Reserved_Title_NoCredits" xml:space="preserve"><value>Parkování naplánováno</value></data>
   <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Místo {0} máš naplánované. Plánovací rozpočet: −{1} kreditů.</value></data>
@@ -126,4 +126,13 @@
   <data name="Fleet_Mismatch_Vehicle" xml:space="preserve"><value>Firemní vůz {0}</value></data>
   <data name="Fleet_Notify_Pairable_Title" xml:space="preserve"><value>Firemní vozidlo čeká na spárování</value></data>
   <data name="Fleet_Notify_Pairable_Body" xml:space="preserve"><value>Tvá SPZ {0} odpovídá firemnímu vozidlu. Dokonči spárování potvrzovacím kódem v sekci Můj účet.</value></data>
+  <data name="Parking_Notify_ResidentMoved_Title" xml:space="preserve"><value>Tvůj plán má náhradní místo</value></data>
+  <data name="Parking_Notify_ResidentMoved_Body" xml:space="preserve"><value>Rezident potřebuje místo {0}, proto jsme tvé parkování bezpečně přesunuli na {1}. Čas ani čerpání rozpočtu se nemění.</value></data>
+  <data name="Parking_Notify_ResidentMoved_Body_NoCredits" xml:space="preserve"><value>Rezident potřebuje místo {0}, proto jsme tvé parkování bezpečně přesunuli na {1}. Čas se nemění.</value></data>
+  <data name="Parking_Notify_ResidentQueued_Title" xml:space="preserve"><value>Rezident potřebuje své místo</value></data>
+  <data name="Parking_Notify_ResidentQueued_Body" xml:space="preserve"><value>Rezident si před ochrannou lhůtou vzal zpět místo {0} a náhrada nebyla volná. Vrátili jsme ti celý rozpočet i případný voucher a zařadili tě do fronty na stejný čas.</value></data>
+  <data name="Parking_Notify_ResidentQueued_Body_NoCredits" xml:space="preserve"><value>Rezident si před ochrannou lhůtou vzal zpět místo {0} a náhrada nebyla volná. Zařadili jsme tě do fronty na stejný čas.</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Title" xml:space="preserve"><value>Rezident si vzal své místo zpět</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Body" xml:space="preserve"><value>Rezident potřebuje místo {0} a žádné náhradní místo není volné. Tvá rezervace proto skončila; celý rozpočet i případný voucher jsme ti vrátili.</value></data>
+  <data name="Parking_Notify_ResidentCancelled_Body_NoCredits" xml:space="preserve"><value>Rezident potřebuje místo {0} a žádné náhradní místo není volné. Tvá rezervace proto skončila.</value></data>
 </root>

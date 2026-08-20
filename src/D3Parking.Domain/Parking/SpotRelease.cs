@@ -16,6 +16,8 @@ public class SpotRelease : Entity
 
     public DateTimeOffset ReleasedAtUtc { get; private set; }
 
+    public SpotReleaseSource Source { get; private set; } = SpotReleaseSource.Manual;
+
     public int AwardedPoints { get; private set; }
 
     /// <summary>
@@ -30,13 +32,15 @@ public class SpotRelease : Entity
 
     private SpotRelease() { }
 
-    public SpotRelease(Guid spotId, Guid ownerId, DateOnly date, DateTimeOffset releasedAtUtc, int awardedPoints)
+    public SpotRelease(Guid spotId, Guid ownerId, DateOnly date, DateTimeOffset releasedAtUtc, int awardedPoints,
+        SpotReleaseSource source = SpotReleaseSource.Manual)
     {
         SpotId = spotId;
         OwnerId = ownerId;
         Date = date;
         ReleasedAtUtc = releasedAtUtc;
         AwardedPoints = awardedPoints;
+        Source = source;
     }
 
     public void MarkReconciled(DateTimeOffset at) => ReconciledAtUtc ??= at;

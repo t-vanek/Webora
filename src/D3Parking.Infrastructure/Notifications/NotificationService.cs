@@ -1,12 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Mapping;
 using D3Parking.Application.Notifications;
 using D3Parking.Contracts.Notifications;
 using D3Parking.Domain.Notifications;
-using D3Parking.Infrastructure.Email;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Notifications;
@@ -15,10 +12,9 @@ public sealed class NotificationService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     NotificationMapper mapper,
     INotificationRealtimePublisher publisher,
-    IEmailSender emailSender,
-    IStringLocalizer<ParkingMessages> messages,
     ILogger<NotificationService> logger,
-    TimeProvider timeProvider) : INotificationService
+    TimeProvider timeProvider,
+    INotificationRuleService ruleService) : INotificationService
 {
     private const int MaxBatchDeliveryConcurrency = 8;
 
@@ -45,19 +41,37 @@ public sealed class NotificationService(
             dbContext.NotificationPreferences.Add(preferences);
         }
 
+        var rules = (await ruleService.GetAsync(cancellationToken))
+            .ToDictionary(r => (r.Category, r.Level));
+
         var now = timeProvider.GetUtcNow();
-        var deliveries = new List<(Notification Notification, NotificationRequest Request, NotificationPreferences Preferences)>();
+        var deliveries = new List<(Notification Notification, NotificationRequest Request,
+            NotificationPreferences Preferences, NotificationDeliveryRuleDto Rule)>();
         foreach (var request in requests)
         {
             var preferences = preferencesByUser[request.UserId];
-            if (!preferences.Allows(request.Category))
+            var rule = rules[(request.Category, request.Level)];
+            if ((!IsMandatory(request.Level) && !preferences.Allows(request.Category))
+                || (!rule.InboxEnabled && !rule.LiveEnabled && !ShouldEmail(rule.EmailMode, request.Email)))
             {
                 continue;
             }
 
             var notification = new Notification(request.UserId, request.Category, request.Level, request.Title, request.Message, now);
-            dbContext.Notifications.Add(notification);
-            deliveries.Add((notification, request, preferences));
+            if (rule.InboxEnabled)
+            {
+                dbContext.Notifications.Add(notification);
+            }
+
+            // Email is persisted before delivery. Muting still suppresses external channels, while
+            // security and critical messages deliberately bypass a personal mute.
+            if ((IsMandatory(request.Level) || !preferences.IsCurrentlyMuted(now))
+                && ShouldEmail(rule.EmailMode, request.Email))
+            {
+                dbContext.NotificationEmailDeliveries.Add(CreateEmailDelivery(
+                    request.UserId, request.Title, request.Message, request.EmailOptions, now));
+            }
+            deliveries.Add((notification, request, preferences, rule));
         }
 
         if (deliveries.Count == 0)
@@ -71,25 +85,22 @@ public sealed class NotificationService(
             new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = MaxBatchDeliveryConcurrency },
             async (delivery, ct) =>
             {
-                if (delivery.Preferences.IsCurrentlyMuted(now))
+                if (!IsMandatory(delivery.Request.Level)
+                    && delivery.Preferences.IsCurrentlyMuted(now))
                 {
                     return;
                 }
 
-                try
+                if (delivery.Rule.LiveEnabled)
                 {
-                    await publisher.PublishAsync(delivery.Notification.UserId, mapper.ToDto(delivery.Notification), ct);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", delivery.Notification.UserId);
-                }
-
-                if (delivery.Request.Email)
-                {
-                    await using var emailContext = await dbContextFactory.CreateDbContextAsync(ct);
-                    await TrySendEmailAsync(emailContext, delivery.Notification.UserId, delivery.Notification.Title,
-                        delivery.Notification.Message, delivery.Request.EmailOptions, ct);
+                    try
+                    {
+                        await publisher.PublishAsync(delivery.Notification.UserId, mapper.ToDto(delivery.Notification), ct);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", delivery.Notification.UserId);
+                    }
                 }
             });
 
@@ -106,79 +117,64 @@ public sealed class NotificationService(
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var preferences = await GetOrCreatePreferencesAsync(dbContext, userId, cancellationToken);
+        var rule = await ruleService.GetAsync(category, level, cancellationToken);
 
-        // Category scope decides whether the notification is created at all.
-        if (!preferences.Allows(category))
+        // Security history cannot be removed by a personal scope. Other messages respect both the
+        // company delivery matrix and the user's category preference.
+        if ((!IsMandatory(level) && !preferences.Allows(category))
+            || (!rule.InboxEnabled && !rule.LiveEnabled && !ShouldEmail(rule.EmailMode, email)))
         {
             return;
         }
 
-        var notification = new Notification(userId, category, level, title, message, timeProvider.GetUtcNow());
-        dbContext.Notifications.Add(notification);
+        var now = timeProvider.GetUtcNow();
+        var notification = new Notification(userId, category, level, title, message, now);
+        if (rule.InboxEnabled)
+        {
+            dbContext.Notifications.Add(notification);
+        }
+
+        var externalDeliveryAllowed = IsMandatory(level) || !preferences.IsCurrentlyMuted(now);
+        if (externalDeliveryAllowed && ShouldEmail(rule.EmailMode, email))
+        {
+            dbContext.NotificationEmailDeliveries.Add(CreateEmailDelivery(
+                userId, title, message, emailOptions, now));
+        }
+
+        // The inbox row and its email delivery request enter the database together. SMTP is handled
+        // by the background dispatcher, so a slow or unavailable mail server cannot hold the action.
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Muting suppresses the live push and the email mirror; the notification is still stored.
-        if (!preferences.IsCurrentlyMuted(timeProvider.GetUtcNow()))
+        // Muting suppresses external channels; the inbox notification is still stored.
+        if (externalDeliveryAllowed)
         {
-            try
+            if (rule.LiveEnabled)
             {
-                await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                // The notification row is stored and the caller's transaction has already
-                // committed — a delivery-infrastructure failure surfacing here would turn a
-                // successful reservation into an error page and invite a duplicate retry. The
-                // bell shows the notification on the next load either way.
-                logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", userId);
-            }
-
-            if (email)
-            {
-                await TrySendEmailAsync(dbContext, userId, title, message, emailOptions, cancellationToken);
+                try
+                {
+                    await publisher.PublishAsync(userId, mapper.ToDto(notification), cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", userId);
+                }
             }
         }
     }
 
-    private async Task TrySendEmailAsync(D3ParkingDbContext dbContext, Guid userId, string title, string message, NotificationEmailOptions? options, CancellationToken cancellationToken)
+    private static bool ShouldEmail(NotificationEmailMode mode, bool explicitlyRequested) => mode switch
     {
-        try
-        {
-            var recipient = await dbContext.Users.AsNoTracking()
-                .Where(u => u.Id == userId)
-                .Select(u => new { u.Email, u.DisplayName })
-                .FirstOrDefaultAsync(cancellationToken);
+        NotificationEmailMode.Always => true,
+        NotificationEmailMode.WhenRequested => explicitlyRequested,
+        _ => false,
+    };
 
-            if (string.IsNullOrWhiteSpace(recipient?.Email))
-            {
-                return;
-            }
+    private static bool IsMandatory(NotificationLevel level) =>
+        level is NotificationLevel.Security or NotificationLevel.Critical;
 
-            var reason = messages["Email_Chrome_Reason"].Value;
-            var html = BrandedEmail.RenderHtml(new BrandedEmail.Content(
-                Heading: title,
-                BodyHtml: System.Net.WebUtility.HtmlEncode(message),
-                FooterReason: reason,
-                FooterSettings: messages["Email_Chrome_Settings"].Value,
-                ActionText: options?.ActionText,
-                ActionUrl: options?.ActionUrl,
-                DeadlineText: options?.DeadlineText));
-
-            await emailSender.SendAsync(new EmailMessage
-            {
-                To = recipient.Email,
-                ToName = recipient.DisplayName,
-                Subject = title,
-                HtmlBody = html,
-                TextBody = BrandedEmail.RenderText(title, message, options?.ActionUrl, options?.DeadlineText, reason),
-            }, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // Email is best-effort; a transport failure must not break the notification or its caller.
-            logger.LogWarning(ex, "Failed to mirror notification to email for {UserId}.", userId);
-        }
-    }
+    private static NotificationEmailDelivery CreateEmailDelivery(Guid userId, string title, string message,
+        NotificationEmailOptions? options, DateTimeOffset createdAtUtc) =>
+        new(userId, title, message, options?.ActionText, options?.ActionUrl, options?.DeadlineText, createdAtUtc);
 
     public async Task<IReadOnlyList<NotificationDto>> GetAsync(Guid userId, bool unreadOnly = false, int take = 50, CancellationToken cancellationToken = default)
     {

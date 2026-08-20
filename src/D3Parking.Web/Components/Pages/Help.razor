@@ -1,4 +1,5 @@
 @page "/help"
+@using System.Globalization
 @* Parking users only: the page renders the live pricing, reward and anti-abuse configuration —
    the navigation offers it inside the permissioned parking section, and the admin chapters
    below are additionally gated per permission. *@
@@ -31,11 +32,13 @@
             <summary class="help-item__q">@L["Help_Reserve_Q"]</summary>
             <div class="help-item__a">
                 <p>@L[_charged ? "Help_Reserve_A1_Paid" : "Help_Reserve_A1_Free"]</p>
-                <p>@(_charged
-                    ? policy.ReleasePoints > 0 && policy.MaxRewardedReleasesPerDay > 0
-                        ? L["Help_Reserve_A2_PaidRewarded", Fmt(policy.ReleaseCutoff)]
-                        : L["Help_Reserve_A2_Paid", Fmt(policy.ReleaseCutoff)]
-                    : L["Help_Reserve_A2_Free"])</p>
+                <p>@(policy.WeeklyReservationLimitEnabled && policy.LastMinuteUnlimitedHours > 0
+                    ? L["Help_Reserve_PlannerRules", policy.ReservationHorizonDays, policy.WeeklyReservationLimit, policy.LastMinuteUnlimitedHours]
+                    : policy.WeeklyReservationLimitEnabled
+                        ? L["Help_Reserve_PlannerRules_NoLastMinute", policy.ReservationHorizonDays, policy.WeeklyReservationLimit]
+                    : L["Help_Reserve_PlannerRules_NoLimit", policy.ReservationHorizonDays])</p>
+                <p>@L["Parking_Planner_AllowedWeekdays", FormatAllowedWeekdays(policy.AllowedReservationWeekdays)]</p>
+                <p>@L["Help_Reserve_A2_Free"]</p>
                 <figure class="help-demo">
                     <picture>
                         <source media="(prefers-reduced-motion: reduce)" srcset="/images/help/reservation.png" />
@@ -57,29 +60,18 @@
             <details class="help-item">
                 <summary class="help-item__q">@L["Help_Credits_Q"]</summary>
                 <div class="help-item__a">
-                    <p>@L["Help_Credits_A1", Credits(policy.BaseReservationCost), Credits(Math.Max(policy.BaseReservationCost, policy.MaxReservationCost))]</p>
+                    <p>@L["Help_Credits_A1", Credits(policy.BaseReservationCost), BudgetPeriod(policy.BudgetRenewalPeriod)]</p>
                     <ul>
-                        @if (policy.PeakPricePercent > 100)
-                        {
-                            <li>@L["Help_Credits_Peak", Time(policy.PeakStart), Time(policy.PeakEnd), policy.PeakPricePercent]</li>
-                        }
-                        @if (policy.OccupancyPricePercent > 0)
-                        {
-                            <li>@L["Help_Credits_Occupancy", policy.OccupancyPricePercent]</li>
-                        }
-                        @if (policy.PeakPricePercent <= 100 && policy.OccupancyPricePercent <= 0)
-                        {
-                            <li>@L["Help_Credits_Fixed"]</li>
-                        }
+                        <li>@L["Help_Credits_Fixed"]</li>
                         @if (policy.MonthlyCreditAllowance > 0 || policy.TierAllowanceBonus > 0)
                         {
                             <li>
                                 @(policy.TierAllowanceBonus > 0
-                                    ? L["Help_Credits_Li1_Tiered", Credits(policy.MonthlyCreditAllowance), Credits(policy.TierAllowanceBonus)]
-                                    : L["Help_Credits_Li1", Credits(policy.MonthlyCreditAllowance)])
+                                    ? L["Help_Credits_Li1_Tiered", Credits(policy.MonthlyCreditAllowance), Credits(policy.TierAllowanceBonus), BudgetPeriod(policy.BudgetRenewalPeriod)]
+                                    : L["Help_Credits_Li1", Credits(policy.MonthlyCreditAllowance), BudgetPeriod(policy.BudgetRenewalPeriod)])
                             </li>
                         }
-                        <li>@L["Help_Credits_Li2", Fmt(policy.ReleaseCutoff)]</li>
+                        <li>@L["Help_Credits_Li2"]</li>
                         <li>@L["Help_Credits_Li3"]</li>
                     </ul>
                 </div>
@@ -275,17 +267,11 @@
                 <div class="help-item__a">
                     <p>@L["Help_Rules_A1"]</p>
                     <p>
-                        @L["Help_Rules_State_Pricing", policy.AdaptivePricingEnabled && _charged ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Campaigns", policy.AvailabilityCampaignsEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Trust", policy.TrustEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Collusion", policy.AntiCollusionEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Reports", _userReportsOn ? L["Help_State_On"] : L["Help_State_Off"]]
                     </p>
-                    @if (policy.AdaptivePricingEnabled && _charged)
-                    {
-                        <p>@L["Help_Rules_AdaptiveSetup", policy.AdaptiveTargetOccupancyPercent, policy.AdaptiveDeadbandPercent,
-                            Fmt(TimeSpan.FromMinutes(policy.AdaptiveIntervalMinutes)), policy.AdaptivePeakMinPercent, policy.AdaptivePeakMaxPercent]</p>
-                    }
                     @if (policy.TrustEnabled)
                     {
                         <p>@L["Help_Rules_TrustSetup", policy.TrustedBadgeThreshold, Fmt(TimeSpan.FromHours(policy.TrustIntervalHours))]</p>
@@ -375,8 +361,6 @@
         }
     }
 
-    private static string Time(TimeOnly value) => value.ToString("HH\\:mm");
-
     /// <summary>Whole hours read better than "01:00:00"; anything shorter stays in minutes.</summary>
     private string Fmt(TimeSpan value) => value.TotalHours >= 1 && value.Minutes == 0
         ? L["Help_Unit_Hours", (int)value.TotalHours]
@@ -388,6 +372,22 @@
     private string Points(int count) => $"{count} {PluralText.For(L, "Help_Plural_Points", count)}";
 
     private string Credits(int count) => $"{count} {PluralText.For(L, "Help_Plural_Credits", count)}";
+
+    private string BudgetPeriod(BudgetRenewalPeriod period) =>
+        L[$"Parking_Settings_BudgetPeriod_{period}"];
+
+    private static string FormatAllowedWeekdays(Weekday weekdays)
+    {
+        var order = new[]
+        {
+            (Weekday.Monday, DayOfWeek.Monday), (Weekday.Tuesday, DayOfWeek.Tuesday),
+            (Weekday.Wednesday, DayOfWeek.Wednesday), (Weekday.Thursday, DayOfWeek.Thursday),
+            (Weekday.Friday, DayOfWeek.Friday), (Weekday.Saturday, DayOfWeek.Saturday),
+            (Weekday.Sunday, DayOfWeek.Sunday),
+        };
+        return string.Join(", ", order.Where(entry => weekdays.HasFlag(entry.Item1))
+            .Select(entry => CultureInfo.CurrentCulture.DateTimeFormat.GetDayName(entry.Item2)));
+    }
 
     private string Days(int count) => $"{count} {PluralText.For(L, "Help_Plural_Days", count)}";
 }

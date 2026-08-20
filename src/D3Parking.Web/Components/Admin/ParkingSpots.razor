@@ -3,7 +3,6 @@
 @rendermode InteractiveServer
 @inject IParkingSpotService Spots
 @inject IReservationService Reservations
-@inject IUserAdminService UserAdmin
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
@@ -223,10 +222,8 @@
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Common_Actions"]" Align="Align.End">
                     <div class="spot-row-actions">
-                        <details class="resident-editor resident-editor--action" name="resident-assignment">
-                            <summary>@L["Parking_Admin_ManageResidents"]</summary>
-                            @ResidentEditor(context)
-                        </details>
+                        <FluentButton OnClick="() => OpenResidentEditor(context.Id)"
+                                      Appearance="Appearance.Stealth">@L["Parking_Admin_ManageResidents"]</FluentButton>
                         @if (context.IsActive)
                         {
                             <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
@@ -258,10 +255,8 @@
                         <small>@spot.Notes</small>
                     }
                     <div class="spots-mobile-row__actions">
-                        <details class="resident-editor" name="resident-assignment">
-                            <summary>@L["Parking_Admin_ManageResidents"]</summary>
-                            @ResidentEditor(spot)
-                        </details>
+                        <FluentButton OnClick="() => OpenResidentEditor(spot.Id)"
+                                      Appearance="Appearance.Stealth">@L["Parking_Admin_ManageResidents"]</FluentButton>
                         <FluentButton OnClick="() => SetActiveAsync(spot.Id, !spot.IsActive)" Appearance="Appearance.Stealth">
                             @L[spot.IsActive ? "Parking_Admin_Deactivate" : "Parking_Admin_Activate"]
                         </FluentButton>
@@ -285,6 +280,24 @@
     }
 </FluentStack>
 
+@if (SelectedResidentSpot is { } residentSpot)
+{
+    <div class="resident-dialog-backdrop" @onclick="CloseResidentEditor">
+        <section class="resident-dialog" role="dialog" aria-modal="true"
+                 aria-labelledby="resident-dialog-title" @onclick:stopPropagation="true">
+            <header class="resident-dialog__head">
+                <div>
+                    <small>@L["Parking_Admin_ManageResidents"]</small>
+                    <h2 id="resident-dialog-title">@L["Parking_Admin_ResidentsForSpot", residentSpot.Code]</h2>
+                </div>
+                <FluentButton Appearance="Appearance.Stealth" OnClick="CloseResidentEditor"
+                              aria-label="@L["Common_Close"]">@L["Common_Close"]</FluentButton>
+            </header>
+            @ResidentEditor(residentSpot)
+        </section>
+    </div>
+}
+
 @code {
     private IReadOnlyList<ParkingSpotDto>? _spots;
     private ParkingSpotDirectorySummary? _summary;
@@ -304,6 +317,12 @@
     private ParkingSpotOwnershipFilter _ownershipFilter;
     private string _typeFilter = string.Empty;
     private bool _createOpen;
+    private Guid? _residentEditorSpotId;
+    private readonly HashSet<Guid> _residentAssignmentsInProgress = [];
+
+    private ParkingSpotDto? SelectedResidentSpot => _residentEditorSpotId is { } spotId
+        ? _spots?.FirstOrDefault(spot => spot.Id == spotId)
+        : null;
 
     /// <summary>Set for one reload after a create, so the page lands where the new code sorted.</summary>
     private string? _jumpToCode;
@@ -377,13 +396,15 @@
             ? string.Join(", ", codes)
             : string.Join(", ", codes.Take(8)) + " … " + codes[^1];
 
-    private IReadOnlyList<UserSummary> _users = [];
-    private IEnumerable<string> _userOptions => new[] { string.Empty }.Concat(_users.Select(u => u.Id.ToString()));
+    private IReadOnlyList<ResidentCandidateDto> _residentCandidates = [];
+    private readonly Dictionary<Guid, string> _residentSearch = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _users = await UserAdmin.ListAsync(null);
-        await ReloadAsync();
+        var candidatesTask = Spots.ListResidentCandidatesAsync();
+        var spotsTask = ReloadAsync();
+        await Task.WhenAll(candidatesTask, spotsTask);
+        _residentCandidates = candidatesTask.Result;
     }
 
     private string StateFilterLabel(ParkingSpotStateFilter value) => value switch
@@ -404,22 +425,11 @@
         _ => L["Parking_Admin_Filter_AllOwnership"],
     };
 
-    private string UserLabel(string id)
-    {
-        if (string.IsNullOrEmpty(id))
-        {
-            return L["Parking_Admin_NoResident"];
-        }
-
-        var user = _users.FirstOrDefault(u => u.Id.ToString() == id);
-        return user is null ? id : (string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName);
-    }
-
     private string OwnerLabel(ParkingSpotDto spot) =>
         spot.OwnerId is null
             ? L["Parking_Admin_NoResident"].Value
             : string.IsNullOrWhiteSpace(spot.OwnerName)
-                ? UserLabel(spot.OwnerId.Value.ToString())
+                ? spot.OwnerId.Value.ToString()
                 : spot.OwnerName;
 
     private string ResidentNames(ParkingSpotDto spot) => spot.ResidentList.Count > 0
@@ -439,53 +449,129 @@
 
     private RenderFragment ResidentEditor(ParkingSpotDto spot) => __builder =>
     {
-        <div class="resident-editor__members">
-            @foreach (var resident in spot.ResidentList)
+        <div class="resident-editor__panel">
+            <div class="resident-editor__members">
+                @if (spot.ResidentList.Count == 0)
+                {
+                    <span class="resident-editor__empty">@L["Parking_Admin_NoResident"]</span>
+                }
+                else
+                {
+                    @foreach (var resident in spot.ResidentList)
+                    {
+                        <div class="resident-editor__member">
+                            <span>@resident.Name</span>
+                            <FluentButton Appearance="Appearance.Stealth"
+                                          OnClick="() => RemoveResidentAsync(spot.Id, resident.UserId)">@L["Common_Remove"]</FluentButton>
+                        </div>
+                    }
+                }
+            </div>
+            <label class="resident-editor__capacity">
+                <span>@L["Parking_Admin_ResidentCapacity"]</span>
+                <input type="number" min="1" max="20" value="@spot.ResidentCapacity"
+                       aria-label="@L["Parking_Admin_ResidentCapacity"]"
+                       @oninput="args => ChangeResidentCapacityAsync(spot.Id, args)" />
+            </label>
+            @if (spot.Type == ParkingSpotType.Visitor)
             {
-                <div class="resident-editor__member">
-                    <span>@resident.Name</span>
-                    <FluentButton Appearance="Appearance.Stealth"
-                                  OnClick="() => RemoveResidentAsync(spot.Id, resident.UserId)">@L["Common_Remove"]</FluentButton>
+                <span class="resident-editor__empty">@L["Parking_Admin_ResidentVisitorUnavailable"]</span>
+            }
+            else if (spot.ResidentCount >= spot.ResidentCapacity)
+            {
+                <span class="resident-editor__empty">@L["Parking_Admin_ResidentCapacityFull"]</span>
+            }
+            else
+            {
+                <label class="resident-picker__search">
+                    <span>@L["Parking_Admin_FindResident"]</span>
+                    <input type="search"
+                           value="@ResidentSearch(spot.Id)"
+                           placeholder="@L["Parking_Admin_FindResidentPlaceholder"]"
+                           @oninput="args => SetResidentSearch(spot.Id, args.Value?.ToString())" />
+                </label>
+                <div class="resident-picker__options" role="listbox" aria-label="@L["Parking_Admin_FindResident"]">
+                    @foreach (var candidate in ResidentOptions(spot.Id))
+                    {
+                        <button type="button" role="option" class="resident-picker__option"
+                                disabled="@_residentAssignmentsInProgress.Contains(candidate.UserId)"
+                                @onclick="() => AddResidentAsync(spot.Id, candidate.UserId)">
+                            <strong>@candidate.Name</strong>
+                            @if (!string.Equals(candidate.Name, candidate.Email, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <small>@candidate.Email</small>
+                            }
+                        </button>
+                    }
+                    @if (ResidentOptions(spot.Id).Count == 0)
+                    {
+                        <span class="resident-editor__empty">@L["Parking_Admin_NoResidentCandidates"]</span>
+                    }
                 </div>
             }
         </div>
-        <label class="resident-editor__capacity">
-            <span>@L["Parking_Admin_ResidentCapacity"]</span>
-            <input type="number" min="1" max="20" value="@spot.ResidentCapacity"
-                   aria-label="@L["Parking_Admin_ResidentCapacity"]"
-                   @oninput="args => ChangeResidentCapacityAsync(spot.Id, args)" />
-        </label>
-        <FluentSelect TOption="string"
-                      Items="@ResidentOptions(spot)"
-                      OptionValue="@(id => id)"
-                      OptionText="@(id => UserLabel(id))"
-                      Value="@string.Empty"
-                      ValueChanged="@(v => AddResidentAsync(spot.Id, v))"
-                      Style="width:100%; min-width:210px" />
     };
 
-    private IReadOnlyList<string> ResidentOptions(ParkingSpotDto spot)
+    private void OpenResidentEditor(Guid spotId) => _residentEditorSpotId = spotId;
+
+    private void CloseResidentEditor()
     {
-        var assigned = spot.ResidentList.Select(r => r.UserId.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return _userOptions.Where(id => string.IsNullOrEmpty(id) || !assigned.Contains(id)).ToList();
+        if (_residentEditorSpotId is { } spotId)
+        {
+            _residentSearch.Remove(spotId);
+        }
+
+        _residentEditorSpotId = null;
     }
 
-    private async Task AddResidentAsync(Guid spotId, string? userId)
+    private string ResidentSearch(Guid spotId) =>
+        _residentSearch.GetValueOrDefault(spotId, string.Empty);
+
+    private void SetResidentSearch(Guid spotId, string? value) =>
+        _residentSearch[spotId] = value?.TrimStart() ?? string.Empty;
+
+    private IReadOnlyList<ResidentCandidateDto> ResidentOptions(Guid spotId)
     {
-        if (!Guid.TryParse(userId, out var residentId))
+        var term = ResidentSearch(spotId).Trim();
+        return _residentCandidates
+            .Where(candidate => string.IsNullOrEmpty(term)
+                || candidate.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase)
+                || candidate.Email.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .Take(8)
+            .ToList();
+    }
+
+    private async Task AddResidentAsync(Guid spotId, Guid residentId)
+    {
+        if (!_residentAssignmentsInProgress.Add(residentId))
         {
             return;
         }
 
         _error = _info = null;
-        var result = await Spots.AddResidentAsync(spotId, residentId);
-        if (!result.Succeeded)
+        try
         {
-            _error = result.Errors.FirstOrDefault();
-        }
+            var result = await Spots.AddResidentAsync(spotId, residentId);
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault();
+            }
 
-        await ReloadAsync();
+            if (result.Succeeded)
+            {
+                _residentSearch.Remove(spotId);
+            }
+
+            await Task.WhenAll(ReloadAsync(), ReloadResidentCandidatesAsync());
+        }
+        finally
+        {
+            _residentAssignmentsInProgress.Remove(residentId);
+        }
     }
+
+    private async Task ReloadResidentCandidatesAsync() =>
+        _residentCandidates = await Spots.ListResidentCandidatesAsync();
 
     private async Task CreateAsync()
     {
@@ -639,7 +725,7 @@
         {
             _error = result.Errors.FirstOrDefault();
         }
-        await ReloadAsync();
+        await Task.WhenAll(ReloadAsync(), ReloadResidentCandidatesAsync());
     }
 
     private async Task SetResidentCapacityAsync(Guid spotId, int capacity)

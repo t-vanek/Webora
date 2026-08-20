@@ -1072,7 +1072,7 @@ public sealed class LotDashboardService(
         var spotCode = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.Id == reservation.SpotId).Select(s => s.Code).FirstAsync(cancellationToken);
 
-        reservation.Cancel();
+        reservation.Cancel(now);
 
         // Full refund however late, and the voucher back: unlike the holder's own late cancel this is
         // the lot being wrong, not the driver changing their mind — the same no-fault rule the
@@ -1158,7 +1158,7 @@ public sealed class LotDashboardService(
 
         // Re-pointed, not re-made: the price, the check-in and any voucher stay attached to the same
         // booking, so nothing moves in the wallet and the holder keeps their history.
-        reservation.MoveTo(targetSpotId);
+        reservation.MoveTo(targetSpotId, now);
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             reservation.UserId, AccountAuditEventType.ReservationOverridden, $"admin:{actingUserId}",

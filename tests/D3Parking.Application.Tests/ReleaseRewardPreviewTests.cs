@@ -24,6 +24,11 @@ public class ReleaseRewardPreviewTests
     private static readonly DateOnly Today = new(2026, 9, 15);
     private static readonly DateOnly Tomorrow = Today.AddDays(1);
     private static readonly DateTimeOffset BeforeCutoff = new(2026, 9, 15, 6, 0, 0, TimeSpan.Zero);
+    private static readonly IncentivePolicy RewardPolicy = new()
+    {
+        ResidentReleasePointsPerHour = 2,
+        ResidentReleaseMaxPoints = 40,
+    };
 
     [OneTimeSetUp]
     public async Task SetUpAsync()
@@ -83,7 +88,7 @@ public class ReleaseRewardPreviewTests
         var residents = CreateResidentService(BeforeCutoff);
 
         // Four future days in one month: every day is independent now that the quota is gone.
-        var policy = new IncentivePolicy();
+        var policy = RewardPolicy;
         var expected = Enumerable.Range(0, 4)
             .Sum(offset => policy.ComputeShareReward(
                 policy.ResidentShareCutoff(Tomorrow.AddDays(offset), TimeZoneInfo.Utc), BeforeCutoff));
@@ -137,7 +142,7 @@ public class ReleaseRewardPreviewTests
 
     private ResidentSpotService CreateResidentService(DateTimeOffset now) =>
         new(new TestDbContextFactory(_options),
-            new FakeParkingSettings(),
+            new FakeParkingSettings(RewardPolicy),
             new FakeSiteSettings(),
             new FixedTimeProvider(now),
             new NullNotificationService(),
