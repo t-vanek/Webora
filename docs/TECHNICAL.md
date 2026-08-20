@@ -63,8 +63,7 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | Skupina | Volby |
 | --- | --- |
 | **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
-| **Body** | uvolnění, bonus mimo špičku, penalizace za no-show |
-| **Tresty za no-show z fronty** | srážka bodů, kreditová pokuta, zákaz fronty (dní), srážka příštího přídělu |
+| **Body** | odměna za včasné uvolnění plánu a sdílení rezidentního místa |
 | **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
 | **Série a úrovně** | bonus za sérii (na úroveň), strop bonusu, hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
 | **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
@@ -73,8 +72,8 @@ Většina chování je **uložena v databázi a editovatelná za běhu** na `/ad
 | **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
 | **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), lhůta na napadení nedostavení (dní), přijímat hlášení závad od uživatelů |
 | **Okno špičky** | čas začátku / konce |
-| **Časování (min)** | cutoff pro uvolnění, ochranná lhůta no-show, předstih připomínky, interval údržby |
-| **Rezidenti** | denní čas držení, body/hod předstihu, strop odměny, max. příděl sdílení, % násobiče, % vratky, horizont plánu využití (dní) |
+| **Časování (min)** | cutoff pro vratku při uvolnění, předstih připomínky, interval údržby |
+| **Rezidenti** | body za hodinu předstihu, strop odměny za den a horizont plánu využití (dní); počet uvolněných dní nemá měsíční limit |
 | **Faktor vzdálenosti** | souřadnice parkoviště, základní body, referenční km, max. násobič |
 | **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
 
@@ -390,8 +389,8 @@ je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-loca
   po 5 s / 30 s / 2 min. Fronta je v paměti — zprávy čekající při vypnutí procesu se ztratí;
   všechny e-maily lze vyžádat znovu. Pro garantované doručení přidejte `WolverineFx.SqlServer`
   a `PersistMessagesWithSqlServer` (využije stávající databázi, žádná nová infrastruktura).
-- **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší no-shows,
-  připomínky, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
+- **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší informační
+  připomínky, plán rezidentních míst, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
   a nakonec provozní dohled (viz níže). Každý krok je izolovaný — selhání jednoho nesmí přeskočit ty za ním.
 - **Provozní dohled:** `OversightCase` je obálka nad signálem, nikdy jeho kopie — ukazuje na
   `OccupancyMismatch`, `CollusionFlag`, `SpotDefectReport` nebo rovnou `Reservation` (u sporu

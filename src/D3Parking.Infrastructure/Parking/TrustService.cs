@@ -36,12 +36,15 @@ public sealed class TrustService(
         }
 
         // A satisfactory transaction: a guest completed a reservation on a resident's shared spot.
+        // Keep the history aggregation in SQL. The graph only needs one weighted edge per pair;
+        // materialising every completed reservation made the maintenance cost grow with all time.
         var transactions = await (
             from r in dbContext.Reservations.AsNoTracking()
             where r.Status == ReservationStatus.Completed
             join s in dbContext.ParkingSpots on r.SpotId equals s.Id
             where s.OwnerId != null && s.OwnerId != r.UserId
-            select new { Owner = s.OwnerId!.Value, Guest = r.UserId })
+            group r by new { Owner = s.OwnerId!.Value, Guest = r.UserId } into g
+            select new CompletedSharePair(g.Key.Owner, g.Key.Guest, g.Count()))
             .ToListAsync(cancellationToken);
 
         // Mark the run regardless, so it doesn't recompute every sweep when there's nothing to do.
@@ -55,7 +58,7 @@ public sealed class TrustService(
 
         // Symmetric weighted adjacency over the positive-interaction graph.
         var weights = new Dictionary<Guid, Dictionary<Guid, double>>();
-        void AddEdge(Guid from, Guid to)
+        void AddEdge(Guid from, Guid to, int count)
         {
             if (!weights.TryGetValue(from, out var row))
             {
@@ -63,13 +66,13 @@ public sealed class TrustService(
                 weights[from] = row;
             }
 
-            row[to] = row.GetValueOrDefault(to) + 1.0;
+            row[to] = row.GetValueOrDefault(to) + count;
         }
 
         foreach (var t in transactions)
         {
-            AddEdge(t.Owner, t.Guest);
-            AddEdge(t.Guest, t.Owner);
+            AddEdge(t.Owner, t.Guest, t.Count);
+            AddEdge(t.Guest, t.Owner, t.Count);
         }
 
         // Anti-collusion: cap how much any single counterpart contributes, so a tight reciprocal ring

@@ -20,6 +20,46 @@ public sealed record CompanyVehicleDto(
     DateTimeOffset? PairingCodeSentAtUtc,
     DateTimeOffset? PairingLockedUntilUtc);
 
+/// <summary>Filters used by the paged fleet administration registry.</summary>
+public sealed record FleetVehicleListQuery(
+    string? Search = null,
+    VehicleType? Type = null,
+    FleetParkingAssignmentFilter Parking = FleetParkingAssignmentFilter.All,
+    FleetVehicleStateFilter State = FleetVehicleStateFilter.Active);
+
+public enum FleetParkingAssignmentFilter
+{
+    All,
+    Assigned,
+    Unassigned,
+}
+
+public enum FleetVehicleStateFilter
+{
+    Active,
+    Paired,
+    ActionRequired,
+    ManualOnly,
+    Inactive,
+}
+
+/// <summary>
+/// Global fleet figures shown above the paged registry. Assigned spot identifiers are included so
+/// the vehicle editor can exclude a spot occupied by a vehicle outside the currently loaded page.
+/// </summary>
+public sealed record FleetDirectorySummary(
+    int TotalCount,
+    int ActiveCount,
+    int PairedCount,
+    int ActionCount,
+    int ManualCount,
+    int InactiveCount,
+    int AssignedSpotCount,
+    IReadOnlyList<Guid> AssignedSpotIds)
+{
+    public static FleetDirectorySummary Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, []);
+}
+
 /// <summary>
 /// Where a vehicle stands on the way to being paired, as the administration sees it. The
 /// user-facing <see cref="VehiclePairingState"/> is deliberately opaque about why pairing is

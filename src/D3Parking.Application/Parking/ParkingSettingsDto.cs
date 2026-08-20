@@ -14,8 +14,6 @@ public sealed record ParkingSettingsDto(
     TimeOnly ResidentHoldUntil,
     int ResidentReleasePointsPerHour,
     int ResidentReleaseMaxPoints,
-    int ResidentMaxShareAllowance,
-    int ResidentSharePercentPerAllowance,
     int ResidentWastedShareClawbackPercent,
     int ResidentPlanHorizonDays,
     double? LotLatitude,

@@ -77,7 +77,6 @@
             <div class="lot-overview__activity">
                 <span class="lot-overview__eyebrow">@L["Lot_Overview_Activity"]</span>
                 <div class="lot-overview__metrics">
-                    @OverviewMetric(_board.Overview.Occupied, L["Lot_Stat_Occupied"], "Occupied")
                     @OverviewMetric(_board.Overview.Booked, L["Lot_State_Booked"], "Booked")
                     @OverviewMetric(_board.Overview.ResidentHeld, L["Lot_Stat_ResidentHeld"], "ResidentHeld")
                     @OverviewMetric(_board.Overview.VisitorBookings, L["Lot_Stat_Visitors"], "VisitorBooked")
@@ -372,10 +371,6 @@
                                 <span class="lot-detail__label">@L["Lot_Detail_Plan"]</span>
                                 @PlanLabel(_detail)
                             </div>
-                            <div>
-                                <span class="lot-detail__label">@L["Parking_Owned_Allowance"]</span>
-                                @_detail.MonthlyShareAllowance
-                            </div>
                         }
                         @if (_detail.Stats.SharedDays > 0)
                         {
@@ -569,7 +564,7 @@
                     <tbody>
                         @TrendRow(L["Lot_Stat_Occupancy"], $"{_board.Overview.OccupancyPercent} %",
                             MeterClass(_board.Overview.OccupancyPercent), OccupancyTrend, percent: true)
-                        @TrendRow(L["Lot_Stat_Occupied"], _board.Overview.Occupied.ToString(), null, OccupiedTrend)
+                        @TrendRow(L["Lot_State_Booked"], _board.Overview.Booked.ToString(), null, OccupiedTrend)
                         @TrendRow(L["Lot_Stat_Mismatches"], _board.Overview.ReportedMismatches.ToString(),
                             _board.Overview.ReportedMismatches > 0 ? "warn" : null, MismatchTrend)
                         @TrendRow(L["Lot_Stat_WastedShares"], _board.Overview.UnusedSharedDays.ToString(),
@@ -589,7 +584,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @CountRow(L["Lot_State_Occupied"], _board.Overview.Occupied.ToString(), null)
                         @CountRow(L["Lot_State_Booked"], _board.Overview.Booked.ToString(), null)
                         @CountRow(L["Lot_State_OfferedFromQueue"], _board.Overview.OfferedFromQueue.ToString(), null)
                         @CountRow(L["Lot_State_Free"], _board.Overview.Free.ToString(), null)
@@ -752,8 +746,6 @@
                 <div class="lot-stats">
                     @Stat(L["Lot_Rel_Completed"], Share(_analytics.Reliability.Completed, _analytics.Reliability.Resolved), null)
                     @Stat(L["Lot_Rel_Released"], Share(_analytics.Reliability.Released, _analytics.Reliability.Resolved), null)
-                    @Stat(L["Lot_Rel_NoShow"], Share(_analytics.Reliability.NoShows, _analytics.Reliability.Resolved),
-                        _analytics.Reliability.NoShowPercent > 10 ? "warn" : null)
                     @Stat(L["Lot_Stat_LeadTime"],
                         _analytics.Reliability.MedianLeadHours is { } hours ? L["Lot_Stat_LeadTime_Value", hours].Value : "—", null)
                 </div>

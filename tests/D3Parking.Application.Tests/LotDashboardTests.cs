@@ -557,12 +557,12 @@ public class LotDashboardTests
     }
 
     [Test]
-    public async Task The_no_show_rate_is_measured_against_bookings_that_actually_ran_out()
+    public async Task Ended_reserved_windows_are_counted_as_kept_plans_without_presence_checks()
     {
         var spot = await CreateSpotAsync("T-1");
         var user = Guid.NewGuid();
         await BookAsync(spot, user, day: Today.AddDays(-2), status: ReservationStatus.Completed);
-        await BookAsync(spot, user, day: Today.AddDays(-1), status: ReservationStatus.NoShow);
+        await BookAsync(spot, user, day: Today.AddDays(-1), status: ReservationStatus.Reserved);
         // Still ahead of us, and one that never occupied anything.
         await BookAsync(spot, user, day: Today.AddDays(4));
         await BookAsync(spot, user, day: Today.AddDays(-3), status: ReservationStatus.Cancelled);
@@ -571,10 +571,9 @@ public class LotDashboardTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(reliability.Resolved, Is.EqualTo(2), "One completed and one no-show ran out inside the window.");
-            Assert.That(reliability.NoShowPercent, Is.EqualTo(50),
-                "A booking still ahead of us has not had the chance to fail, so it cannot dilute the rate.");
-            Assert.That(reliability.Cancelled, Is.EqualTo(1), "Reported beside the three, not inside them.");
+            Assert.That(reliability.Resolved, Is.EqualTo(2), "A legacy completion and an ended planned block are both kept plans.");
+            Assert.That(reliability.NoShowPercent, Is.Zero);
+            Assert.That(reliability.Cancelled, Is.EqualTo(1), "Cancellation remains outside the kept-plan base.");
         });
     }
 

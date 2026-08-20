@@ -2,8 +2,8 @@
 
 # D3Parking
 
-**Rezervační systém parkovacích míst pro sdílené / firemní parkoviště — s kreditovou ekonomikou
-a motivačním systémem, který maximalizuje využití parkoviště.**
+**Plánovač parkovacích míst pro sdílené / firemní parkoviště — s plánovacím rozpočtem
+a motivačním systémem, který podporuje včasné uvolnění a sdílení míst.**
 
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Web%20App-512BD4?logo=blazor&logoColor=white)](https://learn.microsoft.com/aspnet/core/blazor/)
@@ -15,10 +15,10 @@ a motivačním systémem, který maximalizuje využití parkoviště.**
 
 ---
 
-Zaměstnanci si rezervují parkovací místa na časové okno. **Rezervace stojí kredit**, jehož cena roste
+Zaměstnanci si plánují parkovací místa na časové okno. **Plán čerpá kreditový rozpočet**, jehož cena roste
 ve špičce a s obsazeností, takže vzácná místa proudí tam, kde jsou nejvíc potřeba. Souběžně běží
-**reputační body**, které odměňují ohleduplné chování (parkování mimo špičku, včasné uvolnění, sdílení
-vyhrazeného místa) a penalizují nedostavení se.
+**reputační body**, které odměňují ohleduplné chování (včasné uvolnění a sdílení vyhrazeného místa).
+Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
 
 > **Výchozí administrátor:** `admin@d3parking.local` / `Admin123$` (viz `IdentitySeed` v
 > `src/D3Parking.Web/appsettings.json`). **Jazyky UI:** čeština (výchozí) a angličtina.
@@ -31,7 +31,7 @@ vyhrazeného místa) a penalizují nedostavení se.
 - [Hlavní vlastnosti](#hlavní-vlastnosti)
 - [Náhledy](#náhledy)
 - [Jak to funguje](#jak-to-funguje)
-  - [Rezervace a jejich životní cyklus](#rezervace-a-jejich-životní-cyklus)
+  - [Rezervace jako plán](#rezervace-jako-plán)
   - [Kredity a dynamická cena](#kredity-a-dynamická-cena)
   - [Fronta při plném obsazení](#fronta-při-plném-obsazení)
   - [„Nemůžu zaparkovat" a omluvný kupón](#nemůžu-zaparkovat-a-omluvný-kupón)
@@ -50,13 +50,13 @@ vyhrazeného místa) a penalizují nedostavení se.
 
 ## Hlavní vlastnosti
 
-- **Rezervace s životním cyklem** — typovaná místa a rezervace na časové okno jako stavový automat.
-- **Kreditová ekonomika** — rezervace se platí kreditem z osobní peněženky; nedostatek kreditu blokuje.
+- **Týdenní plánovač** — typovaná místa a plánované bloky na časové okno bez potvrzování přítomnosti.
+- **Plánovací rozpočet** — rezervace čerpá kredit z osobního rozpočtu; nedostatek kreditu blokuje.
 - **Dynamická cena** — cena = základ × přirážka za špičku × přirážka za obsazenost, zastropováno.
 - **Měsíční příděl** — každý uživatel dostává jednou za měsíc příděl kreditů; ohleduplné chování dobíjí.
 - **Reputace a žebříček** — body oddělené od peněženky; utrácení je nesnižuje. Odznaky za chování.
 - **Poptávkové odměny** — odměna za uvolnění roste s obsazeností a délkou fronty (symetrie k ceně).
-- **Série a úrovně** — bonus za nepřerušenou řadu dokončení a loajalitní tiery (Bronz–Platina).
+- **Úrovně** — reputační tiery Bronz–Platina a jejich konfigurovatelné výhody.
 - **Výhody za reputaci** — vyšší tier = přednost ve frontě, větší příděl a sleva na cenu.
 - **Rozklad reputace** — body časem slábnou, takže skóre odráží *současné* chování (a tresty se hojí).
 - **Týmové žebříčky** — porovnání oddělení a sociální srovnání s průměrem vlastního týmu.
@@ -68,7 +68,6 @@ vyhrazeného místa) a penalizují nedostavení se.
   (SPZ + e-mail řidiče + kód z e-mailu). **Firemní vozidlo** má vedle rezervací nárok i na vlastní
   rezidentní místo (spárováním se řidič stává rezidentem); **vozidlo zaměstnance** rezervuje pouze
   z fondu — vlastní místo mu přidělit nejde.
-- **Faktor dojezdu** — odměna za obsazení sdíleného místa škálovaná ověřenou dojezdovou vzdáleností.
 - **Fronta při plném obsazení** — při plnu se uživatel postaví do fronty; uvolněné místo se mu přidrží a oznámí.
 - **„Nemůžu zaparkovat"** — řidič u fyzicky zablokovaného místa jedním klikem dostane náhradní místo
   (nebo plnou vratku) bez rizika no-show (max. 2 záznamy na uživatele a den). Záznam vyžaduje
@@ -88,9 +87,6 @@ vyhrazeného místa) a penalizují nedostavení se.
   případu neběží.
 - **Hlášení závad** — kdokoli nahlásí nefunkční závoru, zhaslé světlo nebo překážku na místě, volitelně
   s fotkou; vzniká z toho případ pro správu míst.
-- **Spor o nedostavení** — penalizace za no-show už není konečná a němá: řidič ji v dané lhůtě napadne,
-  a uznaná námitka vrátí **přesně to, co bylo strženo** (body, kreditovou pokutu, zákaz fronty i srážku
-  příštího přídělu).
 - **Vše laditelné za běhu** — ceny, body, okna a limity se editují v administraci bez nasazování.
 - **PWA** — aplikaci lze nainstalovat na plochu telefonu i počítače; bez připojení se zobrazí offline stránka.
 - **Push notifikace** — upozornění dorazí i do zavřené nainstalované aplikace (Web Push s VAPID klíči).
@@ -154,24 +150,22 @@ a úrovně, důvěra a ochrana, fronta a špička, rezidenti, lokalita) a neshod
 
 ## Jak to funguje
 
-### Rezervace a jejich životní cyklus
+### Rezervace jako plán
 
 **Místa** mají kód (`A-12`), typ (`Standard`, `Disabled`, `ElectricCharging`, `Visitor`, `Motorcycle`),
 příznak aktivity a volitelné poznámky; administrátoři je spravují na `/admin/parking/spots` — seznam
 je **stránkovaný po 25 místech** (řazeno přirozeně, `P2-2` před `P2-10`) a hledá se v něm podle kódu;
 nově založené místo si stránkování samo najde, ať v pořadí spadne kamkoli.
-**Rezervace** zabírá jedno místo na časové okno a prochází stavovým automatem:
+**Rezervace** zabírá jedno místo na časové okno a funguje jako plánovaný blok:
 
 ```
-Reserved ──▶ CheckedIn ──▶ Completed        (místo bylo využito)
-   │
-   ├──▶ Released      (uvolněno předem — uvolní místo ostatním)
-   ├──▶ Cancelled     (zrušeno)
-   └──▶ NoShow        (bez příjezdu do uplynutí ochranné lhůty)
+Planned ── časem ──▶ historie
+   ├──▶ Released      (uvolněno předem — vrátí rozpočet a zpřístupní místo)
+   └──▶ Cancelled     (zrušeno)
 ```
 
-Uživatelé rezervují, přijíždějí („Příjezd"), odjíždějí („Odjezd"), uvolňují („Uvolnit") nebo ruší na
-`/parking`, kde se zároveň zobrazuje **cena rezervace** i body, které by každá akce přinesla.
+Uživatel zvolí den v týdenním plánovači, nastaví čas a místo naplánuje. Příjezd ani odjezd nepotvrzuje.
+Pokud se plán změní, rezervaci uvolní; informační připomínka před začátkem je zachována.
 
 ### Kredity a dynamická cena
 
@@ -198,7 +192,7 @@ za běhu v administraci.
 | --- | --- |
 | Rezervace | strhne se cena; při nedostatku rezervace neprojde |
 | Včasné zrušení / uvolnění (před cutoffem) | **vrátí se celá** stržená částka |
-| Nedostavení se (no-show) | stržená částka **propadá** (+ reputační penalizace) |
+| Proběhlé plánované okno | bez další akce; plán se podle času zobrazí v historii |
 | Měsíční příděl | jednou za kalendářní měsíc se připíše konfigurovatelný příděl |
 | Odměny za chování | tytéž odměny, které zvyšují reputaci, **dobíjejí i peněženku** |
 
@@ -208,7 +202,7 @@ Když pro zvolené okno není volné žádné místo, uživatel se může **post
 Fronta je vázaná na **konkrétní časové okno** a obsluhuje se podle priority `tier × náskok + minuty
 čekání` (vyšší loajalitní úroveň má přednost, dlouho čekající nižší tier ji ale dožene):
 
-- Jakmile se místo uvolní (uvolnění, zrušení nebo nedostavení se), **přidrží se čekateli s nejvyšší
+- Jakmile se místo uvolní (uvolnění nebo zrušení), **přidrží se čekateli s nejvyšší
   prioritou**, jehož okno pokrývá, na konfigurovatelné claim okno (`QueueOfferMinutes`, výchozí 15 min),
   a přijde mu **notifikace + e-mail**.
 - Přidržené místo je **skryté z běžné nabídky** a nelze ho zarezervovat někomu jinému.
@@ -314,30 +308,23 @@ Místu lze administrátorem přiřadit **rezidentního vlastníka**. Rezidence t
 park**: nárok na vlastní místo mají jen **firemní vozidla** — správce vozidlu místo přidělí a řidič se
 stane rezidentem spárováním účtu s vozidlem (vozidla zaměstnanců rezervují pouze z fondu; přepnutí
 firemního vozidla na vozidlo zaměstnance vyžaduje místo odebrat a rezidence se uvolní). Místo je
-pak **drženo pro rezidenta každý den až do konfigurovatelného cutoffu** (`ResidentHoldUntil` + ochranná
-lhůta no-show):
+pak řízeno **plánem využití rezidenta**:
 
-- Rezident **potvrdí příjezd**, aby si místo na den udržel, nebo ho **uvolní** (jeden den, či rozsah dnů)
-  do sdíleného fondu.
-- Pokud do cutoffu nepotvrdí ani neuvolní, místo se na ten den **automaticky sdílí**.
+- Zaškrtnutý den se drží rezidentovi bez potvrzování příjezdu; ostatní dny se **automaticky uvolní**
+  do sdíleného fondu. Rezident může ručně uvolnit jeden den nebo rozsah dnů.
 - **Plán využití:** rezident zaškrtne dny v týdnu, kdy místo potřebuje; ostatní dny se pak uvolňují
   **automaticky dopředu** až na `ResidentPlanHorizonDays` dní (výchozí 14) a odměňují se úplně stejně
-  jako ruční uvolnění — tedy plným bonusem za předstih, na rozdíl od automatického sdílení po
-  uzávěrce, které nedává nic. Každý den se rozhoduje **jen jednou** (značka „aplikováno do"), takže
-  pětiminutová smyčka údržby nemůže znovu sdílet den, který si rezident vzal zpět; dnešní den plán
-  nikdy nesahá — ten patří držení a potvrzení příjezdu. Uložení plánu značku zahodí, takže se nový
+  jako ruční uvolnění — tedy plným bonusem za předstih. Každý den se rozhoduje **jen jednou**
+  (značka „aplikováno do"), takže údržba nemůže znovu sdílet den, který si rezident vzal zpět.
+  Plán je autoritativní už pro dnešní den. Uložení plánu značku zahodí, takže se nový
   plán použije na celý horizont (a den vzatý zpět před změnou tím může být uvolněn znovu).
-- **Pravidlo konfliktu:** jakmile si host sdílené místo zarezervuje, je pevné; rezident, jehož místo
-  už host drží, soutěží o jiné volné místo jako každý jiný (žádné vyhazování).
-- **Přednostní právo rezidenta:** dokud si sdílený den jeho místa nikdo nezarezervoval, má na něm
-  rezident vždy přednost — uvolněný den si vezme zpět („Vzít zpět", odměna za den se odečte) a po
-  uzávěrce mu stačí potvrdit příjezd. Přednost předběhne i nabídku drženou pro čekatele fronty;
-  čekatel o pořadí nepřijde a dostane další uvolněné místo.
-- Před cutoffem se posílá připomínka.
+- **Konečná přednost rezidenta:** uvolněný den si může vzít zpět i poté, co si místo naplánoval host.
+  Plán hosta se bez sankce zruší, celý rozpočet nebo kupón se vrátí a systém mu pošle notifikaci.
+  Nabídka držená čekateli se stáhne, ale čekatel o pořadí nepřijde a dostane další uvolněné místo.
+- Plánované dny nevyžadují denní potvrzení ani zvláštní rezidentní připomínku.
 
-**Odměna za sdílení** je odstupňovaná: `min(strop, hodiny_předstihu × sazba) × (1 + příděl × pct/100)`.
-**Měsíční příděl sdílení**, který si rezident nastaví, je zároveň násobič odměny **i tvrdý strop** počtu
-odměněných sdílených dnů za měsíc. Odměna je fakticky podmíněna poptávkou:
+**Odměna za sdílení** je `min(strop za den, hodiny_předstihu × sazba)`. Každý nově uvolněný den
+se hodnotí samostatně a žádný měsíční limit počtu uvolnění neexistuje. Odměna je podmíněna poptávkou:
 
 - host místo využil → odměna zůstává;
 - host rezervoval, ale nedorazil → částečná vratka;
@@ -362,12 +349,11 @@ vzácná místa plynou k těm, kdo je nejvíc potřebují. Uživatelé zadají *
    nule (stržení se vrátí), takže nic nevydělá.
 2. Odměny mimo špičku a za vzdálenost se platí **při dokončení**, ne při rezervaci.
 3. Odměněná **uvolnění jsou denně zastropována**.
-4. **Měsíční příděl sdílení zastropuje** odměněné sdílené dny za měsíc.
-5. Uvolněné dny, které **nikdo nerezervoval, se rekonciliují** a odměna se zruší.
-6. Odměna za vzdálenost vyžaduje **ověřenou adresu**.
-7. **Cap váhy hrany v grafu důvěry** — jeden protějšek přispěje k důvěře jen do stropu, takže reciproční
+4. Uvolněné dny, které **nikdo nerezervoval, se rekonciliují** a odměna se zruší.
+5. Odměna za vzdálenost vyžaduje **ověřenou adresu**.
+6. **Cap váhy hrany v grafu důvěry** — jeden protějšek přispěje k důvěře jen do stropu, takže reciproční
    kruh si nenapumpuje skóre.
-8. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
+7. **Detekce kruhů (anti-collusion)** — páry, jejichž sdílení se příliš soustředí na sebe navzájem
    (≥ N interakcí a ≥ práh % koncentrace u obou), se označí **flagem k revizi**, ze kterého vznikne
    případ v *Provozním dohledu*. Detekce sama **nikdy netrestá**: sráží body či kredity výhradně
    člověk, a to jen s oprávněním `Parking.SanctionOversight`, jen vůči účastníkovi případu a jen
@@ -572,9 +558,8 @@ těch ve vějíři, a pět čísel místo proměnného seznamu bodů dělá úch
 
 ### Údržba na pozadí
 
-Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu: posílá
-připomínky rezervací a držení rezidentům, **uvolňuje dopředu dny podle plánů využití rezidentů**,
-řeší no-shows (s penalizacemi a notifikacemi), rekonciliuje
+Hostovaná služba `ParkingMaintenanceService` běží v intervalu `SweepInterval` a v každém cyklu posílá
+informační připomínky rezervací, **uvolňuje dopředu dny podle plánů využití rezidentů** a rekonciliuje
 nevyužité sdílené dny, **uděluje měsíční příděl kreditů**, **obsluhuje frontu** (expiruje prošlé nabídky
 a přidržuje uvolněná místa dalším čekatelům), **rozkládá reputaci**, **ladí adaptivní ceny**,
 **přepočítává graf důvěry**, **skenuje podezřelé kruhy (anti-collusion)** a nakonec **obsluhuje

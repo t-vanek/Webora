@@ -55,7 +55,6 @@ public sealed class LotDashboardService(
 
     public async Task<LotBoardDto> GetBoardAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, timeZone);
@@ -121,26 +120,27 @@ public sealed class LotDashboardService(
                 .ToListAsync(cancellationToken))
             .GroupBy(id => id)
             .ToDictionary(g => g.Key, g => g.Count());
-
-        // Auto-share only applies to today and only past the cutoff: a resident spot on a future day
-        // is still theirs, so the board must not paint it as pool capacity.
-        var autoShareActive = isToday && policy.IsResidentAutoShareActive(date, now, timeZone);
+        var reservationBySpot = bookings
+            .GroupBy(b => b.SpotId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(b => b.Status == ReservationStatus.CheckedIn)
+                .ThenBy(b => b.StartUtc)
+                .First());
+        var visitorBySpot = visitors
+            .GroupBy(v => v.SpotId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(v => v.StartUtc).First());
 
         var tiles = new List<SpotTileDto>(spots.Count);
         foreach (var spot in spots)
         {
-            var reservation = bookings
-                .Where(b => b.SpotId == spot.Id)
-                // Checked-in first, then whatever starts earliest: the tile should show the car that
-                // is standing there over a booking later in the day.
-                .OrderByDescending(b => b.Status == ReservationStatus.CheckedIn)
-                .ThenBy(b => b.StartUtc)
-                .FirstOrDefault();
-            var visitor = visitors.Where(v => v.SpotId == spot.Id).OrderBy(v => v.StartUtc).FirstOrDefault();
+            // Checked-in first, then whatever starts earliest: the tile should show the car that
+            // is standing there over a booking later in the day. These lookups are deliberately
+            // prepared once rather than scanning every booking again for every tile.
+            reservationBySpot.TryGetValue(spot.Id, out var reservation);
+            visitorBySpot.TryGetValue(spot.Id, out var visitor);
 
             var state = ResolveState(spot.IsActive, reservation?.Status, visitor is not null,
                 offeredSpotIds.Contains(spot.Id), spot.OwnerId is not null,
-                releasedSpotIds.Contains(spot.Id) || autoShareActive);
+                releasedSpotIds.Contains(spot.Id));
             var holder = reservation?.HolderName ?? visitor?.VisitorName;
             var from = reservation?.StartUtc ?? visitor?.StartUtc;
             var to = reservation?.EndUtc ?? visitor?.EndUtc;
@@ -366,8 +366,8 @@ public sealed class LotDashboardService(
                 reservation.Status, reservation.CreditsCharged,
                 // Cancelling is only a legal move on a booking nobody has arrived on; once checked in,
                 // moving it is the honest intervention (see the ILotDashboardService docs).
-                CanCancel: reservation.Status == ReservationStatus.Reserved,
-                CanMove: live));
+                CanCancel: reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now,
+                CanMove: live && reservation.EndUtc > now));
         }
 
         foreach (var visitor in visitorBookings)
@@ -407,13 +407,14 @@ public sealed class LotDashboardService(
         // Stats look backwards over the signal window; the calendar above looks forwards. Mixing the
         // two would make "utilization" mean "how much of the future is already booked".
         var today = SiteTime.Today(now, timeZone);
-        var stats = (await ComputeUtilizationAsync(dbContext, timeZone, today.AddDays(-(SignalWindowDays - 1)), today, today,
-                [spotId], cancellationToken))
+        var statisticsFrom = today.AddDays(-(SignalWindowDays - 1));
+        var statisticsHonoured = await HonouredDaysAsync(dbContext, timeZone, statisticsFrom, today, [spotId], cancellationToken);
+        var stats = (await ComputeUtilizationAsync(dbContext, timeZone, statisticsFrom, today, today,
+                [spotId], statisticsHonoured, cancellationToken))
             .FirstOrDefault()
             ?? new SpotUtilizationDto(spot.Id, spot.Code, spot.Type, ownerName, 0, SignalWindowDays, 0, 0, 0, 0, 0);
 
         // The headline state describes today, resolved through the same precedence the board uses.
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var (todayStart, todayEnd) = SiteTime.Day(today, timeZone);
         var liveToday = reservations
             .Where(r => r.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn
@@ -428,13 +429,13 @@ public sealed class LotDashboardService(
             visitorBookings.Any(v => v.StartUtc < todayEnd && v.EndUtc > todayStart),
             offeredFromQueue,
             spot.OwnerId is not null,
-            releases.Contains(today) || policy.IsResidentAutoShareActive(today, now, timeZone));
+            releases.Contains(today));
 
         var trend = await ComputeSpotTrendAsync(dbContext, timeZone,
             today.AddDays(-(SignalWindowDays - 1)), today, spotId, cancellationToken);
 
         return new SpotDetailDto(spot.Id, spot.Code, spot.Type, spot.IsActive, spot.Notes, spot.OwnerId, ownerName,
-            spot.MonthlyShareAllowance, spot.PlannedUseDays, spot.AutoReleaseUnplannedDays, state,
+            spot.PlannedUseDays, spot.AutoReleaseUnplannedDays, state,
             calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats, trend);
     }
 
@@ -471,7 +472,11 @@ public sealed class LotDashboardService(
         var spotIds = allSpots.Select(s => s.Id).ToList();
         var activeSpotIds = allSpots.Where(s => s.IsActive).Select(s => s.Id).ToList();
         var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
-        var spots = await ComputeUtilizationAsync(dbContext, timeZone, from, to, today, spotIds, cancellationToken);
+        // Utilization includes retired spots, whereas lot-wide capacity deliberately does not.
+        // Load the broad set once and derive the active-only view below instead of issuing the
+        // same reservations/visitor-bookings query twice for a cache miss.
+        var honouredAll = await HonouredDaysAsync(dbContext, timeZone, from, to, spotIds, cancellationToken);
+        var spots = await ComputeUtilizationAsync(dbContext, timeZone, from, to, today, spotIds, honouredAll, cancellationToken);
 
         var (rangeStart, _) = SiteTime.Day(from, timeZone);
         var (_, rangeEnd) = SiteTime.Day(to, timeZone);
@@ -499,7 +504,8 @@ public sealed class LotDashboardService(
         }
 
         var peak = demand.Count == 0 ? null : (KeyValuePair<(DayOfWeek Day, int Hour), int>?)demand.MaxBy(cell => cell.Value);
-        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, activeSpotIds, cancellationToken);
+        var activeSpotIdSet = activeSpotIds.ToHashSet();
+        var honoured = honouredAll.Where(day => activeSpotIdSet.Contains(day.SpotId)).ToHashSet();
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
 
         var analytics = new LotAnalyticsDto(
@@ -648,18 +654,19 @@ public sealed class LotDashboardService(
     }
 
     /// <summary>
-    /// What became of the bookings whose window ran out inside the period. Three outcomes over one
-    /// denominator, so they can be read as shares of a whole rather than as three loose counts.
+    /// What became of planned bookings whose window ran out inside the period. A still-reserved row
+    /// is an honoured plan: the planner deliberately does not ask for presence confirmation.
     /// </summary>
     private static ReliabilityDto BuildReliability(
         IEnumerable<(ReservationStatus Status, DateTimeOffset CreatedAtUtc, DateTimeOffset StartUtc)> ended)
     {
         var all = ended.ToList();
-        var completed = all.Count(r => r.Status is ReservationStatus.Completed or ReservationStatus.CheckedIn);
+        var completed = all.Count(r => r.Status is ReservationStatus.Reserved
+            or ReservationStatus.Completed or ReservationStatus.CheckedIn);
         var released = all.Count(r => r.Status == ReservationStatus.Released);
-        var noShows = all.Count(r => r.Status == ReservationStatus.NoShow);
+        var noShows = 0;
         var cancelled = all.Count(r => r.Status == ReservationStatus.Cancelled);
-        var total = completed + released + noShows;
+        var total = completed + released;
 
         // How far ahead the lot gets planned. Median rather than mean: one booking made three months
         // out would drag an average somewhere no actual booking sits. Over the same three outcomes the
@@ -731,15 +738,15 @@ public sealed class LotDashboardService(
     }
 
     /// <summary>
-    /// A booking that reached one of the three outcomes the reliability funnel measures. Everything
+    /// A booking that reached one of the planner outcomes. Everything
     /// that describes "the bookings this window is responsible for" runs off this one predicate, so
     /// the funnel, the lead time and the economy shares cannot end up describing different sets.
     /// A cancelled booking is not one of them: it was called off, refunded, and cost nobody a spot.
-    /// A still-Reserved booking past its own end has not been swept yet and is nobody's outcome.
+    /// Reserved is the normal final planner outcome once its time window has ended.
     /// </summary>
     private static bool IsResolved(ReservationStatus status) =>
-        status is ReservationStatus.Completed or ReservationStatus.CheckedIn
-            or ReservationStatus.Released or ReservationStatus.NoShow;
+        status is ReservationStatus.Reserved or ReservationStatus.Completed
+            or ReservationStatus.CheckedIn or ReservationStatus.Released;
 
     /// <summary>
     /// What the window cost. Charges come from the same resolved bookings the funnel counts; refunds
@@ -866,7 +873,7 @@ public sealed class LotDashboardService(
     /// </summary>
     private static async Task<List<SpotUtilizationDto>> ComputeUtilizationAsync(
         D3ParkingDbContext dbContext, TimeZoneInfo timeZone, DateOnly from, DateOnly to, DateOnly today,
-        IReadOnlyList<Guid> spotIds, CancellationToken cancellationToken)
+        IReadOnlyList<Guid> spotIds, HashSet<(Guid SpotId, DateOnly Date)> honoured, CancellationToken cancellationToken)
     {
         var windowDays = to.DayNumber - from.DayNumber + 1;
         var (rangeStart, _) = SiteTime.Day(from, timeZone);
@@ -885,8 +892,6 @@ public sealed class LotDashboardService(
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
-
-        var honoured = await HonouredDaysAsync(dbContext, timeZone, from, to, spotIds, cancellationToken);
 
         // Only the no-show tally needs the statuses the honoured set deliberately leaves out.
         var noShows = (await dbContext.Reservations.AsNoTracking()
@@ -909,11 +914,14 @@ public sealed class LotDashboardService(
             .Select(r => new { r.SpotId, r.Date, r.ReconciledAtUtc, r.AwardedPoints, r.ClawedBackPoints })
             .ToListAsync(cancellationToken);
 
+        var busyDaysBySpot = honoured
+            .ToLookup(day => day.SpotId, day => day.Date);
+        var releasesBySpot = releases.ToLookup(release => release.SpotId);
         var result = new List<SpotUtilizationDto>(spots.Count);
         foreach (var spot in spots)
         {
-            var busyDays = honoured.Where(x => x.SpotId == spot.Id).Select(x => x.Date).ToHashSet();
-            var spotReleases = releases.Where(r => r.SpotId == spot.Id).ToList();
+            var busyDays = busyDaysBySpot[spot.Id].ToHashSet();
+            var spotReleases = releasesBySpot[spot.Id];
 
             result.Add(new SpotUtilizationDto(
                 SpotId: spot.Id,
@@ -925,7 +933,7 @@ public sealed class LotDashboardService(
                 UtilizationPercent: windowDays == 0 ? 0 : (int)Math.Round(busyDays.Count * 100.0 / windowDays),
                 NoShows: noShows.GetValueOrDefault(spot.Id),
                 Mismatches: mismatches.GetValueOrDefault(spot.Id),
-                SharedDays: spotReleases.Count,
+                SharedDays: spotReleases.Count(),
                 // Same rule as CountUnusedSharedDaysAsync: shared and nobody took it. Only days that
                 // have already passed count — a shared day still ahead of us is an offer, not waste.
                 UnusedSharedDays: spotReleases.Count(r => r.Date < today && !busyDays.Contains(r.Date))));
@@ -941,8 +949,8 @@ public sealed class LotDashboardService(
     /// <summary>
     /// Resident days put into the pool in [from, toExclusive) that no booking ever honoured — capacity
     /// a resident gave up and nobody took. Deliberately derived from bookings rather than from the
-    /// release's reward state: a day released past the cutoff or over the monthly quota carries no
-    /// points to reverse, so the reconciliation never touches it, yet it was just as wasted.
+    /// release's reward state: a day released past the reward cutoff carries no points to reverse,
+    /// so the reconciliation never touches it, yet it was just as unused.
     /// </summary>
     /// <remarks>
     /// Takes the honoured set rather than deriving its own. It used to run its own query with its own
@@ -975,16 +983,18 @@ public sealed class LotDashboardService(
 
     public async Task<IReadOnlyList<MoveTargetDto>> GetMoveTargetsAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
+        var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var reservation = await dbContext.Reservations.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
-        if (reservation is null || reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
+        if (reservation is null || reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn)
+            || reservation.EndUtc <= now)
         {
             return [];
         }
 
         return await FreeSpotsForWindowAsync(dbContext, reservation.SpotId, reservation.StartUtc, reservation.EndUtc,
-            timeProvider.GetUtcNow(), cancellationToken);
+            now, cancellationToken);
     }
 
     /// <summary>
@@ -1030,6 +1040,7 @@ public sealed class LotDashboardService(
     // lands on the InvalidState guard rather than refunding twice.
     private async Task<ParkingResult> CancelReservationCoreAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var reservation = await dbContext.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
@@ -1041,6 +1052,11 @@ public sealed class LotDashboardService(
         if (reservation.Status != ReservationStatus.Reserved)
         {
             return ParkingResult.Failure("Parking_Error_InvalidState");
+        }
+
+        if (reservation.EndUtc <= now)
+        {
+            return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
         var spotCode = await dbContext.ParkingSpots.AsNoTracking()
@@ -1072,7 +1088,7 @@ public sealed class LotDashboardService(
 
         await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminCancelled_Title"],
-            messages["Parking_Notify_AdminCancelled_Body", spotCode, reservation.CreditsCharged],
+            messages.ForEconomy(policy, "Parking_Notify_AdminCancelled_Body", spotCode, reservation.CreditsCharged),
             cancellationToken);
 
         return ParkingResult.Success;
@@ -1083,6 +1099,7 @@ public sealed class LotDashboardService(
 
     private async Task<ParkingResult> MoveReservationCoreAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId, CancellationToken cancellationToken)
     {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -1101,6 +1118,11 @@ public sealed class LotDashboardService(
         if (reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
         {
             return ParkingResult.Failure("Parking_Error_InvalidState");
+        }
+
+        if (reservation.EndUtc <= now)
+        {
+            return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
         if (reservation.SpotId == targetSpotId)
@@ -1140,7 +1162,7 @@ public sealed class LotDashboardService(
 
         await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminMoved_Title"],
-            messages["Parking_Notify_AdminMoved_Body", fromCode, target.Code],
+            messages.ForEconomy(policy, "Parking_Notify_AdminMoved_Body", fromCode, target.Code),
             cancellationToken);
 
         return ParkingResult.Success;

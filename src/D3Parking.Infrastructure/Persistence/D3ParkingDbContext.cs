@@ -377,6 +377,9 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             entry.Property(q => q.Status).HasConversion<string>().HasMaxLength(32);
             entry.HasIndex(q => new { q.Status, q.CreatedAtUtc });
             entry.HasIndex(q => new { q.UserId, q.Status });
+            // Matching and dashboard reads constrain the requested window after status.
+            entry.HasIndex(q => new { q.Status, q.StartUtc })
+                .IncludeProperties(q => new { q.EndUtc, q.OfferedSpotId, q.OfferExpiresAtUtc });
             // Shadow rowversion: a queue entry is mutated both by the user (leave, claim) and by
             // the maintenance loop (offer, expire) — a stale write must fail, not win.
             entry.Property<byte[]>("Version").IsRowVersion();
@@ -509,8 +512,14 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
             reservation.HasIndex(r => new { r.UserId, r.StartUtc });
             reservation.HasIndex(r => r.Status);
-            // Shadow rowversion: status transitions race between the user (check-in, cancel,
-            // release) and the no-show sweep. The in-memory transition guard only validates each
+            // Conflict and availability checks first narrow to a live status and then an interval;
+            // EndUtc remains a residual overlap predicate but is covered by the index.
+            reservation.HasIndex(r => new { r.UserId, r.Status, r.StartUtc })
+                .IncludeProperties(r => r.EndUtc);
+            reservation.HasIndex(r => new { r.Status, r.StartUtc })
+                .IncludeProperties(r => new { r.EndUtc, r.SpotId, r.UserId });
+            // Shadow rowversion: reservation changes can race between the holder and an administrator.
+            // The in-memory transition guard only validates each
             // context's stale copy, so the last blind UPDATE used to win — with the token a stale
             // write throws DbUpdateConcurrencyException and the caller re-reads instead.
             reservation.Property<byte[]>("Version").IsRowVersion();
@@ -535,6 +544,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             entry.Property(e => e.Reason).HasConversion<string>().HasMaxLength(32);
             entry.Property(e => e.Detail).HasMaxLength(512);
             entry.HasIndex(e => new { e.UserId, e.OccurredAtUtc });
+            entry.HasIndex(e => new { e.Reason, e.OccurredAtUtc });
         });
 
         builder.Entity<UserBadge>(badge =>
@@ -557,15 +567,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.MaxReservationCost).HasDefaultValue(40);
             settings.Property(s => s.MonthlyCreditAllowance).HasDefaultValue(100);
             settings.Property(s => s.QueueOfferMinutes).HasDefaultValue(15);
-            settings.Property(s => s.QueueNoShowPenaltyPoints).HasDefaultValue(50);
-            settings.Property(s => s.QueueNoShowCreditPenalty).HasDefaultValue(30);
-            settings.Property(s => s.QueueNoShowBanDays).HasDefaultValue(14);
-            settings.Property(s => s.QueueNoShowAllowancePenalty).HasDefaultValue(30);
+            settings.Property(s => s.QueueNoShowPenaltyPoints).HasDefaultValue(0);
+            settings.Property(s => s.QueueNoShowCreditPenalty).HasDefaultValue(0);
+            settings.Property(s => s.QueueNoShowBanDays).HasDefaultValue(0);
+            settings.Property(s => s.QueueNoShowAllowancePenalty).HasDefaultValue(0);
             settings.Property(s => s.DemandReleaseOccupancyPercent).HasDefaultValue(100);
             settings.Property(s => s.DemandReleaseQueueBonus).HasDefaultValue(5);
             settings.Property(s => s.MaxReleaseReward).HasDefaultValue(40);
-            settings.Property(s => s.StreakBonusPerLevel).HasDefaultValue(2);
-            settings.Property(s => s.StreakBonusCap).HasDefaultValue(20);
+            settings.Property(s => s.StreakBonusPerLevel).HasDefaultValue(0);
+            settings.Property(s => s.StreakBonusCap).HasDefaultValue(0);
             settings.Property(s => s.TierSilverPoints).HasDefaultValue(50);
             settings.Property(s => s.TierGoldPoints).HasDefaultValue(150);
             settings.Property(s => s.TierPlatinumPoints).HasDefaultValue(300);

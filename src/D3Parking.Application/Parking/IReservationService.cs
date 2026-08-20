@@ -1,9 +1,8 @@
 namespace D3Parking.Application.Parking;
 
 /// <summary>
-/// Booking and lifecycle of reservations. Mutating operations apply the incentive rules
-/// (off-peak bonus on booking, reward on an in-time release, penalty on a no-show) as part of the
-/// same transaction.
+/// Plans parking time windows and manages their budget. A plan stays reserved for its whole window
+/// and becomes history by time; no physical arrival or departure confirmation is required.
 /// </summary>
 public interface IReservationService
 {
@@ -16,6 +15,10 @@ public interface IReservationService
     /// </summary>
     Task<ReservationQuoteDto> GetQuoteAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The caller's reservations. Residency and ownership of a parking spot never filter this list;
+    /// with <paramref name="upcomingOnly"/>, both currently active and future plans are returned.
+    /// </summary>
     Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -40,12 +43,7 @@ public interface IReservationService
     /// </summary>
     Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<ParkingResult> CheckInAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
-
-    /// <summary>The holder used the spot and is now leaving; closes the reservation.</summary>
-    Task<ParkingResult> CompleteAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
-
-    /// <summary>The holder gives the spot up; rewarded when done early enough to free it.</summary>
+    /// <summary>The holder removes the plan; an early release returns its planning budget.</summary>
     Task<ParkingResult> ReleaseAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> CancelAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
@@ -62,15 +60,9 @@ public interface IReservationService
     Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Marks every still-reserved booking whose grace period has elapsed as a no-show and applies the
-    /// penalty. Intended to be run on a schedule; also exposed for an administrator to trigger.
-    /// Returns the number of reservations resolved.
-    /// </summary>
-    Task<int> SweepNoShowsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Sends a one-time "confirm arrival or release" reminder for reservations whose start is near and
-    /// that have not been checked in or released yet. Intended to be run on a schedule.
+    /// Sends a one-time planning reminder for reservations whose start is near. The reminder is
+    /// informational and offers the holder a chance to review or release the booking; it never asks
+    /// them to confirm physical arrival and never triggers a no-show penalty.
     /// Returns the number of reminders sent.
     /// </summary>
     Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default);

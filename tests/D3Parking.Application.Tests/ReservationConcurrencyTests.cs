@@ -139,41 +139,11 @@ public class ReservationConcurrencyTests
     }
 
     [Test]
-    public async Task Concurrent_completes_pay_one_reward_package()
-    {
-        var userId = Guid.NewGuid();
-        var spot = new ParkingSpot("K-01", ParkingSpotType.Standard);
-        var reservation = new Reservation(spot.Id, userId, Now.AddHours(-1), Now.AddHours(2), false, Now.AddHours(-2));
-        reservation.CheckIn(Now.AddMinutes(-30));
-        await SeedAsync(db =>
-        {
-            db.ParkingSpots.Add(spot);
-            db.ParkerScores.Add(new ParkerScore(userId));
-            db.Reservations.Add(reservation);
-        });
-
-        var results = await WhenAllTolerant(
-            () => _reservations.CompleteAsync(userId, reservation.Id),
-            () => _reservations.CompleteAsync(userId, reservation.Id));
-
-        Assert.That(results.Count(r => r is { Succeeded: true }), Is.EqualTo(1));
-
-        await using var db = new D3ParkingDbContext(_options);
-        var markers = await db.PointsLedgerEntries
-            .CountAsync(e => e.UserId == userId && e.Reason == IncentiveReason.ReservationCompleted);
-        var streak = await db.ParkerScores.Where(s => s.UserId == userId).Select(s => s.CompletionStreak).SingleAsync();
-        Assert.That(markers, Is.EqualTo(1), "The daily completion marker must exist exactly once.");
-        Assert.That(streak, Is.EqualTo(1), "The completion streak must advance by one, not two.");
-    }
-
-    [Test]
-    public async Task Check_in_and_no_show_sweep_agree_on_one_outcome()
+    public async Task A_started_plan_stays_reserved_without_presence_penalties()
     {
         var userId = Guid.NewGuid();
         var spot = new ParkingSpot("S-01", ParkingSpotType.Standard);
-        // Past the no-show grace: the sweep considers it due while check-in is still allowed.
-        var overdue = _policy.NoShowGracePeriod + TimeSpan.FromMinutes(5);
-        var reservation = new Reservation(spot.Id, userId, Now - overdue, Now.AddHours(2), false, Now - overdue);
+        var reservation = new Reservation(spot.Id, userId, Now.AddHours(-1), Now.AddHours(2), false, Now.AddHours(-2));
         await SeedAsync(db =>
         {
             db.ParkingSpots.Add(spot);
@@ -181,57 +151,13 @@ public class ReservationConcurrencyTests
             db.Reservations.Add(reservation);
         });
 
-        await WhenAllTolerant(
-            () => _reservations.CheckInAsync(userId, reservation.Id),
-            async () =>
-            {
-                await _reservations.SweepNoShowsAsync();
-                return ParkingResult.Success;
-            });
+        await _reservations.SendDueRemindersAsync();
 
         await using var db = new D3ParkingDbContext(_options);
-        var status = await db.Reservations.Where(r => r.Id == reservation.Id).Select(r => r.Status).SingleAsync();
-        var penalties = await db.PointsLedgerEntries
-            .CountAsync(e => e.UserId == userId && e.Reason == IncentiveReason.NoShowPenalty);
-
-        // Either the sweep won (no-show + penalty) or the driver won (checked in, no penalty).
-        // The broken interleaving was CheckedIn *with* a penalty — a present driver punished.
-        if (status == ReservationStatus.CheckedIn)
-        {
-            Assert.That(penalties, Is.Zero, "A driver whose check-in won must not carry a no-show penalty.");
-        }
-        else
-        {
-            Assert.That(status, Is.EqualTo(ReservationStatus.NoShow));
-            Assert.That(penalties, Is.EqualTo(1));
-        }
-    }
-
-    [Test]
-    public async Task Owner_arrival_and_guest_booking_cannot_both_take_the_spot()
-    {
-        var ownerId = Guid.NewGuid();
-        var guestId = Guid.NewGuid();
-        var spot = new ParkingSpot("V-01", ParkingSpotType.Standard);
-        spot.AssignOwner(ownerId);
-        await SeedAsync(db =>
-        {
-            db.ParkingSpots.Add(spot);
-            db.ParkerScores.Add(new ParkerScore(ownerId));
-        });
-
-        // Past the auto-share cutoff the guest may book the owner's spot for the rest of today
-        // while the owner can still confirm arrival — the classic double-booking window.
-        var results = await WhenAllTolerant(
-            () => _reservations.ReserveAsync(guestId, spot.Id, Now.AddMinutes(30), Now.AddHours(3)),
-            () => _residentSpots.ConfirmArrivalAsync(ownerId));
-
-        await using var db = new D3ParkingDbContext(_options);
-        var active = await db.Reservations.CountAsync(r => r.SpotId == spot.Id
-            && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn));
-
-        Assert.That(active, Is.EqualTo(1), "The spot must end the race with a single active reservation.");
-        Assert.That(results.Count(r => r is { Succeeded: true }), Is.LessThanOrEqualTo(1));
+        Assert.That(await db.Reservations.Where(r => r.Id == reservation.Id).Select(r => r.Status).SingleAsync(),
+            Is.EqualTo(ReservationStatus.Reserved));
+        Assert.That(await db.PointsLedgerEntries.CountAsync(e => e.UserId == userId
+            && (e.Reason == IncentiveReason.NoShowPenalty || e.Reason == IncentiveReason.QueueNoShowPenalty)), Is.Zero);
     }
 
     [Test]

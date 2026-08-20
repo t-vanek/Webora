@@ -12,10 +12,9 @@ using NUnit.Framework;
 namespace D3Parking.Application.Tests;
 
 /// <summary>
-/// Pins down the resident's right of first refusal on their own spot: a released day can be taken
-/// back (with the share reward returned) until a guest books it, a firm guest booking always
-/// stands, and a mere waitlist hold yields — whether the resident reclaims, confirms arrival on an
-/// auto-shared day, or books their own spot outright. Withdrawn waiters keep their queue position.
+/// Pins down the resident's final claim on their assigned spot: taking a released day back returns
+/// the share reward, cancels an overlapping guest plan with a full refund and notification, and
+/// withdraws a waitlist hold without costing the waiter their position.
 /// Requires ConnectionStrings__SqlServer (skipped without it).
 /// </summary>
 [TestFixture]
@@ -67,7 +66,7 @@ public class ResidentPriorityTests
     public async Task Reclaiming_a_released_day_restores_the_hold_and_returns_the_reward()
     {
         var owner = Guid.NewGuid();
-        var spot = await CreateOwnedSpotAsync("RP-01", owner, allowance: 5);
+        var spot = await CreateOwnedSpotAsync("RP-01", owner);
         var residents = CreateResidentService(now: BeforeCutoff);
 
         Assert.That((await residents.ReleaseAsync(owner, Tomorrow, Tomorrow)).Succeeded, Is.True);
@@ -96,32 +95,47 @@ public class ResidentPriorityTests
     }
 
     [Test]
-    public async Task A_guest_booking_on_the_released_day_blocks_the_reclaim()
+    public async Task Reclaiming_a_guest_booked_day_refunds_and_notifies_the_guest()
     {
         var owner = Guid.NewGuid();
-        var spot = await CreateOwnedSpotAsync("RP-02", owner, allowance: 5);
-        var residents = CreateResidentService(now: BeforeCutoff);
+        var guest = Guid.NewGuid();
+        var spot = await CreateOwnedSpotAsync("RP-02", owner);
+        var residents = CreateResidentService(now: BeforeCutoff, notifications: out var sent);
+        Guid reservationId;
 
         Assert.That((await residents.ReleaseAsync(owner, Tomorrow, Tomorrow)).Succeeded, Is.True);
         await using (var dbContext = new D3ParkingDbContext(_options))
         {
             var (dayStart, dayEnd) = SiteTime.Day(Tomorrow, TimeZoneInfo.Utc);
-            dbContext.Reservations.Add(new Reservation(spot, Guid.NewGuid(), dayStart, dayEnd, false, BeforeCutoff));
+            var score = new ParkerScore(guest);
+            score.GrantMonthlyCreditIfDue(10, ParkerScore.PeriodOf(BeforeCutoff), BeforeCutoff);
+            score.ChargeCredits(7, BeforeCutoff);
+            var reservation = new Reservation(spot, guest, dayStart, dayEnd, false, BeforeCutoff, creditsCharged: 7);
+            dbContext.ParkerScores.Add(score);
+            dbContext.Reservations.Add(reservation);
             await dbContext.SaveChangesAsync();
+            reservationId = reservation.Id;
         }
 
-        var refused = await residents.ReclaimAsync(owner, Tomorrow, Tomorrow);
-        Assert.That(refused.Errors, Does.Contain("Parking_Error_NothingToReclaim"),
-            "A firm guest booking is never evicted — the day stays shared.");
+        var before = await residents.GetMyOwnedSpotAsync(owner);
+        Assert.That(before!.UpcomingReleases, Is.EqualTo(new[] { new ReleasedDayDto(Tomorrow, true) }));
+
+        Assert.That((await residents.ReclaimAsync(owner, Tomorrow, Tomorrow)).Succeeded, Is.True);
 
         await using (var check = new D3ParkingDbContext(_options))
         {
-            Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.True);
+            Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.False,
+                "The day returns to the resident even when a guest had planned it.");
+            Assert.That((await check.Reservations.SingleAsync(r => r.Id == reservationId)).Status,
+                Is.EqualTo(ReservationStatus.Cancelled));
+            Assert.That((await check.ParkerScores.SingleAsync(s => s.UserId == guest)).Credits, Is.EqualTo(10),
+                "The guest gets the entire planning charge back.");
+            Assert.That(await check.PointsLedgerEntries.AnyAsync(e => e.UserId == guest
+                && e.ReservationId == reservationId && e.Reason == IncentiveReason.ReservationRefund
+                && e.Points == 7), Is.True);
         }
 
-        var status = await CreateResidentService(now: BeforeCutoff).GetMyOwnedSpotAsync(owner);
-        Assert.That(status!.UpcomingReleases, Is.EqualTo(new[] { new ReleasedDayDto(Tomorrow, true) }),
-            "The taken day must be flagged so the UI offers no false reclaim.");
+        Assert.That(sent.Sent, Does.Contain((guest, "Parking_Notify_ResidentReclaimed_Title")));
     }
 
     [Test]
@@ -129,7 +143,7 @@ public class ResidentPriorityTests
     {
         var owner = Guid.NewGuid();
         var waiter = Guid.NewGuid();
-        var spot = await CreateOwnedSpotAsync("RP-03", owner, allowance: 5);
+        var spot = await CreateOwnedSpotAsync("RP-03", owner);
         var joined = BeforeCutoff.AddHours(-2);
         Guid entryId;
 
@@ -161,43 +175,11 @@ public class ResidentPriorityTests
     }
 
     [Test]
-    public async Task Confirming_arrival_on_an_auto_shared_day_withdraws_the_hold()
-    {
-        var owner = Guid.NewGuid();
-        var waiter = Guid.NewGuid();
-        var spot = await CreateOwnedSpotAsync("RP-04", owner, allowance: 0);
-        Guid entryId;
-
-        await using (var dbContext = new D3ParkingDbContext(_options))
-        {
-            var entry = new QueueEntry(waiter, AfterCutoff.AddMinutes(-30), AfterCutoff.AddHours(6), AfterCutoff.AddHours(-1));
-            entry.Offer(spot, AfterCutoff.AddMinutes(15));
-            dbContext.QueueEntries.Add(entry);
-            await dbContext.SaveChangesAsync();
-            entryId = entry.Id;
-        }
-
-        var residents = CreateResidentService(now: AfterCutoff, notifications: out var sent);
-        Assert.That((await residents.ConfirmArrivalAsync(owner)).Succeeded, Is.True,
-            "Past the cutoff the spot auto-shares, but until somebody books it the owner confirms it back.");
-
-        await using (var check = new D3ParkingDbContext(_options))
-        {
-            Assert.That(await check.Reservations.AnyAsync(r => r.SpotId == spot && r.UserId == owner
-                && r.Status == ReservationStatus.CheckedIn), Is.True);
-            var entry = await check.QueueEntries.SingleAsync(q => q.Id == entryId);
-            Assert.That(entry.Status, Is.EqualTo(QueueEntryStatus.Waiting));
-        }
-
-        Assert.That(sent.Sent, Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
-    }
-
-    [Test]
     public async Task An_owner_booking_their_own_spot_outranks_the_hold_that_would_stop_anyone_else()
     {
         var owner = Guid.NewGuid();
         var waiter = Guid.NewGuid();
-        var spot = await CreateOwnedSpotAsync("RP-05", owner, allowance: 5);
+        var spot = await CreateOwnedSpotAsync("RP-05", owner);
         Guid entryId;
         DateTimeOffset windowStart, windowEnd;
 
@@ -232,6 +214,62 @@ public class ResidentPriorityTests
         Assert.That(sent.Sent, Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
     }
 
+    [Test]
+    public async Task A_resident_still_sees_all_their_active_and_future_reservations()
+    {
+        var owner = Guid.NewGuid();
+        await CreateOwnedSpotAsync("RP-06", owner);
+        Guid activeId;
+        Guid futureId;
+
+        await using (var dbContext = new D3ParkingDbContext(_options))
+        {
+            var shared = new ParkingSpot("RP-07", ParkingSpotType.Standard);
+            dbContext.ParkingSpots.Add(shared);
+            var active = new Reservation(shared.Id, owner,
+                BeforeCutoff.AddHours(-1), BeforeCutoff.AddHours(1), false, BeforeCutoff.AddDays(-1));
+            var future = new Reservation(shared.Id, owner,
+                BeforeCutoff.AddDays(2), BeforeCutoff.AddDays(2).AddHours(8), false, BeforeCutoff);
+            dbContext.Reservations.AddRange(active, future);
+            await dbContext.SaveChangesAsync();
+            (activeId, futureId) = (active.Id, future.Id);
+        }
+
+        var reservations = new ReservationService(
+            new TestDbContextFactory(_options), new FakeParkingSettings(), new FakeSiteSettings(),
+            new FixedTimeProvider(BeforeCutoff), new NullNotificationService(),
+            new PassthroughLocalizer<ParkingMessages>());
+
+        var mine = await reservations.GetMyReservationsAsync(owner, upcomingOnly: true);
+
+        Assert.That(mine.Select(r => r.Id), Is.EquivalentTo(new[] { activeId, futureId }),
+            "Owning a resident spot must not hide either the current or a future booking.");
+    }
+
+    [Test]
+    public async Task A_two_week_release_is_created_and_taken_back_as_one_range()
+    {
+        var owner = Guid.NewGuid();
+        var spot = await CreateOwnedSpotAsync("RP-08", owner);
+        var residents = CreateResidentService(BeforeCutoff);
+        var from = Tomorrow;
+        var to = from.AddDays(13);
+
+        Assert.That((await residents.ReleaseAsync(owner, from, to)).Succeeded, Is.True);
+
+        await using (var released = new D3ParkingDbContext(_options))
+        {
+            Assert.That(await released.SpotReleases.CountAsync(r => r.SpotId == spot), Is.EqualTo(14),
+                "A two-week absence must release every selected calendar day.");
+        }
+
+        Assert.That((await residents.ReclaimAsync(owner, from, to)).Succeeded, Is.True);
+
+        await using var reclaimed = new D3ParkingDbContext(_options);
+        Assert.That(await reclaimed.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.False,
+            "The resident can take the complete two-week range back in one operation.");
+    }
+
     private ResidentSpotService CreateResidentService(DateTimeOffset now) =>
         CreateResidentService(now, out _);
 
@@ -247,12 +285,11 @@ public class ResidentPriorityTests
             new PassthroughLocalizer<ParkingMessages>());
     }
 
-    private async Task<Guid> CreateOwnedSpotAsync(string code, Guid ownerId, int allowance)
+    private async Task<Guid> CreateOwnedSpotAsync(string code, Guid ownerId)
     {
         await using var dbContext = new D3ParkingDbContext(_options);
         var spot = new ParkingSpot(code, ParkingSpotType.Standard);
         spot.AssignOwner(ownerId);
-        spot.SetShareAllowance(allowance);
         dbContext.ParkingSpots.Add(spot);
         await dbContext.SaveChangesAsync();
         return spot.Id;

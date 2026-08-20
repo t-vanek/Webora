@@ -64,7 +64,7 @@ public class ResidentUsagePlanTests
     public async Task A_workday_plan_releases_the_weekends_in_the_horizon_and_keeps_the_workdays()
     {
         var owner = Guid.NewGuid();
-        await CreateOwnedSpotAsync("UP-01", owner, allowance: 30);
+        await CreateOwnedSpotAsync("UP-01", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, true)).Succeeded, Is.True);
 
@@ -77,10 +77,10 @@ public class ResidentUsagePlanTests
     }
 
     [Test]
-    public async Task The_plan_never_releases_today_and_covers_the_whole_horizon()
+    public async Task The_plan_is_authoritative_from_today_and_covers_the_whole_horizon()
     {
         var owner = Guid.NewGuid();
-        var spotId = await CreateOwnedSpotAsync("UP-02", owner, allowance: 30);
+        var spotId = await CreateOwnedSpotAsync("UP-02", owner);
         var residents = CreateResidentService(Morning);
         // Nothing planned: every day in the horizon is a candidate, which is what makes today's
         // absence meaningful rather than an accident of the weekday.
@@ -89,8 +89,8 @@ public class ResidentUsagePlanTests
         await residents.ApplyDuePlanReleasesAsync();
 
         var dates = await ReleasedDatesAsync(owner);
-        Assert.That(dates, Does.Not.Contain(Today),
-            "Today belongs to the hold flow — releasing it would close the resident's right of first refusal.");
+        Assert.That(dates, Does.Contain(Today),
+            "An unplanned day is released by the schedule itself; no arrival-confirmation flow remains.");
         Assert.That(dates, Is.EqualTo(UnplannedDaysInHorizon(Weekday.None)));
         Assert.That(await AppliedThroughAsync(spotId), Is.EqualTo(Policy.ResidentPlanHorizonEnd(Today)));
     }
@@ -99,7 +99,7 @@ public class ResidentUsagePlanTests
     public async Task Running_the_planner_again_the_same_day_releases_nothing_more()
     {
         var owner = Guid.NewGuid();
-        await CreateOwnedSpotAsync("UP-03", owner, allowance: 30);
+        await CreateOwnedSpotAsync("UP-03", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, true)).Succeeded, Is.True);
 
@@ -115,7 +115,7 @@ public class ResidentUsagePlanTests
     public async Task A_day_taken_back_by_hand_is_not_released_again_when_the_horizon_moves_on()
     {
         var owner = Guid.NewGuid();
-        await CreateOwnedSpotAsync("UP-04", owner, allowance: 30);
+        await CreateOwnedSpotAsync("UP-04", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, true)).Succeeded, Is.True);
         await residents.ApplyDuePlanReleasesAsync();
@@ -135,7 +135,7 @@ public class ResidentUsagePlanTests
     public async Task The_horizon_moving_forward_releases_the_newly_visible_day_only()
     {
         var owner = Guid.NewGuid();
-        await CreateOwnedSpotAsync("UP-05", owner, allowance: 30);
+        await CreateOwnedSpotAsync("UP-05", owner);
         Assert.That((await CreateResidentService(Morning).SetUsagePlanAsync(owner, Weekday.None, true)).Succeeded, Is.True);
         await CreateResidentService(Morning).ApplyDuePlanReleasesAsync();
         var beforeCount = (await ReleasedDatesAsync(owner)).Count;
@@ -149,19 +149,19 @@ public class ResidentUsagePlanTests
     }
 
     [Test]
-    public async Task Planned_releases_are_rewarded_only_up_to_the_monthly_allowance()
+    public async Task Every_planned_release_can_be_rewarded_without_a_monthly_limit()
     {
         var owner = Guid.NewGuid();
-        await CreateOwnedSpotAsync("UP-06", owner, allowance: 2);
+        await CreateOwnedSpotAsync("UP-06", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, true)).Succeeded, Is.True);
 
-        await residents.ApplyDuePlanReleasesAsync();
+        var released = await residents.ApplyDuePlanReleasesAsync();
 
         await using var dbContext = new D3ParkingDbContext(_options);
         var rewarded = await dbContext.SpotReleases.CountAsync(r => r.OwnerId == owner && r.AwardedPoints > 0);
-        Assert.That(rewarded, Is.EqualTo(2),
-            "The planner spends the same monthly quota as a manual release — it is not a way around it.");
+        Assert.That(rewarded, Is.EqualTo(released),
+            "Every day released with advance notice is independently rewardable.");
         var awarded = await dbContext.SpotReleases.Where(r => r.OwnerId == owner).SumAsync(r => r.AwardedPoints);
         var score = await dbContext.ParkerScores.FindAsync(owner);
         Assert.That(score!.Points, Is.EqualTo(awarded), "Every awarded point must land on the resident's score.");
@@ -173,7 +173,7 @@ public class ResidentUsagePlanTests
     public async Task A_plan_with_auto_release_off_shares_nothing()
     {
         var owner = Guid.NewGuid();
-        var spotId = await CreateOwnedSpotAsync("UP-07", owner, allowance: 30);
+        var spotId = await CreateOwnedSpotAsync("UP-07", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, false)).Succeeded, Is.True);
 
@@ -188,7 +188,7 @@ public class ResidentUsagePlanTests
     public async Task An_inactive_spot_is_left_alone()
     {
         var owner = Guid.NewGuid();
-        var spotId = await CreateOwnedSpotAsync("UP-08", owner, allowance: 30);
+        var spotId = await CreateOwnedSpotAsync("UP-08", owner);
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.None, true)).Succeeded, Is.True);
 
@@ -211,11 +211,11 @@ public class ResidentUsagePlanTests
         Assert.That(result.Errors, Is.EqualTo(new[] { "Parking_Error_NoOwnedSpot" }));
     }
 
-    /// <summary>The days a plan would release: tomorrow through the horizon, minus the planned ones.</summary>
+    /// <summary>The days a plan releases: today through the horizon, minus the planned ones.</summary>
     private static List<DateOnly> UnplannedDaysInHorizon(Weekday planned)
     {
         var days = new List<DateOnly>();
-        for (var date = Today.AddDays(1); date <= Policy.ResidentPlanHorizonEnd(Today); date = date.AddDays(1))
+        for (var date = Today; date <= Policy.ResidentPlanHorizonEnd(Today); date = date.AddDays(1))
         {
             if (!planned.Includes(date))
             {
@@ -253,12 +253,11 @@ public class ResidentUsagePlanTests
             new NullNotificationService(),
             new PassthroughLocalizer<ParkingMessages>());
 
-    private async Task<Guid> CreateOwnedSpotAsync(string code, Guid ownerId, int allowance)
+    private async Task<Guid> CreateOwnedSpotAsync(string code, Guid ownerId)
     {
         await using var dbContext = new D3ParkingDbContext(_options);
         var spot = new ParkingSpot(code, ParkingSpotType.Standard);
         spot.AssignOwner(ownerId);
-        spot.SetShareAllowance(allowance);
         dbContext.ParkingSpots.Add(spot);
         await dbContext.SaveChangesAsync();
         return spot.Id;

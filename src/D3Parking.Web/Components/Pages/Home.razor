@@ -183,12 +183,7 @@
                     <span class="today-card__actions">
                         @if (r.Status == ReservationStatus.Reserved)
                         {
-                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CheckInAsync(_userId, r.Id))">@L["Parking_CheckIn"]</FluentButton>
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.ReleaseAsync(_userId, r.Id))">@L["Parking_Release"]</FluentButton>
-                        }
-                        else if (r.Status == ReservationStatus.CheckedIn)
-                        {
-                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.CompleteAsync(_userId, r.Id))">@L["Parking_Complete"]</FluentButton>
                         }
                     </span>
                 </div>
@@ -232,24 +227,13 @@
                     @if (s.TodayState == OwnedSpotDayState.Held)
                     {
                         <span class="today-card__actions">
-                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_Release"]</FluentButton>
                         </span>
                     }
-                    else if (s.TodayState == OwnedSpotDayState.SharedFree)
+                    else if (s.TodayState is OwnedSpotDayState.SharedFree or OwnedSpotDayState.SharedTaken)
                     {
-                        @* Right of first refusal: while nobody booked the shared day, the resident
-                           takes it back — a released day via Reclaim, an auto-shared one by
-                           confirming arrival (either way any waitlist hold is withdrawn). *@
                         <span class="today-card__actions">
-                            @if (s.ReleasedToday)
-                            {
-                                <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="ReclaimOwnedTodayAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
-                            }
-                            else
-                            {
-                                <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => ResidentSpots.ConfirmArrivalAsync(_userId))">@L["Parking_Owned_Confirm"]</FluentButton>
-                            }
+                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="ReclaimOwnedTodayAsync">@L["Parking_Owned_Reclaim"]</FluentButton>
                         </span>
                     }
                 </div>
@@ -258,8 +242,14 @@
             @if (_score is { } sc)
             {
                 <a href="parking/leaderboard" class="today-card today-card--wallet">
-                    <span class="today-card__label">@L["Home_Wallet"]</span>
-                    <span class="today-card__value">@sc.Credits @L["Parking_Credits"] · @sc.Points @L["Parking_Points"]</span>
+                    <span class="today-card__label">@(_creditsEnabled ? L["Home_Wallet"] : L["Parking_MyScore"])</span>
+                    <span class="today-card__value">
+                        @if (_creditsEnabled)
+                        {
+                            @sc.Credits @L["Parking_Credits"] <text> · </text>
+                        }
+                        @sc.Points @L["Parking_Points"]
+                    </span>
                     <span class="today-card__meta">@L["Home_WalletDetail", L[$"Parking_Tier_{sc.Tier}"].Value, sc.CompletionStreak]</span>
                 </a>
             }
@@ -382,6 +372,7 @@
     private QueueEntryDto? _queueEntry;
     private OwnedSpotDto? _ownedSpot;
     private ParkerScoreDto? _score;
+    private bool _creditsEnabled;
     private string OrientationMapUrl => "/api/parking/orientation-map";
 
     protected override async Task OnInitializedAsync()
@@ -418,7 +409,11 @@
             return;
         }
 
-        _tz = await SiteSettings.GetTimeZoneAsync();
+        var timeZone = SiteSettings.GetTimeZoneAsync();
+        var policy = ParkingSettings.GetPolicyAsync();
+        await Task.WhenAll(timeZone, policy);
+        _tz = timeZone.Result;
+        _creditsEnabled = policy.Result.CreditsEnabled;
         await LoadAsync();
     }
 

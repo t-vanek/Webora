@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using D3Parking.Application.Identity;
 using D3Parking.Domain.Accounts;
@@ -22,7 +22,7 @@ public static class ExternalSignInEndpoints
 {
     public const string ChallengePath = "/account/external/challenge";
     public const string CallbackPath = "/account/external/callback";
-    public const string SignOutPath = "/account/external/signout";
+    public const string SignOutPath = "/account/signout";
 
     /// <summary>Where a first-time federated account is sent to be asked for what the token cannot carry.</summary>
     public const string WelcomePath = "/account/welcome";
@@ -151,41 +151,35 @@ public static class ExternalSignInEndpoints
         // next click on "sign in with Microsoft" would sign the same person straight back in with
         // nothing asked — on a shared computer, as whoever used it last.
         //
-        // A POST behind authorization and an antiforgery token, like the sign-out page it replaces
-        // for federated accounts. As a GET this would let any page sign a visitor out by embedding
-        // it — and, with nobody signed in, still bounce an anonymous visitor through the directory's
-        // end-session endpoint and sign them out of Microsoft in that browser.
+        // One POST handles both local and federated sessions. Binding the return URL from the form
+        // attaches ASP.NET Core's antiforgery metadata to this minimal endpoint, so UseAntiforgery
+        // validates the cookie/token pair before the handler can clear either session. As a GET,
+        // another site could sign a visitor out merely by embedding the URL.
         app.MapPost(SignOutPath, async (
+            [FromForm] string? returnUrl,
             HttpContext context,
             SignInManager<ApplicationUser> signInManager,
-            IAntiforgery antiforgery,
             IEntraSettingsService entra) =>
         {
-            try
-            {
-                await antiforgery.ValidateRequestAsync(context);
-            }
-            catch (AntiforgeryValidationException)
-            {
-                // Minimal APIs only get automatic validation when they bind a form, so this is
-                // checked by hand — the same arrangement the notification endpoints use.
-                return Results.LocalRedirect("/logout");
-            }
-
-            // Read before the sign-out below deletes the cookie carrying it.
+            // Read the account kind and token before the sign-out below deletes the cookie. Entra
+            // may be configured for the site while this particular session still belongs to a
+            // local account; only a federated account should visit Microsoft's end-session page.
+            var user = await signInManager.UserManager.GetUserAsync(context.User);
+            var isFederated = user?.IsFederated == true;
             var idToken = await context.GetTokenAsync(
                 IdentityConstants.ApplicationScheme, EntraAuthenticationExtensions.IdTokenName);
 
             await signInManager.SignOutAsync();
+            var destination = Safe(returnUrl);
 
             // Sign-in switched off between issuing the cookie and this click: there is no scheme to
             // redirect to, and the local session is already ended, which is the part that matters.
-            if (!(await entra.GetEffectiveAsync(context.RequestAborted)).IsSignInConfigured)
+            if (!isFederated || !(await entra.GetEffectiveAsync(context.RequestAborted)).IsSignInConfigured)
             {
-                return Results.LocalRedirect("/");
+                return Results.LocalRedirect(destination);
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = "/" };
+            var properties = new AuthenticationProperties { RedirectUri = destination };
             if (!string.IsNullOrEmpty(idToken))
             {
                 properties.Items[EntraAuthenticationExtensions.IdTokenHintItem] = idToken;

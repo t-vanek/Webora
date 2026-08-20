@@ -12,28 +12,27 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Parking_Notify_Reminder_Title" xml:space="preserve"><value>Potvrď příjezd na parkování</value></data>
-  <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Tvá rezervace místa {0} brzy začíná. Potvrď příjezd, nebo místo uvolni pro ostatní – jinak ti propadne jako nedostavení.</value></data>
-  <data name="Parking_Notify_NoShow_Title" xml:space="preserve"><value>Nedostavení k rezervaci</value></data>
-  <data name="Parking_Notify_NoShow_Body" xml:space="preserve"><value>Nepotvrdil(a) jsi příjezd k rezervaci místa {0}, byla označena jako nedostavení a přišel(a) jsi o {1} bodů.</value></data>
-  <data name="Parking_Notify_HoldReminder_Title" xml:space="preserve"><value>Potvrď příjezd na své místo</value></data>
-  <data name="Parking_Notify_HoldReminder_Body" xml:space="preserve"><value>Brzy vyprší držení tvého vyhrazeného místa {0}. Potvrď příjezd, nebo ho uvolni ostatním a získej body.</value></data>
-  <data name="Parking_Notify_ShareWasted_Title" xml:space="preserve"><value>Sdílené místo nikdo nevyužil</value></data>
-  <data name="Parking_Notify_ShareWasted_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd. Vrací se {1} bodů z odměny za sdílení.</value></data>
-  <data name="Parking_Notify_ShareWastedNoPenalty_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes nikdo nevyužil – host nepotvrdil příjezd.</value></data>
+  <data name="Parking_Notify_Reminder_Title" xml:space="preserve"><value>Připomínka parkování</value></data>
+  <data name="Parking_Notify_Reminder_Body" xml:space="preserve"><value>Naplánované parkování na místě {0} brzy začíná. Pokud se tvůj plán změnil, rezervaci zruš a uvolni místo ostatním.</value></data>
   <data name="Parking_Notify_ShareUnused_Title" xml:space="preserve"><value>O sdílené místo nebyl zájem</value></data>
   <data name="Parking_Notify_ShareUnused_Body" xml:space="preserve"><value>O tvé sdílené místo {0} nebyl ten den zájem – nikdo si ho nezarezervoval, proto se vrací {1} bodů z odměny.</value></data>
-  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Měsíční kredit připsán</value></data>
-  <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>Prověřujeme parkovací místo</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Title" xml:space="preserve"><value>Měsíční rozpočet doplněn</value></data>
+  <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>Mrzí nás komplikace s parkováním</value></data>
+  <data name="Parking_Notify_VoucherGranted_Title_NoCredits" xml:space="preserve"><value>Mrzí nás komplikace s parkováním</value></data>
   <data name="Parking_Notify_Availability_Title" xml:space="preserve"><value>Parkoviště je z velké části volné</value></data>
   <data name="Parking_Notify_VisitorBooked_Title" xml:space="preserve"><value>Vaše návštěva má místo</value></data>
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Pro návštěvu {0} je rezervované návštěvnické místo {1}.</value></data>
-  <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>V období {0}–{1} je obsazeno jen ~{2} % míst. Rezervace teď vyjde levně a mimo špičku k ní sbíráte body — vyberte si termín na stránce Rezervace místa.</value></data>
-  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Vaše hlášení o zablokovaném místě jsme přijali a situaci právě prověřujeme. Jako omluva vás po dokončení kontroly čeká kupón na jednu rezervaci zdarma (platí i ve špičce) — dáme vám vědět, jakmile bude připravený k použití.</value></data>
-  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Omluvný kupón je připraven</value></data>
-  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>Kontrola je hotová — vaše hlášení o zablokovaném místě se potvrdilo. Kupón na jednu rezervaci zdarma (i ve špičce) je aktivní: platí 30 dní a uplatníte ho zaškrtnutím při rezervaci.</value></data>
+  <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>V období {0}–{1} je naplánováno jen ~{2} % míst. Teď místo pořídíš s nižší spotřebou rozpočtu a mimo špičku navíc získáš body. Vyber si termín v Rezervaci místa.</value></data>
+  <data name="Parking_Notify_Availability_Body_NoCredits" xml:space="preserve"><value>V období {0}–{1} je naplánováno jen ~{2} % míst. Je vhodný čas naplánovat si parkování; mimo špičku navíc získáš body.</value></data>
+  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>Velice se omlouváme za komplikace se zablokovaným místem. Vaše hlášení právě prověřujeme. Pokud ho potvrdíme, aktivujeme vám jako omluvu kupón na jednu rezervaci zdarma a dáme vám vědět.</value></data>
+  <data name="Parking_Notify_VoucherGranted_Body_NoCredits" xml:space="preserve"><value>Velice se omlouváme za komplikace se zablokovaným místem. Vaše hlášení právě prověřujeme a o výsledku vás budeme informovat.</value></data>
+  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Váš omluvný kupón je připraven</value></data>
+  <data name="Parking_Notify_VoucherApproved_Title_NoCredits" xml:space="preserve"><value>Omlouváme se za způsobené komplikace</value></data>
+  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>Velice se omlouváme za komplikace, které vám zablokované místo způsobilo. Jako omluvu jsme vám aktivovali kupón na jednu rezervaci zdarma, a to i ve špičce. Kupón platí 30 dní a uplatníte ho při rezervaci místa.</value></data>
+  <data name="Parking_Notify_VoucherApproved_Body_NoCredits" xml:space="preserve"><value>Velice se omlouváme za komplikace, které vám zablokované místo způsobilo. Kontrola potvrdila vaše hlášení.</value></data>
   <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>Hlášení se nepodařilo potvrdit</value></data>
-  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>Kontrola vašeho hlášení o zablokovaném místě situaci nepotvrdila, omluvný kupón proto nemůžeme aktivovat. Pokud si myslíte, že jde o omyl, obraťte se na správce parkoviště.</value></data>
+  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>Kontrola tvoje hlášení nepotvrdila, kupón proto nemůžeme aktivovat. Pokud si myslíš, že jde o omyl, obrať se na správce parkoviště.</value></data>
+  <data name="Parking_Notify_VoucherRejected_Body_NoCredits" xml:space="preserve"><value>Kontrola tvoje hlášení o zablokovaném místě nepotvrdila. Pokud si myslíš, že jde o omyl, obrať se na správce parkoviště.</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>Tento e-mail jste dostali, protože máte účet v aplikaci D3Parking a upozornění se týká vašeho parkování.</value></data>
   <data name="Email_Chrome_Settings" xml:space="preserve"><value>Notifikace si můžete nastavit ve svém profilu v aplikaci.</value></data>
   <data name="Email_QueueOffer_Action" xml:space="preserve"><value>Převzít místo</value></data>
@@ -41,44 +40,47 @@
   <data name="Parking_Notify_OfferLapsed_Title" xml:space="preserve"><value>Nabídka vypršela</value></data>
   <data name="Parking_Notify_OfferLapsed_Body" xml:space="preserve"><value>Místo {0} šlo dalšímu v pořadí. Ve frontě zůstáváte, jen na jejím konci.</value></data>
   <data name="Parking_Notify_TierUp_Title" xml:space="preserve"><value>Postoupili jste na úroveň {0}!</value></data>
-  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>Nové výhody: přednost ve frontě, vyšší měsíční příděl kreditů a sleva na cenu rezervace.</value></data>
+  <data name="Parking_Notify_TierUp_Body" xml:space="preserve"><value>Nové výhody: vyšší přednost ve frontě, větší měsíční plánovací rozpočet a nižší cena rezervace.</value></data>
+  <data name="Parking_Notify_TierUp_Body_NoCredits" xml:space="preserve"><value>Nová výhoda: vyšší přednost ve frontě na uvolněná místa.</value></data>
   <data name="Parking_TierName_Bronze" xml:space="preserve"><value>Bronz</value></data>
   <data name="Parking_TierName_Silver" xml:space="preserve"><value>Stříbro</value></data>
   <data name="Parking_TierName_Gold" xml:space="preserve"><value>Zlato</value></data>
   <data name="Parking_TierName_Platinum" xml:space="preserve"><value>Platina</value></data>
-  <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>Na tento měsíc ti bylo připsáno {0} kreditů na rezervace parkování.</value></data>
-  <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Nízký zůstatek kreditu</value></data>
-  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>Zbývá ti jen {0} kreditů – na další rezervaci nemusí stačit. Doplníš je ohleduplným chováním nebo příštím měsíčním přídělem.</value></data>
-  <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Rezervace potvrzena</value></data>
-  <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Rezervace místa {0} je potvrzena. Strženo {1} kreditů.</value></data>
+  <data name="Parking_Notify_MonthlyCredit_Body" xml:space="preserve"><value>Do plánovacího rozpočtu ti bylo připsáno {0} kreditů.</value></data>
+  <data name="Parking_Notify_LowBalance_Title" xml:space="preserve"><value>Dochází plánovací rozpočet</value></data>
+  <data name="Parking_Notify_LowBalance_Body" xml:space="preserve"><value>V plánovacím rozpočtu zbývá {0} kreditů. Na další parkování to nemusí stačit; rozpočet se obnoví s příštím měsíčním přídělem.</value></data>
+  <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Parkování naplánováno</value></data>
+  <data name="Parking_Notify_Reserved_Title_NoCredits" xml:space="preserve"><value>Parkování naplánováno</value></data>
+  <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Místo {0} máš naplánované. Plánovací rozpočet: −{1} kreditů.</value></data>
+  <data name="Parking_Notify_Reserved_Body_NoCredits" xml:space="preserve"><value>Místo {0} máš naplánované.</value></data>
   <data name="Parking_Notify_Badge_Title" xml:space="preserve"><value>Nový odznak!</value></data>
   <data name="Parking_Notify_Badge_Body" xml:space="preserve"><value>Získal(a) jsi odznak „{0}“ na parkovacím žebříčku.</value></data>
   <data name="Parking_BadgeName_ConsiderateColleague" xml:space="preserve"><value>Ohleduplný kolega</value></data>
   <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Šampion mimo špičku</value></data>
   <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Spolehlivý parkovač</value></data>
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Klub stovky</value></data>
-  <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Místo bylo deaktivováno</value></data>
-  <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Místo {0} bylo administrátorem deaktivováno a tvá rezervace na něj může být dotčena. Zkontroluj si rezervace a případně si vyber jiné místo.</value></data>
-  <data name="Parking_Notify_AutoShared_Title" xml:space="preserve"><value>Tvé místo se dnes sdílí</value></data>
-  <data name="Parking_Notify_AutoShared_Body" xml:space="preserve"><value>Nepotvrdil(a) jsi dnes příjezd na své místo {0} do uzávěrky, proto je teď v sdíleném fondu pro ostatní. Příště ho můžeš uvolnit předem a získat za to body.</value></data>
-  <data name="Parking_Notify_AdminCancelled_Title" xml:space="preserve"><value>Tvou rezervaci zrušil správce</value></data>
-  <data name="Parking_Notify_AdminCancelled_Body" xml:space="preserve"><value>Správce parkoviště zrušil tvou rezervaci místa {0} — na místě nastala neshoda, kterou musel řešit ručně. Není to tvoje chyba, proto se ti vrací {1} kreditů v plné výši. Rezervuj si prosím jiné místo.</value></data>
-  <data name="Parking_Notify_AdminMoved_Title" xml:space="preserve"><value>Správce ti přesunul rezervaci</value></data>
-  <data name="Parking_Notify_AdminMoved_Body" xml:space="preserve"><value>Správce parkoviště přesunul tvou rezervaci z místa {0} na místo {1}. Čas i cena zůstávají stejné — jen parkuj na novém místě.</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Parkovací místo bylo deaktivováno</value></data>
+  <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>Správce deaktivoval místo {0}. Zkontroluj své aktivní a budoucí rezervace a případně si naplánuj jiné místo.</value></data>
+  <data name="Parking_Notify_AdminCancelled_Title" xml:space="preserve"><value>Správce zrušil tvůj plán</value></data>
+  <data name="Parking_Notify_AdminCancelled_Body" xml:space="preserve"><value>Správce zrušil tvoje parkování na místě {0}. Není to tvoje chyba a do plánovacího rozpočtu se ti vrací {1} kreditů. Naplánuj si prosím jiné místo.</value></data>
+  <data name="Parking_Notify_AdminCancelled_Body_NoCredits" xml:space="preserve"><value>Správce zrušil tvoje parkování na místě {0}. Není to tvoje chyba. Naplánuj si prosím jiné místo.</value></data>
+  <data name="Parking_Notify_AdminMoved_Title" xml:space="preserve"><value>Správce přesunul tvůj plán</value></data>
+  <data name="Parking_Notify_AdminMoved_Body" xml:space="preserve"><value>Správce přesunul tvoje parkování z místa {0} na místo {1}. Čas ani čerpání rozpočtu se nemění.</value></data>
+  <data name="Parking_Notify_AdminMoved_Body_NoCredits" xml:space="preserve"><value>Správce přesunul tvoje parkování z místa {0} na místo {1}. Čas se nemění.</value></data>
   <data name="Parking_Notify_PlanReleased_Title" xml:space="preserve"><value>Plán uvolnil tvé místo předem</value></data>
-  <data name="Parking_Notify_PlanReleased_Body" xml:space="preserve"><value>Podle tvého plánu využití se místo {0} uvolnilo ostatním na {1} dní dopředu a získáváš {2} bodů. Kterýkoli den si můžeš vzít zpět, dokud si ho nikdo nezarezervoval.</value></data>
-  <data name="Parking_Notify_ShareUsed_Title" xml:space="preserve"><value>Tvé sdílené místo využil kolega</value></data>
-  <data name="Parking_Notify_ShareUsed_Body" xml:space="preserve"><value>Tvé sdílené místo {0} dnes využil jiný uživatel – díky, že ho sdílíš.</value></data>
+  <data name="Parking_Notify_PlanReleased_Body" xml:space="preserve"><value>Podle tvého plánu se místo {0} uvolnilo ostatním na {1} dní a získáváš {2} bodů. Kterýkoli den si můžeš vzít zpět; pokud už ho má kolega, systém mu vrátí kredity a informuje ho.</value></data>
+  <data name="Parking_Notify_PlanReleased_Body_NoCredits" xml:space="preserve"><value>Podle tvého plánu se místo {0} uvolnilo ostatním na {1} dní a získáváš {2} bodů. Kterýkoli den si můžeš vzít zpět; pokud už ho má kolega, systém jeho rezervaci zruší a informuje ho.</value></data>
   <data name="Parking_Notify_ResidentAssigned_Title" xml:space="preserve"><value>Máš nové vyhrazené místo</value></data>
-  <data name="Parking_Notify_ResidentAssigned_Body" xml:space="preserve"><value>Bylo ti přiřazeno vyhrazené místo {0}. Každý den potvrď příjezd, nebo ho uvolni ostatním a získej body.</value></data>
+  <data name="Parking_Notify_ResidentAssigned_Body" xml:space="preserve"><value>Bylo ti přiřazeno vyhrazené místo {0}. Nastav si plán využití; dny, kdy ho nepotřebuješ, můžeš uvolnit ostatním a získat body.</value></data>
   <data name="Parking_Notify_ResidentUnassigned_Title" xml:space="preserve"><value>Vyhrazené místo bylo odebráno</value></data>
   <data name="Parking_Notify_ResidentUnassigned_Body" xml:space="preserve"><value>Tvé vyhrazené místo {0} ti administrátor odebral. Místa si nově rezervuj ze sdíleného fondu.</value></data>
   <data name="Parking_Notify_QueueHoldReclaimed_Title" xml:space="preserve"><value>Držené místo si vzal jeho rezident</value></data>
   <data name="Parking_Notify_QueueHoldReclaimed_Body" xml:space="preserve"><value>Místo {0}, které jsme pro tebe drželi, si vzal zpět jeho rezident — má na něm vždy přednost. Tvé pořadí ve frontě zůstává; jakmile se uvolní další místo, nabídneme ti ho.</value></data>
+  <data name="Parking_Notify_ResidentReclaimed_Title" xml:space="preserve"><value>Rezident si vzal své místo zpět</value></data>
+  <data name="Parking_Notify_ResidentReclaimed_Body" xml:space="preserve"><value>Rezident potřebuje své místo {0} zpět, proto bylo tvoje parkování zrušeno bez sankce. Do plánovacího rozpočtu se ti vrací {1} kreditů; použitý kupón je znovu k dispozici. Naplánuj si prosím jiné místo.</value></data>
+  <data name="Parking_Notify_ResidentReclaimed_Body_NoCredits" xml:space="preserve"><value>Rezident potřebuje své místo {0} zpět, proto bylo tvoje parkování zrušeno bez sankce. Naplánuj si prosím jiné místo.</value></data>
   <data name="Parking_Notify_QueueOffer_Title" xml:space="preserve"><value>Uvolnilo se místo z fronty</value></data>
   <data name="Parking_Notify_QueueOffer_Body" xml:space="preserve"><value>Uvolnilo se místo {0} pro tvé okno z fronty – přidrželi jsme ti ho na {1} minut. Potvrď rezervaci v aplikaci, jinak ho nabídneme dalšímu.</value></data>
-  <data name="Parking_Notify_QueueNoShow_Title" xml:space="preserve"><value>Nedostavení k místu z fronty</value></data>
-  <data name="Parking_Notify_QueueNoShow_Body" xml:space="preserve"><value>Nedostavil(a) ses k místu {0}, které sis převzal(a) z fronty. Tvrdá penalizace: −{1} bodů, −{2} kreditů, dočasný zákaz fronty a snížený příští měsíční příděl.</value></data>
   <data name="Parking_Notify_OversightNew_Title" xml:space="preserve"><value>Naléhavý případ v provozním dohledu</value></data>
   <data name="Parking_Notify_OversightNew_Body" xml:space="preserve"><value>Případ #{0} ({1}) je označený jako naléhavý a čeká na rozhodnutí. Otevři ho v administraci (Provozní dohled).</value></data>
   <data name="Parking_Notify_OversightOverdue_Title" xml:space="preserve"><value>Případ po termínu</value></data>

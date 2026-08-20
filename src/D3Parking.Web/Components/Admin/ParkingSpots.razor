@@ -146,12 +146,6 @@
         <FluentSelect TOption="ParkingSpotOwnershipFilter" Items="@_ownershipFilters"
                       OptionText="OwnershipFilterLabel" @bind-SelectedOption="_ownershipFilter"
                       @bind-SelectedOption:after="FilterAsync" Class="spots-filter" />
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="sweep">
-            <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size20.ArrowSync())"
-                          OnClick="SweepNoShowsAsync" Title="@L["Parking_Admin_SweepHint"]">
-                @L["Parking_Admin_SweepNoShows"]
-            </FluentButton>
-        </AuthorizeView>
     </div>
 
     <div class="spots-results-head">
@@ -175,7 +169,7 @@
     {
         <div class="admin-panel spots-desktop-list">
             <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
-                            GridTemplateColumns="minmax(90px, .8fr) minmax(150px, 1.1fr) minmax(140px, 1.1fr) minmax(100px, .8fr) minmax(240px, 1.7fr) auto">
+                            GridTemplateColumns="minmax(90px, .8fr) minmax(150px, 1.1fr) minmax(140px, 1.1fr) minmax(100px, .8fr) minmax(240px, 1.7fr) minmax(230px, auto)">
                 <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
                 @* The colour-dot pill wraps an inline select, so the type is recognisable at a
                    glance and editable in place — same idiom as the resident column. *@
@@ -214,10 +208,6 @@
                                     <small>@L["Parking_Admin_NoResident"]</small>
                                 </div>
                             </div>
-                            <details class="resident-editor">
-                                <summary>@L["Parking_Admin_AssignResident"]</summary>
-                                @ResidentSelect(context)
-                            </details>
                         }
                         else
                         {
@@ -228,22 +218,24 @@
                                     <small>@L["Parking_Admin_ResidentOfSpot"]</small>
                                 </div>
                             </div>
-                            <details class="resident-editor">
-                                <summary>@L["Parking_Admin_ChangeResident"]</summary>
-                                @ResidentSelect(context)
-                            </details>
                         }
                     </div>
                 </TemplateColumn>
-                <TemplateColumn Align="Align.End">
-                    @if (context.IsActive)
-                    {
-                        <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
-                    }
-                    else
-                    {
-                        <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
-                    }
+                <TemplateColumn Title="@L["Common_Actions"]" Align="Align.End">
+                    <div class="spot-row-actions">
+                        <details class="resident-editor resident-editor--action" name="resident-assignment">
+                            <summary>@L[context.OwnerId is null ? "Parking_Admin_AssignResident" : "Parking_Admin_ChangeResident"]</summary>
+                            @ResidentSelect(context)
+                        </details>
+                        @if (context.IsActive)
+                        {
+                            <FluentButton OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
+                        }
+                        else
+                        {
+                            <FluentButton OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
+                        }
+                    </div>
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
@@ -266,7 +258,7 @@
                         <small>@spot.Notes</small>
                     }
                     <div class="spots-mobile-row__actions">
-                        <details class="resident-editor">
+                        <details class="resident-editor" name="resident-assignment">
                             <summary>@L[spot.OwnerId is null ? "Parking_Admin_AssignResident" : "Parking_Admin_ChangeResident"]</summary>
                             @ResidentSelect(spot)
                         </details>
@@ -569,13 +561,6 @@
         }
 
         await ReloadAsync();
-    }
-
-    private async Task SweepNoShowsAsync()
-    {
-        _error = _info = null;
-        var resolved = await Reservations.SweepNoShowsAsync();
-        _info = string.Format(L["Parking_Admin_SweepResult"], resolved);
     }
 
     private async Task ReloadAsync()

@@ -64,7 +64,7 @@ public class VoucherApprovalTests
         var messages = new PassthroughLocalizer<ParkingMessages>();
 
         _reservations = new ReservationService(factory, parkingSettings, siteSettings, time, _notifications, messages);
-        _spots = new ParkingSpotService(factory, _notifications, siteSettings, time, messages);
+        _spots = new ParkingSpotService(factory, _notifications, parkingSettings, siteSettings, time, messages);
     }
 
     [OneTimeTearDown]

@@ -15,6 +15,7 @@ namespace D3Parking.Infrastructure.Parking;
 public sealed class ParkingSpotService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
     INotificationService notifications,
+    IParkingSettingsService parkingSettings,
     ISiteSettingsService siteSettings,
     TimeProvider timeProvider,
     IStringLocalizer<ParkingMessages> messages) : IParkingSpotService
@@ -34,8 +35,7 @@ public sealed class ParkingSpotService(
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.MonthlyShareAllowance))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
             .ToListAsync(cancellationToken);
         return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
@@ -123,8 +123,7 @@ public sealed class ParkingSpotService(
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.MonthlyShareAllowance))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         // An IN (…) read comes back in whatever order the server finds convenient; put the page back
@@ -156,8 +155,7 @@ public sealed class ParkingSpotService(
             .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId,
                 s.OwnerId == null
                     ? null
-                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.MonthlyShareAllowance))
+                    : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault()))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -730,17 +728,18 @@ public sealed class ParkingSpotService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         if (approve)
         {
             await notifications.NotifyAsync(voucher.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
-                messages["Parking_Notify_VoucherApproved_Title"],
-                messages["Parking_Notify_VoucherApproved_Body"], cancellationToken);
+                messages.ForEconomy(policy, "Parking_Notify_VoucherApproved_Title"),
+                messages.ForEconomy(policy, "Parking_Notify_VoucherApproved_Body"), cancellationToken);
         }
         else
         {
             await notifications.NotifyAsync(voucher.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
                 messages["Parking_Notify_VoucherRejected_Title"],
-                messages["Parking_Notify_VoucherRejected_Body"], cancellationToken);
+                messages.ForEconomy(policy, "Parking_Notify_VoucherRejected_Body"), cancellationToken);
         }
 
         return ParkingResult.Success;

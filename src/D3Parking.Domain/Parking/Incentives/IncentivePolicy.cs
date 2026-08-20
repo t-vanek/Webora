@@ -13,18 +13,18 @@ public sealed record IncentivePolicy
     public int ReleasePoints { get; init; } = 10;
 
     /// <summary>Points awarded for booking outside the peak window.</summary>
-    public int OffPeakBonusPoints { get; init; } = 5;
+    public int OffPeakBonusPoints { get; init; }
 
     /// <summary>Points deducted for a no-show (stored positive, applied as a deduction).</summary>
-    public int NoShowPenaltyPoints { get; init; } = 20;
+    public int NoShowPenaltyPoints { get; init; }
 
     /// <summary>How far ahead of the start a release must happen to earn the reward.</summary>
     public TimeSpan ReleaseCutoff { get; init; } = TimeSpan.FromHours(1);
 
     /// <summary>Grace period after the start before an un-used reservation becomes a no-show.</summary>
-    public TimeSpan NoShowGracePeriod { get; init; } = TimeSpan.FromMinutes(30);
+    public TimeSpan NoShowGracePeriod { get; init; }
 
-    /// <summary>How long before the start to remind the holder to confirm arrival or release.</summary>
+    /// <summary>How long before the planned start to remind the holder about the reservation.</summary>
     public TimeSpan ReminderLeadTime { get; init; } = TimeSpan.FromMinutes(5);
 
     /// <summary>Start of the daily high-demand window (local time of the reservation).</summary>
@@ -42,11 +42,11 @@ public sealed record IncentivePolicy
     /// <summary>Cap on the advance-notice part of a resident's release reward.</summary>
     public int ResidentReleaseMaxPoints { get; init; } = 40;
 
-    /// <summary>Largest monthly share allowance a resident may set on their spot.</summary>
-    public int ResidentMaxShareAllowance { get; init; } = 30;
+    /// <summary>Legacy setting retained for reading older configuration rows.</summary>
+    public int ResidentMaxShareAllowance { get; init; }
 
-    /// <summary>Extra percent added to the release reward multiplier per allowed monthly share.</summary>
-    public int ResidentSharePercentPerAllowance { get; init; } = 5;
+    /// <summary>Legacy setting retained for reading older configuration rows.</summary>
+    public int ResidentSharePercentPerAllowance { get; init; }
 
     /// <summary>Percent of a share's reward the resident gives back when the guest no-shows on it.</summary>
     public int ResidentWastedShareClawbackPercent { get; init; } = 25;
@@ -58,7 +58,7 @@ public sealed record IncentivePolicy
     public int ResidentPlanHorizonDays { get; init; } = 14;
 
     /// <summary>Base points for taking a shared reserved spot, before the distance multiplier.</summary>
-    public int SharedTakenBasePoints { get; init; } = 5;
+    public int SharedTakenBasePoints { get; init; }
 
     /// <summary>Commute distance (km) at which the distance multiplier reaches 1.0.</summary>
     public int SharedTakenReferenceKm { get; init; } = 10;
@@ -81,6 +81,13 @@ public sealed record IncentivePolicy
     /// <summary>Base credit cost to book a spot off-peak in an empty lot, before peak/occupancy surcharges.</summary>
     public int BaseReservationCost { get; init; } = 10;
 
+    /// <summary>
+    /// Whether the parking economy is enabled. A zero base cost is the persisted switch used by
+    /// administration; keeping the interpretation here gives UI, pricing and notifications one
+    /// source of truth without adding a second setting that could disagree with the price.
+    /// </summary>
+    public bool CreditsEnabled => BaseReservationCost > 0;
+
     /// <summary>Percent of the base cost charged during the peak window (200 = double the off-peak price).</summary>
     public int PeakPricePercent { get; init; } = 200;
 
@@ -97,16 +104,16 @@ public sealed record IncentivePolicy
     public int QueueOfferMinutes { get; init; } = 15;
 
     /// <summary>Reputation points deducted for a no-show on a spot claimed from the waitlist (harsher than a normal no-show).</summary>
-    public int QueueNoShowPenaltyPoints { get; init; } = 50;
+    public int QueueNoShowPenaltyPoints { get; init; }
 
     /// <summary>Extra credits fined from the wallet for a no-show on a spot claimed from the waitlist.</summary>
-    public int QueueNoShowCreditPenalty { get; init; } = 30;
+    public int QueueNoShowCreditPenalty { get; init; }
 
     /// <summary>Days the user is barred from the waitlist after a no-show on a spot claimed from it.</summary>
-    public int QueueNoShowBanDays { get; init; } = 14;
+    public int QueueNoShowBanDays { get; init; }
 
     /// <summary>Credits cut from the user's next monthly allowance after a waitlist-claim no-show.</summary>
-    public int QueueNoShowAllowancePenalty { get; init; } = 30;
+    public int QueueNoShowAllowancePenalty { get; init; }
 
     /// <summary>Extra percent added to the release reward at full occupancy (mirrors the occupancy price surcharge).</summary>
     public int DemandReleaseOccupancyPercent { get; init; } = 100;
@@ -118,10 +125,10 @@ public sealed record IncentivePolicy
     public int MaxReleaseReward { get; init; } = 40;
 
     /// <summary>Points/credits added per consecutive completion (streak), rewarding reliability.</summary>
-    public int StreakBonusPerLevel { get; init; } = 2;
+    public int StreakBonusPerLevel { get; init; }
 
     /// <summary>Cap on a single streak bonus, so an endless run doesn't pay unboundedly.</summary>
-    public int StreakBonusCap { get; init; } = 20;
+    public int StreakBonusCap { get; init; }
 
     /// <summary>Reputation points needed to reach the Silver loyalty tier.</summary>
     public int TierSilverPoints { get; init; } = 50;
@@ -288,16 +295,12 @@ public sealed record IncentivePolicy
         (int)Math.Round(awardedPoints * Math.Clamp(ResidentWastedShareClawbackPercent, 0, 100) / 100.0, MidpointRounding.AwayFromZero);
 
     /// <summary>
-    /// Points for a proactive resident release: an advance-notice bonus (earlier = more, capped)
-    /// scaled by a multiplier that grows with the resident's monthly share allowance.
+    /// Points for a proactive resident release: an advance-notice bonus (earlier = more, capped).
     /// </summary>
-    public int ComputeShareReward(DateTimeOffset shareCutoff, DateTimeOffset releasedAt, int monthlyAllowance)
+    public int ComputeShareReward(DateTimeOffset shareCutoff, DateTimeOffset releasedAt)
     {
         var hoursEarly = Math.Max(0d, (shareCutoff - releasedAt).TotalHours);
-        var earlyBonus = Math.Min(ResidentReleaseMaxPoints, (int)Math.Ceiling(hoursEarly) * ResidentReleasePointsPerHour);
-        var allowance = Math.Clamp(monthlyAllowance, 0, ResidentMaxShareAllowance);
-        var multiplier = 1.0 + allowance * ResidentSharePercentPerAllowance / 100.0;
-        return (int)Math.Round(earlyBonus * multiplier, MidpointRounding.AwayFromZero);
+        return Math.Min(ResidentReleaseMaxPoints, (int)Math.Ceiling(hoursEarly) * ResidentReleasePointsPerHour);
     }
 
     /// <summary>
@@ -352,10 +355,6 @@ public sealed record IncentivePolicy
     /// <summary>The instant on a given local day after which an unclaimed reserved spot auto-shares.</summary>
     public DateTimeOffset ResidentShareCutoff(DateOnly date, TimeZoneInfo timeZone) =>
         SiteTime.At(date, ResidentHoldUntil, timeZone) + NoShowGracePeriod;
-
-    /// <summary>Whether a reserved spot for the requested day has auto-shared: today and past cutoff.</summary>
-    public bool IsResidentAutoShareActive(DateOnly requestDate, DateTimeOffset now, TimeZoneInfo timeZone) =>
-        requestDate == SiteTime.Today(now, timeZone) && now >= ResidentShareCutoff(requestDate, timeZone);
 
     /// <summary>
     /// The last day a usage plan reaches: the configured horizon, never past what a single manual

@@ -59,7 +59,7 @@ public static class DependencyInjection
         services.ConfigureApplicationCookie(options =>
         {
             options.LoginPath = "/login";
-            options.LogoutPath = "/logout";
+            options.LogoutPath = ExternalSignInEndpoints.SignOutPath;
             options.AccessDeniedPath = "/access-denied";
 
             // API and SignalR clients need real status codes. The default login redirect surfaces

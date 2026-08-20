@@ -1,5 +1,6 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IIncentiveService Incentives
+@inject IParkingSettingsService ParkingSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -8,9 +9,19 @@
     @* The tier collapsed from a text chip to a colour-coded dot; the full tier name stays in the
        tooltip and, larger, on the leaderboard this chip links to. *@
     <a href="parking/leaderboard" class="wallet-chip"
-       title="@($"{L["Parking_MyCredits"]} — {L[$"Parking_Tier_{_score.Tier}"]}")">
-        <FluentIcon Value="@(new Icons.Regular.Size16.Wallet())" Color="Color.Custom" CustomColor="currentColor" />
-        <span class="wallet-chip__credits">@_score.Credits <small>@L["Parking_Credits"]</small></span>
+       title="@($"{(_creditsEnabled ? L["Parking_MyCredits"] : L["Parking_MyScore"])} — {L[$"Parking_Tier_{_score.Tier}"]}")">
+        @if (_creditsEnabled)
+        {
+            <FluentIcon Value="@(new Icons.Regular.Size16.Wallet())" Color="Color.Custom" CustomColor="currentColor" />
+        }
+        else
+        {
+            <FluentIcon Value="@(new Icons.Regular.Size16.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
+        }
+        <span class="wallet-chip__credits">
+            @(_creditsEnabled ? _score.Credits : _score.Points)
+            <small>@(_creditsEnabled ? L["Parking_Credits"] : L["Parking_Points"])</small>
+        </span>
         <span class="wallet-chip__dot wallet-chip__dot--@_score.Tier" aria-hidden="true"></span>
     </a>
 }
@@ -19,6 +30,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private ParkerScoreDto? _score;
+    private bool _creditsEnabled;
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,7 +52,11 @@
         // own pooled context and is safe to call concurrently.
         if (Guid.TryParse(UserManager.GetUserId(authUser), out var userId))
         {
-            _score = await Incentives.GetScoreAsync(userId);
+            var score = Incentives.GetScoreAsync(userId);
+            var policy = ParkingSettings.GetPolicyAsync();
+            await Task.WhenAll(score, policy);
+            _score = score.Result;
+            _creditsEnabled = policy.Result.CreditsEnabled;
         }
     }
 }

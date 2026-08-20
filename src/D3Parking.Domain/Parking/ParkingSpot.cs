@@ -18,7 +18,10 @@ public class ParkingSpot : Entity
     /// <summary>The resident this spot is reserved for, or null when it is a shared pool spot.</summary>
     public Guid? OwnerId { get; private set; }
 
-    /// <summary>How many times a month the resident is willing to share the spot; scales the reward.</summary>
+    /// <summary>
+    /// Legacy persisted value retained while older databases are upgraded. It no longer limits
+    /// releases or changes their reward and is reset to zero by the planner migration.
+    /// </summary>
     public int MonthlyShareAllowance { get; private set; }
 
     /// <summary>The day the resident was last reminded to confirm arrival, so it is sent once a day.</summary>
@@ -83,6 +86,7 @@ public class ParkingSpot : Entity
         }
     }
 
+    /// <summary>Compatibility hook for legacy data and migration regression tests only.</summary>
     public void SetShareAllowance(int allowance) => MonthlyShareAllowance = allowance < 0 ? 0 : allowance;
 
     /// <summary>

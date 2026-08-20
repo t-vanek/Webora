@@ -85,12 +85,13 @@ public class OversightCaseTests
         var notifications = new RecordingNotificationService();
         var messages = new PassthroughLocalizer<ParkingMessages>();
         var siteSettings = new FakeSiteSettings();
+        var parkingSettings = new FakeParkingSettings(IncentivePolicy.Default);
 
         _notifications = notifications;
-        var spots = new ParkingSpotService(factory, notifications, siteSettings, _clock, messages);
+        var spots = new ParkingSpotService(factory, notifications, parkingSettings, siteSettings, _clock, messages);
         _collusion = new CollusionService(factory, _clock);
         _reservations = new ReservationService(
-            factory, new FakeParkingSettings(IncentivePolicy.Default), siteSettings, _clock, notifications, messages);
+            factory, parkingSettings, siteSettings, _clock, notifications, messages);
         _oversight = new OversightService(factory, spots, _collusion, siteSettings, notifications, messages, _clock);
     }
 

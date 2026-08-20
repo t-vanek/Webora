@@ -4,6 +4,7 @@ using D3Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace D3Parking.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D3ParkingDbContext))]
-    partial class D3ParkingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820064820_ConvertReservationsToPlanner")]
+    partial class ConvertReservationsToPlanner
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -690,8 +693,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Reason", "OccurredAtUtc");
-
                     b.HasIndex("UserId", "OccurredAtUtc");
 
                     b.ToTable("PointsLedgerEntries", (string)null);
@@ -1258,9 +1259,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Status", "CreatedAtUtc");
 
-                    b.HasIndex("Status", "StartUtc")
-                        .HasAnnotation("SqlServer:Include", new[] { "EndUtc", "OfferedSpotId", "OfferExpiresAtUtc" });
-
                     b.HasIndex("UserId", "Status");
 
                     b.ToTable("QueueEntries", (string)null);
@@ -1322,13 +1320,7 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Status");
 
-                    b.HasIndex("Status", "StartUtc")
-                        .HasAnnotation("SqlServer:Include", new[] { "EndUtc", "SpotId", "UserId" });
-
                     b.HasIndex("SpotId", "StartUtc");
-
-                    b.HasIndex("UserId", "Status", "StartUtc")
-                        .HasAnnotation("SqlServer:Include", new[] { "EndUtc" });
 
                     b.HasIndex("UserId", "StartUtc");
 

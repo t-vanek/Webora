@@ -2,19 +2,19 @@ namespace D3Parking.Domain.Parking;
 
 public enum ReservationStatus
 {
-    /// <summary>Booked but not yet used.</summary>
+    /// <summary>A planned time window. It becomes history by time, without a presence action.</summary>
     Reserved,
 
-    /// <summary>The holder has arrived and occupies the spot.</summary>
+    /// <summary>Legacy status retained so reservations created before the planner migration remain readable.</summary>
     CheckedIn,
 
-    /// <summary>The visit finished normally after check-in.</summary>
+    /// <summary>Legacy status retained so reservations created before the planner migration remain readable.</summary>
     Completed,
 
     /// <summary>Given up ahead of time, freeing the spot for others (rewarded).</summary>
     Released,
 
-    /// <summary>The holder never checked in and never released (penalized).</summary>
+    /// <summary>Legacy status retained for historical reports; the planner never creates it.</summary>
     NoShow,
 
     /// <summary>Called off without qualifying as an early release (e.g. too late, or by an admin).</summary>

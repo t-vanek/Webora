@@ -30,12 +30,15 @@ public sealed class CollusionService(
             return 0;
         }
 
+        // The detector consumes pair totals, not individual reservations. Aggregate before data
+        // leaves SQL so a long-running lot does not allocate its entire booking history every run.
         var transactions = await (
             from r in dbContext.Reservations.AsNoTracking()
             where r.Status == ReservationStatus.Completed
             join s in dbContext.ParkingSpots on r.SpotId equals s.Id
             where s.OwnerId != null && s.OwnerId != r.UserId
-            select new { Owner = s.OwnerId!.Value, Guest = r.UserId })
+            group r by new { Owner = s.OwnerId!.Value, Guest = r.UserId } into g
+            select new CompletedSharePair(g.Key.Owner, g.Key.Guest, g.Count()))
             .ToListAsync(cancellationToken);
 
         settings.MarkCollusionScanned(now);
@@ -50,10 +53,10 @@ public sealed class CollusionService(
         var mutual = new Dictionary<(Guid, Guid), int>();
         foreach (var t in transactions)
         {
-            total[t.Owner] = total.GetValueOrDefault(t.Owner) + 1;
-            total[t.Guest] = total.GetValueOrDefault(t.Guest) + 1;
+            total[t.Owner] = total.GetValueOrDefault(t.Owner) + t.Count;
+            total[t.Guest] = total.GetValueOrDefault(t.Guest) + t.Count;
             var key = CollusionFlag.Key(t.Owner, t.Guest);
-            mutual[key] = mutual.GetValueOrDefault(key) + 1;
+            mutual[key] = mutual.GetValueOrDefault(key) + t.Count;
         }
 
         var existing = (await dbContext.CollusionFlags.ToListAsync(cancellationToken))

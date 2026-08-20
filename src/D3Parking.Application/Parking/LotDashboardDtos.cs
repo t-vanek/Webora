@@ -162,7 +162,6 @@ public sealed record SpotDetailDto(
     string? Notes,
     Guid? OwnerId,
     string? OwnerName,
-    int MonthlyShareAllowance,
     Weekday PlannedUseDays,
     bool AutoReleaseUnplannedDays,
     SpotBoardState State,

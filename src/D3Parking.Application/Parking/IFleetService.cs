@@ -15,6 +15,14 @@ public interface IFleetService
 {
     Task<IReadOnlyList<CompanyVehicleDto>> ListAsync(CancellationToken cancellationToken = default);
 
+    Task<PagedResult<CompanyVehicleDto>> ListAdminPageAsync(
+        FleetVehicleListQuery filter,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<FleetDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default);
+
     Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);
 
     Task<ParkingResult> UpdateAsync(Guid id, string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default);

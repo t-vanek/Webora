@@ -26,4 +26,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="D3Parking.Application.Tests" />
+  </ItemGroup>
+
 </Project>

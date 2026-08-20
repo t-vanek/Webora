@@ -119,6 +119,12 @@ internal sealed class NullFleetService : IFleetService
     public Task<IReadOnlyList<CompanyVehicleDto>> ListAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<CompanyVehicleDto>>([]);
 
+    public Task<PagedResult<CompanyVehicleDto>> ListAdminPageAsync(FleetVehicleListQuery filter, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
+        Task.FromResult(PagedResult<CompanyVehicleDto>.Empty(Math.Clamp(pageSize, 1, 100)));
+
+    public Task<FleetDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(FleetDirectorySummary.Empty);
+
     public Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
         Task.FromResult(ParkingResult.Success);
 
@@ -155,6 +161,12 @@ internal sealed class NullFleetService : IFleetService
 internal sealed class RecordingNotificationService : INotificationService
 {
     public List<(Guid UserId, string Title)> Sent { get; } = [];
+
+    public Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default)
+    {
+        Sent.AddRange(requests.Select(request => (request.UserId, request.Title)));
+        return Task.FromResult(requests.Count);
+    }
 
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default)
     {
@@ -202,6 +214,9 @@ internal sealed class RecordingNotificationService : INotificationService
 
 internal sealed class NullNotificationService : INotificationService
 {
+    public Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default) =>
+        Task.FromResult(requests.Count);
+
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default) => Task.CompletedTask;

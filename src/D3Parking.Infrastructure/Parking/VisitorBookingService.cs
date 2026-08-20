@@ -46,7 +46,7 @@ public sealed class VisitorBookingService(
 
         var free = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.IsActive && s.Type == ParkingSpotType.Visitor && !taken.Contains(s.Id))
-            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null, s.MonthlyShareAllowance))
+            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null))
             .ToListAsync(cancellationToken);
         return free.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }

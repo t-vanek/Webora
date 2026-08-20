@@ -41,7 +41,10 @@
                     <div class="hero__points"><strong>@_score.Points</strong> <span>@L["Parking_Points"]</span></div>
 
                     <div class="hero__chips">
-                        <span class="balance-chip balance-chip--ok">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</span>
+                        @if (_policy?.CreditsEnabled == true)
+                        {
+                            <span class="balance-chip balance-chip--ok">@L["Parking_MyCredits"]: <strong>@_score.Credits</strong> @L["Parking_Credits"]</span>
+                        }
                         <span class="pill pill--type">@L["Parking_MyStreak"]: @_score.CompletionStreak</span>
                     </div>
 

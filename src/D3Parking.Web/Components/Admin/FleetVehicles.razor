@@ -1,6 +1,7 @@
 @page "/admin/parking/fleet"
 @attribute [HasPermission(Permissions.Parking.ManageFleet)]
 @rendermode InteractiveServer
+@implements IDisposable
 @inject IFleetService Fleet
 @inject IParkingSpotService Spots
 @inject IUserAdminService UserAdmin
@@ -30,7 +31,7 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
     }
 
-    @if (_vehicles is null)
+    @if (_vehicles is null || _summary is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
@@ -47,23 +48,25 @@
             <label class="lot-search fleet-search" for="fleet-search">
                 <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Color="Color.Custom" CustomColor="currentColor" />
                 <input id="fleet-search" type="search" placeholder="@L["Fleet_Filter_Search"]"
-                       @bind="_search" @bind:event="oninput" />
+                       value="@_search" @oninput="OnSearchInputAsync" />
             </label>
-            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Type"]" @bind="_typeFilter">
+            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Type"]"
+                    value="@_typeFilter" @onchange="OnTypeFilterChangedAsync">
                 <option value="">@L["Fleet_Filter_AllTypes"]</option>
                 @foreach (var type in _vehicleTypes)
                 {
                     <option value="@type">@L[$"Fleet_Type_{type}"]</option>
                 }
             </select>
-            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Parking"]" @bind="_parkingFilter">
+            <select class="parking-input fleet-filter" aria-label="@L["Fleet_Filter_Parking"]"
+                    value="@_parkingFilter" @onchange="OnParkingFilterChangedAsync">
                 <option value="">@L["Fleet_Filter_AllParking"]</option>
                 <option value="assigned">@L["Fleet_Filter_Assigned"]</option>
                 <option value="unassigned">@L["Fleet_Filter_Unassigned"]</option>
             </select>
             @if (HasActiveFilters)
             {
-                <button type="button" class="lot-clear-filter" @onclick="ClearFilters">@L["Fleet_Filter_Clear"]</button>
+                <button type="button" class="lot-clear-filter" @onclick="ClearFiltersAsync">@L["Fleet_Filter_Clear"]</button>
             }
         </section>
 
@@ -76,25 +79,25 @@
         </div>
 
         <div class="fleet-results-head">
-            <span>@L["Fleet_Filter_ResultCount", FilteredVehicles.Count]</span>
+            <span aria-live="polite">@L["Fleet_Filter_ResultCount", _totalCount]</span>
             <span>@ActiveViewDescription</span>
         </div>
 
         <div class="fleet-workspace @(SideOpen ? "has-side" : null)">
             <div class="fleet-registry">
-                @if (_vehicles.Count == 0)
+                @if (_summary.TotalCount == 0)
                 {
                     <div class="fleet-empty">
                         <strong>@L["Fleet_Admin_NoVehicles"]</strong>
                         <FluentButton Appearance="Appearance.Accent" OnClick="BeginCreateAsync">@L["Fleet_Admin_AddTitle"]</FluentButton>
                     </div>
                 }
-                else if (FilteredVehicles.Count == 0)
+                else if (_totalCount == 0)
                 {
                     <div class="fleet-empty">
                         <strong>@L["Fleet_Filter_EmptyTitle"]</strong>
                         <span>@L["Fleet_Filter_EmptyText"]</span>
-                        <FluentButton Appearance="Appearance.Outline" OnClick="ClearFilters">@L["Fleet_Filter_Clear"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="ClearFiltersAsync">@L["Fleet_Filter_Clear"]</FluentButton>
                     </div>
                 }
                 else
@@ -112,7 +115,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var vehicle in FilteredVehicles)
+                                @foreach (var vehicle in _vehicles)
                                 {
                                     var pill = StatePill(vehicle);
                                     <tr class="@(_selected?.Id == vehicle.Id ? "is-selected" : null)">
@@ -153,6 +156,16 @@
                             </tbody>
                         </table>
                     </div>
+                    @if (PageCount > 1)
+                    {
+                        <div class="pager" aria-label="@L["Fleet_Pagination_Label"]">
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
+                                          OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
+                            <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex >= PageCount - 1)"
+                                          OnClick="() => GoToPageAsync(_pageIndex + 1)">@L["Common_NextPage"]</FluentButton>
+                        </div>
+                    }
                 }
             </div>
 
@@ -327,8 +340,10 @@
     private const string FleetViewAction = "action";
     private const string FleetViewManual = "manual";
     private const string FleetViewInactive = "inactive";
+    private const int PageSize = 25;
 
     private IReadOnlyList<CompanyVehicleDto>? _vehicles;
+    private FleetDirectorySummary? _summary;
     private IReadOnlyList<ParkingSpotDto> _spots = [];
     private IReadOnlyList<UserSummary> _users = [];
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
@@ -337,6 +352,9 @@
     private string _typeFilter = string.Empty;
     private string _parkingFilter = string.Empty;
     private string _view = FleetViewActive;
+    private int _pageIndex;
+    private int _totalCount;
+    private CancellationTokenSource? _searchDebounce;
 
     private CompanyVehicleDto? _selected;
     private CompanyVehicleDto? _editing;
@@ -360,28 +378,15 @@
     private string? _error;
     private string? _info;
 
-    private int ActiveVehicleCount => _vehicles?.Count(v => v.IsActive) ?? 0;
-    private int InactiveVehicleCount => _vehicles?.Count(v => !v.IsActive) ?? 0;
-    private int PairedVehicleCount => _vehicles?.Count(v => v.IsActive && v.PairingState == FleetPairingState.Paired) ?? 0;
-    private int ManualVehicleCount => _vehicles?.Count(v => v.IsActive && v.PairingState == FleetPairingState.ManualOnly) ?? 0;
-    private int ActionVehicleCount => _vehicles?.Count(RequiresAdminAction) ?? 0;
-    private int AssignedSpotCount => _vehicles?.Count(v => v.IsActive && v.AssignedSpotId is not null) ?? 0;
+    private int ActiveVehicleCount => _summary?.ActiveCount ?? 0;
+    private int InactiveVehicleCount => _summary?.InactiveCount ?? 0;
+    private int PairedVehicleCount => _summary?.PairedCount ?? 0;
+    private int ManualVehicleCount => _summary?.ManualCount ?? 0;
+    private int ActionVehicleCount => _summary?.ActionCount ?? 0;
+    private int AssignedSpotCount => _summary?.AssignedSpotCount ?? 0;
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)PageSize));
     private bool SideOpen => _editorOpen || _selected is not null;
     private bool HasActiveFilters => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_typeFilter) || !string.IsNullOrEmpty(_parkingFilter);
-
-    private List<CompanyVehicleDto> FilteredVehicles => (_vehicles ?? [])
-        .Where(MatchesView)
-        .Where(MatchesSearch)
-        .Where(v => string.IsNullOrEmpty(_typeFilter) || v.Type.ToString() == _typeFilter)
-        .Where(v => _parkingFilter switch
-        {
-            "assigned" => v.AssignedSpotId is not null,
-            "unassigned" => v.AssignedSpotId is null,
-            _ => true,
-        })
-        .OrderBy(FleetPriority)
-        .ThenBy(v => v.Plate, StringComparer.CurrentCultureIgnoreCase)
-        .ToList();
 
     private string ActiveViewDescription => _view switch
     {
@@ -413,45 +418,6 @@
     {
         _tz = await SiteSettings.GetTimeZoneAsync();
         await ReloadAsync();
-    }
-
-    private static bool RequiresAdminAction(CompanyVehicleDto vehicle) => vehicle.IsActive && vehicle.PairingState is
-        FleetPairingState.ManualOnly or FleetPairingState.NoAccount or FleetPairingState.PlateMissing or FleetPairingState.Locked;
-
-    private static int FleetPriority(CompanyVehicleDto vehicle) => vehicle.PairingState switch
-    {
-        FleetPairingState.Locked => 0,
-        FleetPairingState.NoAccount => 1,
-        FleetPairingState.PlateMissing => 2,
-        FleetPairingState.ManualOnly => 3,
-        FleetPairingState.CodeSent => 4,
-        FleetPairingState.ReadyToPair => 5,
-        FleetPairingState.Paired => 6,
-        _ => 7,
-    };
-
-    private bool MatchesView(CompanyVehicleDto vehicle) => _view switch
-    {
-        FleetViewPaired => vehicle.IsActive && vehicle.PairingState == FleetPairingState.Paired,
-        FleetViewAction => RequiresAdminAction(vehicle),
-        FleetViewManual => vehicle.IsActive && vehicle.PairingState == FleetPairingState.ManualOnly,
-        FleetViewInactive => !vehicle.IsActive,
-        _ => vehicle.IsActive,
-    };
-
-    private bool MatchesSearch(CompanyVehicleDto vehicle)
-    {
-        if (string.IsNullOrWhiteSpace(_search))
-        {
-            return true;
-        }
-
-        var search = _search.Trim();
-        return vehicle.Plate.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||
-               (vehicle.Name?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
-               (vehicle.DriverEmail?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
-               (vehicle.PairedUserName?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
-               (vehicle.SpotCode?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false);
     }
 
     private string Fmt(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, _tz).ToString("g");
@@ -518,21 +484,71 @@
         return user is null ? id : string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} · {user.Email}";
     }
 
-    private bool SpotAvailableForEditor(Guid spotId) => _vehicles?.All(v =>
-        v.AssignedSpotId != spotId || v.Id == _editing?.Id) ?? true;
+    private bool SpotAvailableForEditor(Guid spotId) =>
+        !(_summary?.AssignedSpotIds.Contains(spotId) ?? false) || _editing?.AssignedSpotId == spotId;
 
-    private void SetView(string view)
+    private async Task SetViewAsync(string view)
     {
         _view = view;
         _selected = null;
         _pairingOpen = false;
+        await ApplyFiltersAsync();
     }
 
-    private void ClearFilters()
+    private async Task ClearFiltersAsync()
     {
+        CancelSearchDebounce();
         _search = null;
         _typeFilter = string.Empty;
         _parkingFilter = string.Empty;
+        await ApplyFiltersAsync();
+    }
+
+    private async Task OnSearchInputAsync(ChangeEventArgs args)
+    {
+        _search = args.Value?.ToString();
+        CancelSearchDebounce();
+        var debounce = _searchDebounce = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, debounce.Token);
+            await ApplyFiltersAsync(debounce.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer keystroke owns the next query.
+        }
+    }
+
+    private async Task OnTypeFilterChangedAsync(ChangeEventArgs args)
+    {
+        CancelSearchDebounce();
+        _typeFilter = args.Value?.ToString() ?? string.Empty;
+        await ApplyFiltersAsync();
+    }
+
+    private async Task OnParkingFilterChangedAsync(ChangeEventArgs args)
+    {
+        CancelSearchDebounce();
+        _parkingFilter = args.Value?.ToString() ?? string.Empty;
+        await ApplyFiltersAsync();
+    }
+
+    private async Task ApplyFiltersAsync(CancellationToken cancellationToken = default)
+    {
+        _pageIndex = 0;
+        _selected = null;
+        _pairingOpen = false;
+        await LoadPageAsync(cancellationToken);
+    }
+
+    private async Task GoToPageAsync(int pageIndex)
+    {
+        CancelSearchDebounce();
+        _pageIndex = Math.Clamp(pageIndex, 0, PageCount - 1);
+        _selected = null;
+        _pairingOpen = false;
+        await LoadPageAsync();
     }
 
     private void SelectVehicle(CompanyVehicleDto vehicle)
@@ -794,14 +810,54 @@
         _formSpotId = string.Empty;
     }
 
-    private async Task ReloadAsync()
+    private async Task ReloadAsync(CancellationToken cancellationToken = default)
+    {
+        var summaryTask = Fleet.GetAdminSummaryAsync(cancellationToken);
+        var pageTask = Fleet.ListAdminPageAsync(CurrentFilter(), _pageIndex, PageSize, cancellationToken);
+        await Task.WhenAll(summaryTask, pageTask);
+
+        _summary = await summaryTask;
+        ApplyPage(await pageTask);
+    }
+
+    private async Task LoadPageAsync(CancellationToken cancellationToken = default)
+    {
+        var page = await Fleet.ListAdminPageAsync(CurrentFilter(), _pageIndex, PageSize, cancellationToken);
+        ApplyPage(page);
+    }
+
+    private void ApplyPage(PagedResult<CompanyVehicleDto> page)
     {
         var selectedId = _selected?.Id;
-        _vehicles = await Fleet.ListAsync();
-        if (selectedId is { } id)
+        _vehicles = page.Items;
+        _totalCount = page.TotalCount;
+        _pageIndex = page.PageIndex;
+        _selected = selectedId is { } id ? _vehicles.FirstOrDefault(v => v.Id == id) : null;
+    }
+
+    private FleetVehicleListQuery CurrentFilter() => new(
+        Search: _search,
+        Type: Enum.TryParse<VehicleType>(_typeFilter, out var type) ? type : null,
+        Parking: _parkingFilter switch
         {
-            _selected = _vehicles.FirstOrDefault(v => v.Id == id);
-        }
+            "assigned" => FleetParkingAssignmentFilter.Assigned,
+            "unassigned" => FleetParkingAssignmentFilter.Unassigned,
+            _ => FleetParkingAssignmentFilter.All,
+        },
+        State: _view switch
+        {
+            FleetViewPaired => FleetVehicleStateFilter.Paired,
+            FleetViewAction => FleetVehicleStateFilter.ActionRequired,
+            FleetViewManual => FleetVehicleStateFilter.ManualOnly,
+            FleetViewInactive => FleetVehicleStateFilter.Inactive,
+            _ => FleetVehicleStateFilter.Active,
+        });
+
+    private void CancelSearchDebounce()
+    {
+        _searchDebounce?.Cancel();
+        _searchDebounce?.Dispose();
+        _searchDebounce = null;
     }
 
     private RenderFragment FleetMetric(string label, int value, string tone) => __builder =>
@@ -815,7 +871,7 @@
     private RenderFragment FleetViewButton(string view, string label, int count) => __builder =>
     {
         <button type="button" class="fleet-state-filter @(_view == view ? "is-selected" : null)"
-                aria-pressed="@(_view == view ? "true" : "false")" @onclick="() => SetView(view)">
+                aria-pressed="@(_view == view ? "true" : "false")" @onclick="() => SetViewAsync(view)">
             <span>@label</span><strong>@count</strong>
         </button>
     };
@@ -824,4 +880,6 @@
     {
         <div class="fleet-detail__fact"><span>@label</span><strong>@value</strong></div>
     };
+
+    public void Dispose() => CancelSearchDebounce();
 }

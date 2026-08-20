@@ -16,13 +16,13 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ReleasePoints { get; private set; } = 10;
 
-    public int OffPeakBonusPoints { get; private set; } = 5;
+    public int OffPeakBonusPoints { get; private set; }
 
-    public int NoShowPenaltyPoints { get; private set; } = 20;
+    public int NoShowPenaltyPoints { get; private set; }
 
     public TimeSpan ReleaseCutoff { get; private set; } = TimeSpan.FromHours(1);
 
-    public TimeSpan NoShowGracePeriod { get; private set; } = TimeSpan.FromMinutes(30);
+    public TimeSpan NoShowGracePeriod { get; private set; }
 
     public TimeSpan ReminderLeadTime { get; private set; } = TimeSpan.FromMinutes(5);
 
@@ -38,9 +38,11 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentReleaseMaxPoints { get; private set; } = 40;
 
-    public int ResidentMaxShareAllowance { get; private set; } = 30;
+    /// <summary>Legacy persisted setting; release planning no longer has a monthly quota.</summary>
+    public int ResidentMaxShareAllowance { get; private set; }
 
-    public int ResidentSharePercentPerAllowance { get; private set; } = 5;
+    /// <summary>Legacy persisted setting; release rewards no longer scale with a quota.</summary>
+    public int ResidentSharePercentPerAllowance { get; private set; }
 
     public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
 
@@ -50,7 +52,7 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public double? LotLongitude { get; private set; }
 
-    public int SharedTakenBasePoints { get; private set; } = 5;
+    public int SharedTakenBasePoints { get; private set; }
 
     public int SharedTakenReferenceKm { get; private set; } = 10;
 
@@ -76,13 +78,13 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int QueueOfferMinutes { get; private set; } = 15;
 
-    public int QueueNoShowPenaltyPoints { get; private set; } = 50;
+    public int QueueNoShowPenaltyPoints { get; private set; }
 
-    public int QueueNoShowCreditPenalty { get; private set; } = 30;
+    public int QueueNoShowCreditPenalty { get; private set; }
 
-    public int QueueNoShowBanDays { get; private set; } = 14;
+    public int QueueNoShowBanDays { get; private set; }
 
-    public int QueueNoShowAllowancePenalty { get; private set; } = 30;
+    public int QueueNoShowAllowancePenalty { get; private set; }
 
     public int DemandReleaseOccupancyPercent { get; private set; } = 100;
 
@@ -90,9 +92,9 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int MaxReleaseReward { get; private set; } = 40;
 
-    public int StreakBonusPerLevel { get; private set; } = 2;
+    public int StreakBonusPerLevel { get; private set; }
 
-    public int StreakBonusCap { get; private set; } = 20;
+    public int StreakBonusCap { get; private set; }
 
     public int TierSilverPoints { get; private set; } = 50;
 

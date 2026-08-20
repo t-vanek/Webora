@@ -50,7 +50,8 @@ public class ParkingSpotPagingTests
         await dbContext.Database.EnsureCreatedAsync();
 
         _spots = new ParkingSpotService(new TestDbContextFactory(_options), new NullNotificationService(),
-            new FakeSiteSettings(), new FixedTimeProvider(Now), new PassthroughLocalizer<ParkingMessages>());
+            new FakeParkingSettings(), new FakeSiteSettings(), new FixedTimeProvider(Now),
+            new PassthroughLocalizer<ParkingMessages>());
     }
 
     [OneTimeTearDown]

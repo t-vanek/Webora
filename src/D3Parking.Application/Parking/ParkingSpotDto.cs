@@ -9,8 +9,7 @@ public sealed record ParkingSpotDto(
     bool IsActive,
     string? Notes,
     Guid? OwnerId,
-    string? OwnerName,
-    int MonthlyShareAllowance);
+    string? OwnerName);
 
 public enum ParkingSpotStateFilter
 {

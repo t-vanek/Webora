@@ -20,6 +20,82 @@ public sealed class NotificationService(
     ILogger<NotificationService> logger,
     TimeProvider timeProvider) : INotificationService
 {
+    private const int MaxBatchDeliveryConcurrency = 8;
+
+    public async Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default)
+    {
+        if (requests.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+        var preferencesByUser = (await dbContext.NotificationPreferences
+                .Where(p => userIds.Contains(p.UserId))
+                .ToListAsync(cancellationToken))
+            .ToDictionary(p => p.UserId);
+
+        // A batch must not turn the first campaign for many employees into a SaveChanges per
+        // preference. The individual path keeps its race retry; here all rows are one atomic write.
+        foreach (var userId in userIds.Where(id => !preferencesByUser.ContainsKey(id)))
+        {
+            var preferences = new NotificationPreferences(userId);
+            preferencesByUser.Add(userId, preferences);
+            dbContext.NotificationPreferences.Add(preferences);
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var deliveries = new List<(Notification Notification, NotificationRequest Request, NotificationPreferences Preferences)>();
+        foreach (var request in requests)
+        {
+            var preferences = preferencesByUser[request.UserId];
+            if (!preferences.Allows(request.Category))
+            {
+                continue;
+            }
+
+            var notification = new Notification(request.UserId, request.Category, request.Level, request.Title, request.Message, now);
+            dbContext.Notifications.Add(notification);
+            deliveries.Add((notification, request, preferences));
+        }
+
+        if (deliveries.Count == 0)
+        {
+            return 0;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await Parallel.ForEachAsync(deliveries,
+            new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = MaxBatchDeliveryConcurrency },
+            async (delivery, ct) =>
+            {
+                if (delivery.Preferences.IsCurrentlyMuted(now))
+                {
+                    return;
+                }
+
+                try
+                {
+                    await publisher.PublishAsync(delivery.Notification.UserId, mapper.ToDto(delivery.Notification), ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogWarning(ex, "Realtime notification delivery failed for {UserId}.", delivery.Notification.UserId);
+                }
+
+                if (delivery.Request.Email)
+                {
+                    await using var emailContext = await dbContextFactory.CreateDbContextAsync(ct);
+                    await TrySendEmailAsync(emailContext, delivery.Notification.UserId, delivery.Notification.Title,
+                        delivery.Notification.Message, delivery.Request.EmailOptions, ct);
+                }
+            });
+
+        return deliveries.Count;
+    }
+
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default) =>
         NotifyAsync(userId, category, level, title, message, email: false, emailOptions: null, cancellationToken);
 

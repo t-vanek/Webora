@@ -5,6 +5,12 @@ namespace D3Parking.Application.Notifications;
 
 public interface INotificationService
 {
+    /// <summary>
+    /// Stores a group of independent notifications in one database write, then delivers their live
+    /// copies with bounded concurrency. Returns the number stored after preference filtering.
+    /// </summary>
+    Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default);
+
     Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, CancellationToken cancellationToken = default);
 
     /// <summary>

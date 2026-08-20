@@ -109,23 +109,12 @@ public sealed class AvailabilityCampaignService(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var title = messages["Parking_Notify_Availability_Title"].Value;
-        var body = messages["Parking_Notify_Availability_Body",
-            start.ToString("d.M."), end.ToString("d.M."), occupancyPercent].Value;
-        var delivered = 0;
-        foreach (var userId in recipients)
-        {
-            try
-            {
-                await notifications.NotifyAsync(userId, NotificationCategory.Availability, NotificationLevel.Info,
-                    title, body, cancellationToken);
-                delivered++;
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                // One undeliverable recipient must not cost the rest of the company the tip.
-                logger.LogWarning(ex, "Availability tip delivery failed for {UserId}.", userId);
-            }
-        }
+        var body = messages.ForEconomy(policy, "Parking_Notify_Availability_Body",
+            start.ToString("d.M."), end.ToString("d.M."), occupancyPercent).Value;
+        var delivered = await notifications.NotifyManyAsync(
+            recipients.Select(userId => new NotificationRequest(
+                userId, NotificationCategory.Availability, NotificationLevel.Info, title, body)).ToArray(),
+            cancellationToken);
 
         logger.LogInformation(
             "Availability campaign sent: {Start}–{End} at ~{Occupancy}% occupancy, {Delivered}/{Recipients} recipients.",

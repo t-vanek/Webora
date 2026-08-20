@@ -79,7 +79,7 @@ builder.Services.AddScoped<INotificationRealtimePublisher>(sp => new CompositeNo
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// Background maintenance: sends reservation reminders and resolves no-shows on a schedule.
+// Background maintenance: sends planning reminders and maintains budgets, queues and shared days.
 builder.Services.AddHostedService<ParkingMaintenanceService>();
 
 builder.Services.AddHttpContextAccessor();

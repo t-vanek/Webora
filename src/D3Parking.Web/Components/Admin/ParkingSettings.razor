@@ -137,10 +137,6 @@
                     <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.ReleasePoints" Min="0" Disabled="@(!_pointsOn)"
                                            Label="@L["Parking_Settings_ReleasePoints"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OffPeakBonusPoints" Min="0" Disabled="@(!_pointsOn)"
-                                           Label="@L["Parking_Settings_OffPeakBonus"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.NoShowPenaltyPoints" Min="0" Disabled="@(!_pointsOn)"
-                                           Label="@L["Parking_Settings_NoShowPenalty"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
@@ -155,18 +151,6 @@
                                            Label="@L["Parking_Settings_DemandQueueBonus"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseReward" Min="0" Disabled="@(!_demandOn)"
                                            Label="@L["Parking_Settings_MaxReleaseReward"]" Style="width:100%" />
-                    </div>
-
-                    <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_StreakGroup"]</FluentLabel>
-                        <FluentSwitch Value="@_streakOn" ValueChanged="ToggleStreak" Label="@L["Parking_Settings_SectionEnabled"]" />
-                    </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_StreakHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusPerLevel" Min="0" Disabled="@(!_streakOn)"
-                                           Label="@L["Parking_Settings_StreakBonusPerLevel"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.StreakBonusCap" Min="0" Disabled="@(!_streakOn)"
-                                           Label="@L["Parking_Settings_StreakBonusCap"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
@@ -299,21 +283,6 @@
                                            Label="@L["Parking_Settings_AvailabilitySendHour"]" Style="width:100%" />
                     </div>
 
-                    <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueuePenaltySection"]</FluentLabel>
-                        <FluentSwitch Value="@_queuePenaltyOn" ValueChanged="ToggleQueuePenalty" Label="@L["Parking_Settings_SectionEnabled"]" />
-                    </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_QueuePenaltyHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowPenaltyPoints" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
-                                           Label="@L["Parking_Settings_QueueNoShowPoints"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowCreditPenalty" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
-                                           Label="@L["Parking_Settings_QueueNoShowCredits"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowBanDays" Min="0" Disabled="@(!_queuePenaltyOn)"
-                                           Label="@L["Parking_Settings_QueueNoShowBanDays"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueueNoShowAllowancePenalty" Min="0" Step="5" Disabled="@(!_queuePenaltyOn)"
-                                           Label="@L["Parking_Settings_QueueNoShowAllowance"]" Style="width:100%" />
-                    </div>
                 </div>
             </FluentTab>
 
@@ -341,8 +310,6 @@
                     <div class="settings-grid">
                         <FluentNumberField TValue="int" @bind-Value="_form.ReleaseCutoffMinutes" Min="0" Step="5"
                                            Label="@L["Parking_Settings_ReleaseCutoff"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.NoShowGraceMinutes" Min="0" Step="5"
-                                           Label="@L["Parking_Settings_NoShowGrace"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.ReminderLeadMinutes" Min="0"
                                            Label="@L["Parking_Settings_ReminderLead"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.SweepIntervalMinutes" Min="1"
@@ -358,24 +325,12 @@
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentsHelp"]</FluentLabel>
                     <div class="settings-grid">
-                        <div class="settings-field">
-                            <span class="settings-field__label">@L["Parking_Settings_ResidentHoldUntil"]</span>
-                            <input type="time" @bind="_form.ResidentHoldUntil" class="parking-input" />
-                        </div>
                         <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleasePointsPerHour" Min="0"
                                            Label="@L["Parking_Settings_ResidentPointsPerHour"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.ResidentReleaseMaxPoints" Min="0" Step="5"
                                            Label="@L["Parking_Settings_ResidentMaxPoints"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentMaxShareAllowance" Min="0"
-                                           Label="@L["Parking_Settings_ResidentMaxAllowance"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentSharePercentPerAllowance" Min="0"
-                                           Label="@L["Parking_Settings_ResidentPercentPerAllowance"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.ResidentPlanHorizonDays" Min="1" Max="366"
                                            Label="@L["Parking_Settings_ResidentPlanHorizon"]" Style="width:100%" />
-                        <div class="settings-field settings-field--wide">
-                            <span class="settings-field__label">@L["Parking_Settings_ResidentClawback"] <span class="settings-field__val">@_form.ResidentWastedShareClawbackPercent %</span></span>
-                            <FluentSlider TValue="int" Min="0" Max="100" Step="5" @bind-Value="_form.ResidentWastedShareClawbackPercent" Style="width:100%" />
-                        </div>
                     </div>
                 </div>
             </FluentTab>
@@ -384,7 +339,6 @@
                 <div class="settings-panel">
                     <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
-                        <FluentSwitch Value="@_distanceOn" ValueChanged="ToggleDistance" Label="@L["Parking_Settings_SectionEnabled"]" />
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DistanceHelp"]</FluentLabel>
                     <div class="settings-grid">
@@ -392,12 +346,6 @@
                                            Label="@L["Parking_Settings_LotLat"]" Style="width:100%" />
                         <FluentNumberField TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
                                            Label="@L["Parking_Settings_LotLon"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenBasePoints" Min="0" Disabled="@(!_distanceOn)"
-                                           Label="@L["Parking_Settings_TakenBase"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenReferenceKm" Min="1" Disabled="@(!_distanceOn)"
-                                           Label="@L["Parking_Settings_TakenRefKm"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.SharedTakenMaxMultiplier" Min="1" Disabled="@(!_distanceOn)"
-                                           Label="@L["Parking_Settings_TakenMaxMult"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
@@ -442,15 +390,12 @@
     private bool _economyOn;
     private bool _pointsOn;
     private bool _demandOn;
-    private bool _streakOn;
     private bool _perksOn;
     private bool _decayOn;
-    private bool _queuePenaltyOn;
-    private bool _distanceOn;
 
     private int EnabledFeatureCount => new[]
     {
-        _economyOn, _pointsOn, _demandOn, _streakOn, _perksOn, _decayOn, _queuePenaltyOn, _distanceOn,
+        _economyOn, _pointsOn, _demandOn, _perksOn, _decayOn,
     }.Count(enabled => enabled);
 
     protected override async Task OnInitializedAsync()
@@ -479,11 +424,9 @@
     private void TogglePoints(bool on)
     {
         _pointsOn = on;
-        if (on && _form!.ReleasePoints == 0 && _form.OffPeakBonusPoints == 0 && _form.NoShowPenaltyPoints == 0)
+        if (on && _form!.ReleasePoints == 0)
         {
             _form.ReleasePoints = 10;
-            _form.OffPeakBonusPoints = 5;
-            _form.NoShowPenaltyPoints = 20;
         }
     }
 
@@ -494,16 +437,6 @@
         {
             _form.DemandReleaseOccupancyPercent = 100;
             _form.DemandReleaseQueueBonus = 5;
-        }
-    }
-
-    private void ToggleStreak(bool on)
-    {
-        _streakOn = on;
-        if (on && _form!.StreakBonusPerLevel == 0)
-        {
-            _form.StreakBonusPerLevel = 2;
-            _form.StreakBonusCap = _form.StreakBonusCap == 0 ? 20 : _form.StreakBonusCap;
         }
     }
 
@@ -527,28 +460,6 @@
         }
     }
 
-    private void ToggleQueuePenalty(bool on)
-    {
-        _queuePenaltyOn = on;
-        if (on && _form!.QueueNoShowPenaltyPoints == 0 && _form.QueueNoShowCreditPenalty == 0
-            && _form.QueueNoShowBanDays == 0 && _form.QueueNoShowAllowancePenalty == 0)
-        {
-            _form.QueueNoShowPenaltyPoints = 50;
-            _form.QueueNoShowCreditPenalty = 30;
-            _form.QueueNoShowBanDays = 14;
-            _form.QueueNoShowAllowancePenalty = 30;
-        }
-    }
-
-    private void ToggleDistance(bool on)
-    {
-        _distanceOn = on;
-        if (on && _form!.SharedTakenBasePoints == 0)
-        {
-            _form.SharedTakenBasePoints = 5;
-        }
-    }
-
     private async Task LoadAsync()
     {
         var s = await SettingsService.GetAsync();
@@ -566,8 +477,6 @@
             ResidentHoldUntil = s.ResidentHoldUntil,
             ResidentReleasePointsPerHour = s.ResidentReleasePointsPerHour,
             ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
-            ResidentMaxShareAllowance = s.ResidentMaxShareAllowance,
-            ResidentSharePercentPerAllowance = s.ResidentSharePercentPerAllowance,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
             ResidentPlanHorizonDays = s.ResidentPlanHorizonDays,
             LotLatitude = s.LotLatitude,
@@ -636,14 +545,10 @@
         };
 
         _economyOn = s.BaseReservationCost > 0;
-        _pointsOn = s.ReleasePoints > 0 || s.OffPeakBonusPoints > 0 || s.NoShowPenaltyPoints > 0;
+        _pointsOn = s.ReleasePoints > 0;
         _demandOn = s.DemandReleaseOccupancyPercent > 0 || s.DemandReleaseQueueBonus > 0;
-        _streakOn = s.StreakBonusPerLevel > 0;
         _perksOn = s.QueuePriorityPerTier > 0 || s.TierAllowanceBonus > 0 || s.TierDiscountPercent > 0;
         _decayOn = s.ReputationDecayPercent > 0;
-        _queuePenaltyOn = s.QueueNoShowPenaltyPoints > 0 || s.QueueNoShowCreditPenalty > 0
-            || s.QueueNoShowBanDays > 0 || s.QueueNoShowAllowancePenalty > 0;
-        _distanceOn = s.SharedTakenBasePoints > 0;
         _hasOrientationMap = await SettingsService.GetOrientationMapAsync() is not null;
     }
 
@@ -693,23 +598,21 @@
         _message = _error = null;
         var dto = new ParkingSettingsDto(
             _pointsOn ? _form!.ReleasePoints : 0,
-            _pointsOn ? _form!.OffPeakBonusPoints : 0,
-            _pointsOn ? _form!.NoShowPenaltyPoints : 0,
+            0,
+            0,
             TimeSpan.FromMinutes(_form!.ReleaseCutoffMinutes),
-            TimeSpan.FromMinutes(_form.NoShowGraceMinutes),
+            TimeSpan.Zero,
             TimeSpan.FromMinutes(_form.ReminderLeadMinutes),
             _form.PeakStart, _form.PeakEnd,
             TimeSpan.FromMinutes(_form.SweepIntervalMinutes),
             _form.ResidentHoldUntil,
             _form.ResidentReleasePointsPerHour,
             _form.ResidentReleaseMaxPoints,
-            _form.ResidentMaxShareAllowance,
-            _form.ResidentSharePercentPerAllowance,
-            _form.ResidentWastedShareClawbackPercent,
+            0,
             _form.ResidentPlanHorizonDays,
             _form.LotLatitude,
             _form.LotLongitude,
-            _distanceOn ? _form.SharedTakenBasePoints : 0,
+            0,
             _form.SharedTakenReferenceKm,
             _form.SharedTakenMaxMultiplier,
             _form.AutoVerifyHomeAddress,
@@ -722,15 +625,15 @@
             _economyOn ? _form.MaxReservationCost : 0,
             _form.MonthlyCreditAllowance,
             _form.QueueOfferMinutes,
-            _queuePenaltyOn ? _form.QueueNoShowPenaltyPoints : 0,
-            _queuePenaltyOn ? _form.QueueNoShowCreditPenalty : 0,
-            _queuePenaltyOn ? _form.QueueNoShowBanDays : 0,
-            _queuePenaltyOn ? _form.QueueNoShowAllowancePenalty : 0,
+            0,
+            0,
+            0,
+            0,
             _demandOn ? _form.DemandReleaseOccupancyPercent : 0,
             _demandOn ? _form.DemandReleaseQueueBonus : 0,
             _form.MaxReleaseReward,
-            _streakOn ? _form.StreakBonusPerLevel : 0,
-            _form.StreakBonusCap,
+            0,
+            0,
             _form.TierSilverPoints,
             _form.TierGoldPoints,
             _form.TierPlatinumPoints,
@@ -792,8 +695,6 @@
         public TimeOnly ResidentHoldUntil { get; set; }
         public int ResidentReleasePointsPerHour { get; set; }
         public int ResidentReleaseMaxPoints { get; set; }
-        public int ResidentMaxShareAllowance { get; set; }
-        public int ResidentSharePercentPerAllowance { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
         public int ResidentPlanHorizonDays { get; set; }
         public double? LotLatitude { get; set; }

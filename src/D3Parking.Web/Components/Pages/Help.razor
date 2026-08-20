@@ -61,14 +61,6 @@
                 <div class="help-item__a">
                     <p>@L["Help_Points_A1"]</p>
                     <ul>
-                        @if (policy.StreakBonusPerLevel > 0)
-                        {
-                            <li>@L["Help_Points_Li1", Points(policy.StreakBonusPerLevel), Points(policy.StreakBonusCap)]</li>
-                        }
-                        @if (policy.OffPeakBonusPoints > 0)
-                        {
-                            <li>@L["Help_Points_Li2", Points(policy.OffPeakBonusPoints), Time(policy.PeakStart), Time(policy.PeakEnd)]</li>
-                        }
                         @if (policy.ReleasePoints > 0)
                         {
                             <li>@L["Help_Points_Li3", policy.ReleasePoints, Points(policy.MaxReleaseReward), policy.MaxRewardedReleasesPerDay]</li>
@@ -107,11 +99,7 @@
         <details class="help-item">
             <summary class="help-item__q">@L["Help_NoShow_Q"]</summary>
             <div class="help-item__a">
-                <p>
-                    @(policy.NoShowPenaltyPoints > 0
-                        ? L["Help_NoShow_A1_Penalty", Fmt(policy.NoShowGracePeriod), Points(policy.NoShowPenaltyPoints)]
-                        : L["Help_NoShow_A1", Fmt(policy.NoShowGracePeriod)])
-                </p>
+                <p>@L["Help_NoShow_A1"]</p>
                 <p>@L["Help_NoShow_A2"]</p>
             </div>
         </details>
@@ -121,10 +109,6 @@
             <div class="help-item__a">
                 <p>@L["Help_Queue_A1", policy.QueueOfferMinutes]</p>
                 <p>@(policy.QueuePriorityPerTier > 0 ? L["Help_Queue_A2_Tiered"] : L["Help_Queue_A2"])</p>
-                @if (_queuePenaltyOn)
-                {
-                    <p>@L["Help_Queue_Penalty", Points(policy.QueueNoShowPenaltyPoints), Credits(policy.QueueNoShowCreditPenalty), Days(policy.QueueNoShowBanDays)]</p>
-                }
             </div>
         </details>
 
@@ -248,7 +232,6 @@
     private bool _charged;
     private bool _pointsOn;
     private bool _tiersOn;
-    private bool _queuePenaltyOn;
     private bool _ownsSpot;
     private bool _hasVisitorSpots;
 
@@ -258,12 +241,9 @@
         _policy = policy;
 
         // Which chapters are worth showing at all under the current configuration.
-        _charged = policy.BaseReservationCost > 0;
-        _pointsOn = policy.ReleasePoints > 0 || policy.OffPeakBonusPoints > 0
-            || policy.StreakBonusPerLevel > 0 || policy.SharedTakenBasePoints > 0;
+        _charged = policy.CreditsEnabled;
+        _pointsOn = policy.ReleasePoints > 0 || policy.ResidentReleaseMaxPoints > 0;
         _tiersOn = policy.QueuePriorityPerTier > 0 || policy.TierAllowanceBonus > 0 || policy.TierDiscountPercent > 0;
-        _queuePenaltyOn = policy.QueueNoShowPenaltyPoints > 0 || policy.QueueNoShowCreditPenalty > 0
-            || policy.QueueNoShowBanDays > 0;
 
         if (AuthState is not null)
         {

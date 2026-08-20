@@ -429,7 +429,7 @@
   <data name="Nav_ParkingLeaderboard" xml:space="preserve"><value>Leaderboard</value></data>
   <data name="Nav_AdminParking" xml:space="preserve"><value>Parking spots</value></data>
   <data name="Parking_Title" xml:space="preserve"><value>Reserve parking</value></data>
-  <data name="Parking_Intro" xml:space="preserve"><value>Book a spot for a chosen time. You earn points for releasing an unused reservation and for parking off-peak.</value></data>
+  <data name="Parking_Intro" xml:space="preserve"><value>Plan a parking spot for a chosen time. Credits are your monthly planning budget.</value></data>
   <data name="Parking_FindTitle" xml:space="preserve"><value>Find available spots</value></data>
   <data name="Parking_BookingTitle" xml:space="preserve"><value>Shared spot reservation</value></data>
   <data name="Parking_BookingIntro" xml:space="preserve"><value>Pick a time and the system will offer the best available spot from the shared pool.</value></data>
@@ -440,14 +440,16 @@
   <data name="Parking_AlternateSearch_Text" xml:space="preserve"><value>Use search only if you need another spot or another time.</value></data>
   <data name="Parking_AlternateSearch_Action" xml:space="preserve"><value>I need another spot</value></data>
   <data name="Parking_ResidentState_Held_Title" xml:space="preserve"><value>Spot {0} is held for you today</value></data>
-  <data name="Parking_ResidentState_Held_Text" xml:space="preserve"><value>Your resident spot is not shared with others yet. If you arrive today, confirm arrival in your spot panel.</value></data>
+  <data name="Parking_ResidentState_Held_Text" xml:space="preserve"><value>Your plan keeps the resident spot for you. If you do not need it today, you can release it for somebody else.</value></data>
+  <data name="Parking_ResidentState_HeldSelected_Title" xml:space="preserve"><value>Spot {0} is held for you on the selected day</value></data>
+  <data name="Parking_ResidentState_HeldSelected_Text" xml:space="preserve"><value>If you do not need it on this day, you can release it for others.</value></data>
   <data name="Parking_ResidentState_Claimed_Title" xml:space="preserve"><value>Spot {0} is confirmed for you all day</value></data>
   <data name="Parking_ResidentState_Claimed_Text" xml:space="preserve"><value>Your resident spot is yours today and is not offered to others. Use search only if you need another spot or another time.</value></data>
-  <data name="Parking_ResidentState_SharedFree_Title" xml:space="preserve"><value>Spot {0} is shared today and still free</value></data>
-  <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>You released your resident spot to others today, but nobody has reserved it yet. You can take it back in resident management.</value></data>
+  <data name="Parking_ResidentState_SharedFree_Title" xml:space="preserve"><value>Spot {0} is released for the selected day and still free</value></data>
+  <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>The spot is offered to others for the selected day, but nobody has reserved it yet.</value></data>
   <data name="Parking_ResidentState_SharedFreeAuto_Text" xml:space="preserve"><value>Your resident spot was offered to others after the cutoff, but nobody has reserved it yet. Confirming arrival takes it back.</value></data>
-  <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Spot {0} is shared today and taken by another reservation</value></data>
-  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>Someone else has reserved your resident spot for today. If you need to park, search for another shared spot.</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Someone else reserved spot {0} for the selected day</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>Someone else has reserved your resident spot. If you need it, you can take it back; their budget is refunded and the system notifies them.</value></data>
   <data name="Parking_Date" xml:space="preserve"><value>Date</value></data>
   <data name="Parking_From" xml:space="preserve"><value>From</value></data>
   <data name="Parking_To" xml:space="preserve"><value>To</value></data>
@@ -473,16 +475,19 @@
   <data name="Parking_Sort_Code" xml:space="preserve"><value>By code</value></data>
   <data name="Parking_Sort_Type" xml:space="preserve"><value>By type</value></data>
   <data name="Parking_NoneAvailable" xml:space="preserve"><value>No spots are available for the chosen time.</value></data>
-  <data name="Parking_NoneAvailable_OnlyResidentSpot" xml:space="preserve"><value>No other shared spot is available for the chosen time. Take your resident spot back by confirming arrival.</value></data>
+  <data name="Parking_NoneAvailable_OnlyResidentSpot" xml:space="preserve"><value>No other shared spot is available for the chosen time. If you need your resident spot, take the released day back.</value></data>
   <data name="Parking_Reserve" xml:space="preserve"><value>Reserve</value></data>
   <data name="Parking_MyReservations" xml:space="preserve"><value>My reservations</value></data>
-  <data name="Parking_Reservations_TabActive" xml:space="preserve"><value>Active</value></data>
-  <data name="Parking_Reservations_TabFuture" xml:space="preserve"><value>Future</value></data>
+  <data name="Parking_MyOtherReservations" xml:space="preserve"><value>My other reservations</value></data>
+  <data name="Parking_MyOtherReservations_Hint" xml:space="preserve"><value>Manage your resident spot {0} above. Reservations for other parking spots appear here.</value></data>
+  <data name="Parking_Reservations_TabUpcoming" xml:space="preserve"><value>Active and future</value></data>
   <data name="Parking_Reservations_TabHistory" xml:space="preserve"><value>History</value></data>
-  <data name="Parking_Reservations_EmptyActive" xml:space="preserve"><value>You have no active reservation right now.</value></data>
-  <data name="Parking_Reservations_EmptyFuture" xml:space="preserve"><value>You have no future reservation.</value></data>
+  <data name="Parking_Reservations_EmptyUpcoming" xml:space="preserve"><value>You have no active or future reservation.</value></data>
   <data name="Parking_Reservations_EmptyHistory" xml:space="preserve"><value>Your reservation history is empty for now.</value></data>
+  <data name="Parking_Reservations_EmptyOtherUpcoming" xml:space="preserve"><value>You have no active or future reservation for another parking spot.</value></data>
+  <data name="Parking_Reservations_EmptyOtherHistory" xml:space="preserve"><value>Your reservation history for other parking spots is empty for now.</value></data>
   <data name="Parking_NoReservations" xml:space="preserve"><value>You have no reservations yet.</value></data>
+  <data name="Parking_NoOtherReservations" xml:space="preserve"><value>You have not reserved another parking spot.</value></data>
   <data name="Parking_Spot" xml:space="preserve"><value>Spot</value></data>
   <data name="Parking_When" xml:space="preserve"><value>When</value></data>
   <data name="Parking_OffPeak" xml:space="preserve"><value>Off-peak</value></data>
@@ -494,7 +499,19 @@
   <data name="Parking_Complete" xml:space="preserve"><value>Leave</value></data>
   <data name="Parking_Reserved" xml:space="preserve"><value>The spot has been reserved.</value></data>
   <data name="Parking_Released" xml:space="preserve"><value>The reservation was released for others.</value></data>
-  <data name="Parking_State_Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Parking_State_Reserved" xml:space="preserve"><value>Planned</value></data>
+  <data name="Parking_Planner_Eyebrow" xml:space="preserve"><value>Planning schedule</value></data>
+  <data name="Parking_Planner_Title" xml:space="preserve"><value>My parking week</value></data>
+  <data name="Parking_Planner_Help" xml:space="preserve"><value>Select a day, set the time and plan an available spot.</value></data>
+  <data name="Parking_Planner_PreviousWeek" xml:space="preserve"><value>Previous week</value></data>
+  <data name="Parking_Planner_NextWeek" xml:space="preserve"><value>Next week</value></data>
+  <data name="Parking_Planner_Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Parking_Planner_FreeDay" xml:space="preserve"><value>No reservation</value></data>
+  <data name="Parking_Planner_ResidentSpot" xml:space="preserve"><value>Your resident spot</value></data>
+  <data name="Parking_Planner_ReleasedFree" xml:space="preserve"><value>Released · still free</value></data>
+  <data name="Parking_Planner_ReleasedTaken" xml:space="preserve"><value>Released · reserved by a colleague</value></data>
+  <data name="Parking_Planner_PastDay" xml:space="preserve"><value>Past day</value></data>
+  <data name="Parking_Planner_TodayMarker" xml:space="preserve"><value>Today</value></data>
   <data name="Parking_State_CheckedIn" xml:space="preserve"><value>On site</value></data>
   <data name="Parking_State_Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Parking_State_Released" xml:space="preserve"><value>Released</value></data>
@@ -518,7 +535,7 @@
   <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>A reservation can be completed only after its window has started.</value></data>
   <data name="Parking_CantPark" xml:space="preserve"><value>I can't park</value></data>
   <data name="Parking_Blocked_Title" xml:space="preserve"><value>Can't park at spot {0}?</value></data>
-  <data name="Parking_Blocked_Text" xml:space="preserve"><value>We'll record the spot's state and cancel the reservation with a full refund — it doesn't count as a no-show. We can also find you another free spot right away.</value></data>
+  <data name="Parking_Blocked_Text" xml:space="preserve"><value>We'll record the spot's state and cancel the plan with a full refund. We can also find you another free spot right away.</value></data>
   <data name="Parking_Blocked_Relocate" xml:space="preserve"><value>Find me another spot</value></data>
   <data name="Parking_Blocked_RecordOnly" xml:space="preserve"><value>Just record it</value></data>
   <data name="Parking_Blocked_Back" xml:space="preserve"><value>Back</value></data>
@@ -601,14 +618,14 @@
   <data name="Help_Intro" xml:space="preserve"><value>How to book a spot, what earns you points, and what to do when something goes wrong. Click a question to expand the answer.</value></data>
   <data name="Help_Reserve_Q" xml:space="preserve"><value>How do I book a parking spot?</value></data>
   <data name="Help_Reserve_A1" xml:space="preserve"><value>Under Reserve a spot, pick the date and the from–to time and click Find spots. You'll see the free spots and the price in credits for that window. Click Reserve on the spot you want.</value></data>
-  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>When you arrive, confirm it with Check in; when you leave, click Complete. If you end up not needing the spot, release it — do it at least {0} before the start and you get the full credits back plus points for making it available to others.</value></data>
-  <data name="Help_Reserve_A2_Free" xml:space="preserve"><value>When you arrive, confirm it with Check in; when you leave, click Complete. If you end up not needing the spot, release it as early as you can so somebody else can use it.</value></data>
+  <data name="Help_Reserve_A2_Paid" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it at least {0} before the start to get all credits back plus points for making it available.</value></data>
+  <data name="Help_Reserve_A2_Free" xml:space="preserve"><value>A reservation is a planned block; you do not confirm arrival or departure. If you no longer need it, release it early so somebody else can use it.</value></data>
   <data name="Help_Credits_Q" xml:space="preserve"><value>What are credits and why does the price change?</value></data>
   <data name="Help_Credits_A1" xml:space="preserve"><value>Bookings are paid with credits from your wallet. The base price is {0}; during peak hours ({1}–{2}) and when the lot fills up it rises, up to {3}. Scarce slots cost more, which keeps the cheaper times available for those who can arrive at another hour.</value></data>
   <data name="Help_Credits_Li1" xml:space="preserve"><value>Once a month you automatically receive {0}.</value></data>
   <data name="Help_Credits_Li1_Tiered" xml:space="preserve"><value>Once a month you automatically receive {0}, plus {1} more for every tier you have reached.</value></data>
   <data name="Help_Credits_Li2" xml:space="preserve"><value>Cancelling or releasing at least {0} before the start refunds the full amount you paid.</value></data>
-  <data name="Help_Credits_Li3" xml:space="preserve"><value>Not showing up without releasing means the credits you paid are forfeited.</value></data>
+  <data name="Help_Credits_Li3" xml:space="preserve"><value>Credits are a planning budget: during a reservation they remain allocated to that time window.</value></data>
   <data name="Help_Points_Q" xml:space="preserve"><value>What earns points and what are they for?</value></data>
   <data name="Help_Points_A1" xml:space="preserve"><value>Points are a reputation score for the leaderboard — spending credits never lowers them. You earn them for behaviour that helps everyone else:</value></data>
   <data name="Help_Points_Li1" xml:space="preserve"><value>Completing a booking (actually using the spot): each one in an unbroken streak adds {0}, up to {1}. Paid once a day.</value></data>
@@ -620,25 +637,25 @@
   <data name="Help_Points_Perk_Allowance" xml:space="preserve"><value>a bigger monthly credit allowance (+{0} per tier),</value></data>
   <data name="Help_Points_Perk_Discount" xml:space="preserve"><value>a discount on bookings ({0} % per tier).</value></data>
   <data name="Help_Points_Decay" xml:space="preserve"><value>Points drop by {0} % every {1}, so they are kept up by staying active — and old penalties heal the same way.</value></data>
-  <data name="Help_NoShow_Q" xml:space="preserve"><value>What happens if I don't turn up?</value></data>
-  <data name="Help_NoShow_A1" xml:space="preserve"><value>If you neither use nor release the booking, the system marks it as a no-show {0} after the start and the credits you paid are forfeited. You get a reminder shortly before the start so it doesn't slip your mind.</value></data>
-  <data name="Help_NoShow_A1_Penalty" xml:space="preserve"><value>If you neither use nor release the booking, the system marks it as a no-show {0} after the start: the credits you paid are forfeited, {1} are deducted and your completion streak resets. You get a reminder shortly before the start so it doesn't slip your mind.</value></data>
-  <data name="Help_NoShow_A2" xml:space="preserve"><value>None of that happens if you release the spot in time — instead you get your credits back and earn points. Releasing is worth it even at the last minute.</value></data>
+  <data name="Help_NoShow_Q" xml:space="preserve"><value>Do I need to confirm arrival or departure?</value></data>
+  <data name="Help_NoShow_A1" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. You only receive an informational reminder before it starts.</value></data>
+  <data name="Help_NoShow_A1_Penalty" xml:space="preserve"><value>No. A reservation is a planned block from start to end and needs no presence confirmation. You only receive an informational reminder before it starts.</value></data>
+  <data name="Help_NoShow_A2" xml:space="preserve"><value>If your plans change, release the spot for somebody else. A timely release returns credits to your planning budget.</value></data>
   <data name="Help_Queue_Q" xml:space="preserve"><value>What if my slot is fully booked?</value></data>
   <data name="Help_Queue_A1" xml:space="preserve"><value>Join the queue — it's free. As soon as a spot frees up for your window, the system holds it for you for {0} minutes and sends a notification and an email with a Claim the spot button. Until then nobody else can book it.</value></data>
   <data name="Help_Queue_A2" xml:space="preserve"><value>The queue is served by waiting time. If you miss the claim window, the spot goes to the next in line and you rejoin at the back.</value></data>
   <data name="Help_Queue_A2_Tiered" xml:space="preserve"><value>The order blends your tier with how long you've waited, so a lower tier still gets served. If you miss the claim window, the spot goes to the next in line and you rejoin at the back.</value></data>
   <data name="Help_Queue_Penalty" xml:space="preserve"><value>Note: a no-show on a spot claimed from the queue is penalised more heavily — {0}, {1} and {2} without access to the queue.</value></data>
   <data name="Help_Blocked_Q" xml:space="preserve"><value>Someone else's car is on my spot. Now what?</value></data>
-  <data name="Help_Blocked_A1" xml:space="preserve"><value>Click "I can't park" on your booking and attach a photo of the blocked spot (mandatory — we use it to verify the situation, and each photo can be used only once). We'll either find you another free spot for the same window (the payment carries over, you pay nothing extra) or cancel the booking with a full refund. Either way it never counts as a no-show.</value></data>
+  <data name="Help_Blocked_A1" xml:space="preserve"><value>Click "I can't park" on your booking and attach a photo of the blocked spot (mandatory — we use it to verify the situation, and each photo can be used only once). We'll either find another free spot for the same window (the payment carries over) or cancel the booking with a full refund.</value></data>
   <data name="Help_Blocked_A2" xml:space="preserve"><value>As an apology you're due a voucher for one free booking — peak included. We first verify the report from your photo; once the check is done the voucher activates, stays valid for 30 days and is redeemed by ticking the box when booking. It helps if you copy the blocking car's plate into the form: the admin can then tell whether it's a colleague or a vehicle from outside the system.</value></data>
   <data name="Help_Resident_Q" xml:space="preserve"><value>I have my own (resident) spot</value></data>
   <data name="Help_Resident_A0" xml:space="preserve"><value>A dedicated spot is tied to a company vehicle from the fleet registry: it comes from pairing your account with a company vehicle the administrator assigned the spot to. Employee vehicles carry no dedicated spot — they park through pool reservations.</value></data>
-  <data name="Help_Resident_A1" xml:space="preserve"><value>Your spot is held for you every day until {0}. If you're coming that day, confirm it with Confirm arrival. If you neither confirm nor release it, the spot is offered to everyone else after that hour.</value></data>
-  <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) — you earn {0} for every hour of notice, up to {1} a day. The reward applies up to a monthly limit you set yourself.</value></data>
+  <data name="Help_Resident_A1" xml:space="preserve"><value>Your usage plan decides which days the spot is yours and which days are offered to others. Arrival is never confirmed.</value></data>
+  <data name="Help_Resident_A2_Rewarded" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) — you earn {0} for every hour of notice, up to {1} for each released day. There is no monthly limit.</value></data>
   <data name="Help_Resident_A2" xml:space="preserve"><value>When you know in advance you won't need it, release it (even for several days at once) so somebody else can use it.</value></data>
-  <data name="Help_Resident_A3" xml:space="preserve"><value>You always have first claim on your own spot: take a released day back with Take back, and past the cutoff simply confirm arrival — as long as nobody has booked the spot. The claim outranks offers held for the waitlist (the waiter keeps their position); a colleague's completed booking stands. The reward for a taken-back day is returned.</value></data>
-  <data name="Help_Resident_A4" xml:space="preserve"><value>You don't have to think about it every week: in the usage plan, tick the days you need the spot and switch automatic release on. The other days then free themselves up to {0} days ahead — and that advance notice is exactly what earns you the full reward (within your monthly allowance). Ticked days stay held for you, and any released day can be taken back until somebody books it.</value></data>
+  <data name="Help_Resident_A3" xml:space="preserve"><value>You have final claim on your assigned spot. You may take a released day back even after a colleague plans it; their plan is cancelled without penalty, their budget or voucher is restored, and the system notifies them. A waitlist offer is withdrawn without losing position. The sharing reward is returned.</value></data>
+  <data name="Help_Resident_A4" xml:space="preserve"><value>Tick the days you need and enable automatic release. Other days are shared up to {0} days ahead and earn the advance reward. You can take any released day back; if a colleague already planned it, the system refunds and notifies them.</value></data>
   <data name="Help_Notifications_Q" xml:space="preserve"><value>Notifications, emails and the calendar</value></data>
   <data name="Help_Notifications_A1" xml:space="preserve"><value>Alerts arrive in the bell in the header. You can install the app on your phone or desktop and enable push notifications — then a queue offer or a reminder reaches you even with the app closed. We only email what matters: deadline-driven queue offers, penalties and account security changes.</value></data>
   <data name="Help_Notifications_A2" xml:space="preserve"><value>Every booking has an Add to calendar button — it downloads an event for Outlook, Google and Apple Calendar, including a reminder 30 minutes ahead. In your profile you can mute notifications temporarily or turn off the free-capacity tips.</value></data>
@@ -682,10 +699,10 @@
   <data name="Help_Plural_Days_2" xml:space="preserve"><value>days</value></data>
   <data name="Help_Plural_Days_5" xml:space="preserve"><value>days</value></data>
   <data name="Parking_Mismatch_Link" xml:space="preserve"><value>Occupancy mismatches →</value></data>
-  <data name="Parking_Voucher_Available" xml:space="preserve"><value>You have an apology voucher for one free reservation — peak included, valid until {0}.</value></data>
-  <data name="Parking_Voucher_Use" xml:space="preserve"><value>Redeem the voucher — this reservation is free</value></data>
-  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>We're checking your blocked-spot report right now. Once the check is done we'll activate your apology voucher for one free reservation — we'll let you know.</value></data>
-  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>We'll now verify the situation at the spot — once the check is done, we'll activate an apology voucher for one free reservation (peak included), valid for 30 days.</value></data>
+  <data name="Parking_Voucher_Available" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. As an apology, you have one free reservation, including peak times. You can use the voucher until {0}.</value></data>
+  <data name="Parking_Voucher_Use" xml:space="preserve"><value>Use voucher — this reservation will be free</value></data>
+  <data name="Parking_Voucher_Pending" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. We're reviewing your report now. Once confirmed, we'll add a voucher for one free reservation and let you know.</value></data>
+  <data name="Parking_Blocked_VoucherGranted" xml:space="preserve"><value>We're very sorry for the disruption. We'll now review what happened at the spot. Once confirmed, we'll add a voucher for one free reservation, including peak times, as an apology.</value></data>
   <data name="Parking_Error_VoucherUnavailable" xml:space="preserve"><value>The apology voucher is no longer available.</value></data>
   <data name="Parking_AddToCalendar" xml:space="preserve"><value>Add to calendar</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because of an action on your D3Parking account.</value></data>
@@ -772,7 +789,7 @@
   <data name="Parking_Settings_Tab_Residents" xml:space="preserve"><value>Residents</value></data>
   <data name="Parking_Settings_Tab_Location" xml:space="preserve"><value>Location &amp; limits</value></data>
   <data name="Parking_Settings_PointsSection" xml:space="preserve"><value>Core points</value></data>
-  <data name="Parking_Settings_PointsHelp" xml:space="preserve"><value>Reputation points for everyday behaviour: a reward for releasing a spot in time, a bonus for booking off-peak and a deduction for a lapsed reservation. Every reward also adds the same number of credits to the wallet; the no-show deduction lowers reputation only.</value></data>
+  <data name="Parking_Settings_PointsHelp" xml:space="preserve"><value>Reputation points reward timely plan releases and sharing a resident spot. Each reward also returns the same number of credits to the planning budget.</value></data>
   <data name="Parking_Settings_PeakSection" xml:space="preserve"><value>Peak</value></data>
   <data name="Parking_Settings_PeakHelp" xml:space="preserve"><value>The daily high-demand window in the site's time zone. Reservations starting inside it pay the peak price surcharge; those outside earn the off-peak bonus.</value></data>
   <data name="Parking_Settings_TimingSection" xml:space="preserve"><value>Timing</value></data>
@@ -785,40 +802,31 @@
   <data name="Parking_Settings_NoShowGrace" xml:space="preserve"><value>Arrival grace period (min)</value></data>
   <data name="Parking_Settings_ReminderLead" xml:space="preserve"><value>Reminder before start (min)</value></data>
   <data name="Parking_Settings_SweepInterval" xml:space="preserve"><value>Background check interval (min)</value></data>
-  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>A reservation not used within the grace period becomes a no-show — points are deducted and the paid credits are not refunded. The background check processes this continuously at the given interval.</value></data>
+  <data name="Parking_Settings_MinutesHelp" xml:space="preserve"><value>The cutoff decides when releasing a plan returns its planning budget. Reminders are informational; the interval controls background maintenance.</value></data>
   <data name="Parking_Settings_Save" xml:space="preserve"><value>Save settings</value></data>
   <data name="Parking_Settings_Saved" xml:space="preserve"><value>Settings saved.</value></data>
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
   <data name="Parking_Owned_Title" xml:space="preserve"><value>Your reserved spot</value></data>
-  <data name="Parking_Owned_TodayTitle" xml:space="preserve"><value>Your spot today</value></data>
-  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Held for you</value></data>
-  <data name="Parking_OwnedState_Claimed" xml:space="preserve"><value>Confirmed – yours all day</value></data>
-  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Shared (still free)</value></data>
-  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Shared – taken by someone else</value></data>
-  <data name="Parking_Owned_Confirm" xml:space="preserve"><value>Confirm arrival</value></data>
-  <data name="Parking_Owned_ConfirmHeldHelp" xml:space="preserve"><value>Confirming tells the system you will use your resident spot today.</value></data>
-  <data name="Parking_Owned_ConfirmAutoSharedHelp" xml:space="preserve"><value>The spot is still free. Confirming arrival takes it back and stops offering it to others.</value></data>
-  <data name="Parking_Owned_ReleaseDate" xml:space="preserve"><value>Release day</value></data>
+  <data name="Parking_Owned_SpotLabel" xml:space="preserve"><value>My resident spot</value></data>
+  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>The spot is yours today</value></data>
+  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>The spot is released today and still free</value></data>
+  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>A colleague reserved the spot today</value></data>
+  <data name="Parking_Owned_TodayHeldText" xml:space="preserve"><value>If you do not need it today, you can release it for others.</value></data>
+  <data name="Parking_Owned_TodaySharedFreeText" xml:space="preserve"><value>You can take the spot back without affecting anyone else.</value></data>
+  <data name="Parking_Owned_TodaySharedTakenText" xml:space="preserve"><value>Taking it back cancels your colleague's reservation and notifies them.</value></data>
+  <data name="Parking_Owned_ReleaseToday" xml:space="preserve"><value>Release today</value></data>
+  <data name="Parking_Owned_ReclaimToday" xml:space="preserve"><value>Take back today</value></data>
+  <data name="Parking_Owned_ReclaimTodayWarning" xml:space="preserve"><value>A colleague reserved the spot today. Taking it back cancels their reservation; their planning budget is returned and they are notified.</value></data>
+  <data name="Parking_Owned_ReclaimTodayWarning_NoCredits" xml:space="preserve"><value>A colleague reserved the spot today. Taking it back cancels their reservation and notifies them.</value></data>
   <data name="Parking_Owned_Release" xml:space="preserve"><value>Release</value></data>
-  <data name="Parking_Owned_Allowance" xml:space="preserve"><value>Day limit</value></data>
-  <data name="Parking_Owned_AllowanceHint" xml:space="preserve"><value>How many days per month your spot can earn a sharing reward. After the limit is used, you can still share the spot, but without points.</value></data>
-  <data name="Parking_Owned_QuotaTitle" xml:space="preserve"><value>Monthly sharing</value></data>
-  <data name="Parking_Owned_SaveAllowance" xml:space="preserve"><value>Save</value></data>
-  <data name="Parking_Owned_Confirmed" xml:space="preserve"><value>Arrival confirmed, the spot is yours.</value></data>
   <data name="Parking_Owned_Released" xml:space="preserve"><value>The spot was released to others.</value></data>
-  <data name="Parking_Owned_AllowanceSaved" xml:space="preserve"><value>Sharing settings saved.</value></data>
-  <data name="Parking_Owned_ModeLabel" xml:space="preserve"><value>Resident spot panel switcher</value></data>
-  <data name="Parking_Owned_ModeToday" xml:space="preserve"><value>Today</value></data>
-  <data name="Parking_Owned_ModeManage" xml:space="preserve"><value>Resident management</value></data>
-  <data name="Parking_Owned_TodayReady" xml:space="preserve"><value>No further action is needed today.</value></data>
-  <data name="Parking_Owned_ResidentToolsEyebrow" xml:space="preserve"><value>Resident tools</value></data>
-  <data name="Parking_Owned_ResidentToolsTitle" xml:space="preserve"><value>Reserved spot management</value></data>
-  <data name="Parking_Owned_ResidentToolsHint" xml:space="preserve"><value>These actions apply only to your resident spot {0}.</value></data>
+  <data name="Parking_Owned_ResidentToolsEyebrow" xml:space="preserve"><value>Resident spot</value></data>
+  <data name="Parking_Owned_ResidentToolsTitle" xml:space="preserve"><value>Manage my spot</value></data>
+  <data name="Parking_Owned_ResidentToolsHint" xml:space="preserve"><value>Plan when you use spot {0} and release the days you do not need it.</value></data>
   <data name="Parking_Owned_ReleaseSection" xml:space="preserve"><value>Release my spot</value></data>
   <data name="Parking_Owned_ReleasedDaysSection" xml:space="preserve"><value>My released days</value></data>
   <data name="Parking_Owned_DayReleasedTitle" xml:space="preserve"><value>{0}: released to others, not reserved yet.</value></data>
-  <data name="Parking_Owned_DayTakenTitle" xml:space="preserve"><value>{0}: already reserved by someone else.</value></data>
-  <data name="Parking_Owned_QuotaSection" xml:space="preserve"><value>Monthly limit</value></data>
+  <data name="Parking_Owned_DayTakenTitle" xml:space="preserve"><value>{0}: a colleague already has the spot. Taking it back cancels their plan with a full refund and notification.</value></data>
   <data name="Parking_Owned_PlanSection" xml:space="preserve"><value>Regular plan</value></data>
   <data name="Parking_Admin_Resident" xml:space="preserve"><value>Resident</value></data>
   <data name="Parking_Admin_NoResident" xml:space="preserve"><value>No resident</value></data>
@@ -827,12 +835,10 @@
   <data name="Parking_Admin_ChangeResident" xml:space="preserve"><value>Change</value></data>
   <data name="Parking_Admin_ResidentOfSpot" xml:space="preserve"><value>Spot resident</value></data>
   <data name="Parking_Settings_ResidentSection" xml:space="preserve"><value>Residents</value></data>
-  <data name="Parking_Settings_ResidentsHelp" xml:space="preserve"><value>Rules for reserved spots. Each day the spot is held for its resident until the given time; if they do not confirm arrival by then, it is offered to everyone else automatically. Residents who release the spot themselves earn points — the earlier the release and the higher the monthly share allowance on the spot, the more.</value></data>
+  <data name="Parking_Settings_ResidentsHelp" xml:space="preserve"><value>The usage plan decides which days stay with the resident and which are shared automatically. Arrival is never confirmed. Each released day's reward depends only on advance notice and the per-day cap; there is no monthly quota.</value></data>
   <data name="Parking_Settings_ResidentHoldUntil" xml:space="preserve"><value>Hold the spot for its resident until</value></data>
   <data name="Parking_Settings_ResidentPointsPerHour" xml:space="preserve"><value>Points per hour of notice</value></data>
   <data name="Parking_Settings_ResidentMaxPoints" xml:space="preserve"><value>Notice points cap</value></data>
-  <data name="Parking_Settings_ResidentMaxAllowance" xml:space="preserve"><value>Highest monthly share allowance (days)</value></data>
-  <data name="Parking_Settings_ResidentPercentPerAllowance" xml:space="preserve"><value>Reward bonus per allowance day (%)</value></data>
   <data name="Parking_Error_UserNotFound" xml:space="preserve"><value>The user was not found.</value></data>
   <data name="Parking_Error_SpotReserved" xml:space="preserve"><value>This spot is reserved and not shared for that time.</value></data>
   <data name="Parking_Error_NoOwnedSpot" xml:space="preserve"><value>You have no reserved spot assigned.</value></data>
@@ -845,10 +851,24 @@
   <data name="Parking_Owned_ReleaseFrom" xml:space="preserve"><value>Release from</value></data>
   <data name="Parking_Owned_ReleaseTo" xml:space="preserve"><value>Release to</value></data>
   <data name="Parking_Owned_QuickRelease" xml:space="preserve"><value>Quick release options</value></data>
-  <data name="Parking_Owned_ReleaseToday" xml:space="preserve"><value>Today</value></data>
-  <data name="Parking_Owned_ReleaseTomorrow" xml:space="preserve"><value>Tomorrow</value></data>
-  <data name="Parking_Owned_ReleaseThisWeek" xml:space="preserve"><value>This week</value></data>
-  <data name="Parking_Owned_ReleaseHint" xml:space="preserve"><value>Releasing the selected range earns you:</value></data>
+  <data name="Parking_Owned_ReleaseOneDay" xml:space="preserve"><value>One day</value></data>
+  <data name="Parking_Owned_ReleaseOneWeek" xml:space="preserve"><value>One week</value></data>
+  <data name="Parking_Owned_ReleaseTwoWeeks" xml:space="preserve"><value>Two weeks</value></data>
+  <data name="Parking_Owned_ReleaseCustom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Parking_Owned_ReleaseDuration" xml:space="preserve"><value>Duration</value></data>
+  <data name="Parking_Owned_ReleaseHint" xml:space="preserve"><value>Choose the start and duration. The spot is automatically held for you again afterwards.</value></data>
+  <data name="Parking_Owned_ReleaseDaysCount" xml:space="preserve"><value>Selected days: {0}</value></data>
+  <data name="Parking_Owned_ReleaseReturns" xml:space="preserve"><value>The spot is held for you again from {0}.</value></data>
+  <data name="Parking_Owned_ReleaseRangeAction" xml:space="preserve"><value>Release selected days</value></data>
+  <data name="Parking_Owned_NoReleaseReward" xml:space="preserve"><value>No point reward</value></data>
+  <data name="Parking_Owned_ReclaimPeriod" xml:space="preserve"><value>Take period back</value></data>
+  <data name="Parking_Owned_ReclaimPeriodWarning" xml:space="preserve"><value>Colleagues already use {0} days in this period. Confirming cancels their reservations with a full refund and notification.</value></data>
+  <data name="Parking_Owned_ReclaimConfirm" xml:space="preserve"><value>Confirm take-back</value></data>
+  <data name="Parking_Owned_PeriodAllFree" xml:space="preserve"><value>Every day is still free.</value></data>
+  <data name="Parking_Owned_PeriodAllTaken" xml:space="preserve"><value>Colleagues have reserved every day.</value></data>
+  <data name="Parking_Owned_PeriodPartlyTaken" xml:space="preserve"><value>Reserved by colleagues: {0} · still free: {1}</value></data>
+  <data name="Parking_ResidentState_TakeBackSpot" xml:space="preserve"><value>Take back {0}</value></data>
+  <data name="Parking_ResidentState_ManageRelease" xml:space="preserve"><value>Manage release</value></data>
   <data name="Parking_Earn" xml:space="preserve"><value>You'll earn</value></data>
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>The end of the range must be after its start.</value></data>
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>The range is too long.</value></data>
@@ -860,12 +880,12 @@
   <data name="Parking_Owned_ReclaimTo" xml:space="preserve"><value>Take back to</value></data>
   <data name="Parking_Owned_Reclaim" xml:space="preserve"><value>Take back</value></data>
   <data name="Parking_Owned_Reclaimed" xml:space="preserve"><value>The days are yours again — the spot is held for you once more.</value></data>
-  <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>You always have first claim on your own spot: a released day can be taken back until somebody books it — including days held for the waitlist. The reward for a taken-back day is returned.</value></data>
+  <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>You have final claim on your assigned spot. If a colleague already planned it, their plan is cancelled with a full refund and the system notifies them. A waitlist hold is withdrawn without losing position. The sharing reward is returned.</value></data>
   <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Past the cutoff the spot is offered to others, but until somebody takes it, confirming arrival takes it back.</value></data>
   <data name="Parking_Owned_PlanDays" xml:space="preserve"><value>Days I need the spot</value></data>
   <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Auto release</value></data>
   <data name="Parking_Owned_SavePlan" xml:space="preserve"><value>Save plan</value></data>
-  <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Days you leave unselected are released to others up to {0} days ahead — and that advance notice is exactly what earns you the full reward (within your monthly allowance), while auto-sharing after the cutoff pays nothing. Selected days are held for you as before. Any released day can be taken back until somebody books it; saving the plan does re-apply it across the whole horizon.</value></data>
+  <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Unselected days are released up to {0} days ahead and earn the advance reward. Selected days stay yours. You can take any released day back; if a colleague already planned it, they receive a full refund and notification. Saving reapplies the plan over the whole horizon.</value></data>
   <data name="Parking_Owned_PlanSaved" xml:space="preserve"><value>Usage plan saved.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Reward clawback when the taker no-shows (%)</value></data>
   <data name="Parking_Settings_ResidentPlanHorizon" xml:space="preserve"><value>Usage-plan horizon (days ahead)</value></data>
@@ -874,8 +894,8 @@
   <data name="Profile_CommuteDistance" xml:space="preserve"><value>Distance to the lot</value></data>
   <data name="Profile_HomeAddress" xml:space="preserve"><value>Home address</value></data>
   <data name="Profile_SaveAddress" xml:space="preserve"><value>Save address</value></data>
-  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Distance-based reward</value></data>
-  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>The lot coordinates are used to compute users' commute distance. The reward for taking a shared spot is multiplied by the commute over the reference distance (capped by the multiplier limit) — long-distance commuters earn more. Without a known distance no reward is granted.</value></data>
+  <data name="Parking_Settings_DistanceSection" xml:space="preserve"><value>Parking lot location</value></data>
+  <data name="Parking_Settings_DistanceHelp" xml:space="preserve"><value>The lot coordinates are used to verify addresses and calculate users' commute distance.</value></data>
   <data name="Parking_Settings_LotLat" xml:space="preserve"><value>Lot latitude</value></data>
   <data name="Parking_Settings_LotLon" xml:space="preserve"><value>Lot longitude</value></data>
   <data name="Parking_Settings_TakenBase" xml:space="preserve"><value>Base points for taking a shared spot</value></data>
@@ -921,7 +941,7 @@
   <data name="Parking_Settings_PeakPercent" xml:space="preserve"><value>Peak price (% of base)</value></data>
   <data name="Parking_Settings_OccupancyPercent" xml:space="preserve"><value>Surcharge at full occupancy (%)</value></data>
   <data name="Parking_Settings_MaxCost" xml:space="preserve"><value>Maximum reservation price (credits)</value></data>
-  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly credit allowance</value></data>
+  <data name="Parking_Settings_MonthlyAllowance" xml:space="preserve"><value>Monthly planning budget</value></data>
   <data name="Parking_Settings_QueueOfferMinutes" xml:space="preserve"><value>Waitlist offer validity (min)</value></data>
   <data name="Parking_Settings_QueuePenaltySection" xml:space="preserve"><value>Penalties for waitlist no-shows</value></data>
   <data name="Parking_Settings_QueuePenaltyHelp" xml:space="preserve"><value>Claiming a freed spot from the waitlist and not arriving blocks everyone behind. The penalty is therefore harsher than a normal no-show: a bigger point deduction, a credit fine, a temporary waitlist ban and a cut to the next monthly allowance.</value></data>
@@ -1226,7 +1246,7 @@
   <data name="Home_NextReservation" xml:space="preserve"><value>Next reservation</value></data>
   <data name="Home_QueueOffer" xml:space="preserve"><value>Queue offer</value></data>
   <data name="Home_OfferExpiresAt" xml:space="preserve"><value>Expires at {0}</value></data>
-  <data name="Home_Wallet" xml:space="preserve"><value>Wallet and points</value></data>
+  <data name="Home_Wallet" xml:space="preserve"><value>Planning budget and points</value></data>
   <data name="Home_WalletDetail" xml:space="preserve"><value>Tier {0} · streak {1}</value></data>
   <data name="Home_Map_Title" xml:space="preserve"><value>Parking orientation map</value></data>
   <data name="Home_Map_Desc" xml:space="preserve"><value>Quickly check where parking spots are located around the site.</value></data>
@@ -1251,14 +1271,14 @@
   <data name="Landing_Feature2_Title" xml:space="preserve"><value>Credits and dynamic pricing</value></data>
   <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Spot prices follow occupancy. Park off-peak and save.</value></data>
   <data name="Landing_Feature3_Title" xml:space="preserve"><value>Points, streaks and a leaderboard</value></data>
-  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Reliability pays off: completed reservations and shared spots earn points, build streaks and move you up the leaderboard.</value></data>
+  <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Considerate planning pays: timely releases and shared spots earn points and leave room for others.</value></data>
   <data name="Landing_HowTitle" xml:space="preserve"><value>How it works</value></data>
   <data name="Landing_Step1_Title" xml:space="preserve"><value>Create an account</value></data>
   <data name="Landing_Step1_Desc" xml:space="preserve"><value>Registration takes a minute — just an e-mail and a password.</value></data>
   <data name="Landing_Step2_Title" xml:space="preserve"><value>Reserve a spot</value></data>
   <data name="Landing_Step2_Desc" xml:space="preserve"><value>Pick a date. If the lot is full, the queue offers you a freed spot automatically.</value></data>
   <data name="Landing_Step3_Title" xml:space="preserve"><value>Park and earn rewards</value></data>
-  <data name="Landing_Step3_Desc" xml:space="preserve"><value>Check-in confirms your arrival; release an unused spot with one click.</value></data>
+  <data name="Landing_Step3_Desc" xml:space="preserve"><value>No arrival or departure confirmation; release a changed plan with one click.</value></data>
   <data name="Landing_FinalTitle" xml:space="preserve"><value>Start parking smarter today</value></data>
   <data name="Nav_AdminFleet" xml:space="preserve"><value>Company fleet</value></data>
   <data name="Nav_Short_Fleet" xml:space="preserve"><value>Fleet</value></data>
@@ -1279,7 +1299,8 @@
   <data name="Fleet_Filter_Unassigned" xml:space="preserve"><value>Without assigned spot</value></data>
   <data name="Fleet_Filter_Clear" xml:space="preserve"><value>Clear filters</value></data>
   <data name="Fleet_Filter_State" xml:space="preserve"><value>Filter by operational state</value></data>
-  <data name="Fleet_Filter_ResultCount" xml:space="preserve"><value>Vehicles shown: {0}</value></data>
+  <data name="Fleet_Filter_ResultCount" xml:space="preserve"><value>Vehicles found: {0}</value></data>
+  <data name="Fleet_Pagination_Label" xml:space="preserve"><value>Fleet pagination</value></data>
   <data name="Fleet_Filter_EmptyTitle" xml:space="preserve"><value>No vehicle matches these filters</value></data>
   <data name="Fleet_Filter_EmptyText" xml:space="preserve"><value>Adjust the search, vehicle type, or parking entitlement.</value></data>
   <data name="Fleet_View_Active" xml:space="preserve"><value>Active</value></data>
@@ -1450,7 +1471,7 @@
   <data name="Lot_Tab_Analytics" xml:space="preserve"><value>Analytics</value></data>
   <data name="Lot_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Free</value></data>
-  <data name="Lot_State_Booked" xml:space="preserve"><value>Booked</value></data>
+  <data name="Lot_State_Booked" xml:space="preserve"><value>Planned</value></data>
   <data name="Lot_State_Occupied" xml:space="preserve"><value>Occupied (vehicle present)</value></data>
   <data name="Lot_State_ResidentHeld" xml:space="preserve"><value>Reserved for the resident</value></data>
   <data name="Lot_State_ResidentShared" xml:space="preserve"><value>Resident's, released to the pool</value></data>
@@ -1518,7 +1539,7 @@
   <data name="Lot_Detail_Trend" xml:space="preserve"><value>Utilization of this spot</value></data>
   <data name="Lot_Detail_Trend_Series" xml:space="preserve"><value>Utilized</value></data>
   <data name="Lot_Demand" xml:space="preserve"><value>Distribution of demand over time</value></data>
-  <data name="Lot_Demand_Hint" xml:space="preserve"><value>Occupied spot-hours by weekday and hour. The shade is relative to the busiest cell in the period.</value></data>
+  <data name="Lot_Demand_Hint" xml:space="preserve"><value>Planned spot-hours by weekday and hour. The shade is relative to the busiest cell in the period.</value></data>
   <data name="Lot_Info_Cancelled" xml:space="preserve"><value>Reservation cancelled, credits refunded and the holder notified.</value></data>
   <data name="Lot_Info_Moved" xml:space="preserve"><value>Reservation moved and the holder notified.</value></data>
   <data name="Lot_Info_Deactivated" xml:space="preserve"><value>The spot has been taken out of service.</value></data>
@@ -1561,12 +1582,12 @@
   <data name="Lot_Stat_QueueExpired" xml:space="preserve"><value>Not satisfied</value></data>
   <data name="Lot_Stat_QueueConversion" xml:space="preserve"><value>Queue conversion</value></data>
   <data name="Lot_Queue_Refused_Hint" xml:space="preserve"><value>The periods the rejected demand was aimed at. Divergence from the demand map below indicates periods of insufficient capacity, not the periods with the most reservations.</value></data>
-  <data name="Lot_Rel_Head" xml:space="preserve"><value>Reservation reliability</value></data>
-  <data name="Lot_Rel_Hint" xml:space="preserve"><value>Only reservations whose period ended within the interval are included; reservations with a future period could not yet be evaluated. Three shares of the same base.</value></data>
-  <data name="Lot_Rel_Completed" xml:space="preserve"><value>Utilized as reserved</value></data>
+  <data name="Lot_Rel_Head" xml:space="preserve"><value>Planning outcome</value></data>
+  <data name="Lot_Rel_Hint" xml:space="preserve"><value>Reservations whose time window ended in the period are included. A planned reservation does not require physical-presence confirmation.</value></data>
+  <data name="Lot_Rel_Completed" xml:space="preserve"><value>Planned and kept</value></data>
   <data name="Lot_Rel_Released" xml:space="preserve"><value>Released within the deadline</value></data>
   <data name="Lot_Rel_NoShow" xml:space="preserve"><value>No-shows</value></data>
-  <data name="Lot_Rel_Counts" xml:space="preserve"><value>Reservations evaluated: {0}. Cancelled, outside this base: {1} — a cancelled reservation did not block capacity.</value></data>
+  <data name="Lot_Rel_Counts" xml:space="preserve"><value>Ended plans: {0}. Cancelled, outside this base: {1} — a cancelled reservation did not block capacity.</value></data>
   <data name="Lot_Stat_LeadTime" xml:space="preserve"><value>Median lead time</value></data>
   <data name="Lot_Stat_LeadTime_Value" xml:space="preserve"><value>{0} h</value></data>
   <data name="Lot_Peak_Suggested" xml:space="preserve"><value>Derived from data</value></data>

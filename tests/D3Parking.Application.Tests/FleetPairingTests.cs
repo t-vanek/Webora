@@ -448,6 +448,49 @@ public class FleetPairingTests
         Assert.That(status.SpotCode, Is.Null);
     }
 
+    [Test]
+    public async Task Admin_registry_filters_before_paging_and_keeps_global_summary()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var fleet = CreateFleetService(scope);
+        var baseline = await fleet.GetAdminSummaryAsync();
+        var marker = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var spotId = await CreateSpotAsync($"PG-{marker}");
+
+        for (var number = 30; number >= 0; number--)
+        {
+            var type = number % 2 == 0 ? VehicleType.Company : VehicleType.Employee;
+            Guid? assignedSpot = number == 0 ? spotId : null;
+            Assert.That((await fleet.CreateAsync($"{marker}-{number:00}", type, $"Paging {marker}", null, assignedSpot, null)).Succeeded, Is.True);
+        }
+
+        var filter = new FleetVehicleListQuery(Search: marker, State: FleetVehicleStateFilter.Active);
+        var first = await fleet.ListAdminPageAsync(filter, pageIndex: 0, pageSize: 10);
+        var second = await fleet.ListAdminPageAsync(filter, pageIndex: 1, pageSize: 10);
+        var last = await fleet.ListAdminPageAsync(filter, pageIndex: 99, pageSize: 10);
+        var employees = await fleet.ListAdminPageAsync(filter with { Type = VehicleType.Employee }, 0, 100);
+        var assigned = await fleet.ListAdminPageAsync(filter with { Parking = FleetParkingAssignmentFilter.Assigned }, 0, 100);
+        var summary = await fleet.GetAdminSummaryAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.TotalCount, Is.EqualTo(31));
+            Assert.That(first.Items, Has.Count.EqualTo(10));
+            Assert.That(first.Items.Select(v => v.Plate), Is.Ordered);
+            Assert.That(second.Items[0].Plate, Is.Not.EqualTo(first.Items[^1].Plate));
+            Assert.That(last.PageIndex, Is.EqualTo(3), "A page beyond the end walks back to the last real page.");
+            Assert.That(last.Items, Has.Count.EqualTo(1));
+            Assert.That(employees.TotalCount, Is.EqualTo(15), "The type filter is applied before the page is cut.");
+            Assert.That(assigned.TotalCount, Is.EqualTo(1));
+            Assert.That(assigned.Items.Single().AssignedSpotId, Is.EqualTo(spotId));
+            Assert.That(summary.TotalCount, Is.EqualTo(baseline.TotalCount + 31));
+            Assert.That(summary.ActiveCount, Is.EqualTo(baseline.ActiveCount + 31));
+            Assert.That(summary.ManualCount, Is.EqualTo(baseline.ManualCount + 31));
+            Assert.That(summary.AssignedSpotIds, Does.Contain(spotId),
+                "The editor must know about assigned spots outside its current page.");
+        });
+    }
+
     private FleetService CreateFleetService(AsyncServiceScope scope, INotificationService? notifications = null) => new(
         new TestDbContextFactory(_options),
         scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
@@ -461,6 +504,7 @@ public class FleetPairingTests
     private ParkingSpotService CreateSpotService() => new(
         new TestDbContextFactory(_options),
         new NullNotificationService(),
+        new FakeParkingSettings(),
         new FakeSiteSettings(),
         TimeProvider.System,
         new PassthroughLocalizer<ParkingMessages>());

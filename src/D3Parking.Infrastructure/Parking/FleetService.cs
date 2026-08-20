@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using D3Parking.Application;
 using D3Parking.Application.Abstractions.Email;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
@@ -99,6 +100,118 @@ public sealed class FleetService(
             })
             .OrderBy(v => v.Plate, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    public async Task<PagedResult<CompanyVehicleDto>> ListAdminPageAsync(
+        FleetVehicleListQuery filter,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var size = Math.Clamp(pageSize, 1, 100);
+        var index = Math.Max(0, pageIndex);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = AdminRows(dbContext, timeProvider.GetUtcNow());
+
+        var term = filter.Search?.Trim();
+        if (!string.IsNullOrEmpty(term))
+        {
+            query = query.Where(v =>
+                v.Plate.Contains(term) ||
+                (v.Name != null && v.Name.Contains(term)) ||
+                (v.DriverEmail != null && v.DriverEmail.Contains(term)) ||
+                (v.PairedUserName != null && v.PairedUserName.Contains(term)) ||
+                (v.SpotCode != null && v.SpotCode.Contains(term)));
+        }
+
+        if (filter.Type is { } type)
+        {
+            query = query.Where(v => v.Type == type);
+        }
+
+        query = filter.Parking switch
+        {
+            FleetParkingAssignmentFilter.Assigned => query.Where(v => v.AssignedSpotId != null),
+            FleetParkingAssignmentFilter.Unassigned => query.Where(v => v.AssignedSpotId == null),
+            _ => query,
+        };
+
+        query = filter.State switch
+        {
+            FleetVehicleStateFilter.Paired => query.Where(v => v.IsActive && v.PairingState == FleetPairingState.Paired),
+            FleetVehicleStateFilter.ActionRequired => query.Where(v => v.IsActive &&
+                (v.PairingState == FleetPairingState.ManualOnly ||
+                 v.PairingState == FleetPairingState.NoAccount ||
+                 v.PairingState == FleetPairingState.PlateMissing ||
+                 v.PairingState == FleetPairingState.Locked)),
+            FleetVehicleStateFilter.ManualOnly => query.Where(v => v.IsActive && v.PairingState == FleetPairingState.ManualOnly),
+            FleetVehicleStateFilter.Inactive => query.Where(v => !v.IsActive),
+            _ => query.Where(v => v.IsActive),
+        };
+
+        var total = await query.CountAsync(cancellationToken);
+        if (total == 0)
+        {
+            return PagedResult<CompanyVehicleDto>.Empty(size);
+        }
+
+        index = Math.Min(index, (total - 1) / size);
+        var rows = await query
+            .OrderBy(v => v.PairingState == FleetPairingState.Locked ? 0
+                : v.PairingState == FleetPairingState.NoAccount ? 1
+                : v.PairingState == FleetPairingState.PlateMissing ? 2
+                : v.PairingState == FleetPairingState.ManualOnly ? 3
+                : v.PairingState == FleetPairingState.CodeSent ? 4
+                : v.PairingState == FleetPairingState.ReadyToPair ? 5
+                : v.PairingState == FleetPairingState.Paired ? 6
+                : 7)
+            .ThenBy(v => v.Plate)
+            .Skip(index * size)
+            .Take(size)
+            .ToListAsync(cancellationToken);
+
+        var now = timeProvider.GetUtcNow();
+        var items = rows.Select(row => new CompanyVehicleDto(
+            row.Id, row.Plate, row.Type, row.Name, row.DriverEmail, row.AssignedSpotId, row.SpotCode,
+            row.PairedUserId, row.PairedUserName, row.PairedAtUtc, row.IsActive, row.Notes,
+            row.PairingState, row.PairingCodeSentAtUtc,
+            LockedUntil(row.PairingAttempts, row.PairingAttemptsWindowStartUtc, now))).ToList();
+
+        return new PagedResult<CompanyVehicleDto>(items, total, index, size);
+    }
+
+    public async Task<FleetDirectorySummary> GetAdminSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var rows = AdminRows(dbContext, timeProvider.GetUtcNow());
+
+        var groups = await rows
+            .GroupBy(v => new { v.IsActive, v.PairingState, Assigned = v.AssignedSpotId != null })
+            .Select(group => new
+            {
+                group.Key.IsActive,
+                group.Key.PairingState,
+                group.Key.Assigned,
+                Count = group.Count(),
+            })
+            .ToListAsync(cancellationToken);
+
+        var assignedSpotIds = await dbContext.CompanyVehicles.AsNoTracking()
+            .Where(v => v.AssignedSpotId != null)
+            .Select(v => v.AssignedSpotId!.Value)
+            .ToListAsync(cancellationToken);
+
+        var active = groups.Where(g => g.IsActive).Sum(g => g.Count);
+        var inactive = groups.Where(g => !g.IsActive).Sum(g => g.Count);
+        var paired = groups.Where(g => g.IsActive && g.PairingState == FleetPairingState.Paired).Sum(g => g.Count);
+        var manual = groups.Where(g => g.IsActive && g.PairingState == FleetPairingState.ManualOnly).Sum(g => g.Count);
+        var action = groups.Where(g => g.IsActive && g.PairingState is
+            FleetPairingState.ManualOnly or FleetPairingState.NoAccount or FleetPairingState.PlateMissing or FleetPairingState.Locked)
+            .Sum(g => g.Count);
+        var assigned = groups.Where(g => g.IsActive && g.Assigned).Sum(g => g.Count);
+
+        return new FleetDirectorySummary(active + inactive, active, paired, action, manual, inactive, assigned, assignedSpotIds);
     }
 
     public Task<ParkingResult> CreateAsync(string plate, VehicleType type, string? name, string? driverEmail, Guid? spotId, string? notes, CancellationToken cancellationToken = default) =>
@@ -672,6 +785,55 @@ public sealed class FleetService(
         return null;
     }
 
+    /// <summary>
+    /// SQL-translatable projection shared by the paged registry and its global summary. Keeping the
+    /// funnel state inside the query is what lets filtering happen before Skip/Take instead of
+    /// materialising the entire fleet in the Blazor circuit.
+    /// </summary>
+    private static IQueryable<FleetAdminRow> AdminRows(D3ParkingDbContext dbContext, DateTimeOffset now)
+    {
+        var openAttemptWindow = now - AttemptWindow;
+
+        return from v in dbContext.CompanyVehicles.AsNoTracking()
+               join s in dbContext.ParkingSpots on v.AssignedSpotId equals s.Id into spots
+               from s in spots.DefaultIfEmpty()
+               join u in dbContext.Users on v.PairedUserId equals u.Id into users
+               from u in users.DefaultIfEmpty()
+               join d in dbContext.Users on v.DriverEmail!.ToUpper() equals d.NormalizedEmail into drivers
+               from d in drivers.DefaultIfEmpty()
+               select new FleetAdminRow
+               {
+                   Id = v.Id,
+                   Plate = v.Plate,
+                   Type = v.Type,
+                   Name = v.Name,
+                   DriverEmail = v.DriverEmail,
+                   AssignedSpotId = v.AssignedSpotId,
+                   SpotCode = s != null ? s.Code : null,
+                   PairedUserId = v.PairedUserId,
+                   PairedUserName = u != null ? (u.DisplayName ?? u.Email) : null,
+                   PairedAtUtc = v.PairedAtUtc,
+                   IsActive = v.IsActive,
+                   Notes = v.Notes,
+                   PairingCodeSentAtUtc = v.PairingCodeSentAtUtc,
+                   PairingAttempts = v.PairingAttempts,
+                   PairingAttemptsWindowStartUtc = v.PairingAttemptsWindowStartUtc,
+                   PairingState = !v.IsActive ? FleetPairingState.Inactive
+                       : v.PairedUserId != null ? FleetPairingState.Paired
+                       : v.DriverEmail == null ? FleetPairingState.ManualOnly
+                       : d == null || d.Status != AccountStatus.Active || !d.EmailConfirmed ? FleetPairingState.NoAccount
+                       : d.LicensePlate == null ||
+                         d.LicensePlate.Replace(" ", "").Replace("-", "").ToUpper() != v.NormalizedPlate
+                           ? FleetPairingState.PlateMissing
+                       : v.PairingAttempts >= MaxCodeAttempts &&
+                         v.PairingAttemptsWindowStartUtc != null &&
+                         v.PairingAttemptsWindowStartUtc >= openAttemptWindow
+                           ? FleetPairingState.Locked
+                       : v.PairingCodeSentAtUtc != null ? FleetPairingState.CodeSent
+                       : FleetPairingState.ReadyToPair,
+               };
+    }
+
     /// <summary>When the failed-attempt budget is spent, the moment self-service reopens; else null.</summary>
     private static DateTimeOffset? LockedUntil(int attempts, DateTimeOffset? windowStartUtc, DateTimeOffset now) =>
         attempts >= MaxCodeAttempts && windowStartUtc is { } start && now - start <= AttemptWindow
@@ -743,4 +905,24 @@ public sealed class FleetService(
     private static string? Trimmed(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string? NormalizedEmail(string? email) => string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+
+    private sealed class FleetAdminRow
+    {
+        public Guid Id { get; init; }
+        public required string Plate { get; init; }
+        public VehicleType Type { get; init; }
+        public string? Name { get; init; }
+        public string? DriverEmail { get; init; }
+        public Guid? AssignedSpotId { get; init; }
+        public string? SpotCode { get; init; }
+        public Guid? PairedUserId { get; init; }
+        public string? PairedUserName { get; init; }
+        public DateTimeOffset? PairedAtUtc { get; init; }
+        public bool IsActive { get; init; }
+        public string? Notes { get; init; }
+        public FleetPairingState PairingState { get; init; }
+        public DateTimeOffset? PairingCodeSentAtUtc { get; init; }
+        public int PairingAttempts { get; init; }
+        public DateTimeOffset? PairingAttemptsWindowStartUtc { get; init; }
+    }
 }

@@ -1,5 +1,6 @@
 @using System.Globalization
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using D3Parking.Web.Identity
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
 
@@ -28,69 +29,60 @@
 <FluentDesignTheme StorageName="theme" @bind-Mode="_themeMode" CustomColor="#884DFF" />
 <FluentMenuProvider />
 
-@* FluentMenu's JS interop has taken this circuit down before — see the teardown notes below and
-   the ShouldRender guard — and it can still throw from OnAfterRenderAsync for reasons outside our
-   control (a null AnchoredRegion module, a disposed menu instance). Whatever the trigger, the worst
-   case must be "the preference corner is missing until the next page load", not a dead page. The
-   boundary deliberately starts here: FluentDesignTheme above must stay mounted, or the page loses
-   its design tokens. *@
+@* The signed-out language picker still uses FluentMenu and therefore stays behind a boundary.
+   The signed-in account menu below is native HTML so account navigation and sign-out do not depend
+   on that JS module. FluentDesignTheme remains outside the boundary so the page keeps its tokens. *@
 <ErrorBoundary>
     <ChildContent>
 <AuthorizeView>
     <Authorized>
-        <FluentButton Id="account-menu-trigger"
-                      Appearance="Appearance.Stealth"
-                      Title="@L["Nav_MyAccount"]"
-                      OnClick="@(() => _accountOpen = !_accountOpen)">
-            <span class="account-avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
-        </FluentButton>
+        @* Native details/menu keeps account navigation and sign-out independent of the interactive
+           circuit. FluentMenu's anchored-region module used to be able to fail during startup,
+           leaving the visible avatar unable to open. The sign-out button submits its own
+           antiforgery-protected form, so one activation is one safe POST. *@
+        <details class="account-menu-native">
+            <summary id="account-menu-trigger" title="@L["Nav_MyAccount"]" aria-label="@L["Nav_MyAccount"]">
+                <span class="account-avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
+            </summary>
+            <div class="account-menu-native__surface" role="menu">
+            <a href="account/manage" data-enhance-nav="false" class="account-menu-native__item" role="menuitem">
+                <span><FluentIcon Value="@(new Icons.Regular.Size20.Person())" /></span>
+                <span>@context.User.Identity?.Name</span>
+            </a>
 
-        @* The navigation items carry a real anchor (data-enhance-nav=false → full document load,
-           same semantics the old NavigateTo(forceLoad) had): a native link works even while the
-           circuit is attaching or gone, when an OnClick would be silently dropped — "clicked
-           Sign out and nothing happened". The split of duties: mouse clicks hit the anchor
-           (stretched over the row in app.css) and navigate natively; the native inline
-           stopPropagation keeps the click from ever reaching the fluent-menu-item element, whose
-           close-and-re-render would race the page teardown and crash the circuit inside
-           FluentMenu's JS interop (a Blazor @onclick:stopPropagation cannot do this — the web
-           component's own listener runs during bubbling, before Blazor's delegated root).
-           Keyboard activation dispatches on the menu item itself, so OnClick stays as the
-           keyboard path. *@
-        <FluentMenu Anchor="account-menu-trigger" @bind-Open="_accountOpen">
-            <FluentMenuItem OnClick="@(() => Go("account/manage"))">
-                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.Person())" /></span>
-                <a href="account/manage" data-enhance-nav="false" class="account-menu-link"
-                   onclick="event.stopPropagation()">@context.User.Identity?.Name</a>
-            </FluentMenuItem>
-
-            <FluentDivider />
+            <div class="account-menu-native__divider" role="separator"></div>
 
             @foreach (var culture in SupportedCultures.All)
             {
                 var isCurrent = string.Equals(culture, _currentCulture, StringComparison.OrdinalIgnoreCase);
-                <FluentMenuItem OnClick="@(() => SwitchCulture(culture))" Disabled="@isCurrent">
-                    <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.LocalLanguage())" /></span>
-                    @CultureLabel(culture)
-                </FluentMenuItem>
+                <button type="button" class="account-menu-native__item" role="menuitem"
+                        disabled="@isCurrent" @onclick="@(() => SwitchCulture(culture))">
+                    <span><FluentIcon Value="@(new Icons.Regular.Size20.LocalLanguage())" /></span>
+                    <span>@CultureLabel(culture)</span>
+                </button>
             }
 
-            <FluentMenuItem OnClick="ToggleTheme">
+            <button type="button" class="account-menu-native__item" role="menuitem" @onclick="ToggleTheme">
                 <span slot="start">
                     <FluentIcon Value="@(_themeMode == DesignThemeModes.Dark
                         ? (Icon)new Icons.Regular.Size20.WeatherSunny()
                         : new Icons.Regular.Size20.WeatherMoon())" />
                 </span>
-                @(_themeMode == DesignThemeModes.Dark ? L["Layout_ThemeSwitchToLight"] : L["Layout_ThemeSwitchToDark"])
-            </FluentMenuItem>
+                <span>@(_themeMode == DesignThemeModes.Dark ? L["Layout_ThemeSwitchToLight"] : L["Layout_ThemeSwitchToDark"])</span>
+            </button>
 
-            <FluentDivider />
+            <div class="account-menu-native__divider" role="separator"></div>
 
-            <FluentMenuItem OnClick="@(() => Go("logout"))">
-                <span slot="start"><FluentIcon Value="@(new Icons.Regular.Size20.SignOut())" /></span>
-                <a href="logout" data-enhance-nav="false" class="account-menu-link"
-                   onclick="event.stopPropagation()">@L["Nav_Logout"]</a>
-            </FluentMenuItem>
-        </FluentMenu>
+            <form method="post" action="@ExternalSignInEndpoints.SignOutPath" data-push-unsubscribe>
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="/" />
+                <button type="submit" class="account-menu-native__item account-menu-submit" role="menuitem">
+                    <span><FluentIcon Value="@(new Icons.Regular.Size20.SignOut())" /></span>
+                    <span>@L["Nav_Logout"]</span>
+                </button>
+            </form>
+            </div>
+        </details>
     </Authorized>
     <NotAuthorized>
         <FluentButton Id="lang-menu-trigger"
@@ -127,31 +119,15 @@
 </ErrorBoundary>
 
 @code {
-    private bool _accountOpen;
     private bool _langOpen;
-    private bool _navigating;
     private DesignThemeModes _themeMode = DesignThemeModes.System;
     private readonly string _currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
-    // While a full-load navigation is tearing the page down, the post-event re-render must not
-    // run: FluentMenu.OnAfterRenderAsync would call into the disconnecting JS runtime and take
-    // the circuit down with an ArgumentNullException on every sign-out.
-    protected override bool ShouldRender() => !_navigating;
-
-    // Full load on purpose: both targets are statically rendered pages, and logout in
-    // particular must arrive as a fresh request so its antiforgery-protected form renders.
-    private void Go(string url)
-    {
-        _navigating = true;
-        Nav.NavigateTo(url, forceLoad: true);
-    }
 
     private void ToggleTheme() =>
         _themeMode = _themeMode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
 
     private void SwitchCulture(string culture)
     {
-        _accountOpen = false;
         _langOpen = false;
         var relative = "/" + Nav.ToBaseRelativePath(Nav.Uri);
         Nav.NavigateTo($"/culture/set?culture={culture}&redirectUri={Uri.EscapeDataString(relative)}",
