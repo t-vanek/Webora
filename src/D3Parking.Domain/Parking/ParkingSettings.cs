@@ -34,14 +34,18 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>Local weekdays on which employees may start a new reservation.</summary>
     public Weekday AllowedReservationWeekdays { get; private set; } = Weekday.Everyday;
 
+    public HolidayCalendarRegion HolidayCalendarRegion { get; private set; } = HolidayCalendarRegion.CzechRepublic;
+
+    public bool PublicHolidayReservationsAllowed { get; private set; }
+
     /// <summary>Whether advance plans are limited per user and local calendar week.</summary>
     public bool WeeklyReservationLimitEnabled { get; private set; } = true;
 
     /// <summary>Maximum advance plans in one local Monday-Sunday week.</summary>
     public int WeeklyReservationLimit { get; private set; } = 2;
 
-    /// <summary>Inside this window unused capacity opens without the weekly limit.</summary>
-    public int LastMinuteUnlimitedHours { get; private set; } = 24;
+    /// <summary>Legacy persisted setting. Weekly limits no longer have a close-in bypass.</summary>
+    public int LastMinuteUnlimitedHours { get; private set; }
 
     public TimeOnly PeakStart { get; private set; } = new(7, 30);
 
@@ -363,7 +367,9 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentProtectionDeadlineMode residentProtectionDeadlineMode,
         int residentProtectionLeadHours,
         TimeOnly residentProtectionPreviousDayTime,
-        ResidentNoReplacementAction residentNoReplacementAction)
+        ResidentNoReplacementAction residentNoReplacementAction,
+        HolidayCalendarRegion holidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
+        bool publicHolidayReservationsAllowed = false)
     {
         ReleasePoints = Math.Max(0, releasePoints);
         OffPeakBonusPoints = Math.Max(0, offPeakBonusPoints);
@@ -376,9 +382,13 @@ public class ParkingSettings : Entity, IAggregateRoot
         AllowedReservationWeekdays = allowedReservationWeekdays.Sanitize() is Weekday.None
             ? Weekday.Everyday
             : allowedReservationWeekdays.Sanitize();
+        HolidayCalendarRegion = Enum.IsDefined(holidayCalendarRegion)
+            ? holidayCalendarRegion
+            : HolidayCalendarRegion.CzechRepublic;
+        PublicHolidayReservationsAllowed = publicHolidayReservationsAllowed;
         WeeklyReservationLimitEnabled = weeklyReservationLimitEnabled;
         WeeklyReservationLimit = Math.Clamp(weeklyReservationLimit, 1, 7);
-        LastMinuteUnlimitedHours = Math.Clamp(lastMinuteUnlimitedHours, 0, 168);
+        LastMinuteUnlimitedHours = 0;
         PeakStart = peakStart;
         PeakEnd = peakEnd;
         // A floor keeps the maintenance loop from busy-spinning on a misconfigured tiny interval.
@@ -527,6 +537,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReservationTimeMode = ReservationTimeMode,
         ReservationHorizonDays = ReservationHorizonDays,
         AllowedReservationWeekdays = AllowedReservationWeekdays,
+        HolidayCalendarRegion = HolidayCalendarRegion,
+        PublicHolidayReservationsAllowed = PublicHolidayReservationsAllowed,
         WeeklyReservationLimitEnabled = WeeklyReservationLimitEnabled,
         WeeklyReservationLimit = WeeklyReservationLimit,
         LastMinuteUnlimitedHours = LastMinuteUnlimitedHours,

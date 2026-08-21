@@ -86,13 +86,18 @@ public sealed class ParkingSettingsService(
             s.OversightRecurrenceWindowDays, s.OversightRecurrenceThreshold, s.OversightDigestHourLocal,
             s.OversightInfoDeadlineDays, s.OversightAllowUserReports, s.OversightDisputeWindowDays,
             s.ResidentReclaimPolicy, s.ManualReleasesAreBinding, s.ResidentProtectionDeadlineMode,
-            s.ResidentProtectionLeadHours, s.ResidentProtectionPreviousDayTime, s.ResidentNoReplacementAction);
+            s.ResidentProtectionLeadHours, s.ResidentProtectionPreviousDayTime, s.ResidentNoReplacementAction,
+            s.HolidayCalendarRegion, s.PublicHolidayReservationsAllowed);
     }
 
     public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var settings = await GetOrCreateAsync(dbContext, cancellationToken);
+        var calendarChanged = settings.ReservationHorizonDays != dto.ReservationHorizonDays
+            || settings.AllowedReservationWeekdays != dto.AllowedReservationWeekdays.Sanitize()
+            || settings.HolidayCalendarRegion != dto.HolidayCalendarRegion
+            || settings.PublicHolidayReservationsAllowed != dto.PublicHolidayReservationsAllowed;
         settings.Update(
             dto.ReleasePoints, dto.OffPeakBonusPoints, dto.NoShowPenaltyPoints,
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
@@ -102,7 +107,7 @@ public sealed class ParkingSettingsService(
             dto.PeakStart, dto.PeakEnd, dto.SweepInterval,
             dto.ResidentHoldUntil, dto.ResidentReleasePointsPerHour, dto.ResidentReleaseMaxPoints,
             0, 0, dto.ResidentWastedShareClawbackPercent,
-            dto.ResidentPlanHorizonDays,
+            dto.ReservationHorizonDays,
             dto.LotLatitude, dto.LotLongitude, dto.SharedTakenBasePoints, dto.SharedTakenReferenceKm, dto.SharedTakenMaxMultiplier,
             dto.AutoVerifyHomeAddress, dto.AutoVerifyMaxDistanceKm, dto.MaxRewardedReleasesPerDay, dto.MaxReleaseRangeDays,
             dto.BaseReservationCost, 100, dto.OccupancyPricePercent, dto.MaxReservationCost, dto.MonthlyCreditAllowance,
@@ -123,13 +128,33 @@ public sealed class ParkingSettingsService(
             dto.OversightRecurrenceWindowDays, dto.OversightRecurrenceThreshold, dto.OversightDigestHourLocal,
             dto.OversightInfoDeadlineDays, dto.OversightAllowUserReports, dto.OversightDisputeWindowDays,
             dto.ResidentReclaimPolicy, dto.ManualReleasesAreBinding, dto.ResidentProtectionDeadlineMode,
-            dto.ResidentProtectionLeadHours, dto.ResidentProtectionPreviousDayTime, dto.ResidentNoReplacementAction);
+            dto.ResidentProtectionLeadHours, dto.ResidentProtectionPreviousDayTime, dto.ResidentNoReplacementAction,
+            dto.HolidayCalendarRegion, dto.PublicHolidayReservationsAllowed);
+
+        if (calendarChanged)
+        {
+            foreach (var spot in await dbContext.ParkingSpots
+                         .Where(s => s.AutoReleaseUnplannedDays && s.PlanAppliedThrough != null)
+                         .ToListAsync(cancellationToken))
+            {
+                spot.ResetPlanApplication();
+            }
+
+            foreach (var resident in await dbContext.ParkingSpotResidents
+                         .Where(r => r.RemovedAtUtc == null && r.AutoReleaseUnplannedDays && r.PlanAppliedThrough != null)
+                         .ToListAsync(cancellationToken))
+            {
+                resident.ResetPlanApplication();
+            }
+        }
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
             $"Parking planner: mode={settings.ReservationTimeMode} horizon={settings.ReservationHorizonDays}d " +
-            $"weekdays={settings.AllowedReservationWeekdays} weeklyLimit={(settings.WeeklyReservationLimitEnabled ? settings.WeeklyReservationLimit : 0)} " +
-            $"lastMinute={settings.LastMinuteUnlimitedHours}h credits={settings.BaseReservationCost > 0} budgetPeriod={settings.BudgetRenewalPeriod} " +
+            $"weekdays={settings.AllowedReservationWeekdays} holidays={settings.HolidayCalendarRegion}:" +
+            $"{(settings.PublicHolidayReservationsAllowed ? "allowed" : "blocked")} " +
+            $"weeklyLimit={(settings.WeeklyReservationLimitEnabled ? settings.WeeklyReservationLimit : 0)} " +
+            $"credits={settings.BaseReservationCost > 0} budgetPeriod={settings.BudgetRenewalPeriod} " +
             $"residentReclaim={settings.ResidentReclaimPolicy} deadline={settings.ResidentProtectionDeadlineMode} " +
             $"fallback={settings.ResidentNoReplacementAction}",
             timeProvider.GetUtcNow()));

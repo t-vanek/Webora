@@ -32,12 +32,16 @@
             <summary class="help-item__q">@L["Help_Reserve_Q"]</summary>
             <div class="help-item__a">
                 <p>@L[_charged ? "Help_Reserve_A1_Paid" : "Help_Reserve_A1_Free"]</p>
-                <p>@(policy.WeeklyReservationLimitEnabled && policy.LastMinuteUnlimitedHours > 0
-                    ? L["Help_Reserve_PlannerRules", policy.ReservationHorizonDays, policy.WeeklyReservationLimit, policy.LastMinuteUnlimitedHours]
-                    : policy.WeeklyReservationLimitEnabled
+                <p>@(policy.WeeklyReservationLimitEnabled
                         ? L["Help_Reserve_PlannerRules_NoLastMinute", policy.ReservationHorizonDays, policy.WeeklyReservationLimit]
                     : L["Help_Reserve_PlannerRules_NoLimit", policy.ReservationHorizonDays])</p>
                 <p>@L["Parking_Planner_AllowedWeekdays", FormatAllowedWeekdays(policy.AllowedReservationWeekdays)]</p>
+                @if (policy.HolidayCalendarRegion != HolidayCalendarRegion.None)
+                {
+                    <p>@L[policy.PublicHolidayReservationsAllowed
+                        ? "Parking_Planner_PublicHolidaysAllowed"
+                        : "Parking_Planner_PublicHolidaysBlocked"]</p>
+                }
                 <p>@L["Help_Reserve_A2_Free"]</p>
                 <figure class="help-demo">
                     <picture>

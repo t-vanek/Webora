@@ -609,6 +609,11 @@ h1:focus {
     color: var(--neutral-foreground-hint, #777);
 }
 
+.parking-planner__day.is-unavailable:not(.is-selected) {
+    background: var(--neutral-layer-2, #fafafa);
+    color: var(--neutral-foreground-hint, #777);
+}
+
 .parking-planner__date {
     display: flex;
     align-items: center;
@@ -5577,6 +5582,13 @@ h1:focus {
     margin-top: 4px;
 }
 
+.weekday-picker__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
 .weekday-picker__day {
     min-height: 42px;
     padding: 8px 10px;
@@ -5598,7 +5610,7 @@ h1:focus {
 .weekday-picker__day.is-selected {
     border-color: var(--accent-fill-rest, var(--brand-violet));
     background: var(--accent-fill-rest, var(--brand-violet));
-    color: var(--brand-accent-foreground);
+    color: var(--brand-on-violet);
     box-shadow: inset 0 0 0 1px var(--accent-fill-rest, var(--brand-violet));
 }
 

@@ -45,6 +45,12 @@ public class Reservation : Entity
     public bool FromQueue { get; private set; }
 
     /// <summary>
+    /// Captured at booking time. Reservations that use a resident's own allocation are an
+    /// entitlement; reservations from shared capacity consume the person's weekly quota.
+    /// </summary>
+    public bool CountsTowardWeeklyLimit { get; private set; } = true;
+
+    /// <summary>
     /// Resident who released the capacity used by this booking, captured at booking time so later
     /// membership changes cannot rewrite trust, rewards or collusion history.
     /// </summary>
@@ -52,7 +58,9 @@ public class Reservation : Entity
 
     private Reservation() { }
 
-    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak, DateTimeOffset createdAtUtc, int creditsCharged = 0, bool fromQueue = false)
+    public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak,
+        DateTimeOffset createdAtUtc, int creditsCharged = 0, bool fromQueue = false,
+        bool countsTowardWeeklyLimit = true)
     {
         if (endUtc <= startUtc)
             throw new ArgumentException("Reservation end must be after its start.", nameof(endUtc));
@@ -67,6 +75,7 @@ public class Reservation : Entity
         CalendarUpdatedAtUtc = createdAtUtc;
         CreditsCharged = creditsCharged;
         FromQueue = fromQueue;
+        CountsTowardWeeklyLimit = countsTowardWeeklyLimit;
     }
 
     /// <summary>Whether the two windows overlap on the same spot (used to prevent double-booking).</summary>

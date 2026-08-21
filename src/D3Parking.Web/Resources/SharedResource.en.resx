@@ -1298,7 +1298,7 @@
   <data name="Landing_Feature1_Title" xml:space="preserve"><value>Reserve in a few clicks</value></data>
   <data name="Landing_Feature1_Desc" xml:space="preserve"><value>Pick a day and a spot; the system handles the rest — including the queue when the lot is full.</value></data>
   <data name="Landing_Feature2_Title" xml:space="preserve"><value>Configurable rules</value></data>
-  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>The company sets the planning horizon, bookable weekdays, weekly maximum and use of remaining spots shortly before the start.</value></data>
+  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>The company sets one planning horizon, bookable days, public holiday rules and a weekly maximum for shared capacity.</value></data>
   <data name="Landing_Feature3_Title" xml:space="preserve"><value>All day or a time window</value></data>
   <data name="Landing_Feature3_Desc" xml:space="preserve"><value>The administrator chooses simple all-day planning or precise from–to times to match the company.</value></data>
   <data name="Landing_HowTitle" xml:space="preserve"><value>How it works</value></data>
@@ -2151,14 +2151,28 @@
   <data name="Parking_Settings_CapacityResidents" xml:space="preserve"><value>Active residents</value></data>
   <data name="Parking_Settings_CapacityVehicles" xml:space="preserve"><value>Registered vehicles</value></data>
   <data name="Parking_Settings_PlannerAccessSection" xml:space="preserve"><value>Advance reservation limits</value></data>
+  <data name="Parking_Settings_BookingCalendarSection" xml:space="preserve"><value>Booking calendar</value></data>
+  <data name="Parking_Settings_BookingCalendarHelp" xml:space="preserve"><value>Shared rules for employee bookings, the queue, visitors, and automatic resident-space releases.</value></data>
+  <data name="Parking_Settings_PersonalLimitSection" xml:space="preserve"><value>Shared-space limit per person</value></data>
+  <data name="Parking_Settings_PersonalLimitHelp" xml:space="preserve"><value>Applies to employee bookings from shared capacity and active queue entries. A resident's own allocation and visitor bookings do not count.</value></data>
   <data name="Parking_Settings_WeeklyLimitEnabled" xml:space="preserve"><value>Use a weekly limit</value></data>
   <data name="Parking_Settings_PlannerAccessHelp" xml:space="preserve"><value>Set how far ahead people may plan, which weekdays are bookable, and how many distinct days one person may hold in one week. A resident's own space does not count toward the weekly limit.</value></data>
   <data name="Parking_Settings_ReservationHorizonDays" xml:space="preserve"><value>Advance booking window</value></data>
   <data name="Parking_Settings_WeeklyReservationLimit" xml:space="preserve"><value>Maximum booked days per person and week</value></data>
   <data name="Parking_Settings_LastMinuteUnlimitedHours" xml:space="preserve"><value>Remove the weekly limit before start (hours)</value></data>
+  <data name="Parking_Settings_HolidayCalendar" xml:space="preserve"><value>Public holiday calendar</value></data>
+  <data name="Parking_Settings_HolidayCalendar_CZ" xml:space="preserve"><value>Czech Republic</value></data>
+  <data name="Parking_Settings_HolidayCalendar_None" xml:space="preserve"><value>Do not use a holiday calendar</value></data>
+  <data name="Parking_Settings_PublicHolidayReservationsAllowed" xml:space="preserve"><value>Allow bookings on public holidays</value></data>
+  <data name="Parking_Settings_Weekdays_Workdays" xml:space="preserve"><value>Workdays</value></data>
+  <data name="Parking_Settings_Weekdays_Everyday" xml:space="preserve"><value>Every day</value></data>
+  <data name="Parking_Settings_Holidays_Allowed" xml:space="preserve"><value>including public holidays</value></data>
+  <data name="Parking_Settings_Holidays_Blocked" xml:space="preserve"><value>excluding public holidays</value></data>
+  <data name="Parking_Settings_Holidays_NotConfigured" xml:space="preserve"><value>without a separate holiday calendar</value></data>
+  <data name="Parking_Settings_BookingCalendarSummary" xml:space="preserve"><value>Bookings can be made up to {0} days ahead, on {1}, {2}.</value></data>
   <data name="Parking_Settings_CurrentRule" xml:space="preserve"><value>Result of this setting</value></data>
   <data name="Parking_Settings_PlannerAccessSummaryEnabled" xml:space="preserve"><value>The number of distinct days one person may reserve in advance is limited to {0} per week. During the final {1} hours, remaining spots may be booked without this limit.</value></data>
-  <data name="Parking_Settings_PlannerAccessSummaryNoLastMinute" xml:space="preserve"><value>The number of distinct days one person may reserve in advance is limited to {0} per week. The last-minute exception is disabled.</value></data>
+  <data name="Parking_Settings_PlannerAccessSummaryNoLastMinute" xml:space="preserve"><value>One person can use shared capacity on at most {0} distinct days per calendar week (Monday through Sunday).</value></data>
   <data name="Parking_Settings_PlannerAccessSummaryDisabled" xml:space="preserve"><value>The weekly limit is disabled. One person may reserve any number of available days within the planning horizon.</value></data>
   <data name="Parking_Settings_QueueSection" xml:space="preserve"><value>Queue when capacity is full</value></data>
   <data name="Parking_Settings_QueueHelp" xml:space="preserve"><value>When no spot is available, the user may join the queue. After a spot is released, they receive a time-limited offer.</value></data>
@@ -2193,13 +2207,16 @@
   <data name="Parking_Weekday_Sunday" xml:space="preserve"><value>Sunday</value></data>
   <data name="Parking_Error_ReservationHorizon" xml:space="preserve"><value>This day is outside the allowed planning horizon.</value></data>
   <data name="Parking_Error_ReservationWeekdayNotAllowed" xml:space="preserve"><value>Reservations are not allowed on this weekday. Choose one of the permitted days.</value></data>
+  <data name="Parking_Error_PublicHolidayNotAllowed" xml:space="preserve"><value>Reservations are not allowed on public holidays. Choose another day.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit" xml:space="preserve"><value>You have already planned the allowed number of days for this week. Another free space can be booked once its last-minute window opens.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit_NoLastMinute" xml:space="preserve"><value>You have already planned the allowed number of days for this week.</value></data>
   <data name="Parking_Error_ResidentDayAlreadyBooked" xml:space="preserve"><value>A colleague already has a confirmed plan for this released day. A parking manager can handle an exceptional change.</value></data>
   <data name="Parking_Planner_Rules" xml:space="preserve"><value>Reservations can be made {0} days ahead. The weekly limit is {1} days per person. During the final {2} hours before the start, the limit does not apply to remaining spots.</value></data>
   <data name="Parking_Planner_Rules_NoWeeklyLimit" xml:space="preserve"><value>Reservations can be made {0} days ahead. The weekly limit is disabled.</value></data>
-  <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Reservations can be made {0} days ahead. The weekly limit is {1} days per person and applies until the reservation starts.</value></data>
+  <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Reservations can be made {0} days ahead. Shared capacity can be used on at most {1} distinct days per person and week.</value></data>
   <data name="Parking_Planner_AllowedWeekdays" xml:space="preserve"><value>Bookable weekdays: {0}.</value></data>
+  <data name="Parking_Planner_PublicHolidaysAllowed" xml:space="preserve"><value>Bookings on public holidays are allowed.</value></data>
+  <data name="Parking_Planner_PublicHolidaysBlocked" xml:space="preserve"><value>Bookings on public holidays are not allowed.</value></data>
   <data name="Help_Reserve_PlannerRules" xml:space="preserve"><value>The planning horizon is {0} days and you can confirm up to {1} distinct days per week in advance. During the final {2} hours, remaining capacity opens without the weekly limit. A resident's own allocated space does not count toward the limit.</value></data>
   <data name="Help_Reserve_PlannerRules_NoLimit" xml:space="preserve"><value>The planning horizon is {0} days and the weekly limit is disabled.</value></data>
   <data name="Help_Reserve_PlannerRules_NoLastMinute" xml:space="preserve"><value>The planning horizon is {0} days and you can confirm up to {1} distinct days per week in advance. A resident's own allocated space does not count toward the limit.</value></data>

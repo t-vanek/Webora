@@ -572,6 +572,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             reservation.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
             reservation.Property(r => r.CalendarSequence).HasDefaultValue(0);
             reservation.Property(r => r.CalendarUpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
+            reservation.Property(r => r.CountsTowardWeeklyLimit).HasDefaultValue(true);
             reservation.HasIndex(r => new { r.SpotId, r.StartUtc });
             reservation.HasIndex(r => new { r.UserId, r.StartUtc });
             reservation.HasIndex(r => new { r.SharedByResidentId, r.Status });
@@ -641,9 +642,15 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             settings.Property(s => s.AllowedReservationWeekdays)
                 .HasDefaultValue(Weekday.Everyday)
                 .HasSentinel((Weekday)(-1));
+            settings.Property(s => s.HolidayCalendarRegion)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .HasDefaultValue(HolidayCalendarRegion.CzechRepublic)
+                .HasSentinel((HolidayCalendarRegion)(-1));
+            settings.Property(s => s.PublicHolidayReservationsAllowed).HasDefaultValue(false);
             settings.Property(s => s.WeeklyReservationLimitEnabled).HasDefaultValue(true);
             settings.Property(s => s.WeeklyReservationLimit).HasDefaultValue(2);
-            settings.Property(s => s.LastMinuteUnlimitedHours).HasDefaultValue(24);
+            settings.Property(s => s.LastMinuteUnlimitedHours).HasDefaultValue(0);
             // Economy defaults so existing settings rows get sensible pricing when the columns are added.
             settings.Property(s => s.BaseReservationCost).HasDefaultValue(0);
             settings.Property(s => s.PeakPricePercent).HasDefaultValue(200);

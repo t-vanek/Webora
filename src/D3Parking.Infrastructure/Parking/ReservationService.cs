@@ -46,6 +46,16 @@ public sealed class ReservationService(
     {
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        if (endUtc <= startUtc
+            || !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone)
+            || !policy.IsWithinReservationHorizon(startUtc, now, timeZone)
+            || !policy.IsReservationWeekdayAllowed(startUtc, timeZone)
+            || !policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
+        {
+            return [];
+        }
+
         var requestDate = SiteTime.Today(startUtc, timeZone);
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -193,22 +203,31 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
 
-        // The UI is not the authority here: an already-open browser can outlive an administrator's
-        // rule change. Queue claims are grandfathered because their window was accepted when the
-        // user joined the queue; every new direct booking must match the current mode.
-        if (!fromQueue && !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
+        // The UI is not the authority here: an already-open browser and a pending queue offer can
+        // both outlive an administrator's rule change. Every resulting booking is revalidated.
+        if (!ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
         {
             return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
         }
 
-        if (!fromQueue && !policy.IsWithinReservationHorizon(startUtc, now, timeZone))
+        if (!policy.IsWithinReservationHorizon(startUtc, now, timeZone))
         {
             return ParkingResult.Failure("Parking_Error_ReservationHorizon");
         }
 
-        if (!fromQueue && !policy.IsReservationWeekdayAllowed(startUtc, timeZone))
+        if (!policy.IsReservationWeekdayAllowed(startUtc, timeZone))
         {
             return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
+        }
+
+        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
+        }
+
+        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -283,7 +302,7 @@ public sealed class ReservationService(
         if (!fromQueue && !assignedForWholeWindow)
         {
             var plannerError = await ValidateWeeklyPlannerLimitAsync(
-                dbContext, userId, startUtc, policy, timeZone, now, cancellationToken);
+                dbContext, userId, startUtc, policy, timeZone, cancellationToken);
             if (plannerError is not null)
             {
                 return ParkingResult.Failure(plannerError);
@@ -381,7 +400,8 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_InsufficientCredit");
         }
 
-        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now, voucher is null ? cost : 0, fromQueue);
+        var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now,
+            voucher is null ? cost : 0, fromQueue, countsTowardWeeklyLimit: !assignedForWholeWindow);
         reservation.AttributeSharedCapacity(sharedByResidentId);
         dbContext.Reservations.Add(reservation);
         if (voucher is not null)
@@ -517,10 +537,9 @@ public sealed class ReservationService(
         DateTimeOffset startUtc,
         IncentivePolicy policy,
         TimeZoneInfo timeZone,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        if (!policy.WeeklyReservationLimitEnabled || policy.IsLastMinute(startUtc, now))
+        if (!policy.WeeklyReservationLimitEnabled)
         {
             return null;
         }
@@ -532,7 +551,9 @@ public sealed class ReservationService(
 
         var reservationStarts = await dbContext.Reservations.AsNoTracking()
             .Where(r => r.UserId == userId
-                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.CountsTowardWeeklyLimit
+                && r.Status != ReservationStatus.Cancelled
+                && r.Status != ReservationStatus.Released
                 && r.StartUtc >= weekStartUtc && r.StartUtc < weekEndUtc)
             .Select(r => r.StartUtc)
             .ToListAsync(cancellationToken);
@@ -544,9 +565,6 @@ public sealed class ReservationService(
             .ToListAsync(cancellationToken);
 
         var plannedDays = reservationStarts.Concat(queueStarts)
-            // Days already inside the close-in window no longer consume advance-planning quota;
-            // this is what lets otherwise unused capacity open to everyone as the date approaches.
-            .Where(start => !policy.IsLastMinute(start, now))
             .Select(start => SiteTime.Today(start, timeZone))
             .ToHashSet();
         plannedDays.Add(plannedDate);
@@ -556,9 +574,7 @@ public sealed class ReservationService(
             return null;
         }
 
-        return policy.LastMinuteUnlimitedHours > 0
-            ? "Parking_Error_WeeklyReservationLimit"
-            : "Parking_Error_WeeklyReservationLimit_NoLastMinute";
+        return "Parking_Error_WeeklyReservationLimit_NoLastMinute";
     }
 
     // User-facing planner mutations run under optimistic-concurrency retry: a double click or a
@@ -843,7 +859,8 @@ public sealed class ReservationService(
                 // Carry the original charge over: the refund above plus an identical charge here
                 // nets to zero for the wallet while the ledger keeps a clean trail of the move.
                 replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
-                    reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue);
+                    reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue,
+                    reservation.CountsTowardWeeklyLimit);
                 var replacementDate = SiteTime.Today(effectiveStartUtc, timeZone);
                 replacement.AttributeSharedCapacity(await dbContext.SpotReleases.AsNoTracking()
                     .Where(r => r.SpotId == replacementSpotId && r.Date == replacementDate)
@@ -1216,6 +1233,11 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
         }
 
+        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
+        {
+            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // A queue no-show bars the user from the waitlist for a cooldown.
@@ -1268,7 +1290,7 @@ public sealed class ReservationService(
 
 
         var plannerError = await ValidateWeeklyPlannerLimitAsync(
-            dbContext, userId, startUtc, policy, timeZone, now, cancellationToken);
+            dbContext, userId, startUtc, policy, timeZone, cancellationToken);
         if (plannerError is not null)
         {
             return ParkingResult.Failure(plannerError);
@@ -1368,6 +1390,16 @@ public sealed class ReservationService(
             if (entry.EndUtc <= now)
             {
                 entry.Expire();
+            }
+            else if (!ReservationWindowRules.MatchesMode(
+                         entry.StartUtc, entry.EndUtc, policy.ReservationTimeMode, timeZone)
+                     || !policy.IsWithinReservationHorizon(entry.StartUtc, now, timeZone)
+                     || !policy.IsReservationWeekdayAllowed(entry.StartUtc, timeZone)
+                     || !policy.IsPublicHolidayReservationAllowed(entry.StartUtc, timeZone))
+            {
+                // A settings change may make an older queue request invalid. Do not let it keep a
+                // spot held or turn into a booking that the current calendar would reject.
+                entry.Cancel();
             }
             else if (entry.Status == QueueEntryStatus.Offered && entry.OfferExpiresAtUtc is { } expires && expires <= now)
             {

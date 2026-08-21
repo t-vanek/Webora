@@ -106,10 +106,9 @@
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PlannerAccessSection"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.WeeklyReservationLimitEnabled" Label="@L["Parking_Settings_WeeklyLimitEnabled"]" />
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_BookingCalendarSection"]</FluentLabel>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PlannerAccessHelp"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_BookingCalendarHelp"]</FluentLabel>
                     <div class="settings-grid">
                         <label class="parking-field">
                             <span>@L["Parking_Settings_ReservationHorizonDays"]</span>
@@ -120,16 +119,21 @@
                                 }
                             </select>
                         </label>
-                        <FluentNumberField TValue="int" @bind-Value="_form.WeeklyReservationLimit" Min="1" Max="@(AllowedReservationWeekdayCount.ToString())"
-                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
-                                           Label="@L["Parking_Settings_WeeklyReservationLimit"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.LastMinuteUnlimitedHours" Min="0" Max="168"
-                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
-                                           Label="@L["Parking_Settings_LastMinuteUnlimitedHours"]" Style="width:100%" />
+                        <label class="parking-field">
+                            <span>@L["Parking_Settings_HolidayCalendar"]</span>
+                            <select class="parking-input" @bind="_form.HolidayCalendarRegion">
+                                <option value="@HolidayCalendarRegion.CzechRepublic">@L["Parking_Settings_HolidayCalendar_CZ"]</option>
+                                <option value="@HolidayCalendarRegion.None">@L["Parking_Settings_HolidayCalendar_None"]</option>
+                            </select>
+                        </label>
                     </div>
                     <div class="settings-field settings-field--wide">
                         <span class="settings-field__label">@L["Parking_Settings_AllowedWeekdays"]</span>
                         <span class="settings-field__help">@L["Parking_Settings_AllowedWeekdaysHelp"]</span>
+                        <div class="weekday-picker__presets">
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => SetReservationWeekdays(Weekday.Workdays)">@L["Parking_Settings_Weekdays_Workdays"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => SetReservationWeekdays(Weekday.Everyday)">@L["Parking_Settings_Weekdays_Everyday"]</FluentButton>
+                        </div>
                         <div class="weekday-picker" role="group" aria-label="@L["Parking_Settings_AllowedWeekdays"]">
                             @foreach (var option in ReservationWeekdayOptions)
                             {
@@ -142,14 +146,32 @@
                             }
                         </div>
                     </div>
+                    <FluentSwitch @bind-Value="_form.PublicHolidayReservationsAllowed"
+                                  Disabled="@(_form.HolidayCalendarRegion == HolidayCalendarRegion.None)"
+                                  Label="@L["Parking_Settings_PublicHolidayReservationsAllowed"]" />
+                    <div class="settings-rule-summary">
+                        <strong>@L["Parking_Settings_CurrentRule"]</strong>
+                        <span>@L["Parking_Settings_BookingCalendarSummary", _form.ReservationHorizonDays, AllowedReservationWeekdaysText,
+                            _form.HolidayCalendarRegion == HolidayCalendarRegion.None
+                                ? L["Parking_Settings_Holidays_NotConfigured"]
+                                : L[_form.PublicHolidayReservationsAllowed ? "Parking_Settings_Holidays_Allowed" : "Parking_Settings_Holidays_Blocked"]]</span>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PersonalLimitSection"]</FluentLabel>
+                        <FluentSwitch @bind-Value="_form.WeeklyReservationLimitEnabled" Label="@L["Parking_Settings_WeeklyLimitEnabled"]" />
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PersonalLimitHelp"]</FluentLabel>
+                    <div class="settings-grid">
+                        <FluentNumberField TValue="int" @bind-Value="_form.WeeklyReservationLimit" Min="1" Max="7"
+                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
+                                           Label="@L["Parking_Settings_WeeklyReservationLimit"]" Style="width:100%" />
+                    </div>
                     <div class="settings-rule-summary">
                         <strong>@L["Parking_Settings_CurrentRule"]</strong>
                         <span>@(_form.WeeklyReservationLimitEnabled
-                            ? _form.LastMinuteUnlimitedHours > 0
-                                ? L["Parking_Settings_PlannerAccessSummaryEnabled", EffectiveWeeklyReservationLimit, _form.LastMinuteUnlimitedHours]
-                                : L["Parking_Settings_PlannerAccessSummaryNoLastMinute", EffectiveWeeklyReservationLimit]
+                            ? L["Parking_Settings_PlannerAccessSummaryNoLastMinute", EffectiveWeeklyReservationLimit]
                             : L["Parking_Settings_PlannerAccessSummaryDisabled"])</span>
-                        <span>@L["Parking_Settings_AllowedWeekdaysSummary", AllowedReservationWeekdaysText]</span>
                     </div>
 
                     <div class="settings-section__head">
@@ -377,15 +399,6 @@
             <FluentTab Id="residents" Label="@L["Parking_Settings_Tab_Residents"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentSection"]</FluentLabel>
-                    </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentsHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.ResidentPlanHorizonDays" Min="1" Max="366"
-                                           Label="@L["Parking_Settings_ResidentPlanHorizon"]" Style="width:100%" />
-                    </div>
-
-                    <div class="settings-section__head">
                         <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentPrioritySection"]</FluentLabel>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentPriorityHelp"]</FluentLabel>
@@ -588,7 +601,7 @@
     private int EffectiveWeeklyReservationLimit => Math.Clamp(
         _form?.WeeklyReservationLimit ?? 1,
         1,
-        Math.Max(1, AllowedReservationWeekdayCount));
+        7);
 
     private string AllowedReservationWeekdaysText => string.Join(", ", ReservationWeekdayOptions
         .Where(option => IsReservationWeekdaySelected(option.Flag))
@@ -638,11 +651,10 @@
         {
             _form!.AllowedReservationWeekdays |= day;
         }
-
-        _form.WeeklyReservationLimit = Math.Min(
-            EffectiveWeeklyReservationLimit,
-            AllowedReservationWeekdayCount);
     }
+
+    private void SetReservationWeekdays(Weekday days) =>
+        _form!.AllowedReservationWeekdays = days;
 
     private void TogglePoints(bool on)
     {
@@ -709,9 +721,10 @@
             ReservationTimeMode = s.ReservationTimeMode,
             ReservationHorizonDays = s.ReservationHorizonDays,
             AllowedReservationWeekdays = s.AllowedReservationWeekdays,
+            HolidayCalendarRegion = s.HolidayCalendarRegion,
+            PublicHolidayReservationsAllowed = s.PublicHolidayReservationsAllowed,
             WeeklyReservationLimitEnabled = s.WeeklyReservationLimitEnabled,
             WeeklyReservationLimit = s.WeeklyReservationLimit,
-            LastMinuteUnlimitedHours = s.LastMinuteUnlimitedHours,
             SweepIntervalMinutes = (int)s.SweepInterval.TotalMinutes,
             PeakStart = s.PeakStart,
             PeakEnd = s.PeakEnd,
@@ -719,7 +732,6 @@
             ResidentReleasePointsPerHour = s.ResidentReleasePointsPerHour,
             ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
-            ResidentPlanHorizonDays = s.ResidentPlanHorizonDays,
             ResidentReclaimPolicy = s.ResidentReclaimPolicy,
             ManualReleasesAreBinding = s.ManualReleasesAreBinding,
             ResidentProtectionDeadlineMode = s.ResidentProtectionDeadlineMode,
@@ -856,14 +868,14 @@
             _form.AllowedReservationWeekdays,
             _form.WeeklyReservationLimitEnabled,
             EffectiveWeeklyReservationLimit,
-            _form.LastMinuteUnlimitedHours,
+            0,
             _form.PeakStart, _form.PeakEnd,
             TimeSpan.FromMinutes(_form.SweepIntervalMinutes),
             _form.ResidentHoldUntil,
             0,
             0,
             0,
-            _form.ResidentPlanHorizonDays,
+            _form.ReservationHorizonDays,
             _form.LotLatitude,
             _form.LotLongitude,
             0,
@@ -925,7 +937,8 @@
             _form.OversightAllowUserReports, _form.OversightDisputeWindowDays,
             _form.ResidentReclaimPolicy, _form.ManualReleasesAreBinding,
             _form.ResidentProtectionDeadlineMode, _form.ResidentProtectionLeadHours,
-            _form.ResidentProtectionPreviousDayTime, _form.ResidentNoReplacementAction);
+            _form.ResidentProtectionPreviousDayTime, _form.ResidentNoReplacementAction,
+            _form.HolidayCalendarRegion, _form.PublicHolidayReservationsAllowed);
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
@@ -962,9 +975,10 @@
         public ReservationTimeMode ReservationTimeMode { get; set; }
         public int ReservationHorizonDays { get; set; }
         public Weekday AllowedReservationWeekdays { get; set; } = Weekday.Everyday;
+        public HolidayCalendarRegion HolidayCalendarRegion { get; set; } = HolidayCalendarRegion.CzechRepublic;
+        public bool PublicHolidayReservationsAllowed { get; set; }
         public bool WeeklyReservationLimitEnabled { get; set; }
         public int WeeklyReservationLimit { get; set; }
-        public int LastMinuteUnlimitedHours { get; set; }
         public int SweepIntervalMinutes { get; set; }
         public TimeOnly PeakStart { get; set; }
         public TimeOnly PeakEnd { get; set; }
@@ -972,7 +986,6 @@
         public int ResidentReleasePointsPerHour { get; set; }
         public int ResidentReleaseMaxPoints { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
-        public int ResidentPlanHorizonDays { get; set; }
         public ResidentReclaimPolicy ResidentReclaimPolicy { get; set; }
         public bool ManualReleasesAreBinding { get; set; }
         public ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode { get; set; }

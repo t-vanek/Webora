@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
+using D3Parking.Application.Settings;
+using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure.Persistence;
@@ -11,6 +13,8 @@ namespace D3Parking.Infrastructure.Parking;
 
 public sealed class VisitorBookingService(
     IDbContextFactory<D3ParkingDbContext> dbContextFactory,
+    IParkingSettingsService parkingSettings,
+    ISiteSettingsService siteSettings,
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages,
     TimeProvider timeProvider) : IVisitorBookingService
@@ -38,6 +42,11 @@ public sealed class VisitorBookingService(
 
     public async Task<IReadOnlyList<ParkingSpotDto>> GetFreeSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
+        if (endUtc <= startUtc || await CalendarErrorAsync(startUtc, endUtc, cancellationToken) is not null)
+        {
+            return [];
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var taken = dbContext.VisitorBookings
@@ -68,6 +77,11 @@ public sealed class VisitorBookingService(
         if (string.IsNullOrWhiteSpace(visitorName))
         {
             return ParkingResult.Failure("Parking_Visitor_Error_NameRequired");
+        }
+
+        if (await CalendarErrorAsync(startUtc, endUtc, cancellationToken) is { } calendarError)
+        {
+            return ParkingResult.Failure(calendarError);
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -117,6 +131,37 @@ public sealed class VisitorBookingService(
         }
 
         return ParkingResult.Success;
+    }
+
+    private async Task<string?> CalendarErrorAsync(DateTimeOffset startUtc, DateTimeOffset endUtc,
+        CancellationToken cancellationToken)
+    {
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
+        var first = SiteTime.Today(startUtc, timeZone);
+        var last = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
+
+        for (var date = first; date <= last; date = date.AddDays(1))
+        {
+            if (date < today || date > today.AddDays(Math.Clamp(policy.ReservationHorizonDays, 1, 366)))
+            {
+                return "Parking_Error_ReservationHorizon";
+            }
+
+            if (!policy.AllowedReservationWeekdays.Sanitize().Includes(date))
+            {
+                return "Parking_Error_ReservationWeekdayNotAllowed";
+            }
+
+            if (!policy.PublicHolidayReservationsAllowed
+                && HolidayCalendar.IsPublicHoliday(date, policy.HolidayCalendarRegion))
+            {
+                return "Parking_Error_PublicHolidayNotAllowed";
+            }
+        }
+
+        return null;
     }
 
     public async Task<ParkingResult> CancelAsync(Guid bookingId, CancellationToken cancellationToken = default)

@@ -34,11 +34,16 @@ public sealed record IncentivePolicy
 
     public Weekday AllowedReservationWeekdays { get; init; } = Weekday.Everyday;
 
+    public HolidayCalendarRegion HolidayCalendarRegion { get; init; } = HolidayCalendarRegion.CzechRepublic;
+
+    public bool PublicHolidayReservationsAllowed { get; init; }
+
     public bool WeeklyReservationLimitEnabled { get; init; } = true;
 
     public int WeeklyReservationLimit { get; init; } = 2;
 
-    public int LastMinuteUnlimitedHours { get; init; } = 24;
+    /// <summary>Legacy persisted setting. Weekly limits no longer have a close-in bypass.</summary>
+    public int LastMinuteUnlimitedHours { get; init; }
 
     /// <summary>Start of the daily high-demand window (local time of the reservation).</summary>
     public TimeOnly PeakStart { get; init; } = new(7, 30);
@@ -256,9 +261,16 @@ public sealed record IncentivePolicy
     public bool IsReservationWeekdayAllowed(DateTimeOffset start, TimeZoneInfo timeZone) =>
         AllowedReservationWeekdays.Sanitize().Includes(SiteTime.Today(start, timeZone));
 
-    /// <summary>Close-in plans consume capacity that would otherwise stay empty and bypass the advance quota.</summary>
-    public bool IsLastMinute(DateTimeOffset start, DateTimeOffset now) =>
-        LastMinuteUnlimitedHours > 0 && start <= now.AddHours(LastMinuteUnlimitedHours);
+    /// <summary>Whether the local date passes the shared weekday and public-holiday calendar.</summary>
+    public bool IsReservationDateAllowed(DateOnly date) =>
+        AllowedReservationWeekdays.Sanitize().Includes(date)
+        && (PublicHolidayReservationsAllowed || !HolidayCalendar.IsPublicHoliday(date, HolidayCalendarRegion));
+
+    public bool IsPublicHolidayReservationAllowed(DateTimeOffset start, TimeZoneInfo timeZone)
+    {
+        var date = SiteTime.Today(start, timeZone);
+        return PublicHolidayReservationsAllowed || !HolidayCalendar.IsPublicHoliday(date, HolidayCalendarRegion);
+    }
 
     /// <summary>The local Monday-Sunday week containing a date.</summary>
     public static (DateOnly Start, DateOnly End) WeekOf(DateOnly date)
@@ -406,12 +418,11 @@ public sealed record IncentivePolicy
         SiteTime.At(date, ResidentHoldUntil, timeZone) + NoShowGracePeriod;
 
     /// <summary>
-    /// The last day a usage plan reaches: the configured horizon, never past what a single manual
-    /// release may span. Today is excluded on purpose — the current day belongs to the hold /
-    /// confirm-arrival flow, which is where the resident's right of first refusal lives.
+    /// The last day a usage plan materializes into shared capacity. The standing weekday pattern is
+    /// indefinite, but effective releases never extend beyond the same horizon as reservations.
     /// </summary>
     public DateOnly ResidentPlanHorizonEnd(DateOnly today) =>
-        today.AddDays(Math.Clamp(ResidentPlanHorizonDays, 1, Math.Max(1, MaxReleaseRangeDays)));
+        today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366));
 
     public DateTimeOffset ResidentProtectionDeadline(DateTimeOffset reservationStart, TimeZoneInfo timeZone)
     {

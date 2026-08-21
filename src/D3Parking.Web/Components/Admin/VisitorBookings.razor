@@ -2,6 +2,7 @@
 @attribute [HasPermission(Permissions.Parking.ManageVisitors)]
 @rendermode InteractiveServer
 @inject IVisitorBookingService Visitors
+@inject IParkingSettingsService ParkingSettings
 @inject IParkingSpotService Spots
 @inject IUserAdminService UserAdmin
 @inject ISiteSettingsService SiteSettings
@@ -58,7 +59,8 @@
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_Date"]</FluentLabel>
-                    <input type="date" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                    <input type="date" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
+                           min="@Today.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
                 </div>
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_From"]</FluentLabel>
@@ -72,6 +74,10 @@
                               OptionText="@(s => s.Code)" OptionValue="@(s => s.Id.ToString())"
                               @bind-SelectedOption="_selectedSpot" Label="@L["Parking_Spot"]" />
             </FluentStack>
+            @if (SelectedCalendarErrorKey is { } calendarError)
+            {
+                <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L[calendarError]</FluentMessageBar>
+            }
             @if (_freeSpots.Count == 0)
             {
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Visitors_NoFreeSpots"]</FluentLabel>
@@ -83,7 +89,8 @@
                 <FluentSelect TOption="UserSummary" Items="_users" Width="220px"
                               OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
                               @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
-                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync" Disabled="@(_actionBusy || _selectedSpot is null)">
+                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync"
+                              Disabled="@(_actionBusy || _selectedSpot is null || SelectedCalendarErrorKey is not null)">
                     @L["Parking_Visitors_Book"]
                 </FluentButton>
             </FluentStack>
@@ -158,6 +165,7 @@
 
     private Guid _userId;
     private TimeZoneInfo _tz = TimeZoneInfo.Utc;
+    private IncentivePolicy? _policy;
 
     private DateOnly _day = DateOnly.FromDateTime(DateTime.Today);
     private TimeOnly _from = new(8, 0);
@@ -184,6 +192,17 @@
 
     private DateTimeOffset Start => SiteTime.At(_day, _from, _tz);
     private DateTimeOffset End => SiteTime.At(_day, _to, _tz);
+    private DateOnly Today => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+    private DateOnly LastBookableDay => Today.AddDays(_policy?.ReservationHorizonDays ?? 14);
+    private string? SelectedCalendarErrorKey => _policy switch
+    {
+        null => null,
+        _ when _day < Today || _day > LastBookableDay => "Parking_Error_ReservationHorizon",
+        { } policy when !policy.AllowedReservationWeekdays.Sanitize().Includes(_day) => "Parking_Error_ReservationWeekdayNotAllowed",
+        { PublicHolidayReservationsAllowed: false } policy
+            when HolidayCalendar.IsPublicHoliday(_day, policy.HolidayCalendarRegion) => "Parking_Error_PublicHolidayNotAllowed",
+        _ => null,
+    };
 
     private IReadOnlyList<VisitorBookingDto> TodayBookings => (_bookings ?? [])
         .Where(booking => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(booking.StartUtc, _tz).DateTime) == _day)
@@ -220,6 +239,7 @@
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
         _tz = await SiteSettings.GetTimeZoneAsync();
+        _policy = await ParkingSettings.GetPolicyAsync();
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
         _users = await UserAdmin.ListAsync(null);
         _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);

@@ -23,13 +23,17 @@
     @if (_policy is { } plannerPolicy)
     {
         <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
-            @(plannerPolicy.WeeklyReservationLimitEnabled && plannerPolicy.LastMinuteUnlimitedHours > 0
-                ? L["Parking_Planner_Rules", plannerPolicy.ReservationHorizonDays, plannerPolicy.WeeklyReservationLimit, plannerPolicy.LastMinuteUnlimitedHours]
-                : plannerPolicy.WeeklyReservationLimitEnabled
+            @(plannerPolicy.WeeklyReservationLimitEnabled
                     ? L["Parking_Planner_Rules_NoLastMinute", plannerPolicy.ReservationHorizonDays, plannerPolicy.WeeklyReservationLimit]
                 : L["Parking_Planner_Rules_NoWeeklyLimit", plannerPolicy.ReservationHorizonDays])
             <br />
             @L["Parking_Planner_AllowedWeekdays", FormatAllowedWeekdays(plannerPolicy.AllowedReservationWeekdays)]
+            @if (plannerPolicy.HolidayCalendarRegion != HolidayCalendarRegion.None)
+            {
+                <text> @L[plannerPolicy.PublicHolidayReservationsAllowed
+                    ? "Parking_Planner_PublicHolidaysAllowed"
+                    : "Parking_Planner_PublicHolidaysBlocked"]</text>
+            }
         </FluentMessageBar>
     }
 
@@ -133,7 +137,7 @@
                     var bookings = PlannerBookings(date);
                     var residentRelease = ResidentRelease(date);
                     var residentSpotHeld = ResidentOwnsDay(date);
-                    <button type="button" class="parking-planner__day @(date == _day ? "is-selected" : null) @(date == PlannerToday ? "is-today" : null) @(date < PlannerToday ? "is-past" : null)"
+                    <button type="button" class="parking-planner__day @(date == _day ? "is-selected" : null) @(date == PlannerToday ? "is-today" : null) @(date < PlannerToday ? "is-past" : null) @(!IsPlannerDateBookable(date) ? "is-unavailable" : null)"
                             @onclick="() => SelectPlannerDayAsync(date)">
                         <span class="parking-planner__date">
                             @PlannerDateLabel(date)
@@ -597,6 +601,22 @@
 
     private DateOnly PlannerToday => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
     private DateOnly PlannerLastDay => PlannerToday.AddDays(_policy?.ReservationHorizonDays ?? 14);
+
+    private bool IsPlannerDateBookable(DateOnly date) =>
+        _policy is { } policy
+        && date >= PlannerToday
+        && date <= PlannerLastDay
+        && policy.IsReservationDateAllowed(date);
+
+    private string? SelectedCalendarErrorKey => _policy switch
+    {
+        null => null,
+        _ when _day < PlannerToday || _day > PlannerLastDay => "Parking_Error_ReservationHorizon",
+        { } policy when !policy.AllowedReservationWeekdays.Sanitize().Includes(_day) => "Parking_Error_ReservationWeekdayNotAllowed",
+        { PublicHolidayReservationsAllowed: false } policy
+            when HolidayCalendar.IsPublicHoliday(_day, policy.HolidayCalendarRegion) => "Parking_Error_PublicHolidayNotAllowed",
+        _ => null,
+    };
 
     private DateOnly PlannerWeekStart
     {
@@ -1277,6 +1297,10 @@
                     <p class="booking-bar__copy">@L[IsAllDayMode ? "Parking_BookingIntro_AllDay" : "Parking_BookingIntro"]</p>
                 </div>
             </div>
+            @if (SelectedCalendarErrorKey is { } calendarError)
+            {
+                <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L[calendarError]</FluentMessageBar>
+            }
             <div class="booking-bar__row">
                 <div class="field">
                     <label>@L["Parking_Date"]</label>
@@ -1295,7 +1319,9 @@
                         <input type="time" @bind="_endTime" @bind:after="InvalidateSearch" class="parking-input" />
                     </div>
                 }
-                <FluentButton Class="booking-bar__submit" Appearance="Appearance.Accent" OnClick="() => FindAvailableAsync()">@L["Parking_Find"]</FluentButton>
+                <FluentButton Class="booking-bar__submit" Appearance="Appearance.Accent"
+                              Disabled="@(SelectedCalendarErrorKey is not null)"
+                              OnClick="() => FindAvailableAsync()">@L["Parking_Find"]</FluentButton>
             </div>
 
             @if (_quote is not null)

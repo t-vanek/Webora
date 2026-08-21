@@ -127,6 +127,11 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_RangeTooLong");
         }
 
+        if (toDate > policy.ResidentPlanHorizonEnd(today))
+        {
+            return ParkingResult.Failure("Parking_Error_ReservationHorizon");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // The read and inserts stay atomic so two concurrent releases cannot both reward the same day.
@@ -175,7 +180,9 @@ public sealed class ResidentSpotService(
 
         // A range ReleaseAsync would reject outright awards nothing, so it previews as nothing —
         // the same checks in the same order.
-        if (toDate < fromDate || fromDate < today || toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays)
+        if (toDate < fromDate || fromDate < today
+            || toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays
+            || toDate > policy.ResidentPlanHorizonEnd(today))
         {
             return 0;
         }
@@ -261,7 +268,10 @@ public sealed class ResidentSpotService(
         var plan = new List<(DateOnly Date, int Points)>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            if (alreadyReleased.Contains(date) || claimedDays.Contains(date) || include?.Invoke(date) == false)
+            if (!policy.IsReservationDateAllowed(date)
+                || alreadyReleased.Contains(date)
+                || claimedDays.Contains(date)
+                || include?.Invoke(date) == false)
             {
                 continue;
             }
@@ -636,6 +646,8 @@ public sealed class ResidentSpotService(
         var today = SiteTime.Today(now, timeZone);
         var horizonEnd = policy.ResidentPlanHorizonEnd(today);
 
+        await WithdrawInvalidAutomaticReleasesAsync(policy, timeZone, now, today, horizonEnd, cancellationToken);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // Inactive spots never reach the pool, so planning them would only produce release rows
@@ -682,6 +694,63 @@ public sealed class ResidentSpotService(
         }
 
         return released;
+    }
+
+    private async Task WithdrawInvalidAutomaticReleasesAsync(IncentivePolicy policy, TimeZoneInfo timeZone,
+        DateTimeOffset now, DateOnly today, DateOnly horizonEnd, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        var candidates = (await dbContext.SpotReleases
+                .Where(r => r.Source == SpotReleaseSource.UsagePlan && r.Date >= today)
+                .ToListAsync(cancellationToken))
+            .Where(r => r.Date > horizonEnd || !policy.IsReservationDateAllowed(r.Date))
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return;
+        }
+
+        var spotIds = candidates.Select(r => r.SpotId).Distinct().ToList();
+        var firstDate = candidates.Min(r => r.Date);
+        var lastDate = candidates.Max(r => r.Date);
+        var (firstUtc, _) = SiteTime.Day(firstDate, timeZone);
+        var (_, lastUtc) = SiteTime.Day(lastDate, timeZone);
+        var bookings = await dbContext.Reservations.AsNoTracking()
+            .Where(r => spotIds.Contains(r.SpotId)
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.StartUtc < lastUtc && r.EndUtc > firstUtc)
+            .Select(r => new { r.SpotId, r.StartUtc, r.EndUtc })
+            .ToListAsync(cancellationToken);
+        var codes = await dbContext.ParkingSpots.AsNoTracking()
+            .Where(s => spotIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+
+        foreach (var release in candidates)
+        {
+            var (dayStart, dayEnd) = SiteTime.Day(release.Date, timeZone);
+            if (bookings.Any(r => r.SpotId == release.SpotId && r.StartUtc < dayEnd && r.EndUtc > dayStart))
+            {
+                continue;
+            }
+
+            if (release.AwardedPoints > 0)
+            {
+                var score = await GetOrCreateScoreAsync(dbContext, release.OwnerId, cancellationToken);
+                score.RevokeSharePoints(release.AwardedPoints, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    release.OwnerId, IncentiveReason.ResidentShareReclaimed, -release.AwardedPoints, null, now,
+                    $"{codes.GetValueOrDefault(release.SpotId, string.Empty)} {release.Date:yyyy-MM-dd}"));
+            }
+
+            dbContext.SpotReleases.Remove(release);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task<int> ApplyPlanForResidentAsync(Guid residentId, DateOnly today, DateOnly horizonEnd,

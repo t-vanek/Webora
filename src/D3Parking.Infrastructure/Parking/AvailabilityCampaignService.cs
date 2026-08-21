@@ -49,6 +49,10 @@ public sealed class AvailabilityCampaignService(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var today = SiteTime.Today(now, timeZone);
+        if (!policy.IsReservationDateAllowed(today))
+        {
+            return 0;
+        }
 
         // At most one evaluation per local day (the maintenance loop calls this every few
         // minutes within the send hour).
@@ -133,7 +137,9 @@ public sealed class AvailabilityCampaignService(
         DateOnly today, CancellationToken cancellationToken)
     {
         var firstDay = today.AddDays(1);
-        var lastDay = today.AddDays(policy.AvailabilityLookaheadDays);
+        var lastDay = today.AddDays(Math.Min(
+            policy.AvailabilityLookaheadDays,
+            Math.Clamp(policy.ReservationHorizonDays, 1, 366)));
 
         var unownedActiveIds = (await dbContext.ParkingSpots
                 .Where(s => s.IsActive && s.OwnerId == null && s.Type != ParkingSpotType.Visitor)
@@ -160,6 +166,18 @@ public sealed class AvailabilityCampaignService(
         var occupancies = new List<int>();
         for (var date = firstDay; date <= lastDay; date = date.AddDays(1))
         {
+            if (!policy.IsReservationDateAllowed(date))
+            {
+                if (runStart is { } allowedStart && occupancies.Count >= policy.AvailabilityMinConsecutiveDays)
+                {
+                    return (allowedStart, date.AddDays(-1), (int)Math.Round(occupancies.Average()));
+                }
+
+                runStart = null;
+                occupancies.Clear();
+                continue;
+            }
+
             var releasedIds = releasedPerDay.GetValueOrDefault(date);
             var bookable = unownedActiveIds.Count + (releasedIds?.Count ?? 0);
             var (dayStart, dayEnd) = SiteTime.Day(date, timeZone);

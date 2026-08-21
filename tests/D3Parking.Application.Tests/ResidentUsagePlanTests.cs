@@ -100,6 +100,20 @@ public class ResidentUsagePlanTests
     }
 
     [Test]
+    public async Task Automatic_plan_does_not_release_a_blocked_public_holiday()
+    {
+        var owner = Guid.NewGuid();
+        await CreateOwnedSpotAsync("UP-HOL", owner);
+        var residents = CreateResidentService(Morning);
+        Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.None, true)).Succeeded, Is.True);
+
+        await residents.ApplyDuePlanReleasesAsync();
+
+        Assert.That(await ReleasedDatesAsync(owner), Does.Not.Contain(new DateOnly(2026, 9, 28)),
+            "A day that nobody may book must not be published or rewarded as shared capacity.");
+    }
+
+    [Test]
     public async Task Running_the_planner_again_the_same_day_releases_nothing_more()
     {
         var owner = Guid.NewGuid();
@@ -221,7 +235,7 @@ public class ResidentUsagePlanTests
         var days = new List<DateOnly>();
         for (var date = Today; date <= Policy.ResidentPlanHorizonEnd(Today); date = date.AddDays(1))
         {
-            if (!planned.Includes(date))
+            if (!planned.Includes(date) && Policy.IsReservationDateAllowed(date))
             {
                 days.Add(date);
             }

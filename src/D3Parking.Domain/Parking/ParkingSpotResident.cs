@@ -53,4 +53,6 @@ public sealed class ParkingSpotResident : Entity
             PlanAppliedThrough = date;
         }
     }
+
+    public void ResetPlanApplication() => PlanAppliedThrough = null;
 }

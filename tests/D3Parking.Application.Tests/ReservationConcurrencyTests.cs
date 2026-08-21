@@ -193,7 +193,7 @@ public class ReservationConcurrencyTests
     }
 
     [Test]
-    public async Task Advance_plans_obey_the_weekly_limit_but_last_minute_capacity_stays_open()
+    public async Task Weekly_limit_has_no_last_minute_bypass()
     {
         var userId = Guid.NewGuid();
         var spots = new[]
@@ -213,14 +213,15 @@ public class ReservationConcurrencyTests
 
         var advance = await _reservations.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8));
         Assert.That(advance.Succeeded, Is.False);
-        Assert.That(advance.Errors, Does.Contain("Parking_Error_WeeklyReservationLimit"));
+        Assert.That(advance.Errors, Does.Contain("Parking_Error_WeeklyReservationLimit_NoLastMinute"));
 
         var closeInService = new ReservationService(
             _factory, new FixedParkingSettings(_policy), new FakeSiteSettings(),
             new FixedTimeProvider(saturday.AddHours(4)), new NullNotificationService(),
             new PassthroughLocalizer<ParkingMessages>());
-        Assert.That((await closeInService.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8))).Succeeded,
-            Is.True, "Unused Sunday capacity is inside the 24-hour last-minute window.");
+        var closeIn = await closeInService.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8));
+        Assert.That(closeIn.Succeeded, Is.False,
+            "Approaching the start must not silently change which days consume the weekly quota.");
     }
 
     private async Task SeedAsync(Action<D3ParkingDbContext> seed)

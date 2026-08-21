@@ -93,4 +93,6 @@ public sealed record ParkingSettingsDto(
     ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode,
     int ResidentProtectionLeadHours,
     TimeOnly ResidentProtectionPreviousDayTime,
-    ResidentNoReplacementAction ResidentNoReplacementAction);
+    ResidentNoReplacementAction ResidentNoReplacementAction,
+    HolidayCalendarRegion HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
+    bool PublicHolidayReservationsAllowed = false);

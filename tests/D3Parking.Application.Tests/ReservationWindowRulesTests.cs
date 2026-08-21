@@ -84,16 +84,47 @@ public class ReservationWindowRulesTests
     }
 
     [Test]
-    public void Last_minute_capacity_opens_inside_the_configured_window()
+    public void Czech_public_holiday_calendar_contains_fixed_and_movable_holidays()
+    {
+        Assert.That(HolidayCalendar.IsPublicHoliday(
+            new DateOnly(2026, 1, 1), HolidayCalendarRegion.CzechRepublic), Is.True);
+        Assert.That(HolidayCalendar.IsPublicHoliday(
+            new DateOnly(2026, 4, 3), HolidayCalendarRegion.CzechRepublic), Is.True,
+            "Good Friday is movable.");
+        Assert.That(HolidayCalendar.IsPublicHoliday(
+            new DateOnly(2026, 4, 6), HolidayCalendarRegion.CzechRepublic), Is.True,
+            "Easter Monday is movable.");
+        Assert.That(HolidayCalendar.IsPublicHoliday(
+            new DateOnly(2026, 4, 7), HolidayCalendarRegion.CzechRepublic), Is.False);
+    }
+
+    [Test]
+    public void Public_holiday_policy_overrides_an_enabled_weekday()
+    {
+        var blocked = new D3Parking.Domain.Parking.Incentives.IncentivePolicy
+        {
+            AllowedReservationWeekdays = Weekday.Everyday,
+            HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
+            PublicHolidayReservationsAllowed = false,
+        };
+        var allowed = blocked with { PublicHolidayReservationsAllowed = true };
+        var christmasEve = new DateOnly(2026, 12, 24);
+
+        Assert.That(blocked.IsReservationDateAllowed(christmasEve), Is.False);
+        Assert.That(allowed.IsReservationDateAllowed(christmasEve), Is.True);
+    }
+
+    [Test]
+    public void Resident_release_horizon_is_the_booking_horizon()
     {
         var policy = new D3Parking.Domain.Parking.Incentives.IncentivePolicy
         {
-            LastMinuteUnlimitedHours = 24,
+            ReservationHorizonDays = 14,
+            ResidentPlanHorizonDays = 90,
         };
-        var now = new DateTimeOffset(2026, 8, 20, 8, 0, 0, TimeSpan.Zero);
 
-        Assert.That(policy.IsLastMinute(now.AddHours(24), now), Is.True);
-        Assert.That(policy.IsLastMinute(now.AddHours(24).AddTicks(1), now), Is.False);
+        Assert.That(policy.ResidentPlanHorizonEnd(new DateOnly(2026, 8, 21)),
+            Is.EqualTo(new DateOnly(2026, 9, 4)));
     }
 
     [Test]

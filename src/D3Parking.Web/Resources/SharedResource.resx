@@ -1298,7 +1298,7 @@
   <data name="Landing_Feature1_Title" xml:space="preserve"><value>Rezervace na pár kliknutí</value></data>
   <data name="Landing_Feature1_Desc" xml:space="preserve"><value>Vyberte den a místo, zbytek pohlídá systém — včetně fronty, když je plno.</value></data>
   <data name="Landing_Feature2_Title" xml:space="preserve"><value>Nastavitelná pravidla</value></data>
-  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Firma určí plánovací horizont, povolené dny, týdenní maximum i využití zbývajících míst krátce před začátkem.</value></data>
+  <data name="Landing_Feature2_Desc" xml:space="preserve"><value>Firma určí společný plánovací horizont, povolené dny, pravidla pro svátky a týdenní maximum sdílené kapacity.</value></data>
   <data name="Landing_Feature3_Title" xml:space="preserve"><value>Celý den nebo interval</value></data>
   <data name="Landing_Feature3_Desc" xml:space="preserve"><value>Správce zvolí jednoduché celodenní plánování nebo přesný čas od–do podle provozu firmy.</value></data>
   <data name="Landing_HowTitle" xml:space="preserve"><value>Jak to funguje</value></data>
@@ -2151,14 +2151,28 @@
   <data name="Parking_Settings_CapacityResidents" xml:space="preserve"><value>Aktivní rezidenti</value></data>
   <data name="Parking_Settings_CapacityVehicles" xml:space="preserve"><value>Registrovaná vozidla</value></data>
   <data name="Parking_Settings_PlannerAccessSection" xml:space="preserve"><value>Limity rezervací dopředu</value></data>
+  <data name="Parking_Settings_BookingCalendarSection" xml:space="preserve"><value>Kalendář rezervací</value></data>
+  <data name="Parking_Settings_BookingCalendarHelp" xml:space="preserve"><value>Společná pravidla pro zaměstnanecké rezervace, frontu, návštěvy a automatické uvolňování rezidentních míst.</value></data>
+  <data name="Parking_Settings_PersonalLimitSection" xml:space="preserve"><value>Limit sdílených míst na osobu</value></data>
+  <data name="Parking_Settings_PersonalLimitHelp" xml:space="preserve"><value>Platí pro zaměstnanecké rezervace ve sdíleném fondu a aktivní čekání ve frontě. Vlastní přidělené místo ani návštěvy se nezapočítávají.</value></data>
   <data name="Parking_Settings_WeeklyLimitEnabled" xml:space="preserve"><value>Použít týdenní limit</value></data>
   <data name="Parking_Settings_PlannerAccessHelp" xml:space="preserve"><value>Nastavte, jak daleko dopředu lze plánovat, ve kterých dnech se smí rezervovat a kolik různých dnů může mít jeden člověk v jednom týdnu. Vlastní rezidentní místo se do týdenního limitu nepočítá.</value></data>
   <data name="Parking_Settings_ReservationHorizonDays" xml:space="preserve"><value>Rezervace dopředu</value></data>
   <data name="Parking_Settings_WeeklyReservationLimit" xml:space="preserve"><value>Maximum rezervovaných dnů na osobu za týden</value></data>
   <data name="Parking_Settings_LastMinuteUnlimitedHours" xml:space="preserve"><value>Zrušit týdenní limit před začátkem (hodin)</value></data>
+  <data name="Parking_Settings_HolidayCalendar" xml:space="preserve"><value>Kalendář státních svátků</value></data>
+  <data name="Parking_Settings_HolidayCalendar_CZ" xml:space="preserve"><value>Česká republika</value></data>
+  <data name="Parking_Settings_HolidayCalendar_None" xml:space="preserve"><value>Nepoužívat kalendář svátků</value></data>
+  <data name="Parking_Settings_PublicHolidayReservationsAllowed" xml:space="preserve"><value>Povolit rezervace o státních svátcích</value></data>
+  <data name="Parking_Settings_Weekdays_Workdays" xml:space="preserve"><value>Pracovní dny</value></data>
+  <data name="Parking_Settings_Weekdays_Everyday" xml:space="preserve"><value>Každý den</value></data>
+  <data name="Parking_Settings_Holidays_Allowed" xml:space="preserve"><value>včetně státních svátků</value></data>
+  <data name="Parking_Settings_Holidays_Blocked" xml:space="preserve"><value>mimo státní svátky</value></data>
+  <data name="Parking_Settings_Holidays_NotConfigured" xml:space="preserve"><value>bez samostatného kalendáře svátků</value></data>
+  <data name="Parking_Settings_BookingCalendarSummary" xml:space="preserve"><value>Rezervovat lze nejvýše {0} dní dopředu, ve dnech {1}, {2}.</value></data>
   <data name="Parking_Settings_CurrentRule" xml:space="preserve"><value>Výsledek tohoto nastavení</value></data>
   <data name="Parking_Settings_PlannerAccessSummaryEnabled" xml:space="preserve"><value>Počet různých dnů rezervovaných jedním člověkem dopředu je omezen na {0} za týden. Posledních {1} hodin lze rezervovat zbývající volná místa bez tohoto limitu.</value></data>
-  <data name="Parking_Settings_PlannerAccessSummaryNoLastMinute" xml:space="preserve"><value>Počet různých dnů rezervovaných jedním člověkem dopředu je omezen na {0} za týden. Výjimka krátce před začátkem je vypnutá.</value></data>
+  <data name="Parking_Settings_PlannerAccessSummaryNoLastMinute" xml:space="preserve"><value>Jeden člověk může ve sdíleném fondu využít nejvýše {0} různé dny za kalendářní týden (pondělí až neděle).</value></data>
   <data name="Parking_Settings_PlannerAccessSummaryDisabled" xml:space="preserve"><value>Týdenní limit je vypnutý. Jeden člověk může rezervovat libovolný počet volných dnů v povoleném plánovacím horizontu.</value></data>
   <data name="Parking_Settings_QueueSection" xml:space="preserve"><value>Fronta při plné kapacitě</value></data>
   <data name="Parking_Settings_QueueHelp" xml:space="preserve"><value>Když není volné místo, uživatel se může zařadit do fronty. Po uvolnění dostane nabídku na omezenou dobu.</value></data>
@@ -2193,13 +2207,16 @@
   <data name="Parking_Weekday_Sunday" xml:space="preserve"><value>Neděle</value></data>
   <data name="Parking_Error_ReservationHorizon" xml:space="preserve"><value>Tento den je mimo povolený plánovací horizont.</value></data>
   <data name="Parking_Error_ReservationWeekdayNotAllowed" xml:space="preserve"><value>Pro tento den v týdnu nejsou rezervace povolené. Vyberte některý z povolených dnů.</value></data>
+  <data name="Parking_Error_PublicHolidayNotAllowed" xml:space="preserve"><value>O státních svátcích nejsou rezervace povolené. Vyberte jiný den.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit" xml:space="preserve"><value>Pro tento týden už máte naplánovaný povolený počet dnů. Další volné místo bude možné rezervovat v last-minute okně.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit_NoLastMinute" xml:space="preserve"><value>Pro tento týden už máte naplánovaný povolený počet dnů.</value></data>
   <data name="Parking_Error_ResidentDayAlreadyBooked" xml:space="preserve"><value>Tento uvolněný den už má potvrzený kolega. Výjimečnou změnu může provést správce parkoviště.</value></data>
   <data name="Parking_Planner_Rules" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je {1} dnů na osobu. Posledních {2} hodin před začátkem se limit na zbývající volná místa neuplatní.</value></data>
   <data name="Parking_Planner_Rules_NoWeeklyLimit" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je vypnutý.</value></data>
-  <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Týdenní limit je {1} dnů na osobu a platí až do začátku rezervace.</value></data>
+  <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Rezervovat lze {0} dní dopředu. Ve sdíleném fondu lze využít nejvýše {1} různé dny na osobu v týdnu.</value></data>
   <data name="Parking_Planner_AllowedWeekdays" xml:space="preserve"><value>Povolené dny: {0}.</value></data>
+  <data name="Parking_Planner_PublicHolidaysAllowed" xml:space="preserve"><value>Rezervace o státních svátcích jsou povolené.</value></data>
+  <data name="Parking_Planner_PublicHolidaysBlocked" xml:space="preserve"><value>Rezervace o státních svátcích nejsou povolené.</value></data>
   <data name="Help_Reserve_PlannerRules" xml:space="preserve"><value>Plánovací horizont je {0} dní a dopředu lze potvrdit nejvýše {1} různé dny v týdnu. V posledních {2} hodinách před začátkem se zbylá kapacita otevře bez týdenního limitu. Vlastní přidělené místo rezidenta se do limitu nepočítá.</value></data>
   <data name="Help_Reserve_PlannerRules_NoLimit" xml:space="preserve"><value>Plánovací horizont je {0} dní a týdenní limit je vypnutý.</value></data>
   <data name="Help_Reserve_PlannerRules_NoLastMinute" xml:space="preserve"><value>Plánovací horizont je {0} dní a dopředu lze potvrdit nejvýše {1} různé dny v týdnu. Vlastní přidělené místo rezidenta se do limitu nepočítá.</value></data>

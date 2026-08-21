@@ -127,6 +127,9 @@ public class ParkingSpot : Entity
         }
     }
 
+    /// <summary>Forces the standing plan to be evaluated again after global calendar rules change.</summary>
+    public void ResetPlanApplication() => PlanAppliedThrough = null;
+
     public void MarkResidentReminded(DateOnly date) => LastResidentReminderDate = date;
 
     public void MarkAutoShareNoticed(DateOnly date) => LastAutoShareNoticeDate = date;
