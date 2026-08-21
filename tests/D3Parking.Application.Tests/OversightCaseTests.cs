@@ -706,7 +706,7 @@ public class OversightCaseTests
     }
 
     [Test]
-    public async Task A_ruling_lands_on_the_case_the_ledger_the_audit_trail_and_the_person()
+    public async Task A_ruling_can_adjust_operational_credits_but_never_reputation_or_achievements()
     {
         await SeedSettingsAsync();
         var reviewer = await SeedUserAsync();
@@ -720,12 +720,12 @@ public class OversightCaseTests
 
         await using var db = new D3ParkingDbContext(_options);
         var score = await db.ParkerScores.SingleAsync(s => s.UserId == mismatch.ReporterId);
-        Assert.That(score.Points, Is.EqualTo(25));
+        Assert.That(score.Points, Is.EqualTo(40), "Legacy reputation is never reduced.");
         Assert.That(score.Credits, Is.EqualTo(20));
         Assert.That(score.NoShows, Is.Zero, "Nobody failed to turn up; the behaviour counters must not move.");
 
         var ledger = await db.PointsLedgerEntries.Where(e => e.UserId == mismatch.ReporterId).ToListAsync();
-        Assert.That(ledger.Select(e => e.Points), Is.EquivalentTo(new[] { -15, -5 }));
+        Assert.That(ledger.Select(e => e.Points), Is.EquivalentTo(new[] { -5 }));
         Assert.That(ledger.Select(e => e.Reason), Has.All.EqualTo(IncentiveReason.ManualAdjustment));
 
         Assert.That(await db.AccountAuditEvents.AnyAsync(e =>

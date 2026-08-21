@@ -1,0 +1,90 @@
+@page "/parking/achievements"
+@attribute [HasPermission(Permissions.Parking.ViewAchievements)]
+@rendermode InteractiveServer
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@inject IAchievementService AchievementService
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Parking_Achievements_Title"]</PageTitle>
+
+<FluentStack Class="page-shell" Orientation="Orientation.Vertical" VerticalGap="20">
+    <FluentLabel Typo="Typography.PageTitle">@L["Parking_Achievements_Title"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@L["Parking_Achievements_Intro"]</FluentLabel>
+
+    @if (_summary is null)
+    {
+        <div class="loading"><FluentProgressRing /></div>
+    }
+    else
+    {
+        <FluentCard Class="hero-card">
+            <div class="hero">
+                <div class="hero__ring">
+                    <div class="contribution-ring">
+                        <div class="contribution-ring__inner">
+                            <FluentIcon Value="@(new Icons.Regular.Size24.Heart())" Color="Color.Custom" CustomColor="currentColor" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero__body">
+                    <span class="hero__label">@L["Parking_Achievements_Total"]</span>
+                    <div class="hero__count"><strong>@_summary.Achievements.Count</strong> <span>@L["Parking_Achievements_Count"]</span></div>
+                    <FluentLabel Typo="Typography.Body">@L["Parking_Achievements_Thanks"]</FluentLabel>
+
+                    <div class="hero__stats">
+                        <div class="stat"><span class="stat__num">@_summary.PlansCreated</span><span class="stat__lbl">@L["Parking_Achievements_Plans"]</span></div>
+                        <div class="stat"><span class="stat__num">@_summary.UsefulReleases</span><span class="stat__lbl">@L["Parking_Achievements_UsefulReleases"]</span></div>
+                        <div class="stat"><span class="stat__num">@_summary.QueueHelps</span><span class="stat__lbl">@L["Parking_Achievements_QueueHelps"]</span></div>
+                        <div class="stat"><span class="stat__num">@_summary.SharedDaysUsed</span><span class="stat__lbl">@L["Parking_Achievements_SharedDays"]</span></div>
+                    </div>
+                </div>
+            </div>
+        </FluentCard>
+
+        @if (_summary.Achievements.Count == 0)
+        {
+            <div class="empty-state">@L["Parking_Achievements_Empty"]</div>
+        }
+        else
+        {
+            <div class="admin-panel">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+                    @foreach (var achievement in _summary.Achievements)
+                    {
+                        <FluentCard>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Accent" />
+                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                                    <FluentLabel Typo="Typography.Subject">@L[$"Parking_Badge_{achievement}"]</FluentLabel>
+                                    <FluentLabel Typo="Typography.Body">@L[$"Parking_BadgeDescription_{achievement}"]</FluentLabel>
+                                </FluentStack>
+                            </FluentStack>
+                        </FluentCard>
+                    }
+                </FluentStack>
+            </div>
+        }
+    }
+</FluentStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private AchievementSummaryDto? _summary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null)
+        {
+            return;
+        }
+
+        var state = await AuthState;
+        if (Guid.TryParse(UserManager.GetUserId(state.User), out var userId))
+        {
+            _summary = await AchievementService.GetSummaryAsync(userId);
+        }
+    }
+}

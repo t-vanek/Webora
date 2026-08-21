@@ -17,4 +17,18 @@ public enum ParkingBadge
 
     /// <summary>Highly trusted in the sharing network (top trust-graph standing).</summary>
     Trusted,
+
+    // Positive-only planning achievements. Unlike the legacy reputation badges these are
+    // permanent acknowledgements of a concrete contribution; they never reduce access, budget or
+    // queue position and are never revoked.
+    PlanningStarted,
+    ActivePlanner,
+    PlaceForColleague,
+    ParkingHelper,
+    BigHelper,
+    FreeSpotHero,
+    QueueHelper,
+    ShortensWaiting,
+    SharesWhenPossible,
+    GenerousResident,
 }

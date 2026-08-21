@@ -49,7 +49,7 @@ public class ApologyVoucher : Entity
 
     /// <summary>
     /// The spot manager confirmed the report. Validity restarts from the approval, so a slow
-    /// review never eats into the 30 days the driver was promised.
+    /// review never eats into the 90 days the driver was promised.
     /// </summary>
     public void Approve(Guid reviewerId, DateTimeOffset at, TimeSpan validity)
     {

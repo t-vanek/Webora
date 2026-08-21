@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @inject IStringLocalizer<SharedResource> L
 @inject IReservationService Reservations
-@inject IIncentiveService Incentives
+@inject IAchievementService Achievements
 @inject IResidentSpotService ResidentSpots
 @inject IOversightService Oversight
 @inject IParkingSettingsService ParkingSettings
@@ -14,83 +14,14 @@
    here with their primary action attached, because forcing a hop to /parking wastes exactly the
    minutes the queue offer is counting down. Cards render only when they have something to say.
 
-   Signed out, it is a landing page instead: with the sidebar gone for anonymous visitors the
-   full width belongs to a hero with both CTAs, the three product pillars and a short "how it
-   works" — everything a colleague deciding whether to register needs, no dashboard chrome. *@
+   Signed out, the root route immediately hands off to the existing static-SSR login page. Keeping
+   one form is important because SignInManager must write its cookie during a real form request. *@
 
 <PageTitle>@L["Home_Title"]</PageTitle>
 
 @if (!_signedIn)
 {
-    <div class="landing">
-        <section class="landing-hero">
-            <div class="landing-hero__content">
-                <span class="landing-hero__eyebrow">@L["Home_Title"]</span>
-                <h1 class="landing-hero__title">@L["Landing_Headline"]</h1>
-                <p class="landing-hero__lead">@L["Landing_Lead"]</p>
-                <div class="landing-hero__actions">
-                    <a href="login" class="landing-btn landing-btn--primary">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Landing_CtaLogin"]
-                    </a>
-                    <a href="register" class="landing-btn landing-btn--ghost">
-                        <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Color="Color.Custom" CustomColor="currentColor" />
-                        @L["Landing_CtaRegister"]
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <section class="landing-features" aria-label="@L["Landing_FeaturesTitle"]">
-            <div class="landing-feature">
-                <span class="landing-feature__ic landing-feature__ic--reserve">
-                    <FluentIcon Value="@(new Icons.Regular.Size24.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
-                </span>
-                <h2 class="landing-feature__title">@L["Landing_Feature1_Title"]</h2>
-                <p class="landing-feature__desc">@L["Landing_Feature1_Desc"]</p>
-            </div>
-            <div class="landing-feature">
-                <span class="landing-feature__ic landing-feature__ic--credits">
-                    <FluentIcon Value="@(new Icons.Regular.Size24.Money())" Color="Color.Custom" CustomColor="currentColor" />
-                </span>
-                <h2 class="landing-feature__title">@L["Landing_Feature2_Title"]</h2>
-                <p class="landing-feature__desc">@L["Landing_Feature2_Desc"]</p>
-            </div>
-            <div class="landing-feature">
-                <span class="landing-feature__ic landing-feature__ic--board">
-                    <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
-                </span>
-                <h2 class="landing-feature__title">@L["Landing_Feature3_Title"]</h2>
-                <p class="landing-feature__desc">@L["Landing_Feature3_Desc"]</p>
-            </div>
-        </section>
-
-        <section class="landing-steps">
-            <h2 class="landing-steps__title">@L["Landing_HowTitle"]</h2>
-            <ol class="landing-steps__list">
-                <li class="landing-step">
-                    <span class="landing-step__num" aria-hidden="true">1</span>
-                    <h3 class="landing-step__title">@L["Landing_Step1_Title"]</h3>
-                    <p class="landing-step__desc">@L["Landing_Step1_Desc"]</p>
-                </li>
-                <li class="landing-step">
-                    <span class="landing-step__num" aria-hidden="true">2</span>
-                    <h3 class="landing-step__title">@L["Landing_Step2_Title"]</h3>
-                    <p class="landing-step__desc">@L["Landing_Step2_Desc"]</p>
-                </li>
-                <li class="landing-step">
-                    <span class="landing-step__num" aria-hidden="true">3</span>
-                    <h3 class="landing-step__title">@L["Landing_Step3_Title"]</h3>
-                    <p class="landing-step__desc">@L["Landing_Step3_Desc"]</p>
-                </li>
-            </ol>
-        </section>
-
-        <section class="landing-cta">
-            <h2 class="landing-cta__title">@L["Landing_FinalTitle"]</h2>
-            <a href="register" class="landing-btn landing-btn--primary">@L["Landing_CtaRegister"]</a>
-        </section>
-    </div>
+    <RedirectToLogin />
     return;
 }
 
@@ -170,7 +101,7 @@
        user manager brought in from outside — gets the administration it was given and no standing
        of its own to show. *@
     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.View)" Context="lot">
-    @if (_reservation is not null || _queueEntry is not null || _ownedSpot is not null || _score is not null)
+    @if (_reservation is not null || _queueEntry is not null || _ownedSpot is not null || _achievements is not null)
     {
         <h2 class="home-section">@L["Home_Today"]</h2>
         <div class="today-grid">
@@ -239,18 +170,21 @@
                 </div>
             }
 
-            @if (_score is { } sc)
+            @if (_achievements is { } sc)
             {
-                <a href="parking/leaderboard" class="today-card today-card--wallet">
-                    <span class="today-card__label">@(_creditsEnabled ? L["Home_Wallet"] : L["Parking_MyScore"])</span>
+                <a href="parking/achievements" class="today-card today-card--wallet">
+                    <span class="today-card__label">@(_creditsEnabled ? L["Home_Wallet"] : L["Parking_Achievements_My"])</span>
                     <span class="today-card__value">
                         @if (_creditsEnabled)
                         {
-                            @sc.Credits @L["Parking_Credits"] <text> · </text>
+                            @sc.Credits @L["Parking_Credits"]
                         }
-                        @sc.Points @L["Parking_Points"]
+                        else
+                        {
+                            @sc.Achievements.Count @L["Parking_Achievements_Count"]
+                        }
                     </span>
-                    <span class="today-card__meta">@L["Home_WalletDetail", L[$"Parking_Tier_{sc.Tier}"].Value, sc.CompletionStreak]</span>
+                    <span class="today-card__meta">@L["Parking_Achievements_Thanks"]</span>
                 </a>
             }
         </div>
@@ -269,11 +203,11 @@
             </a>
         </AuthorizeView>
 
-        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewLeaderboard)">
-            <a href="parking/leaderboard" class="home-tile">
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewAchievements)">
+            <a href="parking/achievements" class="home-tile">
                 <span class="home-tile__ic home-tile__ic--board"><FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" Color="Color.Custom" CustomColor="currentColor" /></span>
-                <span class="home-tile__title">@L["Nav_ParkingLeaderboard"]</span>
-                <span class="home-tile__desc">@L["Home_Card_Leaderboard"]</span>
+                <span class="home-tile__title">@L["Nav_ParkingAchievements"]</span>
+                <span class="home-tile__desc">@L["Home_Card_Achievements"]</span>
             </a>
         </AuthorizeView>
 
@@ -371,7 +305,7 @@
     private ReservationDto? _reservation;
     private QueueEntryDto? _queueEntry;
     private OwnedSpotDto? _ownedSpot;
-    private ParkerScoreDto? _score;
+    private AchievementSummaryDto? _achievements;
     private bool _creditsEnabled;
     private string OrientationMapUrl => "/api/parking/orientation-map";
 
@@ -429,7 +363,7 @@
             ?? queue.FirstOrDefault(q => q.Status == QueueEntryStatus.Waiting);
 
         _ownedSpot = await ResidentSpots.GetMyOwnedSpotAsync(_userId);
-        _score = await Incentives.GetScoreAsync(_userId);
+        _achievements = await Achievements.GetSummaryAsync(_userId);
     }
 
     // Single-flight: every dashboard action funnels through here, so the guard covers a

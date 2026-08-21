@@ -51,12 +51,12 @@
             <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Home"]</span>
         </NavLink>
 
-        @if (_canReserve || _canLeaderboard)
+        @if (_canReserve || _canAchievements)
         {
             <div class="side-nav__section">
                 <span class="side-nav__section-title">@L["Nav_Parking"]</span>
             </div>
-            @* Exact match, unlike everywhere else: /parking is the parent path of the leaderboard
+            @* Exact match, unlike everywhere else: /parking is the parent path of achievements
                and the reports, so NavLink's default prefix matching lit the reservation entry on
                those pages too — two items filled violet at once, and neither one telling the truth
                about where you are. Nothing lives below /parking that lacks its own entry, so there
@@ -70,13 +70,13 @@
                     <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Reserve"]</span>
                 </NavLink>
             }
-            @if (_canLeaderboard)
+            @if (_canAchievements)
             {
-                <NavLink href="parking/leaderboard" class="side-nav__item" ActiveClass="side-nav__item--active"
-                         aria-label="@L["Nav_ParkingLeaderboard"]">
+                <NavLink href="parking/achievements" class="side-nav__item" ActiveClass="side-nav__item--active"
+                         aria-label="@L["Nav_ParkingAchievements"]">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
-                    <span class="side-nav__label">@L["Nav_ParkingLeaderboard"]</span>
-                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Leaderboard"]</span>
+                    <span class="side-nav__label">@L["Nav_ParkingAchievements"]</span>
+                    <span class="side-nav__short" aria-hidden="true">@L["Nav_Short_Achievements"]</span>
                 </NavLink>
             }
 
@@ -270,7 +270,7 @@
     private bool _canAudit;
     private bool _canSettings;
     private bool _canReserve;
-    private bool _canLeaderboard;
+    private bool _canAchievements;
     private bool _canManageSpots;
     private bool _canManageFleet;
     private bool _canReviewMismatches;
@@ -324,7 +324,7 @@
             _canAudit = Can(Permissions.Audit.View);
             _canSettings = Can(Permissions.Settings.View);
             _canReserve = Can(Permissions.Parking.Reserve);
-            _canLeaderboard = Can(Permissions.Parking.ViewLeaderboard);
+            _canAchievements = Can(Permissions.Parking.ViewAchievements);
             _canManageSpots = Can(Permissions.Parking.ManageSpots);
             _canManageFleet = Can(Permissions.Parking.ManageFleet);
             _canReviewMismatches = Can(Permissions.Parking.ReviewMismatches);

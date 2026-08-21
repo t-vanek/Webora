@@ -307,8 +307,6 @@
                                               OptionText="@(p => p.Name)"
                                               @bind-Value="_sanctionTarget"
                                               Disabled="@_busy" />
-                                <FluentNumberField TValue="int" @bind-Value="_sanctionPoints" Min="0" Style="width:100%"
-                                                   Label="@L["Parking_Oversight_SanctionPoints"]" />
                                 <FluentNumberField TValue="int" @bind-Value="_sanctionCredits" Min="0" Style="width:100%"
                                                    Label="@L["Parking_Oversight_SanctionCredits"]" />
                                 <FluentTextArea @bind-Value="_sanctionReason" Rows="2" Style="width:100%"
@@ -382,7 +380,6 @@
     private IReadOnlyList<OversightReviewerDto> _reviewers = [];
     private string _assignee = string.Empty;
     private string _sanctionTarget = string.Empty;
-    private int _sanctionPoints;
     private int _sanctionCredits;
     private string _sanctionReason = string.Empty;
     private bool _loaded;
@@ -457,12 +454,12 @@
 
     private Task SanctionAsync() => RunAsync(
         () => Guid.TryParse(_sanctionTarget, out var target)
-            ? Oversight.SanctionAsync(Id, target, _sanctionPoints, _sanctionCredits, _sanctionReason, _reviewerId, _scope)
+            ? Oversight.SanctionAsync(Id, target, 0, _sanctionCredits, _sanctionReason, _reviewerId, _scope)
             : Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_NotAParty")),
         "Parking_Oversight_Sanctioned",
         onSuccess: () =>
         {
-            _sanctionPoints = _sanctionCredits = 0;
+            _sanctionCredits = 0;
             _sanctionReason = string.Empty;
         });
 

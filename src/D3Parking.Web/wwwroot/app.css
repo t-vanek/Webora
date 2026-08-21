@@ -430,12 +430,16 @@ h1:focus {
 .calendar-subscription {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 18px 28px;
-    padding: 20px;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 14px 16px;
 }
 
 .calendar-subscription__copy p {
-    margin: 8px 0 4px;
+    margin: 4px 0 0;
+    color: var(--neutral-foreground-hint);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .calendar-subscription__copy small {
@@ -444,9 +448,10 @@ h1:focus {
 
 .calendar-subscription__actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px 12px;
 }
 
 .calendar-subscription__buttons,
@@ -459,6 +464,7 @@ h1:focus {
 
 .calendar-subscription__state {
     color: var(--neutral-foreground-hint);
+    font-size: 12px;
 }
 
 .calendar-subscription__state.is-enabled {
@@ -468,7 +474,41 @@ h1:focus {
 .calendar-subscription__secret {
     grid-column: 1 / -1;
     display: grid;
-    gap: 10px;
+    gap: 8px;
+}
+
+.calendar-subscription__settings {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--brand-hairline, #ececec);
+}
+
+.calendar-subscription__settings > summary,
+.calendar-subscription__manual > summary {
+    width: fit-content;
+    padding: 9px 0 2px;
+    color: var(--accent-foreground-rest, #5b2da3);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.calendar-subscription__settings-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    padding-top: 10px;
+}
+
+.calendar-subscription__settings-body small {
+    max-width: 760px;
+    color: var(--neutral-foreground-hint);
+    line-height: 1.4;
+}
+
+.calendar-subscription__manual {
+    min-width: 0;
 }
 
 .calendar-subscription__url {
@@ -487,7 +527,13 @@ h1:focus {
     }
 
     .calendar-subscription__actions {
-        align-items: flex-start;
+        align-items: stretch;
+        justify-content: flex-start;
+        flex-direction: column;
+    }
+
+    .calendar-subscription__actions fluent-button {
+        width: 100%;
     }
 }
 
@@ -512,12 +558,6 @@ h1:focus {
 
 .reserve-side {
     position: static;
-}
-
-.reserve-voucher {
-    padding: 12px 16px;
-    width: fit-content;
-    max-width: 100%;
 }
 
 .parking-planner {
@@ -745,6 +785,10 @@ h1:focus {
 }
 
 .resident-status-strip__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-self: end;
 }
 
@@ -773,7 +817,7 @@ h1:focus {
 
 .resident-tools {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 10px;
     padding-top: 4px;
@@ -786,41 +830,34 @@ h1:focus {
     outline-offset: 4px;
 }
 
-.resident-tools__head,
-.resident-tools > .owned-section:last-child {
-    grid-column: 1 / -1;
-}
-
 .resident-tools__head {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: 12px 14px;
-    border: 1px solid rgba(136, 77, 255, .22);
-    border-left: 4px solid var(--brand-violet);
-    border-radius: var(--brand-radius-lg);
-    background: rgba(136, 77, 255, .07);
+    gap: 4px;
+    padding: 2px 2px 6px;
 }
 
-.resident-tools__eyebrow {
-    color: var(--brand-accent-foreground);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0;
-    text-transform: uppercase;
+.resident-tools__title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.resident-tools__head strong {
+.resident-tools__head h2,
+.resident-tools__head p {
+    margin: 0;
+}
+
+.resident-tools__head h2 {
     color: var(--neutral-foreground-rest, #242424);
-    font-size: 14px;
-    line-height: 1.2;
+    font-size: 20px;
+    line-height: 1.25;
 }
 
-.resident-tools__head small {
+.resident-tools__head p {
     color: var(--neutral-foreground-hint, #6b6b6b);
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.35;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 .owned-section {
@@ -900,7 +937,6 @@ h1:focus {
 
 .owned-section .owned-fields,
 .owned-section .release-calendar,
-.owned-section .release-periods,
 .owned-section .plan-days,
 .owned-section .owned-plan-actions {
     padding: 0 14px 14px;
@@ -961,100 +997,6 @@ h1:focus {
     color: var(--accent-fill-rest, #6f2cf4) !important;
     font-size: 13px !important;
     font-weight: 700;
-}
-
-.release-periods {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.release-period {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 12px;
-    border: 1px solid rgba(13, 112, 47, .18);
-    border-radius: var(--brand-radius, 8px);
-    background: rgba(137, 225, 3, .12);
-}
-
-.release-period--taken {
-    border-color: rgba(157, 93, 0, .24);
-    background: rgba(255, 185, 0, .11);
-}
-
-.release-period__main {
-    display: grid;
-    min-width: 0;
-    grid-template-columns: auto auto;
-    align-items: baseline;
-    gap: 2px 10px;
-}
-
-.release-period__confirmation {
-    display: flex;
-    max-width: 560px;
-    flex-direction: column;
-    gap: 8px;
-    padding: 9px 10px;
-    border-radius: var(--brand-radius, 8px);
-    background: rgba(255, 185, 0, .13);
-    color: var(--neutral-foreground-rest, #242424);
-    font-size: 12px;
-}
-
-    .release-period__confirmation > div {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .release-period__main > span {
-        color: var(--neutral-foreground-hint, #666);
-        font-size: 12px;
-    }
-
-    .release-period__main > small {
-        grid-column: 1 / -1;
-        color: var(--neutral-foreground-hint, #666);
-        font-size: 12px;
-    }
-
-.resident-release-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 14px 16px;
-    border: 1px solid rgba(126, 52, 247, .2);
-    border-radius: var(--brand-radius-lg, 10px);
-    background: rgba(126, 52, 247, .06);
-}
-
-.resident-release-banner--warning {
-    border-color: rgba(157, 93, 0, .3);
-    background: rgba(255, 185, 0, .12);
-}
-
-    .resident-release-banner > div:first-child {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        gap: 3px;
-    }
-
-    .resident-release-banner span {
-        color: var(--neutral-foreground-hint, #666);
-        font-size: 12px;
-    }
-
-.resident-release-banner__actions {
-    display: flex;
-    flex: 0 0 auto;
-    flex-wrap: wrap;
-    gap: 8px;
 }
 
 .plan-days,
@@ -1253,39 +1195,6 @@ h1:focus {
 
 .alternate-search__body .booking-bar {
     box-shadow: none;
-}
-
-.resident-search-notice {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 14px 16px;
-    border: 1px solid rgba(136, 77, 255, .18);
-    border-radius: var(--brand-radius-lg);
-    background: rgba(136, 77, 255, .05);
-}
-
-    .resident-search-notice strong {
-        color: var(--neutral-foreground-rest, #242424);
-        font-size: 14px;
-        line-height: 1.25;
-    }
-
-    .resident-search-notice span {
-        color: var(--neutral-foreground-hint, #6b6b6b);
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.35;
-    }
-
-    .resident-search-notice fluent-button {
-        align-self: flex-start;
-        margin-top: 6px;
-    }
-
-.resident-search-notice--warning {
-    border-color: rgba(209, 52, 56, .22);
-    background: rgba(209, 52, 56, .07);
 }
 
 .booking-bar__copy {
@@ -1918,15 +1827,53 @@ h1:focus {
         grid-template-columns: repeat(2, minmax(150px, 1fr));
     }
 
-    .resident-tools {
-        grid-template-columns: minmax(0, 1fr);
-    }
+}
 
-    .resident-tools__head,
-    .resident-tools > .owned-section:last-child {
-        grid-column: auto;
-    }
+.release-range-feedback {
+    grid-column: 1 / -1;
+    padding: 10px 12px;
+    border: 1px solid var(--neutral-stroke-rest, #d6d6d6);
+    border-radius: var(--brand-radius, 8px);
+    background: var(--neutral-fill-secondary-rest, #f5f5f5);
+    color: var(--neutral-foreground-hint, #666);
+    font-size: 12px;
+    line-height: 1.4;
+}
 
+.release-range-feedback--error {
+    border-color: color-mix(in srgb, var(--error, #c50f1f) 32%, transparent);
+    background: color-mix(in srgb, var(--error, #c50f1f) 6%, var(--neutral-layer-1, #fff));
+    color: var(--error, #b10e1c);
+}
+
+.automatic-compensation {
+    display: flex;
+    align-items: flex-start;
+    flex: 1 1 320px;
+    gap: 9px;
+    padding: 10px 12px;
+    border: 1px solid rgba(13, 112, 47, .22);
+    border-radius: var(--brand-radius, 8px);
+    background: rgba(137, 225, 3, .12);
+    color: var(--brand-positive-foreground, #075c28);
+}
+
+.automatic-compensation > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.automatic-compensation strong {
+    color: var(--neutral-foreground-rest, #242424);
+    font-size: 13px;
+}
+
+.automatic-compensation span {
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 @media (max-width: 640px) {
@@ -1994,17 +1941,6 @@ h1:focus {
     .release-duration-field,
     .release-end-field {
         grid-column: 1 / -1;
-    }
-
-    .resident-release-banner,
-    .release-period {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .resident-release-banner__actions fluent-button,
-    .release-period fluent-button {
-        width: 100%;
     }
 
     .booking-bar__row {
@@ -2077,21 +2013,7 @@ h1:focus {
         opacity: .85;
     }
 
-/* Tier as a colour-coded dot (same ramp the old text chips used); the tier name lives in the
-   link's tooltip and on the leaderboard itself. */
-.wallet-chip__dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    flex: 0 0 auto;
-}
-
-.wallet-chip__dot--Bronze { background: rgba(251, 253, 252, .45); }
-.wallet-chip__dot--Silver { background: rgba(136, 77, 255, .8); }
-.wallet-chip__dot--Gold { background: var(--brand-violet); }
-.wallet-chip__dot--Platinum { background: var(--brand-green); }
-
-/* --- Leaderboard hero card --- */
+/* --- Achievements hero card --- */
 .hero {
     display: flex;
     gap: 28px;
@@ -2107,25 +2029,17 @@ h1:focus {
     flex: 0 0 auto;
 }
 
-.tier-ring {
-    --pct: 0;
-    --ring-color: var(--accent-fill-rest, #0f6cbd);
+.contribution-ring {
+    --ring-color: var(--brand-violet);
     width: 124px;
     height: 124px;
     border-radius: 50%;
-    background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--neutral-fill-secondary-rest, #e6e6e6) 0);
+    background: var(--brand-violet);
     display: grid;
     place-items: center;
 }
 
-/* Úrovně věrnosti postupují od tlumené Sherpa Blue k plné zelené — vzestup je čitelný ze
-   světlosti, takže nepotřebuje kovové odstíny mimo značku. */
-.tier-ring--Bronze { --ring-color: var(--brand-sherpa-soft); }
-.tier-ring--Silver { --ring-color: var(--brand-violet-deep); }
-.tier-ring--Gold { --ring-color: var(--brand-violet); }
-.tier-ring--Platinum { --ring-color: var(--brand-green); }
-
-.tier-ring__inner {
+.contribution-ring__inner {
     width: 98px;
     height: 98px;
     border-radius: 50%;
@@ -2138,7 +2052,7 @@ h1:focus {
     color: var(--ring-color);
 }
 
-.tier-ring__name {
+.contribution-ring__name {
     font-size: 15px;
     font-weight: 700;
     color: var(--neutral-foreground-rest, #242424);
@@ -2162,20 +2076,20 @@ h1:focus {
     color: var(--neutral-foreground-hint, #6b6b6b);
 }
 
-.hero__points {
+.hero__count {
     display: flex;
     align-items: baseline;
     gap: 6px;
 }
 
-    .hero__points strong {
+    .hero__count strong {
         font-size: 38px;
         font-weight: 800;
         line-height: 1;
         color: var(--accent-foreground-rest, #0f6cbd);
     }
 
-    .hero__points span {
+    .hero__count span {
         font-size: 14px;
         color: var(--neutral-foreground-hint, #6b6b6b);
     }
@@ -3750,11 +3664,12 @@ h1:focus {
 .site-settings-tabs,
 .parking-settings-tabs { width: 100%; }
 .site-settings-tabs fluent-stack[style*="max-width"] { max-width: none !important; }
-.settings-map-disclosure { border: 1px solid var(--neutral-stroke-rest, #d1d1d1); border-radius: var(--brand-radius-lg); background: var(--neutral-layer-1, #fff); }
+.settings-map-disclosure { width: 100%; max-width: 880px; box-sizing: border-box; border: 1px solid var(--neutral-stroke-rest, #d1d1d1); border-radius: var(--brand-radius-lg); background: var(--neutral-layer-1, #fff); }
 .settings-map-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 16px; cursor: pointer; font-weight: 650; }
 .settings-map-panel { border: 0; border-top: 1px solid var(--brand-hairline, #e3e6e7); border-radius: 0; }
 .settings-savebar { position: sticky; z-index: 5; bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--neutral-stroke-rest, #d1d1d1); border-radius: var(--brand-radius-lg); background: var(--neutral-layer-1, #fff); box-shadow: 0 8px 22px rgba(0, 0, 0, .12); }
 .settings-savebar > span { color: var(--neutral-foreground-hint, #616161); font-size: 12px; }
+.settings-savebar > span.settings-savebar__error { color: var(--error, #b10e1e); font-weight: 600; }
 
 /* Nový účet */
 .user-create-page form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
@@ -3866,10 +3781,8 @@ h1:focus {
     .parking-settings-tabs { max-width: 100%; overflow-x: auto; }
     .settings-savebar { bottom: 6px; }
     .settings-savebar > span { display: none; }
+    .settings-savebar > span.settings-savebar__error { display: block; flex: 1 0 100%; }
     .settings-savebar fluent-button { width: 100%; }
-    .reservation-mode-options { grid-template-columns: minmax(0, 1fr); }
-    .reservation-mode-option { min-height: 132px; }
-
     .user-create-layout { grid-template-columns: minmax(0, 1fr); }
     .user-create-role-grid { grid-template-columns: minmax(0, 1fr); }
     .user-create-actions { position: sticky; bottom: 6px; padding: 9px; border: 1px solid var(--neutral-stroke-rest, #d1d1d1); border-radius: var(--brand-radius-lg); background: var(--neutral-layer-1, #fff); box-shadow: 0 8px 22px rgba(0, 0, 0, .12); }
@@ -5423,7 +5336,7 @@ h1:focus {
 /* Keep the header tools from overflowing on small screens. Everything in the header has to
    shrink together: the uppercase brand with its wide tracking, the gaps of the tools row (Fluent
    emits the gap as an inline style, hence the !important), and the wallet chip's labels. The
-   overflow this fixes was data-dependent — it only appeared once the wallet showed a tier chip
+   overflow this fixes was data-dependent — it only appeared once the wallet showed extra content
    and the bell a count — so the numbers below are sized for the widest realistic content. */
 @media (max-width: 600px) {
     .app-header {
@@ -5504,69 +5417,91 @@ h1:focus {
     border-bottom: 1px solid var(--brand-hairline);
 }
 
-.reservation-mode-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+.planner-panel {
+    max-width: 880px;
 }
 
-.reservation-mode-option {
-    display: grid;
-    grid-template-rows: 24px auto 1fr;
-    gap: 6px;
-    min-height: 150px;
-    padding: 15px 16px;
-    border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
-    border-radius: var(--brand-radius-lg);
-    background: var(--neutral-layer-1, #fff);
-    color: var(--neutral-foreground-rest, #242424);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.reservation-mode-option:hover {
-    border-color: var(--accent-fill-hover, var(--brand-violet));
-    background: var(--neutral-fill-stealth-hover, rgba(0, 0, 0, .04));
-}
-
-.reservation-mode-option.is-selected {
-    border-color: var(--accent-fill-rest, var(--brand-violet));
-    background: color-mix(in srgb, var(--accent-fill-rest, var(--brand-violet)) 10%, var(--neutral-layer-1, #fff));
-    box-shadow: inset 0 0 0 1px var(--accent-fill-rest, var(--brand-violet));
-}
-
-.reservation-mode-option > strong {
-    font-size: 16px;
-}
-
-.reservation-mode-option > span:last-child {
-    color: var(--neutral-foreground-hint, #616161);
-    font-size: 13px;
-    line-height: 1.45;
-}
-
-.reservation-mode-option__marker {
-    display: flex;
+.settings-section__title {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    color: var(--brand-accent-foreground);
-    font-size: 11px;
-    font-weight: 750;
-    text-transform: uppercase;
+    gap: 8px;
+    color: var(--accent-foreground-rest, var(--brand-deep));
 }
 
-.settings-rule-summary {
+.settings-section__title fluent-icon {
+    flex: 0 0 20px;
+}
+
+.planner-settings-column {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    padding: 12px 14px;
-    border-left: 4px solid var(--accent-fill-rest, var(--brand-violet));
-    background: color-mix(in srgb, var(--accent-fill-rest, var(--brand-violet)) 8%, var(--neutral-layer-1, #fff));
+    gap: 12px;
+    width: 100%;
 }
 
-.settings-rule-summary strong {
-    font-size: 12px;
+.planner-setting-row {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(160px, 240px);
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 596px;
+    min-height: 36px;
+}
+
+.planner-setting-row__label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.planner-setting-row > .parking-input,
+.planner-setting-row > fluent-number-field {
+    width: 100%;
+}
+
+.planner-setting-row > fluent-switch {
+    justify-self: start;
+}
+
+.planner-setting-note {
+    width: calc(100% - 356px);
+    max-width: 240px;
+    margin-left: 356px;
+}
+
+.planner-tooltip-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--neutral-foreground-hint, #616161);
+    line-height: 0;
+    cursor: help;
+}
+
+.planner-tooltip-trigger:hover {
+    color: var(--accent-fill-rest, var(--brand-violet));
+    background: var(--neutral-fill-stealth-hover, rgba(0, 0, 0, .05));
+}
+
+.planner-tooltip-trigger:focus-visible {
+    color: var(--accent-fill-rest, var(--brand-violet));
+    outline: 2px solid var(--accent-fill-rest, var(--brand-violet));
+    outline-offset: 1px;
+}
+
+.planner-tooltip-trigger svg {
+    width: 16px;
+    height: 16px;
 }
 
 .settings-field__help {
@@ -5577,16 +5512,12 @@ h1:focus {
 
 .weekday-picker {
     display: grid;
-    grid-template-columns: repeat(7, minmax(72px, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
+    width: calc(100% - 356px);
+    max-width: 524px;
+    margin-left: 356px;
     margin-top: 4px;
-}
-
-.weekday-picker__presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
 }
 
 .weekday-picker__day {
@@ -5620,16 +5551,35 @@ h1:focus {
     }
 }
 
+@media (max-width: 700px) {
+    .planner-setting-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+        max-width: 440px;
+    }
+
+    .planner-setting-row > .parking-input,
+    .planner-setting-row > fluent-number-field {
+        max-width: 100%;
+    }
+
+    .planner-setting-note {
+        width: 100%;
+        max-width: 440px;
+        margin-left: 0;
+    }
+
+    .weekday-picker {
+        width: 100%;
+        max-width: 440px;
+        margin-left: 0;
+    }
+}
+
 @media (max-width: 560px) {
     .weekday-picker {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-}
-
-.settings-rule-summary span {
-    color: var(--neutral-foreground-hint, #616161);
-    font-size: 12px;
-    line-height: 1.45;
 }
 
 /* auto-fit místo pevných sloupců: pole se přeskládají plynule s šířkou okna,

@@ -60,7 +60,7 @@
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_Date"]</FluentLabel>
                     <input type="date" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
-                           min="@Today.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
+                           min="@FirstBookableDay.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
                 </div>
                 <div>
                     <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_From"]</FluentLabel>
@@ -193,11 +193,13 @@
     private DateTimeOffset Start => SiteTime.At(_day, _from, _tz);
     private DateTimeOffset End => SiteTime.At(_day, _to, _tz);
     private DateOnly Today => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+    private DateOnly FirstBookableDay => _policy?.FirstBookableDate(Today) ?? Today;
     private DateOnly LastBookableDay => Today.AddDays(_policy?.ReservationHorizonDays ?? 14);
     private string? SelectedCalendarErrorKey => _policy switch
     {
         null => null,
         _ when _day < Today || _day > LastBookableDay => "Parking_Error_ReservationHorizon",
+        { SameDayReservationsAllowed: false } when _day == Today => "Parking_Error_SameDayReservationsNotAllowed",
         { } policy when !policy.AllowedReservationWeekdays.Sanitize().Includes(_day) => "Parking_Error_ReservationWeekdayNotAllowed",
         { PublicHolidayReservationsAllowed: false } policy
             when HolidayCalendar.IsPublicHoliday(_day, policy.HolidayCalendarRegion) => "Parking_Error_PublicHolidayNotAllowed",
@@ -205,7 +207,7 @@
     };
 
     private IReadOnlyList<VisitorBookingDto> TodayBookings => (_bookings ?? [])
-        .Where(booking => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(booking.StartUtc, _tz).DateTime) == _day)
+        .Where(booking => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(booking.StartUtc, _tz).DateTime) == Today)
         .ToList();
 
     private IReadOnlyList<VisitorBookingDto> VisibleBookings
@@ -240,7 +242,7 @@
         _userId = user?.Id ?? Guid.Empty;
         _tz = await SiteSettings.GetTimeZoneAsync();
         _policy = await ParkingSettings.GetPolicyAsync();
-        _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        _day = _policy.FirstBookableDate(SiteTime.Today(DateTimeOffset.UtcNow, _tz));
         _users = await UserAdmin.ListAsync(null);
         _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);
         await ReloadFreeSpotsAsync();

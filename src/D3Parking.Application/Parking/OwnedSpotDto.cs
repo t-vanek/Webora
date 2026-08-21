@@ -28,7 +28,6 @@ public sealed record OwnedSpotDto(
     ParkingSpotType Type,
     OwnedSpotDayState TodayState,
     bool ReleasedToday,
-    int PotentialReleasePointsToday,
     // Today-or-later released days. Every one can be reclaimed; TakenByGuest warns that doing so
     // cancels another user's plan with a full refund and notification.
     IReadOnlyList<ReleasedDayDto> UpcomingReleases,

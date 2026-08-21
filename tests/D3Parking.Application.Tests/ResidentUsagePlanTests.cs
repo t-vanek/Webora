@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace D3Parking.Application.Tests;
 
 /// <summary>
-/// Pins the resident usage plan: the days outside the plan are released ahead of time (and rewarded
+/// Pins the resident usage plan: the days outside the plan are released ahead of time (and recognized
 /// exactly like a manual release), the days inside it stay held, today is never touched, and each
 /// day is decided once — so a five-minute maintenance loop cannot re-share a day the resident took
 /// back. Requires ConnectionStrings__SqlServer (skipped without it).
@@ -167,7 +167,7 @@ public class ResidentUsagePlanTests
     }
 
     [Test]
-    public async Task Every_planned_release_can_be_rewarded_without_a_monthly_limit()
+    public async Task Planned_releases_never_award_points_up_front()
     {
         var owner = Guid.NewGuid();
         await CreateOwnedSpotAsync("UP-06", owner);
@@ -178,13 +178,12 @@ public class ResidentUsagePlanTests
 
         await using var dbContext = new D3ParkingDbContext(_options);
         var rewarded = await dbContext.SpotReleases.CountAsync(r => r.OwnerId == owner && r.AwardedPoints > 0);
-        Assert.That(rewarded, Is.EqualTo(released),
-            "Every day released with advance notice is independently rewardable.");
+        Assert.That(rewarded, Is.Zero, "A release is helpful only once somebody uses it; it never awards points.");
         var awarded = await dbContext.SpotReleases.Where(r => r.OwnerId == owner).SumAsync(r => r.AwardedPoints);
         var score = await dbContext.ParkerScores.FindAsync(owner);
-        Assert.That(score!.Points, Is.EqualTo(awarded), "Every awarded point must land on the resident's score.");
-        Assert.That(await dbContext.PointsLedgerEntries.CountAsync(e => e.UserId == owner), Is.EqualTo(rewarded),
-            "A rewarded planned day is ledgered exactly like a hand-picked one.");
+        Assert.That(awarded, Is.Zero);
+        Assert.That(score, Is.Null, "Sharing alone does not create a score.");
+        Assert.That(await dbContext.PointsLedgerEntries.CountAsync(e => e.UserId == owner), Is.Zero);
     }
 
     [Test]

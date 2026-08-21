@@ -68,8 +68,13 @@ public static class Permissions
         /// <summary>Book and manage one's own reservations.</summary>
         public const string Reserve = "Parking.Reserve";
 
-        /// <summary>See the incentive leaderboard and earned badges.</summary>
+        /// <summary>
+        /// See one's earned achievements. The persisted value keeps its historical name so
+        /// existing role assignments continue to work after removing the leaderboard.
+        /// </summary>
         public const string ViewLeaderboard = "Parking.ViewLeaderboard";
+
+        public const string ViewAchievements = ViewLeaderboard;
 
         /// <summary>Create, edit and retire parking spots, and assign their owners.</summary>
         public const string ManageSpots = "Parking.ManageSpots";
@@ -93,7 +98,7 @@ public static class Permissions
         /// <summary>Read the lot analytics dashboard: occupancy, turned-away demand, trends.</summary>
         public const string ViewAnalytics = "Parking.ViewAnalytics";
 
-        /// <summary>Tune the incentive rules: point values, thresholds, tiers.</summary>
+        /// <summary>Tune parking planning, pricing and operational rules.</summary>
         public const string ManageIncentives = "Parking.ManageIncentives";
 
         /// <summary>Review collusion flags raised against named users.</summary>
@@ -139,7 +144,7 @@ public static class Permissions
     [
         new(Parking.View, AreaNames.Parking),
         new(Parking.Reserve, AreaNames.Parking, Parking.View),
-        new(Parking.ViewLeaderboard, AreaNames.Parking),
+        new(Parking.ViewAchievements, AreaNames.Parking),
         new(Parking.ManageSpots, AreaNames.Parking, Parking.View),
         new(Parking.ManageFleet, AreaNames.Parking, Parking.View),
         new(Parking.ManageReservations, AreaNames.Parking, Parking.View),

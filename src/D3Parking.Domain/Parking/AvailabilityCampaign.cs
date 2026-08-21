@@ -3,13 +3,17 @@ using D3Parking.Domain.Common;
 namespace D3Parking.Domain.Parking;
 
 /// <summary>
-/// One sent "the lot is wide open" campaign. Doubles as the dedup record (one campaign per
-/// period, one evaluation per day) and as the base for measuring whether campaigns actually
-/// convert into bookings.
+/// One sent occupancy campaign. Doubles as the dedup record and as the base for measuring whether
+/// low-occupancy suggestions convert into bookings or high-occupancy reminders free capacity.
 /// </summary>
 public class AvailabilityCampaign : Entity
 {
-    /// <summary>First local day of the advertised wide-open stretch.</summary>
+    public AvailabilityCampaignKind Kind { get; private set; }
+
+    /// <summary>Local day on which this campaign was selected for sending.</summary>
+    public DateOnly CampaignDate { get; private set; }
+
+    /// <summary>First local day of the advertised occupancy stretch.</summary>
     public DateOnly PeriodStart { get; private set; }
 
     /// <summary>Last local day of the advertised stretch (inclusive).</summary>
@@ -24,8 +28,12 @@ public class AvailabilityCampaign : Entity
 
     private AvailabilityCampaign() { }
 
-    public AvailabilityCampaign(DateOnly periodStart, DateOnly periodEnd, int occupancyPercent, int recipientCount, DateTimeOffset createdAtUtc)
+    public AvailabilityCampaign(AvailabilityCampaignKind kind, DateOnly campaignDate,
+        DateOnly periodStart, DateOnly periodEnd, int occupancyPercent, int recipientCount,
+        DateTimeOffset createdAtUtc)
     {
+        Kind = kind;
+        CampaignDate = campaignDate;
         PeriodStart = periodStart;
         PeriodEnd = periodEnd;
         OccupancyPercent = occupancyPercent;

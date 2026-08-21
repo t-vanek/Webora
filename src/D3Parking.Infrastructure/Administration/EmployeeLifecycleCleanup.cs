@@ -47,6 +47,7 @@ internal static class EmployeeLifecycleCleanup
             + await dbContext.AccountAuditEvents.CountAsync(a => a.UserId == userId, cancellationToken)
             + await dbContext.PointsLedgerEntries.CountAsync(p => p.UserId == userId, cancellationToken)
             + await dbContext.UserBadges.CountAsync(b => b.UserId == userId, cancellationToken)
+            + await dbContext.ParkingContributions.CountAsync(c => c.UserId == userId || c.BeneficiaryUserId == userId, cancellationToken)
             + await dbContext.ParkerScores.CountAsync(s => s.UserId == userId, cancellationToken)
             + await dbContext.ApologyVouchers.CountAsync(v => v.UserId == userId, cancellationToken)
             + await dbContext.OccupancyMismatches.CountAsync(m => m.ReporterId == userId, cancellationToken)

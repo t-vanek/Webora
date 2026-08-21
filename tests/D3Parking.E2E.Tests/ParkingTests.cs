@@ -8,13 +8,13 @@ namespace D3Parking.E2E.Tests;
 public class ParkingTests : AdminTest
 {
     [Test]
-    public async Task Leaderboard_shows_the_hero_score_card_and_panels()
+    public async Task Achievements_page_shows_only_personal_achievements()
     {
-        await Page.GotoAsync("/parking/leaderboard");
-        await Expect(Page.Locator(".tier-ring")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".hero__points")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".trust-meter")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".admin-panel").First).ToBeVisibleAsync();
+        await Page.GotoAsync("/parking/achievements");
+        await Expect(Page.Locator(".contribution-ring")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".hero__count")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Moje ocenění" })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".admin-panel, .empty-state").First).ToBeVisibleAsync();
     }
 
     [Test]

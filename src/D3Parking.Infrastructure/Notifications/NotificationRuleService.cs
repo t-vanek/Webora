@@ -40,6 +40,11 @@ public sealed class NotificationRuleService(
     public async Task UpdateAsync(IReadOnlyCollection<NotificationDeliveryRuleDto> rules, Guid actingUserId,
         CancellationToken cancellationToken = default)
     {
+        if (NotificationDeliveryRuleValidator.Validate(rules) is { } validationError)
+        {
+            throw new ArgumentException(validationError, nameof(rules));
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var stored = await dbContext.NotificationDeliveryRules.ToListAsync(cancellationToken);
         foreach (var key in AllKeys())

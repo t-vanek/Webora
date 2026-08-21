@@ -492,8 +492,8 @@ public sealed class ParkingSpotService(
         {
             // Ownership changed: the previous owner's shares no longer speak for this spot. Left
             // in place they would keep the new resident's spot publicly bookable and route
-            // wasted-share clawbacks to the old owner. Future days are removed and their prepaid
-            // rewards revoked; past days keep their history — those were genuinely shared.
+            // stale history to the old owner. Future days are removed; achievements and historical
+            // reputation are never revoked.
             var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
             var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
             var futureReleases = await dbContext.SpotReleases
@@ -502,24 +502,6 @@ public sealed class ParkingSpotService(
 
             if (futureReleases.Count > 0)
             {
-                foreach (var ownerRevocations in futureReleases
-                    .Where(r => r.AwardedPoints > 0)
-                    .GroupBy(r => r.OwnerId))
-                {
-                    // Whatever the no-show sweep already clawed back from a day's award must not
-                    // be revoked again — ClawedBackPoints exists precisely to cap the total
-                    // penalty at the award, never taking the owner net negative.
-                    var revoked = ownerRevocations.Sum(r => r.AwardedPoints - r.ClawedBackPoints);
-                    var ownerScore = await dbContext.ParkerScores
-                        .FirstOrDefaultAsync(s => s.UserId == ownerRevocations.Key, cancellationToken);
-                    if (ownerScore is not null && revoked > 0)
-                    {
-                        ownerScore.RevokeSharePoints(revoked, now);
-                        dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                            ownerRevocations.Key, IncentiveReason.ResidentShareUnused, -revoked, null, now, spot.Code));
-                    }
-                }
-
                 dbContext.SpotReleases.RemoveRange(futureReleases);
             }
         }

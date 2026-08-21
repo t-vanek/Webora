@@ -99,6 +99,28 @@ public class ReservationWindowRulesTests
     }
 
     [Test]
+    public void Same_day_rule_changes_the_first_date_without_extending_the_horizon()
+    {
+        var today = new DateOnly(2026, 8, 21);
+        var now = SiteTime.At(today, new TimeOnly(9, 0), Prague);
+        var sameDay = new D3Parking.Domain.Parking.Incentives.IncentivePolicy
+        {
+            ReservationHorizonDays = 14,
+            SameDayReservationsAllowed = true,
+        };
+        var nextDay = sameDay with { SameDayReservationsAllowed = false };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sameDay.IsWithinReservationHorizon(SiteTime.At(today, new TimeOnly(10, 0), Prague), now, Prague), Is.True);
+            Assert.That(nextDay.IsWithinReservationHorizon(SiteTime.At(today, new TimeOnly(10, 0), Prague), now, Prague), Is.False);
+            Assert.That(nextDay.IsWithinReservationHorizon(SiteTime.At(today.AddDays(1), new TimeOnly(8, 0), Prague), now, Prague), Is.True);
+            Assert.That(nextDay.IsWithinReservationHorizon(SiteTime.At(today.AddDays(14), new TimeOnly(8, 0), Prague), now, Prague), Is.True);
+            Assert.That(nextDay.IsWithinReservationHorizon(SiteTime.At(today.AddDays(15), new TimeOnly(8, 0), Prague), now, Prague), Is.False);
+        });
+    }
+
+    [Test]
     public void Public_holiday_policy_overrides_an_enabled_weekday()
     {
         var blocked = new D3Parking.Domain.Parking.Incentives.IncentivePolicy
@@ -139,5 +161,31 @@ public class ReservationWindowRulesTests
             SiteTime.At(new DateOnly(2026, 8, 24), new TimeOnly(8, 0), Prague), Prague), Is.True);
         Assert.That(policy.IsReservationWeekdayAllowed(
             SiteTime.At(new DateOnly(2026, 8, 25), new TimeOnly(8, 0), Prague), Prague), Is.False);
+    }
+
+    [TestCase(Weekday.Everyday, 7, 7)]
+    [TestCase(Weekday.Workdays, 7, 5)]
+    [TestCase(Weekday.Monday | Weekday.Wednesday | Weekday.Friday, 7, 3)]
+    [TestCase(Weekday.Monday | Weekday.Wednesday | Weekday.Friday, 2, 2)]
+    public void Weekly_limit_cannot_exceed_the_allowed_weekdays(
+        Weekday allowedWeekdays,
+        int configuredLimit,
+        int expectedLimit)
+    {
+        var policy = new D3Parking.Domain.Parking.Incentives.IncentivePolicy
+        {
+            AllowedReservationWeekdays = allowedWeekdays,
+            WeeklyReservationLimit = configuredLimit,
+        };
+
+        Assert.That(policy.EffectiveWeeklyReservationLimit, Is.EqualTo(expectedLimit));
+    }
+
+    [Test]
+    public void Counting_allowed_weekdays_ignores_unknown_flags()
+    {
+        var malformed = Weekday.Workdays | (Weekday)(1 << 12);
+
+        Assert.That(malformed.CountDays(), Is.EqualTo(5));
     }
 }

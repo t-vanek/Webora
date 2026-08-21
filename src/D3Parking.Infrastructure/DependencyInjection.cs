@@ -88,10 +88,9 @@ public static class DependencyInjection
         services.AddScoped<IParkingSpotService, ParkingSpotService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ICalendarSubscriptionService, CalendarSubscriptionService>();
-        services.AddScoped<IIncentiveService, IncentiveService>();
+        services.AddScoped<IAchievementService, AchievementService>();
         services.AddScoped<IResidentSpotService, ResidentSpotService>();
         services.AddScoped<IUserLocationService, UserLocationService>();
-        services.AddScoped<ITrustService, TrustService>();
         services.AddScoped<ICollusionService, CollusionService>();
         services.AddScoped<IAvailabilityCampaignService, AvailabilityCampaignService>();
         services.AddScoped<IVisitorBookingService, VisitorBookingService>();

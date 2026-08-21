@@ -1,6 +1,6 @@
 @page "/help"
 @using System.Globalization
-@* Parking users only: the page renders the live pricing, reward and anti-abuse configuration —
+@* Parking users only: the page renders the live pricing, planning and anti-abuse configuration —
    the navigation offers it inside the permissioned parking section, and the admin chapters
    below are additionally gated per permission. *@
 @attribute [HasPermission(Permissions.Parking.View)]
@@ -17,9 +17,8 @@
 @* Uživatelská nápověda. Statické SSR — je to čtený text, žádná interaktivita není potřeba
    (rozbalování řeší nativní <details>), takže stránka nezabírá circuit a funguje i bez JS.
 
-   Obsah se řídí ŽIVOU konfigurací: čísla (ceny, body, lhůty, prahy úrovní) se berou z aktuální
-   policy a sekce vypnutých funkcí se vůbec nevykreslí. Nápověda, která slibuje odměny, jež má
-   admin vypnuté, je horší než žádná. Sekce pro správce navíc respektují oprávnění. *@
+   Obsah se řídí ŽIVOU konfigurací: ceny, lhůty a provozní limity se berou z aktuální policy.
+   Sekce pro správce navíc respektují oprávnění. *@
 <FluentStack Class="page-shell page-shell--readable" Orientation="Orientation.Vertical" VerticalGap="16">
     <div class="admin-head__titles">
         <FluentLabel Typo="Typography.PageTitle">@L["Help_Title"]</FluentLabel>
@@ -33,8 +32,11 @@
             <div class="help-item__a">
                 <p>@L[_charged ? "Help_Reserve_A1_Paid" : "Help_Reserve_A1_Free"]</p>
                 <p>@(policy.WeeklyReservationLimitEnabled
-                        ? L["Help_Reserve_PlannerRules_NoLastMinute", policy.ReservationHorizonDays, policy.WeeklyReservationLimit]
+                        ? L["Help_Reserve_PlannerRules_NoLastMinute", policy.ReservationHorizonDays, policy.EffectiveWeeklyReservationLimit]
                     : L["Help_Reserve_PlannerRules_NoLimit", policy.ReservationHorizonDays])</p>
+                <p>@L[policy.SameDayReservationsAllowed
+                    ? "Parking_Planner_SameDayAllowed"
+                    : "Parking_Planner_SameDayBlocked"]</p>
                 <p>@L["Parking_Planner_AllowedWeekdays", FormatAllowedWeekdays(policy.AllowedReservationWeekdays)]</p>
                 @if (policy.HolidayCalendarRegion != HolidayCalendarRegion.None)
                 {
@@ -67,70 +69,13 @@
                     <p>@L["Help_Credits_A1", Credits(policy.BaseReservationCost), BudgetPeriod(policy.BudgetRenewalPeriod)]</p>
                     <ul>
                         <li>@L["Help_Credits_Fixed"]</li>
-                        @if (policy.MonthlyCreditAllowance > 0 || policy.TierAllowanceBonus > 0)
+                        @if (policy.MonthlyCreditAllowance > 0)
                         {
-                            <li>
-                                @(policy.TierAllowanceBonus > 0
-                                    ? L["Help_Credits_Li1_Tiered", Credits(policy.MonthlyCreditAllowance), Credits(policy.TierAllowanceBonus), BudgetPeriod(policy.BudgetRenewalPeriod)]
-                                    : L["Help_Credits_Li1", Credits(policy.MonthlyCreditAllowance), BudgetPeriod(policy.BudgetRenewalPeriod)])
-                            </li>
+                            <li>@L["Help_Credits_Li1", Credits(policy.MonthlyCreditAllowance), BudgetPeriod(policy.BudgetRenewalPeriod)]</li>
                         }
                         <li>@L["Help_Credits_Li2"]</li>
                         <li>@L["Help_Credits_Li3"]</li>
                     </ul>
-                </div>
-            </details>
-        }
-
-        @if (_pointsOn)
-        {
-            <details class="help-item">
-                <summary class="help-item__q">@L["Help_Points_Q"]</summary>
-                <div class="help-item__a">
-                    @if (_pointRewardsOn)
-                    {
-                        <p>@L["Help_Points_A1"]</p>
-                        <ul>
-                            @if (policy.ReleasePoints > 0 && policy.MaxRewardedReleasesPerDay > 0)
-                            {
-                                <li>@L["Help_Points_Li3", Points(policy.ReleasePoints), Points(Math.Max(policy.ReleasePoints, policy.MaxReleaseReward)), policy.MaxRewardedReleasesPerDay]</li>
-                            }
-                            @if (policy.ResidentReleasePointsPerHour > 0 && policy.ResidentReleaseMaxPoints > 0)
-                            {
-                                <li>@L["Help_Points_Li4", Points(policy.ResidentReleasePointsPerHour), Points(policy.ResidentReleaseMaxPoints)]</li>
-                            }
-                            @if (policy.SharedTakenBasePoints > 0)
-                            {
-                                <li>@L["Help_Points_Li5", Points(policy.SharedTakenBasePoints * policy.SharedTakenMaxMultiplier)]</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <p>@L["Help_Points_A1_NoRewards"]</p>
-                    }
-                    @if (_tiersOn)
-                    {
-                        <p>@L["Help_Points_A2", Points(policy.TierSilverPoints), Points(policy.TierGoldPoints), Points(policy.TierPlatinumPoints)]</p>
-                        <ul>
-                            @if (policy.QueuePriorityPerTier > 0)
-                            {
-                                <li>@L["Help_Points_Perk_Queue"]</li>
-                            }
-                            @if (_charged && policy.TierAllowanceBonus > 0)
-                            {
-                                <li>@L["Help_Points_Perk_Allowance", Credits(policy.TierAllowanceBonus)]</li>
-                            }
-                            @if (_charged && policy.TierDiscountPercent > 0)
-                            {
-                                <li>@L["Help_Points_Perk_Discount", policy.TierDiscountPercent]</li>
-                            }
-                        </ul>
-                    }
-                    @if (policy.ReputationDecayPercent > 0)
-                    {
-                        <p>@L["Help_Points_Decay", policy.ReputationDecayPercent, Days(policy.ReputationDecayIntervalDays)]</p>
-                    }
                 </div>
             </details>
         }
@@ -149,7 +94,7 @@
             <summary class="help-item__q">@L["Help_Queue_Q"]</summary>
             <div class="help-item__a">
                 <p>@L["Help_Queue_A1", Fmt(TimeSpan.FromMinutes(policy.QueueOfferMinutes))]</p>
-                <p>@(policy.QueuePriorityPerTier > 0 ? L["Help_Queue_A2_Tiered"] : L["Help_Queue_A2"])</p>
+                <p>@L["Help_Queue_A2"]</p>
             </div>
         </details>
 
@@ -182,11 +127,7 @@
                 <div class="help-item__a">
                     <p>@L["Help_Resident_A0"]</p>
                     <p>@L["Help_Resident_A1"]</p>
-                    <p>
-                        @(policy.ResidentReleasePointsPerHour > 0 && policy.ResidentReleaseMaxPoints > 0
-                            ? L["Help_Resident_A2_Rewarded", Points(policy.ResidentReleasePointsPerHour), Points(policy.ResidentReleaseMaxPoints)]
-                            : L["Help_Resident_A2"])
-                    </p>
+                    <p>@L["Help_Resident_A2"]</p>
                     <p>@L["Help_Resident_A3"]</p>
                     <p>@L["Help_Resident_A4", policy.ResidentPlanHorizonDays]</p>
                 </div>
@@ -202,7 +143,7 @@
                     <p>@L["Help_Notifications_Reminder", Fmt(policy.ReminderLeadTime)]</p>
                 }
                 <p>@L["Help_Notifications_A2"]</p>
-                @if (policy.AvailabilityCampaignsEnabled)
+                @if (policy.AvailabilityCampaignsEnabled || policy.HighOccupancyCampaignsEnabled)
                 {
                     <p>@L["Help_Notifications_Tips"]</p>
                 }
@@ -271,7 +212,7 @@
                 <div class="help-item__a">
                     <p>@L["Help_Rules_A1"]</p>
                     <p>
-                        @L["Help_Rules_State_Campaigns", policy.AvailabilityCampaignsEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
+                        @L["Help_Rules_State_Campaigns", (policy.AvailabilityCampaignsEnabled || policy.HighOccupancyCampaignsEnabled) ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Trust", policy.TrustEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Collusion", policy.AntiCollusionEnabled ? L["Help_State_On"] : L["Help_State_Off"]]
                         @L["Help_Rules_State_Reports", _userReportsOn ? L["Help_State_On"] : L["Help_State_Off"]]
@@ -288,6 +229,10 @@
                     @if (policy.AvailabilityCampaignsEnabled)
                     {
                         <p>@L["Help_Rules_CampaignSetup", Days(policy.AvailabilityMinConsecutiveDays), policy.AvailabilityFreeThresholdPercent, Days(policy.AvailabilityLookaheadDays), policy.AvailabilitySendHourLocal]</p>
+                    }
+                    @if (policy.HighOccupancyCampaignsEnabled)
+                    {
+                        <p>@L["Help_Rules_HighOccupancySetup", Days(policy.AvailabilityMinConsecutiveDays), policy.AvailabilityBusyThresholdPercent, Days(policy.AvailabilityLookaheadDays), policy.AvailabilitySendHourLocal]</p>
                     }
                     <figure class="help-demo">
                         <picture>
@@ -313,9 +258,6 @@
 
     private IncentivePolicy? _policy;
     private bool _charged;
-    private bool _pointRewardsOn;
-    private bool _pointsOn;
-    private bool _tiersOn;
     private bool _ownsSpot;
     private bool _hasVisitorSpots;
     private bool _userReportsOn;
@@ -334,12 +276,6 @@
 
         // Which chapters are worth showing at all under the current configuration.
         _charged = policy.CreditsEnabled;
-        _tiersOn = policy.QueuePriorityPerTier > 0
-            || (_charged && (policy.TierAllowanceBonus > 0 || policy.TierDiscountPercent > 0));
-        _pointRewardsOn = (policy.ReleasePoints > 0 && policy.MaxRewardedReleasesPerDay > 0)
-            || (policy.ResidentReleasePointsPerHour > 0 && policy.ResidentReleaseMaxPoints > 0)
-            || policy.SharedTakenBasePoints > 0;
-        _pointsOn = _pointRewardsOn || _tiersOn || policy.ReputationDecayPercent > 0;
 
         if (AuthState is not null)
         {
@@ -369,11 +305,6 @@
     private string Fmt(TimeSpan value) => value.TotalHours >= 1 && value.Minutes == 0
         ? L["Help_Unit_Hours", (int)value.TotalHours]
         : L["Help_Unit_Minutes", (int)value.TotalMinutes];
-
-    // Numbers come from the live configuration, so the unit has to inflect with them: Czech needs
-    // "1 bod / 2 body / 5 bodů". The templates therefore take an already-formatted "5 bodů", never
-    // a bare number followed by a fixed noun.
-    private string Points(int count) => $"{count} {PluralText.For(L, "Help_Plural_Points", count)}";
 
     private string Credits(int count) => $"{count} {PluralText.For(L, "Help_Plural_Credits", count)}";
 

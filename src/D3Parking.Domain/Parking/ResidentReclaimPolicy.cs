@@ -34,9 +34,23 @@ public enum ResidentNoReplacementAction
     CancelAndNotify,
 }
 
+/// <summary>What happens to an assigned resident spot when its resident books another spot.</summary>
+public enum ResidentAlternativeBookingPolicy
+{
+    /// <summary>The assigned resident spot is shared in the same transaction as the alternative booking.</summary>
+    AutoRelease,
+
+    /// <summary>The booking succeeds only after the resident explicitly accepts releasing their assigned spot.</summary>
+    ConfirmRelease,
+
+    /// <summary>A resident must use or release their assigned spot before booking another one.</summary>
+    Deny,
+}
+
 /// <summary>Distinguishes an explicit promise to colleagues from capacity opened by an automatic plan.</summary>
 public enum SpotReleaseSource
 {
     Manual,
     UsagePlan,
+    AlternativeBooking,
 }

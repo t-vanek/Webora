@@ -20,18 +20,20 @@
   <data name="Parking_Notify_VoucherGranted_Title" xml:space="preserve"><value>We're sorry about the parking disruption</value></data>
   <data name="Parking_Notify_VoucherGranted_Title_NoCredits" xml:space="preserve"><value>We're sorry about the parking disruption</value></data>
   <data name="Parking_Notify_Availability_Title" xml:space="preserve"><value>The lot is wide open</value></data>
+  <data name="Parking_Notify_HighOccupancy_Title" xml:space="preserve"><value>The parking lot will be nearly full</value></data>
+  <data name="Parking_Notify_HighOccupancy_Body" xml:space="preserve"><value>Approximately {2}% of available spots are planned between {0} and {1}. If you no longer need your spot, cancel the reservation in time and release it for others.</value></data>
   <data name="Parking_Notify_VisitorBooked_Title" xml:space="preserve"><value>Your visitor has a spot</value></data>
   <data name="Parking_Notify_VisitorBooked_Body" xml:space="preserve"><value>Visitor spot {1} is booked for your guest {0}.</value></data>
   <data name="Parking_Notify_Availability_Body" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are planned. This is a lower-budget time to book, and off-peak parking also earns points. Pick a time on the Reserve page.</value></data>
   <data name="Parking_Notify_Availability_Body_NoCredits" xml:space="preserve"><value>Between {0} and {1} only ~{2} % of spots are planned. It is a good time to plan your parking; off-peak parking also earns points.</value></data>
-  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. We're reviewing your report now. If it is confirmed, we'll add a voucher for one free reservation as an apology and let you know.</value></data>
+  <data name="Parking_Notify_VoucherGranted_Body" xml:space="preserve"><value>We're very sorry about the disruption caused by the blocked spot. We are reviewing your report. If confirmed, your next paid booking will be free automatically.</value></data>
   <data name="Parking_Notify_VoucherGranted_Body_NoCredits" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. We're reviewing your report now and will let you know the outcome.</value></data>
-  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Your apology voucher is ready</value></data>
+  <data name="Parking_Notify_VoucherApproved_Title" xml:space="preserve"><value>Your next booking is free</value></data>
   <data name="Parking_Notify_VoucherApproved_Title_NoCredits" xml:space="preserve"><value>We're sorry for the disruption</value></data>
-  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. As an apology, we've added a voucher for one free reservation, including peak times. It is valid for 30 days and you can apply it when reserving a spot.</value></data>
+  <data name="Parking_Notify_VoucherApproved_Body" xml:space="preserve"><value>Our review confirmed your report. Your next paid booking will be free automatically. The compensation is valid for 90 days.</value></data>
   <data name="Parking_Notify_VoucherApproved_Body_NoCredits" xml:space="preserve"><value>We're very sorry for the disruption caused by the blocked spot. Our review confirmed your report.</value></data>
   <data name="Parking_Notify_VoucherRejected_Title" xml:space="preserve"><value>We couldn't confirm your report</value></data>
-  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>The review did not confirm your report, so the voucher cannot be activated. If you believe this is a mistake, contact the parking manager.</value></data>
+  <data name="Parking_Notify_VoucherRejected_Body" xml:space="preserve"><value>The review did not confirm your report, so the compensation cannot be activated. If you believe this is a mistake, contact the parking manager.</value></data>
   <data name="Parking_Notify_VoucherRejected_Body_NoCredits" xml:space="preserve"><value>The review did not confirm your blocked-spot report. If you believe this is a mistake, contact the parking manager.</value></data>
   <data name="Email_Chrome_Reason" xml:space="preserve"><value>You received this email because you have a D3Parking account and this notice concerns your parking.</value></data>
   <data name="Email_Chrome_Settings" xml:space="preserve"><value>You can adjust notifications in your in-app profile.</value></data>
@@ -52,6 +54,7 @@
   <data name="Parking_Notify_Reserved_Title" xml:space="preserve"><value>Parking planned</value></data>
   <data name="Parking_Notify_Reserved_Title_NoCredits" xml:space="preserve"><value>Parking planned</value></data>
   <data name="Parking_Notify_Reserved_Body" xml:space="preserve"><value>Spot {0} is planned for you. Planning budget: −{1} credits.</value></data>
+  <data name="Parking_Notify_Reserved_Body_FreeCompensation" xml:space="preserve"><value>Spot {0} is planned for free. We applied your compensation automatically and saved you {1} credits.</value></data>
   <data name="Parking_Notify_Reserved_Body_NoCredits" xml:space="preserve"><value>Spot {0} is planned for you.</value></data>
   <data name="Parking_Notify_Badge_Title" xml:space="preserve"><value>New badge!</value></data>
   <data name="Parking_Notify_Badge_Body" xml:space="preserve"><value>You've earned the “{0}” badge on the parking leaderboard.</value></data>
@@ -59,6 +62,28 @@
   <data name="Parking_BadgeName_OffPeakChampion" xml:space="preserve"><value>Off-Peak Champion</value></data>
   <data name="Parking_BadgeName_ReliableParker" xml:space="preserve"><value>Reliable Parker</value></data>
   <data name="Parking_BadgeName_CenturyClub" xml:space="preserve"><value>Century Club</value></data>
+  <data name="Parking_Notify_Achievement_Title" xml:space="preserve"><value>New achievement: {0}</value></data>
+  <data name="Email_Achievement_Action" xml:space="preserve"><value>View achievements</value></data>
+  <data name="Parking_BadgeName_PlanningStarted" xml:space="preserve"><value>A great start</value></data>
+  <data name="Parking_BadgeName_ActivePlanner" xml:space="preserve"><value>Active planner</value></data>
+  <data name="Parking_BadgeName_PlaceForColleague" xml:space="preserve"><value>A spot for a colleague</value></data>
+  <data name="Parking_BadgeName_ParkingHelper" xml:space="preserve"><value>Parking helper</value></data>
+  <data name="Parking_BadgeName_BigHelper" xml:space="preserve"><value>Big helper</value></data>
+  <data name="Parking_BadgeName_FreeSpotHero" xml:space="preserve"><value>Free-spot hero</value></data>
+  <data name="Parking_BadgeName_QueueHelper" xml:space="preserve"><value>Queue helper</value></data>
+  <data name="Parking_BadgeName_ShortensWaiting" xml:space="preserve"><value>Shortening the wait</value></data>
+  <data name="Parking_BadgeName_SharesWhenPossible" xml:space="preserve"><value>I share when I can</value></data>
+  <data name="Parking_BadgeName_GenerousResident" xml:space="preserve"><value>Generous resident</value></data>
+  <data name="Parking_AchievementBody_PlanningStarted" xml:space="preserve"><value>A great start! Planning helps everyone see when parking spaces are available.</value></data>
+  <data name="Parking_AchievementBody_ActivePlanner" xml:space="preserve"><value>Excellent! You have created ten plans and are helping keep parking clear and predictable.</value></data>
+  <data name="Parking_AchievementBody_PlaceForColleague" xml:space="preserve"><value>Thank you! A colleague has just used the spot you released.</value></data>
+  <data name="Parking_AchievementBody_ParkingHelper" xml:space="preserve"><value>Your planning makes a real difference. You have already helped colleagues find a spot five times.</value></data>
+  <data name="Parking_AchievementBody_BigHelper" xml:space="preserve"><value>That is a lot of help! Fifteen spots released by you have now been used again.</value></data>
+  <data name="Parking_AchievementBody_FreeSpotHero" xml:space="preserve"><value>Fantastic work! Your timely decisions have helped colleagues use a free spot thirty times.</value></data>
+  <data name="Parking_AchievementBody_QueueHelper" xml:space="preserve"><value>Someone did not have to keep waiting thanks to you. A colleague from the queue has claimed the released spot.</value></data>
+  <data name="Parking_AchievementBody_ShortensWaiting" xml:space="preserve"><value>Great work! You have helped five colleagues move from the queue to a parking space.</value></data>
+  <data name="Parking_AchievementBody_SharesWhenPossible" xml:space="preserve"><value>Thank you for sharing! Your resident space has just helped someone else.</value></data>
+  <data name="Parking_AchievementBody_GenerousResident" xml:space="preserve"><value>Your space helps even when you do not need it. Colleagues have now used ten of your shared days.</value></data>
   <data name="Parking_Notify_SpotDeactivated_Title" xml:space="preserve"><value>Parking spot deactivated</value></data>
   <data name="Parking_Notify_SpotDeactivated_Body" xml:space="preserve"><value>A manager deactivated spot {0}. Review your active and future reservations and plan another spot if needed.</value></data>
   <data name="Parking_Notify_AdminCancelled_Title" xml:space="preserve"><value>A manager cancelled your plan</value></data>

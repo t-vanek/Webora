@@ -68,18 +68,17 @@ public class ResidentPriorityTests
     }
 
     [Test]
-    public async Task Reclaiming_a_released_day_restores_the_hold_and_returns_the_reward()
+    public async Task Reclaiming_a_released_day_restores_the_hold_without_touching_reputation()
     {
         var owner = Guid.NewGuid();
         var spot = await CreateOwnedSpotAsync("RP-01", owner);
         var residents = CreateResidentService(now: BeforeCutoff);
 
         Assert.That((await residents.ReleaseAsync(owner, Tomorrow, Tomorrow)).Succeeded, Is.True);
-        int awarded;
         await using (var dbContext = new D3ParkingDbContext(_options))
         {
-            awarded = (await dbContext.SpotReleases.SingleAsync(r => r.SpotId == spot)).AwardedPoints;
-            Assert.That(awarded, Is.GreaterThan(0), "The release must have earned a reward for the reclaim to return.");
+            var awarded = (await dbContext.SpotReleases.SingleAsync(r => r.SpotId == spot)).AwardedPoints;
+            Assert.That(awarded, Is.Zero, "Sharing never grants points up front.");
         }
 
         var status = await residents.GetMyOwnedSpotAsync(owner);
@@ -92,10 +91,9 @@ public class ResidentPriorityTests
         {
             Assert.That(await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.False,
                 "A reclaimed day is no longer shared — the spot is held for its resident again.");
-            var reversal = await dbContext.PointsLedgerEntries
-                .SingleAsync(e => e.UserId == owner && e.Reason == IncentiveReason.ResidentShareReclaimed);
-            Assert.That(reversal.Points, Is.EqualTo(-awarded),
-                "Taking the day back must return exactly the reward the release earned.");
+            Assert.That(await dbContext.PointsLedgerEntries
+                .AnyAsync(e => e.UserId == owner && e.Reason == IncentiveReason.ResidentShareReclaimed), Is.False,
+                "Taking a day back cannot reduce reputation because sharing awarded none.");
         }
     }
 
@@ -413,7 +411,10 @@ public class ResidentPriorityTests
     {
         var owner = Guid.NewGuid();
         var spot = await CreateOwnedSpotAsync("RP-08", owner);
-        var residents = CreateResidentService(BeforeCutoff);
+        var residents = CreateResidentService(BeforeCutoff, out _, RewardPolicy with
+        {
+            PublicHolidayReservationsAllowed = true,
+        });
         var from = Tomorrow;
         var to = from.AddDays(13);
 
@@ -432,6 +433,110 @@ public class ResidentPriorityTests
             "The resident can take the complete two-week range back in one operation.");
     }
 
+    [Test]
+    public async Task Booking_an_alternative_atomically_releases_the_assigned_resident_day()
+    {
+        var resident = Guid.NewGuid();
+        var residentSpot = await CreateOwnedSpotAsync("RP-ALT-A", resident);
+        var alternativeSpot = await CreateSharedSpotAsync("RP-ALT-B");
+        var (start, end) = SiteTime.Day(Tomorrow, TimeZoneInfo.Utc);
+        var reservations = CreateReservationService(RewardPolicy with
+        {
+            ReservationTimeMode = ReservationTimeMode.AllDay,
+            ResidentAlternativeBookingPolicy = ResidentAlternativeBookingPolicy.AutoRelease,
+        });
+
+        var result = await reservations.ReserveAsync(resident, alternativeSpot, start, end);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.ResidentSpotAutomaticallyReleased, Is.True);
+        });
+        Guid alternativeReservationId;
+        await using (var check = new D3ParkingDbContext(_options))
+        {
+            var release = await check.SpotReleases.SingleAsync(r => r.SpotId == residentSpot && r.Date == Tomorrow);
+            alternativeReservationId = await check.Reservations
+                .Where(r => r.SpotId == alternativeSpot && r.UserId == resident)
+                .Select(r => r.Id)
+                .SingleAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(release.OwnerId, Is.EqualTo(resident));
+                Assert.That(release.Source, Is.EqualTo(SpotReleaseSource.AlternativeBooking));
+            });
+        }
+
+        var cancelled = await reservations.CancelAsync(resident, alternativeReservationId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(cancelled.Succeeded, Is.True);
+            Assert.That(cancelled.ResidentSpotAutomaticallyReturned, Is.True);
+        });
+        await using var restored = new D3ParkingDbContext(_options);
+        Assert.That(await restored.SpotReleases.AnyAsync(r => r.SpotId == residentSpot && r.Date == Tomorrow), Is.False,
+            "A still-free automatic release returns to the resident when the alternative booking ends.");
+    }
+
+    [Test]
+    public async Task Alternative_booking_confirmation_changes_nothing_until_it_is_accepted()
+    {
+        var resident = Guid.NewGuid();
+        var residentSpot = await CreateOwnedSpotAsync("RP-CONF-A", resident);
+        var alternativeSpot = await CreateSharedSpotAsync("RP-CONF-B");
+        var (start, end) = SiteTime.Day(Tomorrow, TimeZoneInfo.Utc);
+        var reservations = CreateReservationService(RewardPolicy with
+        {
+            ReservationTimeMode = ReservationTimeMode.AllDay,
+            ResidentAlternativeBookingPolicy = ResidentAlternativeBookingPolicy.ConfirmRelease,
+        });
+
+        var pending = await reservations.ReserveAsync(resident, alternativeSpot, start, end);
+        Assert.Multiple(() =>
+        {
+            Assert.That(pending.Succeeded, Is.False);
+            Assert.That(pending.Errors, Does.Contain("Parking_AlternativeSpot_ReleaseConfirmationRequired"));
+        });
+        await using (var unchanged = new D3ParkingDbContext(_options))
+        {
+            Assert.That(await unchanged.SpotReleases.AnyAsync(r => r.SpotId == residentSpot), Is.False);
+            Assert.That(await unchanged.Reservations.AnyAsync(r => r.SpotId == alternativeSpot), Is.False);
+        }
+
+        var confirmed = await reservations.ReserveAsync(
+            resident, alternativeSpot, start, end, confirmResidentRelease: true);
+        Assert.Multiple(() =>
+        {
+            Assert.That(confirmed.Succeeded, Is.True);
+            Assert.That(confirmed.ResidentSpotAutomaticallyReleased, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Alternative_booking_can_be_disabled_by_configuration()
+    {
+        var resident = Guid.NewGuid();
+        var residentSpot = await CreateOwnedSpotAsync("RP-DENY-A", resident);
+        var alternativeSpot = await CreateSharedSpotAsync("RP-DENY-B");
+        var (start, end) = SiteTime.Day(Tomorrow, TimeZoneInfo.Utc);
+        var reservations = CreateReservationService(RewardPolicy with
+        {
+            ReservationTimeMode = ReservationTimeMode.AllDay,
+            ResidentAlternativeBookingPolicy = ResidentAlternativeBookingPolicy.Deny,
+        });
+
+        var result = await reservations.ReserveAsync(resident, alternativeSpot, start, end);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Errors, Does.Contain("Parking_Error_AlternativeSpotDenied"));
+        });
+        await using var check = new D3ParkingDbContext(_options);
+        Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == residentSpot), Is.False);
+    }
+
     private ResidentSpotService CreateResidentService(DateTimeOffset now) =>
         CreateResidentService(now, out _);
 
@@ -447,6 +552,11 @@ public class ResidentPriorityTests
             notifications,
             new PassthroughLocalizer<ParkingMessages>());
     }
+
+    private ReservationService CreateReservationService(IncentivePolicy policy) => new(
+        new TestDbContextFactory(_options), new FakeParkingSettings(policy), new FakeSiteSettings(),
+        new FixedTimeProvider(BeforeCutoff), new NullNotificationService(),
+        new PassthroughLocalizer<ParkingMessages>());
 
     private async Task<Guid> CreateOwnedSpotAsync(string code, Guid ownerId,
         ParkingSpotType type = ParkingSpotType.Standard)

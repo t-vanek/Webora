@@ -11,7 +11,6 @@
             <span>@L["Parking_CalendarSync_Title"]</span>
         </div>
         <p>@L["Parking_CalendarSync_Description"]</p>
-        <small>@L["Parking_CalendarSync_ReadOnly"]</small>
     </div>
 
     @if (_loading)
@@ -24,18 +23,31 @@
             <span class="calendar-subscription__state @(_status.Enabled ? "is-enabled" : null)">
                 @L[_status.Enabled ? "Parking_CalendarSync_Enabled" : "Parking_CalendarSync_Disabled"]
             </span>
-            <div class="calendar-subscription__buttons">
-                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateOrRotateAsync">
-                    @L[_status.Enabled ? "Parking_CalendarSync_Rotate" : "Parking_CalendarSync_Enable"]
+            @if (!_status.Enabled)
+            {
+                <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="AddToCalendarAsync">
+                    @L["Parking_CalendarSync_Enable"]
                 </FluentButton>
-                @if (_status.Enabled)
-                {
+            }
+        </div>
+    }
+
+    @if (!_loading && _status.Enabled)
+    {
+        <details class="calendar-subscription__settings">
+            <summary>@L["Parking_CalendarSync_Settings"]</summary>
+            <div class="calendar-subscription__settings-body">
+                <small>@L["Parking_CalendarSync_ReadOnly"]</small>
+                <div class="calendar-subscription__buttons">
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="RotateAsync">
+                        @L["Parking_CalendarSync_Rotate"]
+                    </FluentButton>
                     <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="DisableAsync">
                         @L["Parking_CalendarSync_Disable"]
                     </FluentButton>
-                }
+                </div>
             </div>
-        </div>
+        </details>
     }
 
     @if (_feedUrl is not null)
@@ -44,11 +56,14 @@
             <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">
                 @L["Parking_CalendarSync_UrlOnce"]
             </FluentMessageBar>
-            <div class="calendar-subscription__url-row">
-                <input class="calendar-subscription__url" value="@_feedUrl" readonly aria-label="@L["Parking_CalendarSync_Url"]" />
-                <FluentButton Appearance="Appearance.Outline" OnClick="CopyAsync">@L["Parking_CalendarSync_Copy"]</FluentButton>
-                <FluentAnchor Href="@WebcalUrl" Appearance="Appearance.Outline">@L["Parking_CalendarSync_Open"]</FluentAnchor>
-            </div>
+            <details class="calendar-subscription__manual">
+                <summary>@L["Parking_CalendarSync_ManualOptions"]</summary>
+                <div class="calendar-subscription__url-row">
+                    <input class="calendar-subscription__url" value="@_feedUrl" readonly aria-label="@L["Parking_CalendarSync_Url"]" />
+                    <FluentButton Appearance="Appearance.Outline" OnClick="CopyAsync">@L["Parking_CalendarSync_Copy"]</FluentButton>
+                    <FluentAnchor Href="@WebcalUrl" Appearance="Appearance.Outline">@L["Parking_CalendarSync_Open"]</FluentAnchor>
+                </div>
+            </details>
         </div>
     }
 
@@ -82,6 +97,10 @@
         _loading = false;
     }
 
+    private Task AddToCalendarAsync() => CreateOrRotateAsync();
+
+    private Task RotateAsync() => CreateOrRotateAsync();
+
     private async Task CreateOrRotateAsync()
     {
         _busy = true;
@@ -93,6 +112,18 @@
             var configuredBase = await SiteSettings.GetCanonicalBaseUrlAsync();
             var baseUrl = string.IsNullOrWhiteSpace(configuredBase) ? Nav.BaseUri : configuredBase;
             _feedUrl = $"{baseUrl.TrimEnd('/')}/api/parking/calendar/{secret.Token}.ics";
+            if (WebcalUrl is { } webcalUrl)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("d3parkingCalendar.openSubscription", webcalUrl);
+                }
+                catch (JSException)
+                {
+                    _messageIntent = MessageIntent.Warning;
+                    _message = "Parking_CalendarSync_OpenError";
+                }
+            }
         }
         catch
         {

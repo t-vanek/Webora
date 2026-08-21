@@ -164,6 +164,7 @@ internal sealed class NullFleetService : IFleetService
 internal sealed class RecordingNotificationService : INotificationService
 {
     public List<(Guid UserId, string Title)> Sent { get; } = [];
+    public List<(Guid UserId, string Title)> EmailRequested { get; } = [];
 
     public Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default)
     {
@@ -180,12 +181,20 @@ internal sealed class RecordingNotificationService : INotificationService
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, CancellationToken cancellationToken = default)
     {
         Sent.Add((userId, title));
+        if (email)
+        {
+            EmailRequested.Add((userId, title));
+        }
         return Task.CompletedTask;
     }
 
     public Task NotifyAsync(Guid userId, NotificationCategory category, NotificationLevel level, string title, string message, bool email, NotificationEmailOptions? emailOptions, CancellationToken cancellationToken = default)
     {
         Sent.Add((userId, title));
+        if (email)
+        {
+            EmailRequested.Add((userId, title));
+        }
         return Task.CompletedTask;
     }
 

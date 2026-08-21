@@ -23,6 +23,6 @@
   <data name="Bell_Scope" xml:space="preserve"><value>What I want to receive</value></data>
   <data name="Bell_ScopeAll" xml:space="preserve"><value>Personal, operational and administrative messages</value></data>
   <data name="Bell_ScopeSelf" xml:space="preserve"><value>Only messages about my own actions</value></data>
-  <data name="Bell_Availability" xml:space="preserve"><value>Free parking capacity suggestions</value></data>
+  <data name="Bell_Availability" xml:space="preserve"><value>Parking occupancy alerts</value></data>
   <data name="Bell_SecurityAlways" xml:space="preserve"><value>Security and critical operational events are always stored and cannot be muted.</value></data>
 </root>

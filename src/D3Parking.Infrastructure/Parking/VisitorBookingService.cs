@@ -144,7 +144,12 @@ public sealed class VisitorBookingService(
 
         for (var date = first; date <= last; date = date.AddDays(1))
         {
-            if (date < today || date > today.AddDays(Math.Clamp(policy.ReservationHorizonDays, 1, 366)))
+            if (date < policy.FirstBookableDate(today))
+            {
+                return "Parking_Error_SameDayReservationsNotAllowed";
+            }
+
+            if (date > today.AddDays(Math.Clamp(policy.ReservationHorizonDays, 1, 366)))
             {
                 return "Parking_Error_ReservationHorizon";
             }

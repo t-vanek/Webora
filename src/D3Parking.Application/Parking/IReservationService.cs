@@ -32,10 +32,11 @@ public interface IReservationService
     Task<ReservationDto?> GetMyReservationAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Books a spot. With <paramref name="useVoucher"/> the caller's apology voucher covers the
-    /// fixed planning-budget price instead of the wallet.
+    /// Books a spot. The caller's oldest approved compensation automatically covers the fixed
+    /// planning-budget price when the reservation would otherwise cost credits.
     /// </summary>
-    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool useVoucher = false, CancellationToken cancellationToken = default);
+    Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
+        bool confirmResidentRelease = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The caller's live apology voucher, or null: an approved one (redeemable for one free
@@ -72,12 +73,6 @@ public interface IReservationService
     /// Intended to be run on a schedule. Returns the number of wallets granted this run.
     /// </summary>
     Task<int> GrantDueMonthlyCreditsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Fades reputation toward zero once per decay interval so the score reflects recent behaviour.
-    /// Intended to be run on a schedule. Returns the number of scores decayed this run.
-    /// </summary>
-    Task<int> DecayReputationAsync(CancellationToken cancellationToken = default);
 
     /// <summary>The projected occupancy of the lot during today's peak window (0–1), for the adaptive controller.</summary>
     /// <summary>

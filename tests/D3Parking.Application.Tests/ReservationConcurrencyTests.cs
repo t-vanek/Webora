@@ -19,7 +19,7 @@ namespace D3Parking.Application.Tests;
 /// <summary>
 /// Races two real service calls against SQL Server and asserts the money/state invariants the
 /// rowversion tokens and serializable transactions exist to protect: one refund per charge, one
-/// reward package per day, one active reservation per spot, no penalty for a driver who checked
+/// one release outcome per day, one active reservation per spot, no penalty for a driver who checked
 /// in. Each test seeds its own users/spots, so a single shared database serves the fixture.
 /// Requires the SQL Server from ConnectionStrings__SqlServer (the suite is skipped without it);
 /// a dedicated database is created and dropped per run.
@@ -61,8 +61,6 @@ public class ReservationConcurrencyTests
         await dbContext.Database.EnsureCreatedAsync();
 
         _factory = new TestDbContextFactory(_options);
-        // This fixture also exercises the legacy optional release reward. Planner defaults keep it
-        // off, so the test opts in explicitly instead of depending on a punitive production default.
         _policy = IncentivePolicy.Default with
         {
             ReleasePoints = 10,
@@ -118,7 +116,7 @@ public class ReservationConcurrencyTests
     }
 
     [Test]
-    public async Task Concurrent_releases_refund_and_reward_exactly_once()
+    public async Task Concurrent_releases_refund_once_and_award_no_points()
     {
         var userId = Guid.NewGuid();
         var spot = new ParkingSpot("R-01", ParkingSpotType.Standard);
@@ -142,7 +140,7 @@ public class ReservationConcurrencyTests
         var rewards = await db.PointsLedgerEntries
             .CountAsync(e => e.UserId == userId && e.Reason == IncentiveReason.ReleasedReservation);
         Assert.That(refunds, Is.EqualTo(1));
-        Assert.That(rewards, Is.EqualTo(1), "The release reward must not be collected twice for one reservation.");
+        Assert.That(rewards, Is.Zero, "Releasing a reservation never awards points.");
     }
 
     [Test]

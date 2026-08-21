@@ -56,6 +56,30 @@ public class ResponsiveTests : PageTest
     }
 
     [Test]
+    public async Task Parking_planner_does_not_overflow_horizontally()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
+        Assert.That(await HorizontalOverflowAsync(), Is.LessThanOrEqualTo(1));
+        await Expect(Page.GetByRole(AriaRole.Switch, new() { NameString = "Použít týdenní limit" })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".planner-summary")).ToHaveCountAsync(0);
+
+        foreach (var (id, label) in new[]
+                 {
+                     ("operations", "Provoz a přehled"),
+                     ("residents", "Rezidenti"),
+                     ("location", "Lokalita a limity"),
+                     ("notifications", "Notifikace"),
+                 })
+        {
+            // Fluent Tabs moves later tabs into its compact overflow menu. Dispatching the tab's
+            // own click selects the same panel while keeping this test focused on panel geometry.
+            await Page.Locator($"#{id}").EvaluateAsync("element => element.click()");
+            Assert.That(await HorizontalOverflowAsync(), Is.LessThanOrEqualTo(1),
+                $"The {label} tab overflows the mobile viewport.");
+        }
+    }
+
+    [Test]
     public async Task Nav_drawer_opens_from_the_toggle_and_closes_after_navigating()
     {
         // The drawer is an interactive island; wait for the circuit before clicking.
@@ -65,7 +89,7 @@ public class ResponsiveTests : PageTest
         await Page.Locator(".nav-drawer-toggle").ClickAsync();
         await Expect(Page.Locator(".nav-drawer--open")).ToBeVisibleAsync();
 
-        await Page.Locator(".nav-drawer").GetByRole(AriaRole.Link, new() { NameString = "Žebříček" }).ClickAsync();
+        await Page.Locator(".nav-drawer").GetByRole(AriaRole.Link, new() { NameString = "Můj přínos" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("leaderboard"));
         await Expect(Page.Locator(".nav-drawer--open")).ToHaveCountAsync(0);
     }

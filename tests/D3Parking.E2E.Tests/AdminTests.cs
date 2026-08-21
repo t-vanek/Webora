@@ -62,8 +62,18 @@ public class AdminTests : AdminTest
         // Deep-linked, which is the same route the directory page offers when nothing is configured.
         await Pages.GotoInteractiveAsync(Page, "/admin/settings?tab=entra");
 
-        await Expect(Page.GetByText("Přihlašování přes Entra ID")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".site-settings-page.settings-page")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".site-settings-overview")).ToHaveCountAsync(0);
+        var entraPanel = Page.Locator(".settings-panel").Filter(new() { HasText = "Client secret aplikace" });
+        await Expect(entraPanel).ToBeVisibleAsync();
+        await Expect(entraPanel.Locator(".settings-savebar")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Přihlašování přes Entra ID", new() { Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByText("Provisioning (SCIM)").First).ToBeVisibleAsync();
+        await Expect(Page.GetByText(new Regex("Povinný pouze pro zapnuté přihlašování"))).ToBeVisibleAsync();
+        await Page.Locator("#entra-client-secret-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("Nejde o MFA ani jednorázový kód"))).ToBeVisibleAsync();
+        await Page.Locator("#entra-scim-token-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("Není to client secret registrace aplikace"))).ToBeVisibleAsync();
 
         // The secret is write-only: the page may say one is missing, never show one.
         await Expect(Page.GetByText("Zatím není uloženo.").First).ToBeVisibleAsync();
@@ -247,6 +257,156 @@ public class AdminTests : AdminTest
         await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit nastavení") }).ClickAsync();
         await Expect(Page.GetByText(new Regex("uloženo|saved", RegexOptions.IgnoreCase))).ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task Planner_reveals_only_the_controls_needed_by_each_choice()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
+        await Expect(Page.GetByText("Typ rezervace", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".planner-summary")).ToHaveCountAsync(0);
+        await Expect(Page.Locator(".reservation-mode-options")).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Switch, new() { NameString = "Používat přesný čas od–do" }))
+            .ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Switch, new() { NameString = "Povolit rezervace na dnešní den" }))
+            .ToBeVisibleAsync();
+        await Expect(Page.Locator(".planner-panel .settings-section__title")).ToHaveCountAsync(6);
+
+        var horizonBox = await Page.Locator("#planner-horizon").BoundingBoxAsync();
+        var weekdaysBox = await Page.Locator("#planner-weekdays").BoundingBoxAsync();
+        var holidaysBox = await Page.GetByRole(AriaRole.Switch, new()
+        {
+            NameString = "Povolit rezervace o státních svátcích"
+        }).BoundingBoxAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(horizonBox, Is.Not.Null);
+            Assert.That(weekdaysBox, Is.Not.Null);
+            Assert.That(holidaysBox, Is.Not.Null);
+            Assert.That(weekdaysBox!.Y, Is.GreaterThan(horizonBox!.Y));
+            Assert.That(holidaysBox!.Y, Is.GreaterThan(weekdaysBox.Y));
+            Assert.That(Math.Abs(weekdaysBox.X - horizonBox.X), Is.LessThanOrEqualTo(1));
+            Assert.That(Math.Abs(holidaysBox.X - horizonBox.X), Is.LessThanOrEqualTo(1));
+        });
+
+        await Page.Locator("#planner-horizon-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("Určuje nejzazší datum"))).ToBeVisibleAsync();
+
+        await Expect(Page.GetByText("Upozornění na vytížení", new() { Exact = true })).ToBeVisibleAsync();
+        var lowOccupancySwitch = Page.GetByRole(AriaRole.Switch, new()
+        {
+            NameString = "Upozornit při malé obsazenosti"
+        });
+        var highOccupancySwitch = Page.GetByRole(AriaRole.Switch, new()
+        {
+            NameString = "Upozornit při vysoké obsazenosti"
+        });
+        await Expect(lowOccupancySwitch).ToBeVisibleAsync();
+        await Expect(highOccupancySwitch).ToBeVisibleAsync();
+        if (!await Page.Locator("#planner-high-occupancy-threshold").IsVisibleAsync())
+        {
+            await highOccupancySwitch.ClickAsync();
+        }
+        await Expect(Page.Locator("#planner-high-occupancy-threshold")).ToBeVisibleAsync();
+        await Page.Locator("#planner-high-occupancy-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("držitele rezervací"))).ToBeVisibleAsync();
+
+        await Page.Locator("fluent-tab", new() { HasText = "Provoz a přehled" }).ClickAsync();
+        await Expect(Page.GetByText("Upozornění na vytížení", new() { Exact = true })).ToBeHiddenAsync();
+        await Page.Locator("fluent-tab", new() { HasText = "Rezervace" }).ClickAsync();
+
+        await Expect(Page.Locator(".weekday-picker")).ToBeHiddenAsync();
+        await Page.Locator("#planner-weekdays").SelectOptionAsync("custom");
+        await Expect(Page.Locator(".weekday-picker")).ToBeVisibleAsync();
+
+        var weeklyLimitSwitch = Page.GetByRole(AriaRole.Switch, new() { NameString = "Použít týdenní limit" });
+        if (await Page.Locator("#planner-weekly-limit").IsVisibleAsync())
+        {
+            await weeklyLimitSwitch.ClickAsync();
+        }
+        await Expect(Page.Locator("#planner-weekly-limit")).ToBeHiddenAsync();
+
+        await weeklyLimitSwitch.ClickAsync();
+        await Page.Locator("#planner-weekdays").SelectOptionAsync("everyday");
+        await Page.Locator("#planner-weekly-limit input").FillAsync("7");
+        await Page.Locator("#planner-weekdays").SelectOptionAsync("workdays");
+        await Expect(Page.Locator("#planner-weekly-limit input")).ToHaveValueAsync("7");
+        await Expect(Page.GetByText(new Regex("Nejvyšší možná hodnota podle povolených dnů")))
+            .ToHaveCountAsync(0);
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit nastavení") }).ClickAsync();
+        await Expect(Page.GetByText(new Regex("Týdenní limit musí být alespoň 1"))).ToBeVisibleAsync();
+
+        await Page.Locator("#planner-weekdays").SelectOptionAsync("everyday");
+        await Expect(Page.Locator("#planner-weekly-limit input")).ToHaveValueAsync("7");
+        await Expect(Page.Locator("#planner-weekly-limit")).ToHaveAttributeAsync("max", "7");
+
+        var creditsSwitch = Page.GetByRole(AriaRole.Switch, new() { NameString = "Používat kredity" });
+        if (!await Page.GetByText("Cena jedné rezervace (kredity)", new() { Exact = true }).IsVisibleAsync())
+        {
+            await creditsSwitch.ClickAsync();
+        }
+        await Expect(Page.GetByText("Cena jedné rezervace (kredity)", new() { Exact = true })).ToBeVisibleAsync();
+
+        var priceBox = await Page.Locator("#planner-base-cost").BoundingBoxAsync();
+        var allowanceBox = await Page.Locator("#planner-budget-allowance").BoundingBoxAsync();
+        var renewalBox = await Page.Locator("#planner-budget-period").BoundingBoxAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(priceBox, Is.Not.Null);
+            Assert.That(allowanceBox, Is.Not.Null);
+            Assert.That(renewalBox, Is.Not.Null);
+            Assert.That(allowanceBox!.Y, Is.GreaterThan(priceBox!.Y));
+            Assert.That(renewalBox!.Y, Is.GreaterThan(allowanceBox.Y));
+            Assert.That(Math.Abs(allowanceBox.X - priceBox.X), Is.LessThanOrEqualTo(1));
+            Assert.That(Math.Abs(renewalBox.X - priceBox.X), Is.LessThanOrEqualTo(1));
+        });
+
+        await Page.Locator("#planner-base-cost input").FillAsync("20");
+        await Page.Locator("#planner-budget-allowance input").FillAsync("10");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit nastavení") }).ClickAsync();
+        await Expect(Page.GetByText(new Regex("Rozpočet na období musí pokrýt alespoň jednu rezervaci")))
+            .ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task Secondary_settings_tabs_follow_the_reservation_layout()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
+        await Expect(Page.Locator("fluent-tab", new() { HasText = "Rezervace" })).ToBeVisibleAsync();
+
+        var mapBox = await Page.Locator(".settings-map-disclosure").BoundingBoxAsync();
+        var reservationPanelBox = await Page.Locator(".planner-panel").BoundingBoxAsync();
+        var reservationTabBox = await Page.Locator("fluent-tab", new() { HasText = "Rezervace" }).BoundingBoxAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(mapBox, Is.Not.Null);
+            Assert.That(reservationPanelBox, Is.Not.Null);
+            Assert.That(reservationTabBox, Is.Not.Null);
+            Assert.That(Math.Abs(mapBox!.X - reservationTabBox!.X), Is.LessThanOrEqualTo(1));
+            Assert.That(Math.Abs(mapBox.Width - reservationPanelBox!.Width), Is.LessThanOrEqualTo(1));
+        });
+
+        await Page.Locator("fluent-tab", new() { HasText = "Provoz a přehled" }).ClickAsync();
+        await Expect(Page.GetByText("Lhůty řešení", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.Locator("#operations-sla-critical")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#operations-dispute-window")).ToBeVisibleAsync();
+        await Page.Locator("#operations-sla-critical-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("Nejdelší doba na vyřešení kritického"))).ToBeVisibleAsync();
+
+        await Page.Locator("fluent-tab", new() { HasText = "Rezidenti" }).ClickAsync();
+        await Expect(Page.Locator("#residents-plan-horizon")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#residents-alternative-policy")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#residents-reclaim-policy")).ToBeVisibleAsync();
+        await Page.Locator("#residents-reclaim-policy-help").FocusAsync();
+        await Expect(Page.GetByText(new Regex("kdy má rezident přednost před potvrzenou rezervací"))).ToBeVisibleAsync();
+        await Expect(Page.GetByText(new Regex("Doporučení: Hybrid"))).Not.ToBeVisibleAsync();
+
+        await Page.Locator("fluent-tab", new() { HasText = "Lokalita a limity" }).ClickAsync();
+        await Expect(Page.Locator("#location-latitude")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#location-max-range")).ToBeVisibleAsync();
+
+        await Page.Locator("fluent-tab", new() { HasText = "Notifikace" }).ClickAsync();
+        await Expect(Page.Locator(".notification-rule-table").First).ToBeVisibleAsync();
     }
 
     [Test]

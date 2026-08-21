@@ -59,6 +59,17 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
     });
 }
 
+// Odběr parkovacího kalendáře: po vytvoření soukromého feedu předá webcal URL rovnou
+// systémové kalendářové aplikaci. Když zařízení protokol webcal nezná, komponenta stále
+// nabídne běžný odkaz i zkopírování URL jako záložní cestu.
+window.d3parkingCalendar = {
+    openSubscription(url) {
+        if (typeof url === 'string' && url.startsWith('webcal://')) {
+            window.location.assign(url);
+        }
+    },
+};
+
 // Odhlášení ruší push subscription tohoto prohlížeče (formulář s data-push-unsubscribe):
 // sdílený počítač nesmí dál zobrazovat notifikace odhlášeného uživatele. Odeslání formuláře
 // se krátce pozdrží, aby prohlížeč odhlášku stihl dokončit; řádek na serveru se uklidí sám

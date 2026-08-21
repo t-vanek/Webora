@@ -42,4 +42,22 @@ public static class WeekdayExtensions
 
     /// <summary>Drops any bit outside <see cref="Weekday.Everyday"/>, so a bad value cannot persist.</summary>
     public static Weekday Sanitize(this Weekday set) => set & Weekday.Everyday;
+
+    /// <summary>Number of real weekdays represented by the sanitized flag set.</summary>
+    public static int CountDays(this Weekday set)
+    {
+        var flags = (int)set.Sanitize();
+        var count = 0;
+        while (flags != 0)
+        {
+            count += flags & 1;
+            flags >>= 1;
+        }
+
+        return count;
+    }
+
+    /// <summary>Bounds a weekly reservation quota by the weekdays the calendar exposes.</summary>
+    public static int ClampWeeklyReservationLimit(this Weekday set, int requestedLimit) =>
+        Math.Clamp(requestedLimit, 1, Math.Max(1, set.CountDays()));
 }

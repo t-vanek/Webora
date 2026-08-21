@@ -61,6 +61,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<UserBadge> UserBadges => Set<UserBadge>();
 
+    public DbSet<ParkingContribution> ParkingContributions => Set<ParkingContribution>();
+
     public DbSet<ParkingSettings> ParkingSettings => Set<ParkingSettings>();
 
     public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
@@ -282,9 +284,11 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
         {
             campaign.ToTable("AvailabilityCampaigns");
             campaign.HasKey(c => c.Id);
-            // Dedup lookups: newest campaign, and period-overlap checks.
-            campaign.HasIndex(c => c.CreatedAtUtc);
-            campaign.HasIndex(c => new { c.PeriodStart, c.PeriodEnd });
+            campaign.Property(c => c.Kind).HasConversion<string>().HasMaxLength(24);
+            // A kind may notify at most once per local day, including when several app instances
+            // evaluate the same maintenance tick concurrently.
+            campaign.HasIndex(c => new { c.Kind, c.CampaignDate }).IsUnique();
+            campaign.HasIndex(c => new { c.Kind, c.PeriodStart, c.PeriodEnd });
         });
 
         builder.Entity<VisitorBooking>(booking =>
@@ -629,6 +633,16 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             badge.HasIndex(b => new { b.UserId, b.Badge }).IsUnique();
         });
 
+        builder.Entity<ParkingContribution>(contribution =>
+        {
+            contribution.ToTable("ParkingContributions");
+            contribution.HasKey(c => c.Id);
+            contribution.Property(c => c.Kind).HasConversion<string>().HasMaxLength(32);
+            contribution.Property(c => c.Detail).HasMaxLength(256);
+            contribution.HasIndex(c => new { c.UserId, c.Kind, c.SourceId }).IsUnique();
+            contribution.HasIndex(c => new { c.UserId, c.OccurredAtUtc });
+        });
+
         builder.Entity<ParkingSettings>(settings =>
         {
             settings.ToTable("ParkingSettings");
@@ -639,6 +653,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
                 .HasMaxLength(16)
                 .HasDefaultValue(ReservationTimeMode.TimeWindow);
             settings.Property(s => s.ReservationHorizonDays).HasDefaultValue(14);
+            settings.Property(s => s.SameDayReservationsAllowed).HasDefaultValue(true);
             settings.Property(s => s.AllowedReservationWeekdays)
                 .HasDefaultValue(Weekday.Everyday)
                 .HasSentinel((Weekday)(-1));

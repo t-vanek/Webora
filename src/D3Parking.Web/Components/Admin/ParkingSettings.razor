@@ -33,11 +33,6 @@
         {
             <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_message</FluentMessageBar>
         }
-        @if (!string.IsNullOrEmpty(_error))
-        {
-            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
-        }
-
         <details class="settings-map-disclosure">
             <summary><span>@L["Parking_Settings_MapSection"]</span><span class="state-pill state-pill--@(_hasOrientationMap ? "on" : "off")">@L[_hasOrientationMap ? "Parking_Settings_MapReady" : "Parking_Settings_MapMissing"]</span></summary>
         <div class="settings-panel settings-map-panel">
@@ -69,148 +64,263 @@
 
         <FluentTabs @bind-ActiveTabId="_activeTab" Class="parking-settings-tabs">
             <FluentTab Id="planner" Label="@L["Parking_Settings_Tab_Planner"]">
-                <div class="settings-panel">
+                <div class="settings-panel planner-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ReservationModeSection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ReservationModeSection"]</FluentLabel>
+                        </div>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ReservationModeHelp"]</FluentLabel>
-                    <div class="reservation-mode-options" role="radiogroup" aria-label="@L["Parking_Settings_ReservationModeSection"]">
-                        <button type="button" role="radio"
-                                aria-checked="@(_form.ReservationTimeMode == ReservationTimeMode.AllDay)"
-                                class="reservation-mode-option @(_form.ReservationTimeMode == ReservationTimeMode.AllDay ? "is-selected" : null)"
-                                @onclick="() => _form.ReservationTimeMode = ReservationTimeMode.AllDay">
-                            <span class="reservation-mode-option__marker">
-                                @if (_form.ReservationTimeMode == ReservationTimeMode.AllDay)
-                                {
-                                    <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Accent" />
-                                    <strong>@L["Parking_Settings_ModeActive"]</strong>
-                                }
-                            </span>
-                            <strong>@L["Parking_Settings_Mode_AllDay_Title"]</strong>
-                            <span>@L["Parking_Settings_Mode_AllDay_Description"]</span>
-                        </button>
-                        <button type="button" role="radio"
-                                aria-checked="@(_form.ReservationTimeMode == ReservationTimeMode.TimeWindow)"
-                                class="reservation-mode-option @(_form.ReservationTimeMode == ReservationTimeMode.TimeWindow ? "is-selected" : null)"
-                                @onclick="() => _form.ReservationTimeMode = ReservationTimeMode.TimeWindow">
-                            <span class="reservation-mode-option__marker">
-                                @if (_form.ReservationTimeMode == ReservationTimeMode.TimeWindow)
-                                {
-                                    <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Accent" />
-                                    <strong>@L["Parking_Settings_ModeActive"]</strong>
-                                }
-                            </span>
-                            <strong>@L["Parking_Settings_Mode_TimeWindow_Title"]</strong>
-                            <span>@L["Parking_Settings_Mode_TimeWindow_Description"]</span>
-                        </button>
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Parking_Settings_UseExactReservationTime"]</span>
+                            @PlannerTooltip("planner-time-mode-help", L["Parking_Settings_ReservationModeHelp"].Value)
+                        </div>
+                        <FluentSwitch @bind-Value="UsesExactReservationTime"
+                                      AriaLabel="@L["Parking_Settings_UseExactReservationTime"]" />
                     </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                        @L[UsesExactReservationTime
+                            ? "Parking_Settings_Mode_TimeWindow_Description"
+                            : "Parking_Settings_Mode_AllDay_Description"]
+                    </FluentLabel>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_BookingCalendarSection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarCheckmark())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_BookingCalendarSectionSimple"]</FluentLabel>
+                        </div>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_BookingCalendarHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <label class="parking-field">
-                            <span>@L["Parking_Settings_ReservationHorizonDays"]</span>
-                            <select class="parking-input" @bind="_form.ReservationHorizonDays">
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="planner-horizon">@L["Parking_Settings_ReservationHorizonSimple"]</label>
+                                @PlannerTooltip("planner-horizon-help", L["Parking_Settings_ReservationHorizonTooltip"].Value)
+                            </div>
+                            <select id="planner-horizon" class="parking-input" @bind="_form.ReservationHorizonDays">
                                 @foreach (var option in ReservationHorizonOptions)
                                 {
                                     <option value="@option.Days">@L[option.LabelKey]</option>
                                 }
                             </select>
-                        </label>
-                        <label class="parking-field">
-                            <span>@L["Parking_Settings_HolidayCalendar"]</span>
-                            <select class="parking-input" @bind="_form.HolidayCalendarRegion">
-                                <option value="@HolidayCalendarRegion.CzechRepublic">@L["Parking_Settings_HolidayCalendar_CZ"]</option>
-                                <option value="@HolidayCalendarRegion.None">@L["Parking_Settings_HolidayCalendar_None"]</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="settings-field settings-field--wide">
-                        <span class="settings-field__label">@L["Parking_Settings_AllowedWeekdays"]</span>
-                        <span class="settings-field__help">@L["Parking_Settings_AllowedWeekdaysHelp"]</span>
-                        <div class="weekday-picker__presets">
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => SetReservationWeekdays(Weekday.Workdays)">@L["Parking_Settings_Weekdays_Workdays"]</FluentButton>
-                            <FluentButton Appearance="Appearance.Stealth" OnClick="() => SetReservationWeekdays(Weekday.Everyday)">@L["Parking_Settings_Weekdays_Everyday"]</FluentButton>
                         </div>
-                        <div class="weekday-picker" role="group" aria-label="@L["Parking_Settings_AllowedWeekdays"]">
-                            @foreach (var option in ReservationWeekdayOptions)
-                            {
-                                <button type="button"
-                                        class="weekday-picker__day @(IsReservationWeekdaySelected(option.Flag) ? "is-selected" : null)"
-                                        aria-pressed="@IsReservationWeekdaySelected(option.Flag)"
-                                        @onclick="() => ToggleReservationWeekday(option.Flag)">
-                                    @L[option.LabelKey]
-                                </button>
-                            }
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_SameDayReservationsAllowed"]</span>
+                                @PlannerTooltip("planner-same-day-help", L["Parking_Settings_SameDayReservationsTooltip"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.SameDayReservationsAllowed"
+                                          AriaLabel="@L["Parking_Settings_SameDayReservationsAllowed"]" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="planner-weekdays">@L["Parking_Settings_WeekdayRule"]</label>
+                                @PlannerTooltip("planner-weekdays-help", L["Parking_Settings_WeekdayRuleTooltip"].Value)
+                            </div>
+                            <select id="planner-weekdays" class="parking-input" value="@_weekdayPreset" @onchange="ChangeWeekdayPreset">
+                                <option value="workdays">@L["Parking_Settings_Weekdays_Workdays"]</option>
+                                <option value="everyday">@L["Parking_Settings_Weekdays_Everyday"]</option>
+                                <option value="custom">@L["Parking_Settings_Weekdays_Custom"]</option>
+                            </select>
+                        </div>
+                        @if (_weekdayPreset == "custom")
+                        {
+                            <div class="weekday-picker" role="group" aria-label="@L["Parking_Settings_AllowedWeekdays"]">
+                                @foreach (var option in ReservationWeekdayOptions)
+                                {
+                                    <button type="button"
+                                            class="weekday-picker__day @(IsReservationWeekdaySelected(option.Flag) ? "is-selected" : null)"
+                                            aria-pressed="@IsReservationWeekdaySelected(option.Flag)"
+                                            @onclick="() => ToggleReservationWeekday(option.Flag)">
+                                        @L[option.LabelKey]
+                                    </button>
+                                }
+                            </div>
+                        }
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_PublicHolidayReservationsAllowed"]</span>
+                                @PlannerTooltip("planner-holidays-help", L["Parking_Settings_PublicHolidayTooltip"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="HolidayReservationsAllowed"
+                                          AriaLabel="@L["Parking_Settings_PublicHolidayReservationsAllowed"]" />
                         </div>
                     </div>
-                    <FluentSwitch @bind-Value="_form.PublicHolidayReservationsAllowed"
-                                  Disabled="@(_form.HolidayCalendarRegion == HolidayCalendarRegion.None)"
-                                  Label="@L["Parking_Settings_PublicHolidayReservationsAllowed"]" />
-                    <div class="settings-rule-summary">
-                        <strong>@L["Parking_Settings_CurrentRule"]</strong>
-                        <span>@L["Parking_Settings_BookingCalendarSummary", _form.ReservationHorizonDays, AllowedReservationWeekdaysText,
-                            _form.HolidayCalendarRegion == HolidayCalendarRegion.None
-                                ? L["Parking_Settings_Holidays_NotConfigured"]
-                                : L[_form.PublicHolidayReservationsAllowed ? "Parking_Settings_Holidays_Allowed" : "Parking_Settings_Holidays_Blocked"]]</span>
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Person())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PersonalLimitSectionSimple"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Parking_Settings_WeeklyLimitEnabled"]</span>
+                            @PlannerTooltip("planner-weekly-toggle-help", L["Parking_Settings_PersonalLimitHelp"].Value)
+                        </div>
+                        <FluentSwitch @bind-Value="_form.WeeklyReservationLimitEnabled"
+                                      AriaLabel="@L["Parking_Settings_WeeklyLimitEnabled"]" />
+                    </div>
+                    @if (_form.WeeklyReservationLimitEnabled)
+                    {
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="planner-weekly-limit">@L["Parking_Settings_WeeklyReservationLimit"]</label>
+                                @PlannerTooltip("planner-weekly-limit-help", L["Parking_Settings_WeeklyReservationLimitTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="planner-weekly-limit" TValue="int" @bind-Value="_form.WeeklyReservationLimit"
+                                               Min="1" Max="7"
+                                               AriaLabel="@L["Parking_Settings_WeeklyReservationLimit"]" Style="width:100%" />
+                        </div>
+                    }
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueueSection"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <label for="planner-queue-offer">@L["Parking_Settings_QueueOfferMinutes"]</label>
+                            @PlannerTooltip("planner-queue-offer-help", L["Parking_Settings_QueueHelp"].Value)
+                        </div>
+                        <FluentNumberField Id="planner-queue-offer" TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
+                                           AriaLabel="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PersonalLimitSection"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.WeeklyReservationLimitEnabled" Label="@L["Parking_Settings_WeeklyLimitEnabled"]" />
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.DataTrending())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OccupancyNotificationsSection"]</FluentLabel>
+                        </div>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PersonalLimitHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.WeeklyReservationLimit" Min="1" Max="7"
-                                           Disabled="@(!_form.WeeklyReservationLimitEnabled)"
-                                           Label="@L["Parking_Settings_WeeklyReservationLimit"]" Style="width:100%" />
-                    </div>
-                    <div class="settings-rule-summary">
-                        <strong>@L["Parking_Settings_CurrentRule"]</strong>
-                        <span>@(_form.WeeklyReservationLimitEnabled
-                            ? L["Parking_Settings_PlannerAccessSummaryNoLastMinute", EffectiveWeeklyReservationLimit]
-                            : L["Parking_Settings_PlannerAccessSummaryDisabled"])</span>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_LowOccupancyEnabled"]</span>
+                                @PlannerTooltip("planner-low-occupancy-help", L["Parking_Settings_LowOccupancyHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.AvailabilityCampaignsEnabled"
+                                          AriaLabel="@L["Parking_Settings_LowOccupancyEnabled"]" />
+                        </div>
+                        @if (_form.AvailabilityCampaignsEnabled)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-low-occupancy-threshold">@L["Parking_Settings_LowOccupancyThreshold"]</label>
+                                    @PlannerTooltip("planner-low-threshold-help", L["Parking_Settings_LowOccupancyThresholdHelp"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-low-occupancy-threshold" TValue="int"
+                                                   @bind-Value="_form.AvailabilityFreeThresholdPercent" Min="1"
+                                                   Max="@Math.Max(1, _form.AvailabilityBusyThresholdPercent - 1).ToString()"
+                                                   AriaLabel="@L["Parking_Settings_LowOccupancyThreshold"]" Style="width:100%" />
+                            </div>
+                        }
+
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_HighOccupancyEnabled"]</span>
+                                @PlannerTooltip("planner-high-occupancy-help", L["Parking_Settings_HighOccupancyHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.HighOccupancyCampaignsEnabled"
+                                          AriaLabel="@L["Parking_Settings_HighOccupancyEnabled"]" />
+                        </div>
+                        @if (_form.HighOccupancyCampaignsEnabled)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-high-occupancy-threshold">@L["Parking_Settings_HighOccupancyThreshold"]</label>
+                                    @PlannerTooltip("planner-high-threshold-help", L["Parking_Settings_HighOccupancyThresholdHelp"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-high-occupancy-threshold" TValue="int"
+                                                   @bind-Value="_form.AvailabilityBusyThresholdPercent"
+                                                   Min="@Math.Min(100, _form.AvailabilityFreeThresholdPercent + 1).ToString()" Max="100"
+                                                   AriaLabel="@L["Parking_Settings_HighOccupancyThreshold"]" Style="width:100%" />
+                            </div>
+                        }
+
+                        @if (OccupancyNotificationsEnabled)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-occupancy-lookahead">@L["Parking_Settings_AvailabilityLookahead"]</label>
+                                    @PlannerTooltip("planner-occupancy-lookahead-help", L["Parking_Settings_OccupancyLookaheadHelp"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-occupancy-lookahead" TValue="int"
+                                                   @bind-Value="_form.AvailabilityLookaheadDays" Min="1"
+                                                   Max="@AvailabilityLookaheadMaximum.ToString()"
+                                                   AriaLabel="@L["Parking_Settings_AvailabilityLookahead"]" Style="width:100%" />
+                            </div>
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-occupancy-min-days">@L["Parking_Settings_AvailabilityMinDays"]</label>
+                                    @PlannerTooltip("planner-occupancy-min-days-help", L["Parking_Settings_OccupancyMinDaysHelp"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-occupancy-min-days" TValue="int"
+                                                   @bind-Value="_form.AvailabilityMinConsecutiveDays" Min="1"
+                                                   Max="@_form.AvailabilityLookaheadDays.ToString()"
+                                                   AriaLabel="@L["Parking_Settings_AvailabilityMinDays"]" Style="width:100%" />
+                            </div>
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-occupancy-send-hour">@L["Parking_Settings_AvailabilitySendHour"]</label>
+                                    @PlannerTooltip("planner-occupancy-send-hour-help", L["Parking_Settings_OccupancySendHourHelp"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-occupancy-send-hour" TValue="int"
+                                                   @bind-Value="_form.AvailabilitySendHourLocal" Min="0" Max="23"
+                                                   AriaLabel="@L["Parking_Settings_AvailabilitySendHour"]" Style="width:100%" />
+                            </div>
+                        }
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_QueueSection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Money())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PlannerBudgetSectionSimple"]</FluentLabel>
+                        </div>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_QueueHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueueOfferMinutes" Min="1"
-                                           Label="@L["Parking_Settings_QueueOfferMinutes"]" Style="width:100%" />
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Parking_Settings_PlannerBudgetEnabled"]</span>
+                            @PlannerTooltip("planner-budget-toggle-help", L["Parking_Settings_PlannerBudgetHelp"].Value)
+                        </div>
+                        <FluentSwitch Value="@_economyOn" ValueChanged="ToggleEconomy"
+                                      AriaLabel="@L["Parking_Settings_PlannerBudgetEnabled"]" />
                     </div>
-
-                    <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_PlannerBudgetSection"]</FluentLabel>
-                        <FluentSwitch Value="@_economyOn" ValueChanged="ToggleEconomy" Label="@L["Parking_Settings_PlannerBudgetEnabled"]" />
-                    </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_PlannerBudgetHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.BaseReservationCost" Min="0" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10" Disabled="@(!_economyOn)"
-                                           Label="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
-                        <label class="parking-field">
-                            <span>@L["Parking_Settings_BudgetRenewalPeriod"]</span>
-                            <select class="parking-input" @bind="_form.BudgetRenewalPeriod" disabled="@(!_economyOn)">
-                                <option value="@BudgetRenewalPeriod.Daily">@L["Parking_Settings_BudgetPeriod_Daily"]</option>
-                                <option value="@BudgetRenewalPeriod.Weekly">@L["Parking_Settings_BudgetPeriod_Weekly"]</option>
-                                <option value="@BudgetRenewalPeriod.Monthly">@L["Parking_Settings_BudgetPeriod_Monthly"]</option>
-                                <option value="@BudgetRenewalPeriod.Yearly">@L["Parking_Settings_BudgetPeriod_Yearly"]</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="settings-rule-summary">
-                        <strong>@L["Parking_Settings_BudgetResult"]</strong>
-                        <span>@(_economyOn
-                            ? L["Parking_Settings_BudgetSummaryEnabled", _form.MonthlyCreditAllowance,
-                                L[$"Parking_Settings_BudgetPeriod_{_form.BudgetRenewalPeriod}"], _form.BaseReservationCost]
-                            : L["Parking_Settings_BudgetSummaryDisabled"])</span>
-                    </div>
-
+                    @if (_economyOn)
+                    {
+                        <div class="planner-settings-column">
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-base-cost">@L["Parking_Settings_BaseCost"]</label>
+                                    @PlannerTooltip("planner-base-cost-help", L["Parking_Settings_BaseCostTooltip"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-base-cost" TValue="int" @bind-Value="_form.BaseReservationCost" Min="1"
+                                                   AriaLabel="@L["Parking_Settings_BaseCost"]" Style="width:100%" />
+                            </div>
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-budget-allowance">@L["Parking_Settings_MonthlyAllowance"]</label>
+                                    @PlannerTooltip("planner-budget-allowance-help", L["Parking_Settings_MonthlyAllowanceTooltip"].Value)
+                                </div>
+                                <FluentNumberField Id="planner-budget-allowance" TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10"
+                                                   AriaLabel="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
+                            </div>
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="planner-budget-period">@L["Parking_Settings_BudgetRenewalPeriod"]</label>
+                                    @PlannerTooltip("planner-budget-period-help", L["Parking_Settings_BudgetRenewalTooltip"].Value)
+                                </div>
+                                <select id="planner-budget-period" class="parking-input" @bind="_form.BudgetRenewalPeriod">
+                                    <option value="@BudgetRenewalPeriod.Daily">@L["Parking_Settings_BudgetPeriod_Daily"]</option>
+                                    <option value="@BudgetRenewalPeriod.Weekly">@L["Parking_Settings_BudgetPeriod_Weekly"]</option>
+                                    <option value="@BudgetRenewalPeriod.Monthly">@L["Parking_Settings_BudgetPeriod_Monthly"]</option>
+                                    <option value="@BudgetRenewalPeriod.Yearly">@L["Parking_Settings_BudgetPeriod_Yearly"]</option>
+                                </select>
+                            </div>
+                        </div>
+                    }
                 </div>
             </FluentTab>
 
@@ -334,45 +444,55 @@
                     @* The desk itself sits here rather than under its own tab: what it holds are the
                        signals this section produces, and its deadlines are what turn them into work. *@
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightSection"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.OversightAllowUserReports" Label="@L["Parking_Settings_OversightUserReports"]" />
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.ShieldTask())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightSection"]</FluentLabel>
+                        </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_OversightHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaCriticalHours" Min="1"
-                                           Label="@L["Parking_Settings_OversightSlaCritical"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaHighHours" Min="1"
-                                           Label="@L["Parking_Settings_OversightSlaHigh"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaNormalHours" Min="1"
-                                           Label="@L["Parking_Settings_OversightSlaNormal"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightSlaLowHours" Min="1"
-                                           Label="@L["Parking_Settings_OversightSlaLow"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightRecurrenceThreshold" Min="2"
-                                           Label="@L["Parking_Settings_OversightRecurrenceThreshold"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightRecurrenceWindowDays" Min="1" Max="365"
-                                           Label="@L["Parking_Settings_OversightRecurrenceWindow"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightDigestHourLocal" Min="0" Max="23"
-                                           Label="@L["Parking_Settings_OversightDigestHour"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightInfoDeadlineDays" Min="1" Max="90"
-                                           Label="@L["Parking_Settings_OversightInfoDeadline"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.OversightDisputeWindowDays" Min="1" Max="365"
-                                           Label="@L["Parking_Settings_OversightDisputeWindow"]" Style="width:100%" />
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Parking_Settings_OversightUserReports"]</span>
+                            @PlannerTooltip("operations-user-reports-help", L["Parking_Settings_OversightUserReportsTooltip"].Value)
+                        </div>
+                        <FluentSwitch @bind-Value="_form.OversightAllowUserReports"
+                                      AriaLabel="@L["Parking_Settings_OversightUserReports"]" />
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_AvailabilitySection"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.AvailabilityCampaignsEnabled" Label="@L["Parking_Settings_SectionEnabled"]" />
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightSlaSection"]</FluentLabel>
+                        </div>
                     </div>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_AvailabilityHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityLookaheadDays" Min="1" Max="60" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
-                                           Label="@L["Parking_Settings_AvailabilityLookahead"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityFreeThresholdPercent" Min="1" Max="100" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
-                                           Label="@L["Parking_Settings_AvailabilityThreshold"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilityMinConsecutiveDays" Min="1" Max="30" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
-                                           Label="@L["Parking_Settings_AvailabilityMinDays"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.AvailabilitySendHourLocal" Min="0" Max="23" Disabled="@(!_form.AvailabilityCampaignsEnabled)"
-                                           Label="@L["Parking_Settings_AvailabilitySendHour"]" Style="width:100%" />
+                    <div class="planner-settings-column">
+                        @OversightNumberRow("operations-sla-critical", "Parking_Settings_OversightSlaCritical", "Parking_Settings_OversightSlaCriticalTooltip", _form.OversightSlaCriticalHours, value => _form.OversightSlaCriticalHours = value, 1)
+                        @OversightNumberRow("operations-sla-high", "Parking_Settings_OversightSlaHigh", "Parking_Settings_OversightSlaHighTooltip", _form.OversightSlaHighHours, value => _form.OversightSlaHighHours = value, 1)
+                        @OversightNumberRow("operations-sla-normal", "Parking_Settings_OversightSlaNormal", "Parking_Settings_OversightSlaNormalTooltip", _form.OversightSlaNormalHours, value => _form.OversightSlaNormalHours = value, 1)
+                        @OversightNumberRow("operations-sla-low", "Parking_Settings_OversightSlaLow", "Parking_Settings_OversightSlaLowTooltip", _form.OversightSlaLowHours, value => _form.OversightSlaLowHours = value, 1)
+                    </div>
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.History())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightRecurrenceSection"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-settings-column">
+                        @OversightNumberRow("operations-recurrence-threshold", "Parking_Settings_OversightRecurrenceThreshold", "Parking_Settings_OversightRecurrenceThresholdTooltip", _form.OversightRecurrenceThreshold, value => _form.OversightRecurrenceThreshold = value, 2)
+                        @OversightNumberRow("operations-recurrence-window", "Parking_Settings_OversightRecurrenceWindow", "Parking_Settings_OversightRecurrenceWindowTooltip", _form.OversightRecurrenceWindowDays, value => _form.OversightRecurrenceWindowDays = value, 1, 365)
+                    </div>
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_OversightCommunicationSection"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-settings-column">
+                        @OversightNumberRow("operations-digest-hour", "Parking_Settings_OversightDigestHour", "Parking_Settings_OversightDigestHourTooltip", _form.OversightDigestHourLocal, value => _form.OversightDigestHourLocal = value, 0, 23)
+                        @OversightNumberRow("operations-info-deadline", "Parking_Settings_OversightInfoDeadline", "Parking_Settings_OversightInfoDeadlineTooltip", _form.OversightInfoDeadlineDays, value => _form.OversightInfoDeadlineDays = value, 1, 90)
+                        @OversightNumberRow("operations-dispute-window", "Parking_Settings_OversightDisputeWindow", "Parking_Settings_OversightDisputeWindowTooltip", _form.OversightDisputeWindowDays, value => _form.OversightDisputeWindowDays = value, 1, 365)
                     </div>
 
                 </div>
@@ -399,59 +519,117 @@
             <FluentTab Id="residents" Label="@L["Parking_Settings_Tab_Residents"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentPrioritySection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentAutomationSection"]</FluentLabel>
+                        </div>
+                    </div>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentAutomationHelp"]</FluentLabel>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="residents-plan-horizon">@L["Parking_Settings_ResidentPlanHorizon"]</label>
+                                @PlannerTooltip("residents-plan-horizon-help", L["Parking_Settings_ResidentPlanHorizonTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="residents-plan-horizon" TValue="int" @bind-Value="_form.ResidentPlanHorizonDays"
+                                               Min="1" Max="366"
+                                               AriaLabel="@L["Parking_Settings_ResidentPlanHorizon"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="residents-alternative-policy">@L["Parking_Settings_AlternativeBookingPolicy"]</label>
+                                @PlannerTooltip("residents-alternative-policy-help", L["Parking_Settings_AlternativeBookingPolicyTooltip"].Value)
+                            </div>
+                            <select id="residents-alternative-policy" class="parking-input" @bind="_form.ResidentAlternativeBookingPolicy">
+                                <option value="@ResidentAlternativeBookingPolicy.AutoRelease">@L["Parking_Settings_AlternativeBooking_AutoRelease"]</option>
+                                <option value="@ResidentAlternativeBookingPolicy.ConfirmRelease">@L["Parking_Settings_AlternativeBooking_ConfirmRelease"]</option>
+                                <option value="@ResidentAlternativeBookingPolicy.Deny">@L["Parking_Settings_AlternativeBooking_Deny"]</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_ResidentPrioritySection"]</FluentLabel>
+                        </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentPriorityHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <label class="parking-field">
-                            <span>@L["Parking_Settings_ResidentReclaimPolicy"]</span>
-                            <select class="parking-input" @bind="_form.ResidentReclaimPolicy">
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="residents-reclaim-policy">@L["Parking_Settings_ResidentReclaimPolicy"]</label>
+                                @PlannerTooltip("residents-reclaim-policy-help", L["Parking_Settings_ResidentReclaimPolicyTooltip"].Value)
+                            </div>
+                            <select id="residents-reclaim-policy" class="parking-input" @bind="_form.ResidentReclaimPolicy">
                                 <option value="@ResidentReclaimPolicy.ConfirmedBookingProtected">@L["Parking_Settings_Reclaim_Protected"]</option>
                                 <option value="@ResidentReclaimPolicy.AdvancePriority">@L["Parking_Settings_Reclaim_Advance"]</option>
                                 <option value="@ResidentReclaimPolicy.ReplacementOnly">@L["Parking_Settings_Reclaim_Replacement"]</option>
                                 <option value="@ResidentReclaimPolicy.AdvanceOrReplacement">@L["Parking_Settings_Reclaim_Balanced"]</option>
                                 <option value="@ResidentReclaimPolicy.AbsolutePriority">@L["Parking_Settings_Reclaim_Absolute"]</option>
                             </select>
-                        </label>
+                        </div>
                         @if (ResidentPolicyUsesDeadline)
                         {
-                            <label class="parking-field">
-                                <span>@L["Parking_Settings_ProtectionDeadlineMode"]</span>
-                                <select class="parking-input" @bind="_form.ResidentProtectionDeadlineMode">
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="residents-deadline-mode">@L["Parking_Settings_ProtectionDeadlineMode"]</label>
+                                    @PlannerTooltip("residents-deadline-mode-help", L["Parking_Settings_ProtectionDeadlineModeTooltip"].Value)
+                                </div>
+                                <select id="residents-deadline-mode" class="parking-input" @bind="_form.ResidentProtectionDeadlineMode">
                                     <option value="@ResidentProtectionDeadlineMode.PreviousDayAtTime">@L["Parking_Settings_Deadline_PreviousDay"]</option>
                                     <option value="@ResidentProtectionDeadlineMode.HoursBeforeStart">@L["Parking_Settings_Deadline_Hours"]</option>
                                 </select>
-                            </label>
+                            </div>
                             @if (_form.ResidentProtectionDeadlineMode == ResidentProtectionDeadlineMode.PreviousDayAtTime)
                             {
-                                <label class="parking-field">
-                                    <span>@L["Parking_Settings_ProtectionPreviousDayTime"]</span>
-                                    <input class="parking-input" type="time" @bind="_form.ResidentProtectionPreviousDayTime" />
-                                </label>
+                                <div class="planner-setting-row">
+                                    <div class="planner-setting-row__label">
+                                        <label for="residents-deadline-time">@L["Parking_Settings_ProtectionPreviousDayTime"]</label>
+                                        @PlannerTooltip("residents-deadline-time-help", L["Parking_Settings_ProtectionPreviousDayTimeTooltip"].Value)
+                                    </div>
+                                    <input id="residents-deadline-time" class="parking-input" type="time" @bind="_form.ResidentProtectionPreviousDayTime" />
+                                </div>
                             }
                             else
                             {
-                                <FluentNumberField TValue="int" @bind-Value="_form.ResidentProtectionLeadHours" Min="1" Max="168"
-                                                   Label="@L["Parking_Settings_ProtectionLeadHours"]" Style="width:100%" />
+                                <div class="planner-setting-row">
+                                    <div class="planner-setting-row__label">
+                                        <label for="residents-lead-hours">@L["Parking_Settings_ProtectionLeadHours"]</label>
+                                        @PlannerTooltip("residents-lead-hours-help", L["Parking_Settings_ProtectionLeadHoursTooltip"].Value)
+                                    </div>
+                                    <FluentNumberField Id="residents-lead-hours" TValue="int" @bind-Value="_form.ResidentProtectionLeadHours" Min="1" Max="168"
+                                                       AriaLabel="@L["Parking_Settings_ProtectionLeadHours"]" Style="width:100%" />
+                                </div>
                             }
                         }
                         @if (ResidentPolicyUsesFallback)
                         {
-                            <label class="parking-field">
-                                <span>@L["Parking_Settings_NoReplacementAction"]</span>
-                                <select class="parking-input" @bind="_form.ResidentNoReplacementAction">
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="residents-no-replacement">@L["Parking_Settings_NoReplacementAction"]</label>
+                                    @PlannerTooltip("residents-no-replacement-help", L["Parking_Settings_NoReplacementActionTooltip"].Value)
+                                </div>
+                                <select id="residents-no-replacement" class="parking-input" @bind="_form.ResidentNoReplacementAction">
                                     <option value="@ResidentNoReplacementAction.Deny">@L["Parking_Settings_NoReplacement_Deny"]</option>
                                     <option value="@ResidentNoReplacementAction.ManagerOnly">@L["Parking_Settings_NoReplacement_Manager"]</option>
                                     <option value="@ResidentNoReplacementAction.CancelAndQueue">@L["Parking_Settings_NoReplacement_Queue"]</option>
                                     <option value="@ResidentNoReplacementAction.CancelAndNotify">@L["Parking_Settings_NoReplacement_Notify"]</option>
                                 </select>
-                            </label>
+                            </div>
+                        }
+                        @if (ResidentPolicyUsesManualBinding)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <span>@L["Parking_Settings_ManualReleaseBinding"]</span>
+                                    @PlannerTooltip("residents-manual-binding-help", L["Parking_Settings_ManualReleaseBindingTooltip"].Value)
+                                </div>
+                                <FluentSwitch @bind-Value="_form.ManualReleasesAreBinding"
+                                              AriaLabel="@L["Parking_Settings_ManualReleaseBinding"]" />
+                            </div>
                         }
                     </div>
-                    @if (ResidentPolicyUsesManualBinding)
-                    {
-                        <FluentSwitch @bind-Value="_form.ManualReleasesAreBinding" Label="@L["Parking_Settings_ManualReleaseBinding"]" />
-                    }
                     @if (_form.ResidentNoReplacementAction == ResidentNoReplacementAction.CancelAndNotify
                          && ResidentPolicyUsesFallback)
                     {
@@ -459,37 +637,80 @@
                             @L["Parking_Settings_NoReplacement_NotifyWarning"]
                         </FluentMessageBar>
                     }
-                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
-                        @L["Parking_Settings_ResidentPriorityRecommended"]
-                    </FluentMessageBar>
                 </div>
             </FluentTab>
 
             <FluentTab Id="location" Label="@L["Parking_Settings_Tab_Location"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Map())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_DistanceSection"]</FluentLabel>
+                        </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_DistanceHelp"]</FluentLabel>
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="double?" @bind-Value="_form.LotLatitude" Step="0.0001"
-                                           Label="@L["Parking_Settings_LotLat"]" Style="width:100%" />
-                        <FluentNumberField TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
-                                           Label="@L["Parking_Settings_LotLon"]" Style="width:100%" />
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="location-latitude">@L["Parking_Settings_LotLat"]</label>
+                                @PlannerTooltip("location-latitude-help", L["Parking_Settings_LotLatitudeTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="location-latitude" TValue="double?" @bind-Value="_form.LotLatitude" Step="0.0001"
+                                               AriaLabel="@L["Parking_Settings_LotLat"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="location-longitude">@L["Parking_Settings_LotLon"]</label>
+                                @PlannerTooltip("location-longitude-help", L["Parking_Settings_LotLongitudeTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="location-longitude" TValue="double?" @bind-Value="_form.LotLongitude" Step="0.0001"
+                                               AriaLabel="@L["Parking_Settings_LotLon"]" Style="width:100%" />
+                        </div>
                     </div>
 
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_LimitsSection"]</FluentLabel>
+                        </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_LimitsHelp"]</FluentLabel>
-                    <FluentSwitch @bind-Value="_form.AutoVerifyHomeAddress" Label="@L["Parking_Settings_AutoVerify"]" />
-                    <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0" Step="5" Disabled="@(!_form.AutoVerifyHomeAddress)"
-                                           Label="@L["Parking_Settings_AutoVerifyMaxKm"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.MaxRewardedReleasesPerDay" Min="0"
-                                           Label="@L["Parking_Settings_MaxReleasesPerDay"]" Style="width:100%" />
-                        <FluentNumberField TValue="int" @bind-Value="_form.MaxReleaseRangeDays" Min="1" Max="366"
-                                           Label="@L["Parking_Settings_MaxRangeDays"]" Style="width:100%" />
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_AutoVerify"]</span>
+                                @PlannerTooltip("location-auto-verify-help", L["Parking_Settings_AutoVerifyTooltip"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.AutoVerifyHomeAddress"
+                                          AriaLabel="@L["Parking_Settings_AutoVerify"]" />
+                        </div>
+                        @if (_form.AutoVerifyHomeAddress)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="location-auto-verify-distance">@L["Parking_Settings_AutoVerifyMaxKm"]</label>
+                                    @PlannerTooltip("location-auto-verify-distance-help", L["Parking_Settings_AutoVerifyMaxKmTooltip"].Value)
+                                </div>
+                                <FluentNumberField Id="location-auto-verify-distance" TValue="int" @bind-Value="_form.AutoVerifyMaxDistanceKm" Min="0" Step="5"
+                                                   AriaLabel="@L["Parking_Settings_AutoVerifyMaxKm"]" Style="width:100%" />
+                            </div>
+                        }
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="location-max-releases">@L["Parking_Settings_MaxReleasesPerDay"]</label>
+                                @PlannerTooltip("location-max-releases-help", L["Parking_Settings_MaxReleasesPerDayTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="location-max-releases" TValue="int" @bind-Value="_form.MaxRewardedReleasesPerDay" Min="0"
+                                               AriaLabel="@L["Parking_Settings_MaxReleasesPerDay"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="location-max-range">@L["Parking_Settings_MaxRangeDays"]</label>
+                                @PlannerTooltip("location-max-range-help", L["Parking_Settings_MaxRangeDaysTooltip"].Value)
+                            </div>
+                            <FluentNumberField Id="location-max-range" TValue="int" @bind-Value="_form.MaxReleaseRangeDays" Min="1" Max="366"
+                                               AriaLabel="@L["Parking_Settings_MaxRangeDays"]" Style="width:100%" />
+                        </div>
                     </div>
                 </div>
             </FluentTab>
@@ -497,7 +718,10 @@
             <FluentTab Id="notifications" Label="@L["Parking_Settings_Tab_Notifications"]">
                 <div class="settings-panel">
                     <div class="settings-section__head">
-                        <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_NotificationMatrix"]</FluentLabel>
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Parking_Settings_NotificationMatrix"]</FluentLabel>
+                        </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_NotificationMatrixHelp"]</FluentLabel>
                     <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
@@ -507,7 +731,10 @@
                     @foreach (var category in Enum.GetValues<NotificationCategory>())
                     {
                         <div class="settings-section__head">
-                            <FluentLabel Typo="Typography.Subject">@L[$"Parking_NotificationCategory_{category}"]</FluentLabel>
+                            <div class="settings-section__title">
+                                <FluentIcon Value="@(new Icons.Regular.Size20.Mail())" Color="Color.Custom" CustomColor="currentColor" />
+                                <FluentLabel Typo="Typography.Subject">@L[$"Parking_NotificationCategory_{category}"]</FluentLabel>
+                            </div>
                         </div>
                         <div style="overflow-x:auto">
                             <table class="notification-rule-table">
@@ -544,7 +771,10 @@
         </FluentTabs>
 
         <div class="settings-savebar">
-            <span>@L["Parking_Settings_SaveHint"]</span>
+            <span class="@(!string.IsNullOrEmpty(_error) ? "settings-savebar__error" : null)"
+                  role="@(!string.IsNullOrEmpty(_error) ? "alert" : null)">
+                @L[!string.IsNullOrEmpty(_error) ? _error : "Parking_Settings_SaveHint"]
+            </span>
             <FluentButton OnClick="SaveAsync" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Save())">@L["Parking_Settings_Save"]</FluentButton>
         </div>
     }
@@ -571,6 +801,7 @@
     private bool _demandOn;
     private bool _perksOn;
     private bool _decayOn;
+    private string _weekdayPreset = "everyday";
 
     private static readonly (int Days, string LabelKey)[] ReservationHorizonOptions =
     [
@@ -595,17 +826,68 @@
         (Weekday.Sunday, "Parking_Weekday_Sunday"),
     ];
 
-    private int AllowedReservationWeekdayCount => ReservationWeekdayOptions.Count(option =>
-        IsReservationWeekdaySelected(option.Flag));
-
-    private int EffectiveWeeklyReservationLimit => Math.Clamp(
-        _form?.WeeklyReservationLimit ?? 1,
+    private int AllowedReservationWeekdayCount => Math.Max(
         1,
-        7);
+        _form?.AllowedReservationWeekdays.CountDays() ?? 1);
+
+    private bool OccupancyNotificationsEnabled => _form is not null
+        && (_form.AvailabilityCampaignsEnabled || _form.HighOccupancyCampaignsEnabled);
+
+    private int AvailabilityLookaheadMaximum => Math.Min(
+        60,
+        Math.Max(1, _form?.ReservationHorizonDays ?? 1));
 
     private string AllowedReservationWeekdaysText => string.Join(", ", ReservationWeekdayOptions
         .Where(option => IsReservationWeekdaySelected(option.Flag))
         .Select(option => L[option.LabelKey].Value));
+
+    private bool HolidayReservationsAllowed
+    {
+        get => _form is not null
+            && (_form.HolidayCalendarRegion == HolidayCalendarRegion.None || _form.PublicHolidayReservationsAllowed);
+        set
+        {
+            _form!.HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic;
+            _form.PublicHolidayReservationsAllowed = value;
+        }
+    }
+
+    private bool UsesExactReservationTime
+    {
+        get => _form?.ReservationTimeMode == ReservationTimeMode.TimeWindow;
+        set => _form!.ReservationTimeMode = value
+            ? ReservationTimeMode.TimeWindow
+            : ReservationTimeMode.AllDay;
+    }
+
+    private RenderFragment PlannerTooltip(string anchorId, string text) => __builder =>
+    {
+        <button type="button" id="@anchorId" class="planner-tooltip-trigger" aria-label="@text">
+            <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+        </button>
+        <FluentTooltip Anchor="@anchorId" Position="TooltipPosition.Bottom" MaxWidth="360px">@text</FluentTooltip>
+    };
+
+    private RenderFragment OversightNumberRow(
+        string id,
+        string labelKey,
+        string tooltipKey,
+        int value,
+        Action<int> valueChanged,
+        int minimum,
+        int? maximum = null) => __builder =>
+    {
+        <div class="planner-setting-row">
+            <div class="planner-setting-row__label">
+                <label for="@id">@L[labelKey]</label>
+                @PlannerTooltip($"{id}-help", L[tooltipKey].Value)
+            </div>
+            <FluentNumberField Id="@id" TValue="int" Value="@value"
+                               ValueChanged="@(newValue => valueChanged(newValue))"
+                               Min="@minimum.ToString()" Max="@maximum?.ToString()"
+                               AriaLabel="@L[labelKey]" Style="width:100%" />
+        </div>
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -651,10 +933,19 @@
         {
             _form!.AllowedReservationWeekdays |= day;
         }
+
     }
 
-    private void SetReservationWeekdays(Weekday days) =>
-        _form!.AllowedReservationWeekdays = days;
+    private void ChangeWeekdayPreset(ChangeEventArgs args)
+    {
+        _weekdayPreset = args.Value?.ToString() ?? "custom";
+        _form!.AllowedReservationWeekdays = _weekdayPreset switch
+        {
+            "workdays" => Weekday.Workdays,
+            "everyday" => Weekday.Everyday,
+            _ => _form.AllowedReservationWeekdays,
+        };
+    }
 
     private void TogglePoints(bool on)
     {
@@ -720,6 +1011,7 @@
             ReminderLeadMinutes = (int)s.ReminderLeadTime.TotalMinutes,
             ReservationTimeMode = s.ReservationTimeMode,
             ReservationHorizonDays = s.ReservationHorizonDays,
+            SameDayReservationsAllowed = s.SameDayReservationsAllowed,
             AllowedReservationWeekdays = s.AllowedReservationWeekdays,
             HolidayCalendarRegion = s.HolidayCalendarRegion,
             PublicHolidayReservationsAllowed = s.PublicHolidayReservationsAllowed,
@@ -732,12 +1024,14 @@
             ResidentReleasePointsPerHour = s.ResidentReleasePointsPerHour,
             ResidentReleaseMaxPoints = s.ResidentReleaseMaxPoints,
             ResidentWastedShareClawbackPercent = s.ResidentWastedShareClawbackPercent,
+            ResidentPlanHorizonDays = s.ResidentPlanHorizonDays,
             ResidentReclaimPolicy = s.ResidentReclaimPolicy,
             ManualReleasesAreBinding = s.ManualReleasesAreBinding,
             ResidentProtectionDeadlineMode = s.ResidentProtectionDeadlineMode,
             ResidentProtectionLeadHours = s.ResidentProtectionLeadHours,
             ResidentProtectionPreviousDayTime = s.ResidentProtectionPreviousDayTime,
             ResidentNoReplacementAction = s.ResidentNoReplacementAction,
+            ResidentAlternativeBookingPolicy = s.ResidentAlternativeBookingPolicy,
             LotLatitude = s.LotLatitude,
             LotLongitude = s.LotLongitude,
             SharedTakenBasePoints = s.SharedTakenBasePoints,
@@ -790,6 +1084,8 @@
             AvailabilityCampaignsEnabled = s.AvailabilityCampaignsEnabled,
             AvailabilityLookaheadDays = s.AvailabilityLookaheadDays,
             AvailabilityFreeThresholdPercent = s.AvailabilityFreeThresholdPercent,
+            HighOccupancyCampaignsEnabled = s.HighOccupancyCampaignsEnabled,
+            AvailabilityBusyThresholdPercent = s.AvailabilityBusyThresholdPercent,
             AvailabilityMinConsecutiveDays = s.AvailabilityMinConsecutiveDays,
             AvailabilitySendHourLocal = s.AvailabilitySendHourLocal,
             OversightSlaCriticalHours = s.OversightSlaCriticalHours,
@@ -805,6 +1101,12 @@
         };
 
         _economyOn = s.BaseReservationCost > 0;
+        _weekdayPreset = s.AllowedReservationWeekdays switch
+        {
+            Weekday.Workdays => "workdays",
+            Weekday.Everyday => "everyday",
+            _ => "custom",
+        };
         _pointsOn = s.ReleasePoints > 0;
         _demandOn = s.DemandReleaseOccupancyPercent > 0 || s.DemandReleaseQueueBonus > 0;
         _perksOn = s.QueuePriorityPerTier > 0 || s.TierAllowanceBonus > 0 || s.TierDiscountPercent > 0;
@@ -865,9 +1167,10 @@
             TimeSpan.Zero,
             _form!.ReservationTimeMode,
             _form.ReservationHorizonDays,
+            _form.SameDayReservationsAllowed,
             _form.AllowedReservationWeekdays,
             _form.WeeklyReservationLimitEnabled,
-            EffectiveWeeklyReservationLimit,
+            _form.WeeklyReservationLimit,
             0,
             _form.PeakStart, _form.PeakEnd,
             TimeSpan.FromMinutes(_form.SweepIntervalMinutes),
@@ -875,7 +1178,7 @@
             0,
             0,
             0,
-            _form.ReservationHorizonDays,
+            _form.ResidentPlanHorizonDays,
             _form.LotLatitude,
             _form.LotLongitude,
             0,
@@ -883,7 +1186,7 @@
             _form.SharedTakenMaxMultiplier,
             _form.AutoVerifyHomeAddress,
             _form.AutoVerifyMaxDistanceKm,
-            0,
+            _form.MaxRewardedReleasesPerDay,
             _form.MaxReleaseRangeDays,
             _economyOn ? _form.BaseReservationCost : 0,
             100,
@@ -928,6 +1231,8 @@
             _form.AvailabilityCampaignsEnabled,
             _form.AvailabilityLookaheadDays,
             _form.AvailabilityFreeThresholdPercent,
+            _form.HighOccupancyCampaignsEnabled,
+            _form.AvailabilityBusyThresholdPercent,
             _form.AvailabilityMinConsecutiveDays,
             _form.AvailabilitySendHourLocal,
             _form.OversightSlaCriticalHours, _form.OversightSlaHighHours,
@@ -938,14 +1243,28 @@
             _form.ResidentReclaimPolicy, _form.ManualReleasesAreBinding,
             _form.ResidentProtectionDeadlineMode, _form.ResidentProtectionLeadHours,
             _form.ResidentProtectionPreviousDayTime, _form.ResidentNoReplacementAction,
+            _form.ResidentAlternativeBookingPolicy,
             _form.HolidayCalendarRegion, _form.PublicHolidayReservationsAllowed);
+
+        if (ParkingSettingsValidator.Validate(dto) is { } settingsValidationError)
+        {
+            ShowValidationError(settingsValidationError);
+            return;
+        }
+
+        var notificationRules = _notificationRules.Select(r => new NotificationDeliveryRuleDto(
+            r.Category, r.Level, r.InboxEnabled, r.InboxEnabled && r.LiveEnabled,
+            r.EmailMode, r.InboxMandatory)).ToList();
+        if (NotificationDeliveryRuleValidator.Validate(notificationRules) is { } notificationValidationError)
+        {
+            ShowValidationError(notificationValidationError);
+            return;
+        }
 
         var result = await SettingsService.UpdateAsync(dto, _adminId);
         if (result.Succeeded)
         {
-            await NotificationRules.UpdateAsync(_notificationRules.Select(r => new NotificationDeliveryRuleDto(
-                r.Category, r.Level, r.InboxEnabled, r.InboxEnabled && r.LiveEnabled,
-                r.EmailMode, r.InboxMandatory)).ToList(), _adminId);
+            await NotificationRules.UpdateAsync(notificationRules, _adminId);
             _message = L["Parking_Settings_Saved"];
             await LoadAsync();
         }
@@ -953,6 +1272,23 @@
         {
             _error = result.Errors.FirstOrDefault();
         }
+    }
+
+    private void ShowValidationError(string error)
+    {
+        _error = error;
+        _activeTab = error switch
+        {
+            ParkingSettingsValidator.OversightSlaError
+                or ParkingSettingsValidator.OversightRecurrenceError
+                or ParkingSettingsValidator.OversightScheduleError => "operations",
+            ParkingSettingsValidator.ResidentPolicyError
+                or ParkingSettingsValidator.ResidentDeadlineError => "residents",
+            ParkingSettingsValidator.CoordinatesError
+                or ParkingSettingsValidator.LocationLimitsError => "location",
+            NotificationDeliveryRuleValidator.Error => "notifications",
+            _ => "planner",
+        };
     }
 
     private bool ResidentPolicyUsesDeadline => _form?.ResidentReclaimPolicy is
@@ -974,6 +1310,7 @@
         public int ReminderLeadMinutes { get; set; }
         public ReservationTimeMode ReservationTimeMode { get; set; }
         public int ReservationHorizonDays { get; set; }
+        public bool SameDayReservationsAllowed { get; set; } = true;
         public Weekday AllowedReservationWeekdays { get; set; } = Weekday.Everyday;
         public HolidayCalendarRegion HolidayCalendarRegion { get; set; } = HolidayCalendarRegion.CzechRepublic;
         public bool PublicHolidayReservationsAllowed { get; set; }
@@ -986,12 +1323,14 @@
         public int ResidentReleasePointsPerHour { get; set; }
         public int ResidentReleaseMaxPoints { get; set; }
         public int ResidentWastedShareClawbackPercent { get; set; }
+        public int ResidentPlanHorizonDays { get; set; }
         public ResidentReclaimPolicy ResidentReclaimPolicy { get; set; }
         public bool ManualReleasesAreBinding { get; set; }
         public ResidentProtectionDeadlineMode ResidentProtectionDeadlineMode { get; set; }
         public int ResidentProtectionLeadHours { get; set; }
         public TimeOnly ResidentProtectionPreviousDayTime { get; set; }
         public ResidentNoReplacementAction ResidentNoReplacementAction { get; set; }
+        public ResidentAlternativeBookingPolicy ResidentAlternativeBookingPolicy { get; set; }
         public double? LotLatitude { get; set; }
         public double? LotLongitude { get; set; }
         public int SharedTakenBasePoints { get; set; }
@@ -1044,6 +1383,8 @@
         public bool AvailabilityCampaignsEnabled { get; set; }
         public int AvailabilityLookaheadDays { get; set; }
         public int AvailabilityFreeThresholdPercent { get; set; }
+        public bool HighOccupancyCampaignsEnabled { get; set; }
+        public int AvailabilityBusyThresholdPercent { get; set; } = 85;
         public int AvailabilityMinConsecutiveDays { get; set; }
         public int AvailabilitySendHourLocal { get; set; }
 

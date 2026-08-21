@@ -127,6 +127,28 @@ public class VoucherApprovalTests
     }
 
     [Test]
+    public async Task Credits_disabled_records_report_without_creating_compensation()
+    {
+        var (userId, reservation) = await SeedBlockedReservationAsync("V-02N");
+        var noCredits = new ReservationService(
+            new TestDbContextFactory(_options),
+            new FixedParkingSettings(IncentivePolicy.Default with { BaseReservationCost = 0 }),
+            new FakeSiteSettings(),
+            new FixedTimeProvider(Now),
+            _notifications,
+            new PassthroughLocalizer<ParkingMessages>());
+
+        var outcome = await noCredits.ReportBlockedSpotAsync(
+            userId, reservation.Id, relocate: false, Photo(12));
+
+        Assert.That(outcome.Succeeded, Is.True, outcome.Error);
+        Assert.That(outcome.VoucherGranted, Is.False);
+        await using var db = new D3ParkingDbContext(_options);
+        Assert.That(await db.ApologyVouchers.AnyAsync(v => v.UserId == userId), Is.False);
+        Assert.That(_notifications.Sent, Does.Not.Contain((userId, "Parking_Notify_VoucherGranted_Title")));
+    }
+
+    [Test]
     public async Task Same_photo_cannot_back_two_reports()
     {
         var (firstUser, firstReservation) = await SeedBlockedReservationAsync("V-03");
@@ -151,7 +173,7 @@ public class VoucherApprovalTests
     }
 
     [Test]
-    public async Task Pending_voucher_cannot_be_redeemed()
+    public async Task Pending_compensation_is_ignored_and_booking_uses_budget()
     {
         var (userId, reservation) = await SeedBlockedReservationAsync("V-05");
         var report = await _reservations.ReportBlockedSpotAsync(userId, reservation.Id, relocate: false, Photo(5));
@@ -160,10 +182,20 @@ public class VoucherApprovalTests
         var freeSpot = new ParkingSpot("V-05F", ParkingSpotType.Standard);
         await SeedAsync(db => db.ParkingSpots.Add(freeSpot));
 
-        var booking = await _reservations.ReserveAsync(userId, freeSpot.Id, Now.AddHours(4), Now.AddHours(8), useVoucher: true);
+        var booking = await _reservations.ReserveAsync(userId, freeSpot.Id, Now.AddHours(4), Now.AddHours(8));
 
-        Assert.That(booking.Succeeded, Is.False, "An unapproved voucher holds no value yet.");
-        Assert.That(booking.Errors, Does.Contain("Parking_Error_VoucherUnavailable"));
+        Assert.That(booking.Succeeded, Is.True, booking.Errors.FirstOrDefault());
+        Assert.That(booking.AutomaticCompensationApplied, Is.False,
+            "An unapproved compensation holds no value and must never be consumed.");
+
+        await using var db = new D3ParkingDbContext(_options);
+        var voucher = await db.ApologyVouchers.SingleAsync(v => v.UserId == userId);
+        Assert.That(voucher.RedeemedAtUtc, Is.Null);
+        var charged = await db.Reservations
+            .Where(r => r.UserId == userId && r.SpotId == freeSpot.Id)
+            .Select(r => r.CreditsCharged)
+            .SingleAsync();
+        Assert.That(charged, Is.GreaterThan(0), "The ordinary planning budget pays this booking.");
     }
 
     [Test]
@@ -191,19 +223,65 @@ public class VoucherApprovalTests
         // The approved voucher now absorbs a booking's whole price: the wallet must not move.
         var freeSpot = new ParkingSpot("V-06F", ParkingSpotType.Standard);
         await SeedAsync(db => db.ParkingSpots.Add(freeSpot));
-        var booking = await _reservations.ReserveAsync(userId, freeSpot.Id, Now.AddHours(4), Now.AddHours(8), useVoucher: true);
-        Assert.That(booking.Succeeded, Is.True, booking.Errors.FirstOrDefault());
+        var quote = await _reservations.GetQuoteAsync(userId, Now.AddHours(4), Now.AddHours(8));
+        Assert.That(quote.AutomaticCompensationAvailable, Is.True);
+        Assert.That(quote.Affordable, Is.True);
 
+        var booking = await _reservations.ReserveAsync(userId, freeSpot.Id, Now.AddHours(4), Now.AddHours(8));
+        Assert.That(booking.Succeeded, Is.True, booking.Errors.FirstOrDefault());
+        Assert.That(booking.AutomaticCompensationApplied, Is.True);
+
+        Guid bookedReservationId;
         await using (var db = new D3ParkingDbContext(_options))
         {
             var voucher = await db.ApologyVouchers.SingleAsync(v => v.Id == voucherId);
             Assert.That(voucher.RedeemedAtUtc, Is.Not.Null);
-            var charged = await db.Reservations
+            var booked = await db.Reservations
                 .Where(r => r.UserId == userId && r.SpotId == freeSpot.Id)
-                .Select(r => r.CreditsCharged)
+                .Select(r => new { r.Id, r.CreditsCharged })
                 .SingleAsync();
-            Assert.That(charged, Is.EqualTo(0), "The voucher, not the wallet, pays the booking.");
+            bookedReservationId = booked.Id;
+            Assert.That(booked.CreditsCharged, Is.EqualTo(0), "The compensation, not the wallet, pays the booking.");
         }
+
+        var cancelled = await _reservations.CancelAsync(userId, bookedReservationId);
+        Assert.That(cancelled.Succeeded, Is.True, cancelled.Errors.FirstOrDefault());
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            var voucher = await db.ApologyVouchers.SingleAsync(v => v.Id == voucherId);
+            Assert.That(voucher.RedeemedAtUtc, Is.Null,
+                "A timely cancellation must make the automatic compensation available again.");
+        }
+    }
+
+    [Test]
+    public async Task Queue_claim_uses_approved_compensation_automatically()
+    {
+        var managerId = await SeedSpotManagerAsync();
+        var (userId, blockedReservation) = await SeedBlockedReservationAsync("V-06Q");
+        await _reservations.ReportBlockedSpotAsync(userId, blockedReservation.Id, relocate: false, Photo(16));
+        var voucherId = await VoucherIdOfAsync(userId);
+        Assert.That((await _spots.ApproveVoucherAsync(voucherId, managerId)).Succeeded, Is.True);
+
+        var offeredSpot = new ParkingSpot("V-06O", ParkingSpotType.Standard);
+        var start = Now.AddDays(1);
+        var queue = new QueueEntry(userId, start, start.AddHours(8), Now);
+        queue.Offer(offeredSpot.Id, Now.AddMinutes(30));
+        await SeedAsync(db =>
+        {
+            db.ParkingSpots.Add(offeredSpot);
+            db.QueueEntries.Add(queue);
+        });
+
+        var claimed = await _reservations.ClaimQueueOfferAsync(userId, queue.Id);
+
+        Assert.That(claimed.Succeeded, Is.True, claimed.Errors.FirstOrDefault());
+        Assert.That(claimed.AutomaticCompensationApplied, Is.True);
+        await using var db = new D3ParkingDbContext(_options);
+        Assert.That(await db.Reservations
+            .Where(r => r.UserId == userId && r.SpotId == offeredSpot.Id)
+            .Select(r => r.CreditsCharged)
+            .SingleAsync(), Is.Zero);
     }
 
     [Test]

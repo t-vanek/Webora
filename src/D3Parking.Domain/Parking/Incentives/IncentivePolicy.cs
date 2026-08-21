@@ -32,6 +32,9 @@ public sealed record IncentivePolicy
 
     public int ReservationHorizonDays { get; init; } = 14;
 
+    /// <summary>Whether a new booking may start on the current local calendar day.</summary>
+    public bool SameDayReservationsAllowed { get; init; } = true;
+
     public Weekday AllowedReservationWeekdays { get; init; } = Weekday.Everyday;
 
     public HolidayCalendarRegion HolidayCalendarRegion { get; init; } = HolidayCalendarRegion.CzechRepublic;
@@ -41,6 +44,13 @@ public sealed record IncentivePolicy
     public bool WeeklyReservationLimitEnabled { get; init; } = true;
 
     public int WeeklyReservationLimit { get; init; } = 2;
+
+    /// <summary>
+    /// Weekly quota bounded by the weekdays on which the calendar permits reservations. The
+    /// defensive bound also makes policies loaded from older, inconsistent rows safe immediately.
+    /// </summary>
+    public int EffectiveWeeklyReservationLimit =>
+        AllowedReservationWeekdays.ClampWeeklyReservationLimit(WeeklyReservationLimit);
 
     /// <summary>Legacy persisted setting. Weekly limits no longer have a close-in bypass.</summary>
     public int LastMinuteUnlimitedHours { get; init; }
@@ -73,7 +83,7 @@ public sealed record IncentivePolicy
     /// How many days ahead a resident's usage plan releases the days they do not need. Bounded by
     /// <see cref="MaxReleaseRangeDays"/> — the planner may never reach further than a manual release.
     /// </summary>
-    public int ResidentPlanHorizonDays { get; init; } = 21;
+    public int ResidentPlanHorizonDays { get; init; } = 14;
 
     public ResidentReclaimPolicy ResidentReclaimPolicy { get; init; } = ResidentReclaimPolicy.AdvanceOrReplacement;
 
@@ -86,6 +96,8 @@ public sealed record IncentivePolicy
     public TimeOnly ResidentProtectionPreviousDayTime { get; init; } = new(18, 0);
 
     public ResidentNoReplacementAction ResidentNoReplacementAction { get; init; } = ResidentNoReplacementAction.CancelAndQueue;
+
+    public ResidentAlternativeBookingPolicy ResidentAlternativeBookingPolicy { get; init; } = ResidentAlternativeBookingPolicy.AutoRelease;
 
     /// <summary>Base points for taking a shared reserved spot, before the distance multiplier.</summary>
     public int SharedTakenBasePoints { get; init; }
@@ -243,18 +255,29 @@ public sealed record IncentivePolicy
 
     public int AvailabilityFreeThresholdPercent { get; init; } = 60;
 
+    public bool HighOccupancyCampaignsEnabled { get; init; }
+
+    public int AvailabilityBusyThresholdPercent { get; init; } = 85;
+
     public int AvailabilityMinConsecutiveDays { get; init; } = 1;
 
     public int AvailabilitySendHourLocal { get; init; } = 9;
 
     public static IncentivePolicy Default { get; } = new();
 
+    public DateOnly FirstBookableDate(DateOnly today) =>
+        SameDayReservationsAllowed ? today : today.AddDays(1);
+
+    public bool IsReservationStartDateAllowed(DateTimeOffset start, DateTimeOffset now, TimeZoneInfo timeZone) =>
+        SiteTime.Today(start, timeZone) >= FirstBookableDate(SiteTime.Today(now, timeZone));
+
     /// <summary>Whether a plan starts inside the rolling local-calendar booking horizon.</summary>
     public bool IsWithinReservationHorizon(DateTimeOffset start, DateTimeOffset now, TimeZoneInfo timeZone)
     {
         var today = SiteTime.Today(now, timeZone);
         var startDate = SiteTime.Today(start, timeZone);
-        return startDate <= today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366));
+        return startDate >= FirstBookableDate(today)
+            && startDate <= today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366));
     }
 
     /// <summary>Whether a reservation may start on this local weekday.</summary>
@@ -422,7 +445,7 @@ public sealed record IncentivePolicy
     /// indefinite, but effective releases never extend beyond the same horizon as reservations.
     /// </summary>
     public DateOnly ResidentPlanHorizonEnd(DateOnly today) =>
-        today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366));
+        today.AddDays(Math.Clamp(Math.Min(ResidentPlanHorizonDays, ReservationHorizonDays), 1, 366));
 
     public DateTimeOffset ResidentProtectionDeadline(DateTimeOffset reservationStart, TimeZoneInfo timeZone)
     {

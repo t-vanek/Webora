@@ -31,6 +31,8 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>How many local calendar days ahead a new plan may start.</summary>
     public int ReservationHorizonDays { get; private set; } = 14;
 
+    public bool SameDayReservationsAllowed { get; private set; } = true;
+
     /// <summary>Local weekdays on which employees may start a new reservation.</summary>
     public Weekday AllowedReservationWeekdays { get; private set; } = Weekday.Everyday;
 
@@ -67,7 +69,7 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public int ResidentWastedShareClawbackPercent { get; private set; } = 25;
 
-    public int ResidentPlanHorizonDays { get; private set; } = 21;
+    public int ResidentPlanHorizonDays { get; private set; } = 14;
 
     public ResidentReclaimPolicy ResidentReclaimPolicy { get; private set; } = ResidentReclaimPolicy.AdvanceOrReplacement;
 
@@ -80,6 +82,8 @@ public class ParkingSettings : Entity, IAggregateRoot
     public TimeOnly ResidentProtectionPreviousDayTime { get; private set; } = new(18, 0);
 
     public ResidentNoReplacementAction ResidentNoReplacementAction { get; private set; } = ResidentNoReplacementAction.CancelAndQueue;
+
+    public ResidentAlternativeBookingPolicy ResidentAlternativeBookingPolicy { get; private set; } = ResidentAlternativeBookingPolicy.AutoRelease;
 
     public double? LotLatitude { get; private set; }
 
@@ -194,7 +198,7 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>State: when the collusion scan last ran.</summary>
     public DateTimeOffset? LastCollusionScanUtc { get; private set; }
 
-    // --- Availability campaigns (proactive "the lot is wide open" tips, bell + push only) ---
+    // --- Occupancy campaigns (planning notices for low and high demand, bell + push only) ---
 
     public bool AvailabilityCampaignsEnabled { get; private set; } = true;
 
@@ -204,7 +208,12 @@ public class ParkingSettings : Entity, IAggregateRoot
     /// <summary>A day counts as "wide open" below this projected occupancy.</summary>
     public int AvailabilityFreeThresholdPercent { get; private set; } = 60;
 
-    /// <summary>Minimum run of consecutive wide-open days before a campaign fires.</summary>
+    public bool HighOccupancyCampaignsEnabled { get; private set; }
+
+    /// <summary>A day counts as highly occupied at or above this projected occupancy.</summary>
+    public int AvailabilityBusyThresholdPercent { get; private set; } = 85;
+
+    /// <summary>Minimum run of consecutive days meeting either occupancy threshold.</summary>
     public int AvailabilityMinConsecutiveDays { get; private set; } = 1;
 
     /// <summary>Local hour of day at which a due campaign is sent (weekdays only).</summary>
@@ -284,6 +293,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         TimeSpan reminderLeadTime,
         ReservationTimeMode reservationTimeMode,
         int reservationHorizonDays,
+        bool sameDayReservationsAllowed,
         Weekday allowedReservationWeekdays,
         bool weeklyReservationLimitEnabled,
         int weeklyReservationLimit,
@@ -350,6 +360,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         bool availabilityCampaignsEnabled,
         int availabilityLookaheadDays,
         int availabilityFreeThresholdPercent,
+        bool highOccupancyCampaignsEnabled,
+        int availabilityBusyThresholdPercent,
         int availabilityMinConsecutiveDays,
         int availabilitySendHourLocal,
         int oversightSlaCriticalHours,
@@ -368,6 +380,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         int residentProtectionLeadHours,
         TimeOnly residentProtectionPreviousDayTime,
         ResidentNoReplacementAction residentNoReplacementAction,
+        ResidentAlternativeBookingPolicy residentAlternativeBookingPolicy,
         HolidayCalendarRegion holidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
         bool publicHolidayReservationsAllowed = false)
     {
@@ -379,6 +392,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReminderLeadTime = Clamp(reminderLeadTime);
         ReservationTimeMode = reservationTimeMode;
         ReservationHorizonDays = Math.Clamp(reservationHorizonDays, 1, 366);
+        SameDayReservationsAllowed = sameDayReservationsAllowed;
         AllowedReservationWeekdays = allowedReservationWeekdays.Sanitize() is Weekday.None
             ? Weekday.Everyday
             : allowedReservationWeekdays.Sanitize();
@@ -387,7 +401,7 @@ public class ParkingSettings : Entity, IAggregateRoot
             : HolidayCalendarRegion.CzechRepublic;
         PublicHolidayReservationsAllowed = publicHolidayReservationsAllowed;
         WeeklyReservationLimitEnabled = weeklyReservationLimitEnabled;
-        WeeklyReservationLimit = Math.Clamp(weeklyReservationLimit, 1, 7);
+        WeeklyReservationLimit = AllowedReservationWeekdays.ClampWeeklyReservationLimit(weeklyReservationLimit);
         LastMinuteUnlimitedHours = 0;
         PeakStart = peakStart;
         PeakEnd = peakEnd;
@@ -399,13 +413,14 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentMaxShareAllowance = Math.Max(0, residentMaxShareAllowance);
         ResidentSharePercentPerAllowance = Math.Max(0, residentSharePercentPerAllowance);
         ResidentWastedShareClawbackPercent = Math.Clamp(residentWastedShareClawbackPercent, 0, 100);
-        ResidentPlanHorizonDays = Math.Clamp(residentPlanHorizonDays, 1, 366);
+        ResidentPlanHorizonDays = Math.Clamp(residentPlanHorizonDays, 1, ReservationHorizonDays);
         ResidentReclaimPolicy = residentReclaimPolicy;
         ManualReleasesAreBinding = manualReleasesAreBinding;
         ResidentProtectionDeadlineMode = residentProtectionDeadlineMode;
         ResidentProtectionLeadHours = Math.Clamp(residentProtectionLeadHours, 1, 168);
         ResidentProtectionPreviousDayTime = residentProtectionPreviousDayTime;
         ResidentNoReplacementAction = residentNoReplacementAction;
+        ResidentAlternativeBookingPolicy = residentAlternativeBookingPolicy;
         LotLatitude = lotLatitude;
         LotLongitude = lotLongitude;
         SharedTakenBasePoints = Math.Max(0, sharedTakenBasePoints);
@@ -458,9 +473,20 @@ public class ParkingSettings : Entity, IAggregateRoot
         CollusionConcentrationPercent = Math.Clamp(collusionConcentrationPercent, 1, 100);
         CollusionScanIntervalHours = Math.Max(1, collusionScanIntervalHours);
         AvailabilityCampaignsEnabled = availabilityCampaignsEnabled;
-        AvailabilityLookaheadDays = Math.Clamp(availabilityLookaheadDays, 1, 60);
-        AvailabilityFreeThresholdPercent = Math.Clamp(availabilityFreeThresholdPercent, 1, 100);
-        AvailabilityMinConsecutiveDays = Math.Clamp(availabilityMinConsecutiveDays, 1, 30);
+        AvailabilityLookaheadDays = Math.Clamp(
+            availabilityLookaheadDays,
+            1,
+            Math.Min(60, ReservationHorizonDays));
+        AvailabilityFreeThresholdPercent = Math.Clamp(availabilityFreeThresholdPercent, 1, 99);
+        HighOccupancyCampaignsEnabled = highOccupancyCampaignsEnabled;
+        AvailabilityBusyThresholdPercent = Math.Clamp(
+            availabilityBusyThresholdPercent,
+            AvailabilityFreeThresholdPercent + 1,
+            100);
+        AvailabilityMinConsecutiveDays = Math.Clamp(
+            availabilityMinConsecutiveDays,
+            1,
+            AvailabilityLookaheadDays);
         AvailabilitySendHourLocal = Math.Clamp(availabilitySendHourLocal, 0, 23);
 
         // Kept ordered, so a "critical" case can never be given longer than a low-priority one —
@@ -536,11 +562,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReminderLeadTime = ReminderLeadTime,
         ReservationTimeMode = ReservationTimeMode,
         ReservationHorizonDays = ReservationHorizonDays,
+        SameDayReservationsAllowed = SameDayReservationsAllowed,
         AllowedReservationWeekdays = AllowedReservationWeekdays,
         HolidayCalendarRegion = HolidayCalendarRegion,
         PublicHolidayReservationsAllowed = PublicHolidayReservationsAllowed,
         WeeklyReservationLimitEnabled = WeeklyReservationLimitEnabled,
-        WeeklyReservationLimit = WeeklyReservationLimit,
+        WeeklyReservationLimit = AllowedReservationWeekdays.ClampWeeklyReservationLimit(WeeklyReservationLimit),
         LastMinuteUnlimitedHours = LastMinuteUnlimitedHours,
         PeakStart = PeakStart,
         PeakEnd = PeakEnd,
@@ -557,6 +584,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         ResidentProtectionLeadHours = ResidentProtectionLeadHours,
         ResidentProtectionPreviousDayTime = ResidentProtectionPreviousDayTime,
         ResidentNoReplacementAction = ResidentNoReplacementAction,
+        ResidentAlternativeBookingPolicy = ResidentAlternativeBookingPolicy,
         SharedTakenBasePoints = SharedTakenBasePoints,
         SharedTakenReferenceKm = SharedTakenReferenceKm,
         SharedTakenMaxMultiplier = SharedTakenMaxMultiplier,
@@ -607,6 +635,8 @@ public class ParkingSettings : Entity, IAggregateRoot
         AvailabilityCampaignsEnabled = AvailabilityCampaignsEnabled,
         AvailabilityLookaheadDays = AvailabilityLookaheadDays,
         AvailabilityFreeThresholdPercent = AvailabilityFreeThresholdPercent,
+        HighOccupancyCampaignsEnabled = HighOccupancyCampaignsEnabled,
+        AvailabilityBusyThresholdPercent = AvailabilityBusyThresholdPercent,
         AvailabilityMinConsecutiveDays = AvailabilityMinConsecutiveDays,
         AvailabilitySendHourLocal = AvailabilitySendHourLocal,
     };

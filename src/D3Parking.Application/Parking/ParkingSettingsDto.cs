@@ -12,6 +12,7 @@ public sealed record ParkingSettingsDto(
     TimeSpan ReminderLeadTime,
     ReservationTimeMode ReservationTimeMode,
     int ReservationHorizonDays,
+    bool SameDayReservationsAllowed,
     Weekday AllowedReservationWeekdays,
     bool WeeklyReservationLimitEnabled,
     int WeeklyReservationLimit,
@@ -76,6 +77,8 @@ public sealed record ParkingSettingsDto(
     bool AvailabilityCampaignsEnabled,
     int AvailabilityLookaheadDays,
     int AvailabilityFreeThresholdPercent,
+    bool HighOccupancyCampaignsEnabled,
+    int AvailabilityBusyThresholdPercent,
     int AvailabilityMinConsecutiveDays,
     int AvailabilitySendHourLocal,
     int OversightSlaCriticalHours,
@@ -94,5 +97,6 @@ public sealed record ParkingSettingsDto(
     int ResidentProtectionLeadHours,
     TimeOnly ResidentProtectionPreviousDayTime,
     ResidentNoReplacementAction ResidentNoReplacementAction,
+    ResidentAlternativeBookingPolicy ResidentAlternativeBookingPolicy,
     HolidayCalendarRegion HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
     bool PublicHolidayReservationsAllowed = false);

@@ -69,13 +69,13 @@ public class AuthTests : AnonymousTest
     }
 
     [Test]
-    public async Task Anonymous_home_is_the_landing_page_without_the_sidebar()
+    public async Task Anonymous_home_shows_the_existing_login_and_registration_screen()
     {
         await Page.GotoAsync("/");
-        await Expect(Page.Locator(".landing-hero__title")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".landing-feature")).ToHaveCountAsync(3);
-        // No navigation chrome for visitors — neither the sidebar nor the mobile drawer toggle.
+        await Expect(Page).ToHaveURLAsync(new Regex("/login$"));
+        await Expect(Page.Locator(".auth-split__aside")).ToBeVisibleAsync();
+        await Expect(Pages.Field(Page, "Input.Email")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".auth-tabs__tab[href='register']")).ToBeVisibleAsync();
         await Expect(Page.Locator(".side-nav")).ToHaveCountAsync(0);
-        await Expect(Page.Locator(".nav-drawer-toggle")).ToHaveCountAsync(0);
     }
 }

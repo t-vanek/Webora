@@ -22,8 +22,8 @@ public class DashboardTests : AdminTest
     public async Task A_quick_action_tile_navigates_to_its_page()
     {
         await Page.GotoAsync("/");
-        await Page.Locator(".home-tile", new() { HasText = "Žebříček" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex("parking/leaderboard"));
+        await Page.Locator(".home-tile", new() { HasText = "Ocenění" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex("parking/achievements"));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public class DashboardTests : AdminTest
         // honest answer to "where am I".
         var children = new[]
         {
-            ("/parking/leaderboard", "Žebříček"),
+            ("/parking/achievements", "Ocenění"),
             ("/parking/reports", "Moje hlášení"),
         };
 

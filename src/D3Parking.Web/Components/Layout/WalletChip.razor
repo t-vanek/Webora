@@ -1,15 +1,13 @@
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
-@inject IIncentiveService Incentives
+@inject IAchievementService Achievements
 @inject IParkingSettingsService ParkingSettings
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
-@if (_score is not null)
+@if (_summary is not null)
 {
-    @* The tier collapsed from a text chip to a colour-coded dot; the full tier name stays in the
-       tooltip and, larger, on the leaderboard this chip links to. *@
-    <a href="parking/leaderboard" class="wallet-chip"
-       title="@($"{(_creditsEnabled ? L["Parking_MyCredits"] : L["Parking_MyScore"])} — {L[$"Parking_Tier_{_score.Tier}"]}")">
+    <a href="parking/achievements" class="wallet-chip"
+       title="@(_creditsEnabled ? L["Parking_MyCredits"] : L["Parking_Achievements_Title"])">
         @if (_creditsEnabled)
         {
             <FluentIcon Value="@(new Icons.Regular.Size16.Wallet())" Color="Color.Custom" CustomColor="currentColor" />
@@ -19,17 +17,16 @@
             <FluentIcon Value="@(new Icons.Regular.Size16.Trophy())" Color="Color.Custom" CustomColor="currentColor" />
         }
         <span class="wallet-chip__credits">
-            @(_creditsEnabled ? _score.Credits : _score.Points)
-            <small>@(_creditsEnabled ? L["Parking_Credits"] : L["Parking_Points"])</small>
+            @(_creditsEnabled ? _summary.Credits : _summary.Achievements.Count)
+            <small>@(_creditsEnabled ? L["Parking_Credits"] : L["Parking_Achievements_Count"])</small>
         </span>
-        <span class="wallet-chip__dot wallet-chip__dot--@_score.Tier" aria-hidden="true"></span>
     </a>
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
-    private ParkerScoreDto? _score;
+    private AchievementSummaryDto? _summary;
     private bool _creditsEnabled;
 
     protected override async Task OnInitializedAsync()
@@ -41,21 +38,21 @@
 
         var authUser = (await AuthState).User;
         if (!authUser.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.Reserve)
-            && !authUser.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewLeaderboard))
+            && !authUser.HasClaim(D3ParkingClaimTypes.Permission, Permissions.Parking.ViewAchievements))
         {
             return;
         }
 
         // Read the id straight from the auth claims rather than UserManager.GetUserAsync:
         // this component lives in the layout, so a DB lookup here races the page's own
-        // UserManager call on the circuit-scoped Identity DbContext. GetScoreAsync uses its
+        // UserManager call on the circuit-scoped Identity DbContext. GetSummaryAsync uses its
         // own pooled context and is safe to call concurrently.
         if (Guid.TryParse(UserManager.GetUserId(authUser), out var userId))
         {
-            var score = Incentives.GetScoreAsync(userId);
+            var summary = Achievements.GetSummaryAsync(userId);
             var policy = ParkingSettings.GetPolicyAsync();
-            await Task.WhenAll(score, policy);
-            _score = score.Result;
+            await Task.WhenAll(summary, policy);
+            _summary = summary.Result;
             _creditsEnabled = policy.Result.CreditsEnabled;
         }
     }

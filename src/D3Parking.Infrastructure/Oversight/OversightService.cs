@@ -986,7 +986,9 @@ public sealed class OversightService(
             return Task.FromResult(ParkingResult.Failure("Parking_Oversight_Error_MayNotSanction"));
         }
 
-        var deductedPoints = Math.Max(0, points);
+        // Reputation points are legacy data. Oversight may still protect the operational credit
+        // budget, but it must never reduce reputation or an earned achievement.
+        const int deductedPoints = 0;
         var deductedCredits = Math.Max(0, credits);
 
         return MutateAsync(caseId, reviewerId, scope, async (@case, dbContext, now) =>
@@ -1002,7 +1004,7 @@ public sealed class OversightService(
                 return ParkingResult.Failure("Parking_Oversight_Error_SanctionSelf");
             }
 
-            if (deductedPoints > 0 || deductedCredits > 0)
+            if (deductedCredits > 0)
             {
                 var score = await dbContext.ParkerScores.FirstOrDefaultAsync(s => s.UserId == targetUserId, cancellationToken);
                 if (score is null)
@@ -1016,12 +1018,6 @@ public sealed class OversightService(
                 // Two ledger reasons would be inventing vocabulary for one act; the detail says
                 // which case it came from, which is what anyone reading the history will ask.
                 var detail = messages["Parking_Ledger_OversightSanction", @case.Number];
-                if (deductedPoints > 0)
-                {
-                    dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
-                        targetUserId, IncentiveReason.ManualAdjustment, -deductedPoints, null, now, detail));
-                }
-
                 if (deductedCredits > 0)
                 {
                     dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(

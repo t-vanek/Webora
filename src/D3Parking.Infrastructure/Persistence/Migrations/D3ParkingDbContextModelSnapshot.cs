@@ -573,8 +573,16 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateOnly>("CampaignDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
 
                     b.Property<int>("OccupancyPercent")
                         .HasColumnType("int");
@@ -590,9 +598,10 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAtUtc");
+                    b.HasIndex("Kind", "CampaignDate")
+                        .IsUnique();
 
-                    b.HasIndex("PeriodStart", "PeriodEnd");
+                    b.HasIndex("Kind", "PeriodStart", "PeriodEnd");
 
                     b.ToTable("AvailabilityCampaigns", (string)null);
                 });
@@ -801,6 +810,43 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.ToTable("ParkerScores", (string)null);
                 });
 
+            modelBuilder.Entity("D3Parking.Domain.Parking.Incentives.ParkingContribution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BeneficiaryUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "OccurredAtUtc");
+
+                    b.HasIndex("UserId", "Kind", "SourceId")
+                        .IsUnique();
+
+                    b.ToTable("ParkingContributions", (string)null);
+                });
+
             modelBuilder.Entity("D3Parking.Domain.Parking.Incentives.PointsLedgerEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1003,6 +1049,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<int>("AutoVerifyMaxDistanceKm")
                         .HasColumnType("int");
 
+                    b.Property<int>("AvailabilityBusyThresholdPercent")
+                        .HasColumnType("int");
+
                     b.Property<bool>("AvailabilityCampaignsEnabled")
                         .HasColumnType("bit");
 
@@ -1054,6 +1103,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<bool>("HighOccupancyCampaignsEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<string>("HolidayCalendarRegion")
                         .IsRequired()
@@ -1260,6 +1312,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(16)")
                         .HasDefaultValue("TimeWindow");
 
+                    b.Property<int>("ResidentAlternativeBookingPolicy")
+                        .HasColumnType("int");
+
                     b.Property<TimeOnly>("ResidentHoldUntil")
                         .HasColumnType("time");
 
@@ -1295,6 +1350,11 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("ResidentWastedShareClawbackPercent")
                         .HasColumnType("int");
+
+                    b.Property<bool>("SameDayReservationsAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("SharedTakenBasePoints")
                         .HasColumnType("int");
