@@ -5,6 +5,7 @@ using D3Parking.Application;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
@@ -171,8 +172,25 @@ public sealed class ReservationService(
         bool confirmResidentRelease = false, CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(
             () => ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, queueEntryId: null,
-                confirmResidentRelease, cancellationToken),
+                confirmResidentRelease, handoffId: null, handoffActorId: null, cancellationToken),
             cancellationToken);
+
+    public async Task<ParkingResult> AcceptHandoffAsync(
+        Guid actorId, Guid handoffId, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var preview = await dbContext.ResidentSpotHandoffs.AsNoTracking()
+            .FirstOrDefaultAsync(h => h.Id == handoffId, cancellationToken);
+        if (preview is null)
+        {
+            return ParkingResult.Failure("Parking_Handoff_Error_NotActive");
+        }
+
+        return await OptimisticConcurrency.RetryAsync(
+            () => ReserveCoreAsync(preview.RecipientId, preview.SpotId, preview.StartUtc, preview.EndUtc,
+                fromQueue: false, queueEntryId: null, confirmResidentRelease: true,
+                handoffId, actorId, cancellationToken), cancellationToken);
+    }
 
     public async Task<ApologyVoucherDto?> GetMyApologyVoucherAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -192,6 +210,7 @@ public sealed class ReservationService(
 
     private async Task<ParkingResult> ReserveCoreAsync(Guid userId, Guid spotId, DateTimeOffset startUtc,
         DateTimeOffset endUtc, bool fromQueue, Guid? queueEntryId, bool confirmResidentRelease,
+        Guid? handoffId, Guid? handoffActorId,
         CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
@@ -249,6 +268,34 @@ public sealed class ReservationService(
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
+        ResidentSpotHandoff? handoff = null;
+        if (handoffId is { } directHandoffId)
+        {
+            handoff = await dbContext.ResidentSpotHandoffs
+                .FirstOrDefaultAsync(h => h.Id == directHandoffId, cancellationToken);
+            var actorMayAccept = handoff is not null && handoff.IsActive
+                && handoff.ExpiresAtUtc > now
+                && handoff.RecipientId == userId
+                && handoff.SpotId == spotId
+                && handoff.StartUtc == startUtc
+                && handoff.EndUtc == endUtc
+                && handoffActorId is { } actor
+                && (handoff.Kind == ResidentSpotHandoffKind.ResidentOffer
+                    ? handoff.Status == ResidentSpotHandoffStatus.Offered && actor == handoff.RecipientId
+                    : handoff.Status == ResidentSpotHandoffStatus.PendingResident && actor == handoff.ResidentId);
+            if (!actorMayAccept)
+            {
+                return ParkingResult.Failure("Parking_Handoff_Error_NotActive");
+            }
+
+            var recipientActive = await dbContext.Users.AsNoTracking()
+                .AnyAsync(u => u.Id == userId && u.Status == AccountStatus.Active, cancellationToken);
+            if (!recipientActive)
+            {
+                return ParkingResult.Failure("Parking_Handoff_Error_RecipientUnavailable");
+            }
+        }
+
         var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == spotId, cancellationToken);
         if (spot is null)
         {
@@ -288,18 +335,39 @@ public sealed class ReservationService(
         Guid? sharedByResidentId = null;
         if (hasResidentMemberships && !assignedForWholeWindow)
         {
-            var releaseRows = await dbContext.SpotReleases
-                .Where(r => r.SpotId == spotId && r.Date >= firstResidentDay && r.Date <= lastResidentDay)
-                .Select(r => new { r.Date, r.OwnerId })
-                .ToListAsync(cancellationToken);
-            var releasedDates = releaseRows.Select(r => r.Date).ToHashSet();
-            sharedByResidentId = releaseRows.OrderBy(r => r.Date).Select(r => (Guid?)r.OwnerId).FirstOrDefault();
-
-            for (var date = firstResidentDay; date <= lastResidentDay; date = date.AddDays(1))
+            if (handoff is not null)
             {
-                if (!releasedDates.Contains(date))
+                var residentDates = await ResidentAllocation.AssignedDatesAsync(
+                    dbContext, spot, handoff.ResidentId, firstResidentDay, lastResidentDay, cancellationToken);
+                if (residentDates.Count != lastResidentDay.DayNumber - firstResidentDay.DayNumber + 1)
                 {
-                    return ParkingResult.Failure("Parking_Error_SpotReserved");
+                    return ParkingResult.Failure("Parking_Handoff_Error_NotAssigned");
+                }
+
+                var publiclyReleased = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spotId
+                    && r.Date >= firstResidentDay && r.Date <= lastResidentDay, cancellationToken);
+                if (publiclyReleased)
+                {
+                    return ParkingResult.Failure("Parking_Handoff_Error_PubliclyReleased");
+                }
+
+                sharedByResidentId = handoff.ResidentId;
+            }
+            else
+            {
+                var releaseRows = await dbContext.SpotReleases
+                    .Where(r => r.SpotId == spotId && r.Date >= firstResidentDay && r.Date <= lastResidentDay)
+                    .Select(r => new { r.Date, r.OwnerId })
+                    .ToListAsync(cancellationToken);
+                var releasedDates = releaseRows.Select(r => r.Date).ToHashSet();
+                sharedByResidentId = releaseRows.OrderBy(r => r.Date).Select(r => (Guid?)r.OwnerId).FirstOrDefault();
+
+                for (var date = firstResidentDay; date <= lastResidentDay; date = date.AddDays(1))
+                {
+                    if (!releasedDates.Contains(date))
+                    {
+                        return ParkingResult.Failure("Parking_Error_SpotReserved");
+                    }
                 }
             }
         }
@@ -434,6 +502,12 @@ public sealed class ReservationService(
         var occupancy = await ComputeOccupancyAsync(dbContext, startUtc, endUtc, cancellationToken);
         var cost = policy.ComputeReservationCost(occupancy);
 
+        if (handoff is { Kind: ResidentSpotHandoffKind.UserRequest, MaxCreditsAuthorized: { } maximum }
+            && cost > maximum)
+        {
+            return ParkingResult.Failure("Parking_Handoff_Error_PriceIncreased");
+        }
+
         // The apology compensation automatically absorbs the next non-zero planning price instead
         // of the wallet. It is redeemed inside this transaction; a timely cancel/release restores
         // it (see RestoreVoucherAsync), the same terms under which credits would be refunded.
@@ -500,6 +574,8 @@ public sealed class ReservationService(
 
             entry.Claim();
         }
+
+        handoff?.Accept(reservation.Id, now);
 
         // Achievements acknowledge only positive, observable outcomes. They are recorded in the
         // same transaction as the booking that proves them, so a retry cannot praise the same
@@ -1349,7 +1425,7 @@ public sealed class ReservationService(
         // and balance check as any direct booking. The offer is re-checked and marked claimed inside
         // that booking's transaction, so the two cannot come apart.
         return await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, queueEntryId,
-            confirmResidentRelease: false, cancellationToken);
+            confirmResidentRelease: false, handoffId: null, handoffActorId: null, cancellationToken);
     }
 
     public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)

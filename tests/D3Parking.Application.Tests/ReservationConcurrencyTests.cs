@@ -6,12 +6,14 @@ using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Contracts.Notifications;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
+using D3Parking.Infrastructure.Identity;
 using NUnit.Framework;
 
 namespace D3Parking.Application.Tests;
@@ -220,6 +222,91 @@ public class ReservationConcurrencyTests
         var closeIn = await closeInService.ReserveAsync(userId, spots[2].Id, sunday, sunday.AddHours(8));
         Assert.That(closeIn.Succeeded, Is.False,
             "Approaching the start must not silently change which days consume the weekly quota.");
+    }
+
+    [Test]
+    public async Task Accepting_a_named_offer_atomically_creates_the_recipient_reservation()
+    {
+        var resident = new ApplicationUser
+        {
+            Email = $"resident-{Guid.NewGuid():N}@test.local",
+            UserName = $"resident-{Guid.NewGuid():N}@test.local",
+            Status = AccountStatus.Active,
+        };
+        var recipient = new ApplicationUser
+        {
+            Email = $"recipient-{Guid.NewGuid():N}@test.local",
+            UserName = $"recipient-{Guid.NewGuid():N}@test.local",
+            Status = AccountStatus.Active,
+        };
+        var spot = new ParkingSpot($"HO-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard);
+        spot.AssignOwner(resident.Id);
+        var start = new DateTimeOffset(2026, 7, 16, 8, 0, 0, TimeSpan.Zero);
+        var handoff = ResidentSpotHandoff.CreateOffer(
+            spot.Id, resident.Id, recipient.Id, start, start.AddHours(8), Now, Now.AddHours(6));
+
+        await SeedAsync(db =>
+        {
+            db.Users.AddRange(resident, recipient);
+            db.ParkingSpots.Add(spot);
+            db.ResidentSpotHandoffs.Add(handoff);
+        });
+
+        var result = await _reservations.AcceptHandoffAsync(recipient.Id, handoff.Id);
+
+        Assert.That(result.Succeeded, Is.True, string.Join(", ", result.Errors));
+        await using var db = new D3ParkingDbContext(_options);
+        var persisted = await db.ResidentSpotHandoffs.SingleAsync(h => h.Id == handoff.Id);
+        var reservation = await db.Reservations.SingleAsync(r => r.Id == persisted.ReservationId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(persisted.Status, Is.EqualTo(ResidentSpotHandoffStatus.Accepted));
+            Assert.That(reservation.UserId, Is.EqualTo(recipient.Id));
+            Assert.That(reservation.SpotId, Is.EqualTo(spot.Id));
+            Assert.That(reservation.SharedByResidentId, Is.EqualTo(resident.Id));
+        });
+    }
+
+    [Test]
+    public async Task Resident_approval_automatically_converts_a_user_request_to_a_reservation()
+    {
+        var resident = new ApplicationUser
+        {
+            Email = $"request-resident-{Guid.NewGuid():N}@test.local",
+            UserName = $"request-resident-{Guid.NewGuid():N}@test.local",
+            Status = AccountStatus.Active,
+        };
+        var requester = new ApplicationUser
+        {
+            Email = $"requester-{Guid.NewGuid():N}@test.local",
+            UserName = $"requester-{Guid.NewGuid():N}@test.local",
+            Status = AccountStatus.Active,
+        };
+        var spot = new ParkingSpot($"HR-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard);
+        spot.AssignOwner(resident.Id);
+        var start = new DateTimeOffset(2026, 7, 17, 8, 0, 0, TimeSpan.Zero);
+        var handoff = ResidentSpotHandoff.CreateRequest(
+            spot.Id, resident.Id, requester.Id, start, start.AddHours(8), Now, Now.AddHours(6), 0);
+
+        await SeedAsync(db =>
+        {
+            db.Users.AddRange(resident, requester);
+            db.ParkingSpots.Add(spot);
+            db.ResidentSpotHandoffs.Add(handoff);
+        });
+
+        var result = await _reservations.AcceptHandoffAsync(resident.Id, handoff.Id);
+
+        Assert.That(result.Succeeded, Is.True, string.Join(", ", result.Errors));
+        await using var db = new D3ParkingDbContext(_options);
+        var persisted = await db.ResidentSpotHandoffs.SingleAsync(h => h.Id == handoff.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(persisted.Status, Is.EqualTo(ResidentSpotHandoffStatus.Accepted));
+            Assert.That(persisted.ReservationId, Is.Not.Null);
+            Assert.That(db.Reservations.Any(r => r.Id == persisted.ReservationId
+                && r.UserId == requester.Id && r.SpotId == spot.Id), Is.True);
+        });
     }
 
     private async Task SeedAsync(Action<D3ParkingDbContext> seed)

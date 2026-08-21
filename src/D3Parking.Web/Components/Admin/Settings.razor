@@ -50,85 +50,110 @@
                         <code>@(_baseUrl ?? L["Settings_NotSet"])</code>
                     </FluentStack>
 
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="8">
-                            <FluentTextField Name="SiteSettings.CanonicalHost"
-                                             AutoComplete="off"
-                                             @bind-Value="_form.CanonicalHost"
-                                             Label="@L["Settings_CanonicalHost"]"
-                                             Placeholder="www.example.com"
-                                             Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_CanonicalHostHelp"]</FluentLabel>
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="2">
-                            <FluentSelect TOption="UrlScheme"
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-canonical-host">@L["Settings_CanonicalHost"]</label>
+                                @SettingsTooltip("settings-canonical-host-help", L["Settings_CanonicalHostHelp"].Value)
+                            </div>
+                            <FluentTextField Id="settings-canonical-host" Name="SiteSettings.CanonicalHost" AutoComplete="off"
+                                             @bind-Value="_form.CanonicalHost" AriaLabel="@L["Settings_CanonicalHost"]"
+                                             Placeholder="www.example.com" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-scheme">@L["Settings_Scheme"]</label>
+                                @SettingsTooltip("settings-scheme-help", L["Settings_SchemeHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-scheme" TOption="UrlScheme"
                                           Items="@(new[] { UrlScheme.Https, UrlScheme.Http })"
                                           OptionText="@(s => s == UrlScheme.Https ? "HTTPS" : "HTTP")"
-                                          @bind-SelectedOption="_form.Scheme"
-                                          Label="@L["Settings_Scheme"]"
-                                          Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="6" md="2">
-                            <FluentNumberField Name="SiteSettings.Port"
-                                               AutoComplete="off"
-                                               TValue="int?" @bind-Value="_form.Port"
-                                               Label="@L["Settings_Port"]"
-                                               Min="1" Max="65535"
-                                               Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_PortHelp"]</FluentLabel>
-                        </FluentGridItem>
-                    </FluentGrid>
-
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                        <FluentSwitch @bind-Value="_form.ForceHttps" Label="@L["Settings_ForceHttps"]" />
+                                          @bind-SelectedOption="_form.Scheme" AriaLabel="@L["Settings_Scheme"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-port">@L["Settings_Port"]</label>
+                                @SettingsTooltip("settings-port-help", L["Settings_PortHelp"].Value)
+                            </div>
+                            <FluentNumberField Id="settings-port" Name="SiteSettings.Port" AutoComplete="off"
+                                               TValue="int?" @bind-Value="_form.Port" AriaLabel="@L["Settings_Port"]"
+                                               Min="1" Max="65535" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_ForceHttps"]</span>
+                                @SettingsTooltip("settings-force-https-help", L["Settings_ForceHttpsHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.ForceHttps" AriaLabel="@L["Settings_ForceHttps"]" />
+                        </div>
                         @if (_form.ForceHttps && _form.Scheme == UrlScheme.Http)
                         {
-                            <FluentLabel Typo="Typography.Body" Color="Color.Warning">@L["Settings_ForceHttpsSchemeWarning"]</FluentLabel>
+                            <FluentLabel Class="planner-setting-note" Typo="Typography.Body" Color="Color.Warning">@L["Settings_ForceHttpsSchemeWarning"]</FluentLabel>
                         }
-                    </FluentStack>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-www">@L["Settings_Www"]</label>
+                                @SettingsTooltip("settings-www-help", L["Settings_WwwHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-www" TOption="WwwPreference"
+                                          Items="@(new[] { WwwPreference.NoPreference, WwwPreference.PreferWww, WwwPreference.PreferNonWww })"
+                                          OptionText="@(w => WwwLabel(w))" @bind-SelectedOption="_form.WwwPreference"
+                                          AriaLabel="@L["Settings_Www"]" Style="width:100%" />
+                        </div>
+                    </div>
 
-                    <FluentSelect TOption="WwwPreference"
-                                  Items="@(new[] { WwwPreference.NoPreference, WwwPreference.PreferWww, WwwPreference.PreferNonWww })"
-                                  OptionText="@(w => WwwLabel(w))"
-                                  @bind-SelectedOption="_form.WwwPreference"
-                                  Label="@L["Settings_Www"]"
-                                  Style="max-width:280px" />
-
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                        <FluentLabel Typo="Typography.Subject">@L["Settings_Hsts"]</FluentLabel>
-                        <FluentSwitch @bind-Value="_form.HstsEnabled" Label="@L["Settings_HstsEnabled"]" />
-                        <FluentGrid Spacing="2">
-                            <FluentGridItem xs="12" md="3">
-                                <FluentNumberField @bind-Value="_form.HstsMaxAgeDays"
-                                                   Label="@L["Settings_HstsMaxAge"]"
-                                                   Min="0"
-                                                   Disabled="@(!_form.HstsEnabled)"
-                                                   Style="width:100%" />
-                            </FluentGridItem>
-                            <FluentGridItem xs="12" md="9">
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Style="padding-top:24px">
-                                    <FluentSwitch @bind-Value="_form.HstsIncludeSubDomains"
-                                                  Label="@L["Settings_HstsIncludeSubDomains"]"
-                                                  Disabled="@(!_form.HstsEnabled)" />
-                                    <FluentSwitch @bind-Value="_form.HstsPreload"
-                                                  Label="@L["Settings_HstsPreload"]"
-                                                  Disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
-                                </FluentStack>
-                            </FluentGridItem>
-                        </FluentGrid>
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.ShieldTask())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Settings_Hsts"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_HstsEnabled"]</span>
+                                @SettingsTooltip("settings-hsts-enabled-help", L["Settings_HstsEnabledHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.HstsEnabled" AriaLabel="@L["Settings_HstsEnabled"]" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-hsts-age">@L["Settings_HstsMaxAge"]</label>
+                                @SettingsTooltip("settings-hsts-age-help", L["Settings_HstsMaxAgeHelp"].Value)
+                            </div>
+                            <FluentNumberField Id="settings-hsts-age" @bind-Value="_form.HstsMaxAgeDays"
+                                               AriaLabel="@L["Settings_HstsMaxAge"]" Min="0"
+                                               Disabled="@(!_form.HstsEnabled)" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_HstsIncludeSubDomains"]</span>
+                                @SettingsTooltip("settings-hsts-subdomains-help", L["Settings_HstsIncludeSubDomainsHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.HstsIncludeSubDomains" AriaLabel="@L["Settings_HstsIncludeSubDomains"]"
+                                          Disabled="@(!_form.HstsEnabled)" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_HstsPreload"]</span>
+                                @SettingsTooltip("settings-hsts-preload-help", L["Settings_HstsPreloadHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.HstsPreload" AriaLabel="@L["Settings_HstsPreload"]"
+                                          Disabled="@(!_form.HstsEnabled || !_form.HstsIncludeSubDomains)" />
+                        </div>
                         @if (_form.HstsEnabled && _form.HstsPreload)
                         {
-                            <FluentLabel Typo="Typography.Body" Color="Color.Warning">@L["Settings_HstsPreloadWarning"]</FluentLabel>
+                            <FluentLabel Class="planner-setting-note" Typo="Typography.Body" Color="Color.Warning">@L["Settings_HstsPreloadWarning"]</FluentLabel>
                         }
-                    </FluentStack>
+                    </div>
 
-                    <div>
-                        <FluentTextArea @bind-Value="_form.AliasesText"
-                                        Label="@L["Settings_Aliases"]"
-                                        Rows="3"
-                                        Placeholder="example.com&#10;example.net"
-                                        Style="width:100%" />
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_AliasesHelp"]</FluentLabel>
+                    <div class="planner-setting-row planner-setting-row--top">
+                        <div class="planner-setting-row__label">
+                            <label for="settings-aliases">@L["Settings_Aliases"]</label>
+                            @SettingsTooltip("settings-aliases-help", L["Settings_AliasesHelp"].Value)
+                        </div>
+                        <FluentTextArea Id="settings-aliases" @bind-Value="_form.AliasesText" AriaLabel="@L["Settings_Aliases"]"
+                                        Rows="3" Placeholder="example.com&#10;example.net" Style="width:100%" />
                     </div>
 
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Settings_EnforcementNote"]</small></FluentLabel>
@@ -150,28 +175,28 @@
                             <FluentLabel Typo="Typography.Subject">@L["Settings_RegionSection"]</FluentLabel>
                         </div>
                     </div>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="4">
-                            <FluentSelect TOption="string"
-                                          Items="@LanguageOptions"
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-language">@L["Settings_DefaultLanguage"]</label>
+                                @SettingsTooltip("settings-language-help", L["Settings_DefaultLanguageHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-language" TOption="string" Items="@LanguageOptions"
                                           OptionText="@(c => string.IsNullOrEmpty(c) ? L["Settings_Automatic"] : CultureLabel(c))"
-                                          OptionValue="@(c => c)"
-                                          @bind-Value="_regional.DefaultLanguage"
-                                          Label="@L["Settings_DefaultLanguage"]"
-                                          Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultLanguageHelp"]</FluentLabel>
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="8">
-                            <FluentSelect TOption="string"
-                                          Items="@TimeZoneOptions"
+                                          OptionValue="@(c => c)" @bind-Value="_regional.DefaultLanguage"
+                                          AriaLabel="@L["Settings_DefaultLanguage"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-time-zone">@L["Settings_DefaultTimeZone"]</label>
+                                @SettingsTooltip("settings-time-zone-help", L["Settings_DefaultTimeZoneHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-time-zone" TOption="string" Items="@TimeZoneOptions"
                                           OptionText="@(id => string.IsNullOrEmpty(id) ? L["Settings_ServerLocal"] : TimeZoneLabel(id))"
-                                          OptionValue="@(id => id)"
-                                          @bind-Value="_regional.DefaultTimeZoneId"
-                                          Label="@L["Settings_DefaultTimeZone"]"
-                                          Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultTimeZoneHelp"]</FluentLabel>
-                        </FluentGridItem>
-                    </FluentGrid>
+                                          OptionValue="@(id => id)" @bind-Value="_regional.DefaultTimeZoneId"
+                                          AriaLabel="@L["Settings_DefaultTimeZone"]" Style="width:100%" />
+                        </div>
+                    </div>
 
                     <div class="settings-savebar">
                         <span>@L["Settings_TabSaveHint"]</span>
@@ -190,28 +215,26 @@
                             <FluentLabel Typo="Typography.Subject">@L["Settings_EncodingSection"]</FluentLabel>
                         </div>
                     </div>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
-                            <FluentSelect TOption="string"
-                                          Items="@Charsets"
-                                          OptionText="@(c => c.ToUpperInvariant())"
-                                          OptionValue="@(c => c)"
-                                          @bind-Value="_encoding.PageCharset"
-                                          Label="@L["Settings_PageCharset"]"
-                                          Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_PageCharsetHelp"]</FluentLabel>
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
-                            <FluentSelect TOption="string"
-                                          Items="@Charsets"
-                                          OptionText="@(c => c.ToUpperInvariant())"
-                                          OptionValue="@(c => c)"
-                                          @bind-Value="_encoding.EmailCharset"
-                                          Label="@L["Settings_EmailCharset"]"
-                                          Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EmailCharsetHelp"]</FluentLabel>
-                        </FluentGridItem>
-                    </FluentGrid>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-page-charset">@L["Settings_PageCharset"]</label>
+                                @SettingsTooltip("settings-page-charset-help", L["Settings_PageCharsetHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-page-charset" TOption="string" Items="@Charsets"
+                                          OptionText="@(c => c.ToUpperInvariant())" OptionValue="@(c => c)"
+                                          @bind-Value="_encoding.PageCharset" AriaLabel="@L["Settings_PageCharset"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-email-charset">@L["Settings_EmailCharset"]</label>
+                                @SettingsTooltip("settings-email-charset-help", L["Settings_EmailCharsetHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-email-charset" TOption="string" Items="@Charsets"
+                                          OptionText="@(c => c.ToUpperInvariant())" OptionValue="@(c => c)"
+                                          @bind-Value="_encoding.EmailCharset" AriaLabel="@L["Settings_EmailCharset"]" Style="width:100%" />
+                        </div>
+                    </div>
 
                     <div class="settings-savebar">
                         <span>@L["Settings_TabSaveHint"]</span>
@@ -230,25 +253,24 @@
                             <FluentLabel Typo="Typography.Subject">@L["Settings_AccountsSection"]</FluentLabel>
                         </div>
                     </div>
-                    <div style="max-width:480px">
-                        <FluentSelect TOption="string"
-                                      Items="@RoleOptions"
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <label for="settings-default-role">@L["Settings_DefaultRole"]</label>
+                            @SettingsTooltip("settings-default-role-help", L["Settings_DefaultRoleHelp"].Value)
+                        </div>
+                        <FluentSelect Id="settings-default-role" TOption="string" Items="@RoleOptions"
                                       OptionText="@(r => string.IsNullOrEmpty(r) ? L["Settings_DefaultRole_None"] : AuthorizationDisplay.RoleName(L, r))"
-                                      OptionValue="@(r => r)"
-                                      @bind-Value="_accounts.DefaultRole"
-                                      Label="@L["Settings_DefaultRole"]"
-                                      Style="width:100%" />
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_DefaultRoleHelp"]</FluentLabel>
-                        @if (string.IsNullOrEmpty(_accounts.DefaultRole))
-                        {
-                            @* "No role" is a legitimate choice for sites that vet every account by
-                               hand, but its consequence is invisible until someone registers and
-                               finds an empty application. State it here instead. *@
-                            <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar" AllowDismiss="false">
-                                @L["Admin_Settings_NoDefaultRoleWarning"]
-                            </FluentMessageBar>
-                        }
+                                      OptionValue="@(r => r)" @bind-Value="_accounts.DefaultRole"
+                                      AriaLabel="@L["Settings_DefaultRole"]" Style="width:100%" />
                     </div>
+                    @if (string.IsNullOrEmpty(_accounts.DefaultRole))
+                    {
+                        @* "No role" is a legitimate choice for sites that vet every account by
+                           hand, but its consequence is invisible until someone registers. *@
+                        <FluentMessageBar Class="site-settings-message" Intent="MessageIntent.Warning" Type="MessageType.MessageBar" AllowDismiss="false">
+                            @L["Admin_Settings_NoDefaultRoleWarning"]
+                        </FluentMessageBar>
+                    }
 
                     <div class="settings-savebar">
                         <span>@L["Settings_TabSaveHint"]</span>
@@ -283,16 +305,22 @@
 
                     <div class="settings-section__head">
                         <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Building())" Color="Color.Custom" CustomColor="currentColor" />
                             <FluentLabel Typo="Typography.Subject">@L["Settings_EntraSignInSection"]</FluentLabel>
-                            @SettingsTooltip("entra-sign-in-help", L["Settings_EntraSignInTooltip"].Value)
                         </div>
-                        <FluentSwitch @bind-Value="_entraForm.Enabled" Disabled="@Locked(EntraFields.Enabled)"
-                                      Label="@L["Settings_EntraEnabled"]" />
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraSignInHelp"]</FluentLabel>
 
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_EntraEnabled"]</span>
+                                @SettingsTooltip("entra-sign-in-help", L["Settings_EntraSignInTooltip"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_entraForm.Enabled" Disabled="@Locked(EntraFields.Enabled)"
+                                          AriaLabel="@L["Settings_EntraEnabled"]" />
+                        </div>
+                        <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <label for="entra-tenant-id">@L["Settings_EntraTenantId"]</label>
                                 @SettingsTooltip("entra-tenant-id-help", L["Settings_EntraTenantIdTooltip"].Value)
@@ -300,9 +328,9 @@
                             <FluentTextField Id="entra-tenant-id" @bind-Value="_entraForm.TenantId" AriaLabel="@L["Settings_EntraTenantId"]"
                                              Placeholder="00000000-0000-0000-0000-000000000000"
                                              Disabled="@Locked(EntraFields.TenantId)" Style="width:100%" />
-                            @LockNote(EntraFields.TenantId)
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
+                        </div>
+                        @LockNote(EntraFields.TenantId)
+                        <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <label for="entra-client-id">@L["Settings_EntraClientId"]</label>
                                 @SettingsTooltip("entra-client-id-help", L["Settings_EntraClientIdTooltip"].Value)
@@ -310,41 +338,46 @@
                             <FluentTextField Id="entra-client-id" @bind-Value="_entraForm.ClientId" AriaLabel="@L["Settings_EntraClientId"]"
                                              Placeholder="00000000-0000-0000-0000-000000000000"
                                              Disabled="@Locked(EntraFields.ClientId)" Style="width:100%" />
-                            @LockNote(EntraFields.ClientId)
-                        </FluentGridItem>
-                    </FluentGrid>
+                        </div>
+                        @LockNote(EntraFields.ClientId)
+                    </div>
 
-                    <div>
+                    <div class="planner-setting-row planner-setting-row--top">
                         <div class="planner-setting-row__label">
                             <label for="entra-client-secret">@L["Settings_EntraClientSecret"]</label>
                             @SettingsTooltip("entra-client-secret-help", L["Settings_EntraClientSecretTooltip"].Value)
                         </div>
-                        <FluentTextField Id="entra-client-secret" @bind-Value="_entraForm.ClientSecret" TextFieldType="TextFieldType.Password"
-                                         AriaLabel="@L["Settings_EntraClientSecret"]"
-                                         Placeholder="@L["Settings_EntraSecretKeep"]"
-                                         Required="@(_entraForm.Enabled && !_entra.ClientSecretSet)"
-                                         Disabled="@Locked(EntraFields.ClientSecret)" Style="width:100%" />
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                            @L[_entra.ClientSecretSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
-                        </FluentLabel>
-                        <FluentLabel Typo="Typography.Body" Color="@(_entraForm.Enabled && !_entra.ClientSecretSet && string.IsNullOrWhiteSpace(_entraForm.ClientSecret) ? Color.Warning : Color.Neutral)">
-                            @L["Settings_EntraClientSecretHelp"]
-                        </FluentLabel>
-                        @LockNote(EntraFields.ClientSecret)
-                        @if (_entra.ClientSecretSet && !Locked(EntraFields.ClientSecret))
-                        {
-                            <FluentCheckbox @bind-Value="_clearClientSecret" Label="@L["Settings_EntraSecretClear"]" />
-                        }
+                        <div class="site-setting-row__control">
+                            <FluentTextField Id="entra-client-secret" @bind-Value="_entraForm.ClientSecret" TextFieldType="TextFieldType.Password"
+                                             AriaLabel="@L["Settings_EntraClientSecret"]" Placeholder="@L["Settings_EntraSecretKeep"]"
+                                             Required="@(_entraForm.Enabled && !_entra.ClientSecretSet)"
+                                             Disabled="@Locked(EntraFields.ClientSecret)" Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                @L[_entra.ClientSecretSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
+                            </FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Color="@(_entraForm.Enabled && !_entra.ClientSecretSet && string.IsNullOrWhiteSpace(_entraForm.ClientSecret) ? Color.Warning : Color.Neutral)">
+                                @L["Settings_EntraClientSecretHelp"]
+                            </FluentLabel>
+                            @LockNote(EntraFields.ClientSecret)
+                            @if (_entra.ClientSecretSet && !Locked(EntraFields.ClientSecret))
+                            {
+                                <FluentCheckbox @bind-Value="_clearClientSecret" Label="@L["Settings_EntraSecretClear"]" />
+                            }
+                        </div>
                     </div>
 
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
-                            <FluentTextField @bind-Value="_entraForm.DisplayName" Label="@L["Settings_EntraDisplayName"]"
-                                             Maxlength="64" Disabled="@Locked(EntraFields.DisplayName)" Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraDisplayNameHelp"]</FluentLabel>
-                            @LockNote(EntraFields.DisplayName)
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="entra-display-name">@L["Settings_EntraDisplayName"]</label>
+                                @SettingsTooltip("entra-display-name-help", L["Settings_EntraDisplayNameHelp"].Value)
+                            </div>
+                            <FluentTextField Id="entra-display-name" @bind-Value="_entraForm.DisplayName"
+                                             AriaLabel="@L["Settings_EntraDisplayName"]" Maxlength="64"
+                                             Disabled="@Locked(EntraFields.DisplayName)" Style="width:100%" />
+                        </div>
+                        @LockNote(EntraFields.DisplayName)
+                        <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <label for="entra-authority">@L["Settings_EntraAuthority"]</label>
                                 @SettingsTooltip("entra-authority-help", L["Settings_EntraAuthorityTooltip"].Value)
@@ -352,36 +385,37 @@
                             <FluentTextField Id="entra-authority" @bind-Value="_entraForm.Authority" AriaLabel="@L["Settings_EntraAuthority"]"
                                              Placeholder="@_authorityPlaceholder"
                                              Disabled="@Locked(EntraFields.Authority)" Style="width:100%" />
-                            @LockNote(EntraFields.Authority)
-                        </FluentGridItem>
-                    </FluentGrid>
+                        </div>
+                        @LockNote(EntraFields.Authority)
+                    </div>
 
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <label for="entra-callback-path">@L["Settings_EntraCallbackPath"]</label>
                                 @SettingsTooltip("entra-callback-path-help", L["Settings_EntraCallbackPathTooltip"].Value)
                             </div>
                             <FluentTextField Id="entra-callback-path" @bind-Value="_entraForm.CallbackPath" AriaLabel="@L["Settings_EntraCallbackPath"]"
                                              Disabled="@Locked(EntraFields.CallbackPath)" Style="width:100%" />
-                            @LockNote(EntraFields.CallbackPath)
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
+                        </div>
+                        @LockNote(EntraFields.CallbackPath)
+                        <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <label for="entra-signed-out-path">@L["Settings_EntraSignedOutPath"]</label>
                                 @SettingsTooltip("entra-signed-out-path-help", L["Settings_EntraSignedOutPathTooltip"].Value)
                             </div>
                             <FluentTextField Id="entra-signed-out-path" @bind-Value="_entraForm.SignedOutCallbackPath" AriaLabel="@L["Settings_EntraSignedOutPath"]"
                                              Disabled="@Locked(EntraFields.SignedOutCallbackPath)" Style="width:100%" />
-                            @LockNote(EntraFields.SignedOutCallbackPath)
-                        </FluentGridItem>
-                    </FluentGrid>
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                        </div>
+                        @LockNote(EntraFields.SignedOutCallbackPath)
+                    </div>
+                    <FluentLabel Class="site-settings-message" Typo="Typography.Body" Color="Color.Neutral">
                         @L["Settings_EntraRedirectHelp"] <code>@_redirectUri</code>
                     </FluentLabel>
 
                     <div class="settings-section__head">
                         <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAccounts())" Color="Color.Custom" CustomColor="currentColor" />
                             <FluentLabel Typo="Typography.Subject">@L["Settings_EntraAccountsSection"]</FluentLabel>
                             @SettingsTooltip("entra-accounts-help", L["Settings_EntraAccountsTooltip"].Value)
                         </div>
@@ -409,13 +443,13 @@
                         @LockNote(EntraFields.AllowJustInTimeProvisioning)
                     </FluentStack>
 
-                    <div>
+                    <div class="planner-setting-row planner-setting-row--top">
                         <div class="planner-setting-row__label">
-                            <FluentLabel Typo="Typography.Body">@L["Settings_EntraDefaultRoles"]</FluentLabel>
+                            <span>@L["Settings_EntraDefaultRoles"]</span>
                             @SettingsTooltip("entra-default-roles-help", L["Settings_EntraDefaultRolesTooltip"].Value)
                         </div>
-                        @LockNote(EntraFields.DefaultRoles)
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                        <div class="site-setting-row__control site-setting-row__control--options">
+                            @LockNote(EntraFields.DefaultRoles)
                             @* Administrator is absent by design: a default role is granted to every
                                account the directory creates on first sign-in, so offering it here
                                would make "anyone in the tenant" an administrator of this site. *@
@@ -423,47 +457,58 @@
                             {
                                 <FluentCheckbox Label="@AuthorizationDisplay.RoleName(L, role)"
                                                 Value="@_entraForm.DefaultRoles.Contains(role)"
-                                                ValueChanged="@(c => ToggleDefaultRole(role, c))"
-                                                Disabled="@Locked(EntraFields.DefaultRoles)" />
+                                                 ValueChanged="@(c => ToggleDefaultRole(role, c))"
+                                                 Disabled="@Locked(EntraFields.DefaultRoles)" />
                             }
-                        </FluentStack>
+                        </div>
                     </div>
 
                     <div class="settings-section__head">
                         <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Custom" CustomColor="currentColor" />
                             <FluentLabel Typo="Typography.Subject">@L["Settings_EntraScimSection"]</FluentLabel>
                             @SettingsTooltip("entra-scim-help", L["Settings_EntraScimTooltip"].Value)
                         </div>
-                        <FluentSwitch @bind-Value="_entraForm.ScimEnabled" Disabled="@Locked(EntraFields.ScimEnabled)"
-                                      Label="@L["Settings_EntraEnabled"]" />
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimHelp"]</FluentLabel>
+
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Settings_EntraEnabled"]</span>
+                            @SettingsTooltip("entra-scim-enabled-help", L["Settings_EntraScimTooltip"].Value)
+                        </div>
+                        <FluentSwitch @bind-Value="_entraForm.ScimEnabled" Disabled="@Locked(EntraFields.ScimEnabled)"
+                                      AriaLabel="@L["Settings_EntraEnabled"]" />
+                    </div>
                     @LockNote(EntraFields.ScimEnabled)
 
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimUrl"]</FluentLabel>
-                        @SettingsTooltip("entra-scim-url-help", L["Settings_EntraScimUrlTooltip"].Value)
+                    <div class="planner-setting-row">
+                        <div class="planner-setting-row__label">
+                            <span>@L["Settings_EntraScimUrl"]</span>
+                            @SettingsTooltip("entra-scim-url-help", L["Settings_EntraScimUrlTooltip"].Value)
+                        </div>
                         <code>@_scimUrl</code>
-                    </FluentStack>
+                    </div>
 
-                    <div>
+                    <div class="planner-setting-row planner-setting-row--top">
                         <div class="planner-setting-row__label">
                             <label for="entra-scim-token">@L["Settings_EntraScimToken"]</label>
                             @SettingsTooltip("entra-scim-token-help", L["Settings_EntraScimTokenTooltip"].Value)
                         </div>
-                        <FluentTextField Id="entra-scim-token" @bind-Value="_entraForm.ScimBearerToken" TextFieldType="TextFieldType.Password"
-                                         AriaLabel="@L["Settings_EntraScimToken"]"
-                                         Placeholder="@L["Settings_EntraSecretKeep"]"
-                                         Disabled="@Locked(EntraFields.ScimBearerToken)" Style="width:100%" />
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
-                            @L[_entra.ScimBearerTokenSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
-                        </FluentLabel>
-                        <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimTokenHelp"]</FluentLabel>
-                        @LockNote(EntraFields.ScimBearerToken)
-                        @if (_entra.ScimBearerTokenSet && !Locked(EntraFields.ScimBearerToken))
-                        {
-                            <FluentCheckbox @bind-Value="_clearScimToken" Label="@L["Settings_EntraSecretClear"]" />
-                        }
+                        <div class="site-setting-row__control">
+                            <FluentTextField Id="entra-scim-token" @bind-Value="_entraForm.ScimBearerToken" TextFieldType="TextFieldType.Password"
+                                             AriaLabel="@L["Settings_EntraScimToken"]" Placeholder="@L["Settings_EntraSecretKeep"]"
+                                             Disabled="@Locked(EntraFields.ScimBearerToken)" Style="width:100%" />
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
+                                @L[_entra.ScimBearerTokenSet ? "Settings_EntraSecretPresent" : "Settings_EntraSecretAbsent"]
+                            </FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimTokenHelp"]</FluentLabel>
+                            @LockNote(EntraFields.ScimBearerToken)
+                            @if (_entra.ScimBearerTokenSet && !Locked(EntraFields.ScimBearerToken))
+                            {
+                                <FluentCheckbox @bind-Value="_clearScimToken" Label="@L["Settings_EntraSecretClear"]" />
+                            }
+                        </div>
                     </div>
 
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
@@ -499,42 +544,51 @@
                             <FluentLabel Typo="Typography.Subject">@L["Settings_GeneralSection"]</FluentLabel>
                         </div>
                     </div>
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
-                            <FluentTextField @bind-Value="_general.SiteName"
-                                             Label="@L["Settings_SiteName"]"
-                                             Placeholder="D3Parking"
-                                             Maxlength="128"
-                                             Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_SiteNameHelp"]</FluentLabel>
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
-                            <FluentTextField @bind-Value="_general.SiteDescription"
-                                             Label="@L["Settings_SiteDescription"]"
-                                             Maxlength="512"
-                                             Style="width:100%" />
-                            <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_SiteDescriptionHelp"]</FluentLabel>
-                        </FluentGridItem>
-                    </FluentGrid>
-
-                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral"><small>@L["Settings_UrlAppearance"]</small></FluentLabel>
-
-                    <FluentGrid Spacing="3">
-                        <FluentGridItem xs="12" md="6">
-                            <FluentSelect TOption="TrailingSlashPolicy"
-                                          Items="@(new[] { TrailingSlashPolicy.NoPreference, TrailingSlashPolicy.Add, TrailingSlashPolicy.Remove })"
-                                          OptionText="@(p => TrailingSlashLabel(p))"
-                                          @bind-SelectedOption="_general.TrailingSlash"
-                                          Label="@L["Settings_TrailingSlash"]"
-                                          Style="width:100%" />
-                        </FluentGridItem>
-                        <FluentGridItem xs="12" md="6">
-                            <div style="padding-top:24px">
-                                <FluentSwitch @bind-Value="_general.LowercaseUrls" Label="@L["Settings_LowercaseUrls"]" />
-                                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_LowercaseUrlsHelp"]</FluentLabel>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-site-name">@L["Settings_SiteName"]</label>
+                                @SettingsTooltip("settings-site-name-help", L["Settings_SiteNameHelp"].Value)
                             </div>
-                        </FluentGridItem>
-                    </FluentGrid>
+                            <FluentTextField Id="settings-site-name" @bind-Value="_general.SiteName"
+                                             AriaLabel="@L["Settings_SiteName"]" Placeholder="D3Parking"
+                                             Maxlength="128" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-site-description">@L["Settings_SiteDescription"]</label>
+                                @SettingsTooltip("settings-site-description-help", L["Settings_SiteDescriptionHelp"].Value)
+                            </div>
+                            <FluentTextField Id="settings-site-description" @bind-Value="_general.SiteDescription"
+                                             AriaLabel="@L["Settings_SiteDescription"]" Maxlength="512" Style="width:100%" />
+                        </div>
+                    </div>
+
+                    <div class="settings-section__head">
+                        <div class="settings-section__title">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Options())" Color="Color.Custom" CustomColor="currentColor" />
+                            <FluentLabel Typo="Typography.Subject">@L["Settings_UrlAppearance"]</FluentLabel>
+                        </div>
+                    </div>
+                    <div class="planner-settings-column">
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="settings-trailing-slash">@L["Settings_TrailingSlash"]</label>
+                                @SettingsTooltip("settings-trailing-slash-help", L["Settings_TrailingSlashHelp"].Value)
+                            </div>
+                            <FluentSelect Id="settings-trailing-slash" TOption="TrailingSlashPolicy"
+                                          Items="@(new[] { TrailingSlashPolicy.NoPreference, TrailingSlashPolicy.Add, TrailingSlashPolicy.Remove })"
+                                          OptionText="@(p => TrailingSlashLabel(p))" @bind-SelectedOption="_general.TrailingSlash"
+                                          AriaLabel="@L["Settings_TrailingSlash"]" Style="width:100%" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <span>@L["Settings_LowercaseUrls"]</span>
+                                @SettingsTooltip("settings-lowercase-help", L["Settings_LowercaseUrlsHelp"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_general.LowercaseUrls" AriaLabel="@L["Settings_LowercaseUrls"]" />
+                        </div>
+                    </div>
 
                     <div class="settings-savebar">
                         <span>@L["Settings_TabSaveHint"]</span>

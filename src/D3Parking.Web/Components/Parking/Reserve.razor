@@ -198,6 +198,9 @@
     @if (_userId != Guid.Empty)
     {
         <CalendarSubscriptionCard UserId="_userId" />
+        <SpotHandoffs UserId="_userId" StartUtc="Start" EndUtc="End"
+                      CanOffer="HasResidentAssignmentForSelectedDay && SelectedResidentRelease is null"
+                      Changed="ReloadAfterHandoffAsync" />
     }
 
     <div class="reserve-layout">
@@ -1428,6 +1431,9 @@
     }
 
     private async Task ReloadQueueAsync() => _myQueue = await Reservations.GetMyQueueAsync(_userId);
+
+    private async Task ReloadAfterHandoffAsync() =>
+        await Task.WhenAll(ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
 
     // A changed window makes the shown spots and quote stale — clear them so the only path to
     // a reservation goes through a fresh search (the visitor agenda does the same).

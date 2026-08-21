@@ -160,4 +160,16 @@
   <data name="Parking_Notify_ResidentCancelled_Title" xml:space="preserve"><value>The resident reclaimed their spot</value></data>
   <data name="Parking_Notify_ResidentCancelled_Body" xml:space="preserve"><value>The resident needs spot {0} and no replacement is available. Your reservation has therefore ended; we refunded your full budget and any voucher.</value></data>
   <data name="Parking_Notify_ResidentCancelled_Body_NoCredits" xml:space="preserve"><value>The resident needs spot {0} and no replacement is available. Your reservation has therefore ended.</value></data>
+  <data name="Parking_Notify_HandoffOffer_Title" xml:space="preserve"><value>Private parking spot offer</value></data>
+  <data name="Parking_Notify_HandoffOffer_Body" xml:space="preserve"><value>{0} offered you spot {1} for the selected time. Accept or decline it in the planner.</value></data>
+  <data name="Parking_Notify_HandoffRequest_Title" xml:space="preserve"><value>New request for your parking spot</value></data>
+  <data name="Parking_Notify_HandoffRequest_Body" xml:space="preserve"><value>{0} requested spot {1} for the selected time. Approval automatically creates the requester's reservation.</value></data>
+  <data name="Parking_Notify_HandoffAccepted_Title" xml:space="preserve"><value>Spot offer accepted</value></data>
+  <data name="Parking_Notify_HandoffAccepted_Body" xml:space="preserve"><value>{0} accepted the offer for spot {1}. The reservation was created.</value></data>
+  <data name="Parking_Notify_HandoffDeclined_Title" xml:space="preserve"><value>Named handoff declined</value></data>
+  <data name="Parking_Notify_HandoffDeclined_Body" xml:space="preserve"><value>The other party declined the named handoff. The spot remains with its resident.</value></data>
+  <data name="Parking_Notify_HandoffCancelled_Title" xml:space="preserve"><value>Named handoff withdrawn</value></data>
+  <data name="Parking_Notify_HandoffCancelled_Body" xml:space="preserve"><value>The sender withdrew the pending offer or request.</value></data>
+  <data name="Email_Handoff_Action" xml:space="preserve"><value>Open named handoff</value></data>
+  <data name="Email_Handoff_Deadline" xml:space="preserve"><value>Respond by {0}.</value></data>
 </root>

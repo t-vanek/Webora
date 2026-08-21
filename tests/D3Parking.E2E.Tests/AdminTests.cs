@@ -86,6 +86,26 @@ public class AdminTests : AdminTest
     }
 
     [Test]
+    public async Task Settings_domain_tab_uses_the_same_single_column_field_template_as_parking_rules()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/settings?tab=domain");
+
+        var panel = Page.Locator(".settings-panel").First;
+        await Expect(panel).ToBeVisibleAsync();
+        await Expect(panel.Locator(".planner-setting-row")).ToHaveCountAsync(10);
+        await Expect(panel.Locator(".planner-tooltip-trigger")).ToHaveCountAsync(10);
+        await Expect(panel.Locator(".settings-section__title svg")).ToHaveCountAsync(2);
+
+        // Text, number, select and textarea controls all occupy the same 240 px template column.
+        var widths = await panel
+            .Locator(".planner-setting-row > fluent-text-field, .planner-setting-row > fluent-number-field, .planner-setting-row > fluent-select, .planner-setting-row > fluent-text-area")
+            .EvaluateAllAsync<double[]>("elements => elements.map(element => element.getBoundingClientRect().width)");
+        Assert.That(widths, Is.Not.Empty);
+        Assert.That(widths.All(width => Math.Abs(width - widths[0]) < 1), Is.True,
+            $"Rendered control widths: {string.Join(", ", widths.Select(width => width.ToString("0.##")))}");
+    }
+
+    [Test]
     public async Task The_directory_role_menu_opens_clear_of_its_panel()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/directory");
@@ -103,6 +123,9 @@ public class AdminTests : AdminTest
             }
         }
         await Expect(addPanel).ToBeVisibleAsync();
+        await Expect(Page.Locator(".directory-add-backdrop")).ToBeVisibleAsync();
+        await Expect(addPanel).ToHaveAttributeAsync("role", "dialog");
+        await Expect(addPanel).ToHaveAttributeAsync("aria-modal", "true");
 
         // A Fluent label is a sibling of its input, not its parent, so a wrapping flex row used to
         // strand "Role v aplikaci" at the end of the line above — where it read as a label for the
@@ -132,6 +155,9 @@ public class AdminTests : AdminTest
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/spots");
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Přidat místa|Add spots") }).ClickAsync();
+        await Expect(Page.Locator(".spots-create-backdrop")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".spots-create-dialog")).ToHaveAttributeAsync("role", "dialog");
+        await Expect(Page.Locator(".spots-create-dialog")).ToHaveAttributeAsync("aria-modal", "true");
 
         // Unique section prefix per run — the database persists between test runs.
         var prefix = $"G{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000}";
@@ -215,6 +241,10 @@ public class AdminTests : AdminTest
         await Expect(Page.Locator("a[href='admin/parking/fleet']")).ToBeVisibleAsync();
         await Page.Locator("#fleet-open-add").ClickAsync();
         await Expect(Page.Locator(".fleet-editor")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".fleet-dialog-backdrop")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".fleet-editor")).ToHaveAttributeAsync("role", "dialog");
+        await Expect(Page.Locator(".fleet-editor")).ToHaveAttributeAsync("aria-modal", "true");
+        await Expect(Page.Locator(".fleet-workspace")).Not.ToHaveClassAsync(new Regex("has-side"));
 
         // Unique plate per run — the database persists between test runs. Same retry idiom as
         // the spots grid: a click landing mid-render can be swallowed, the row is the wait.
@@ -237,6 +267,40 @@ public class AdminTests : AdminTest
         await Expect(row).ToBeVisibleAsync();
         // No driver email was filled in, so the funnel column reads "manual pairing only".
         await Expect(row.Locator(".state-pill")).ToHaveTextAsync("Jen ruční párování");
+
+        // Editing an existing record uses the same modal shell as creation, not the detail sidebar.
+        await row.Locator(".fleet-vehicle-link").ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Upravit$") }).ClickAsync();
+        await Expect(Page.Locator(".fleet-dialog-backdrop")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#fleet-save")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Zrušit$") }).ClickAsync();
+        await Expect(Page.Locator(".fleet-dialog-backdrop")).ToHaveCountAsync(0);
+
+        // Pairing is a separate focused decision, so it opens in the same dialog pattern instead
+        // of expanding a form inside the vehicle detail sidebar.
+        await row.Locator(".fleet-vehicle-link").ClickAsync();
+        await Page.Locator("#fleet-open-pair").ClickAsync();
+        await Expect(Page.Locator(".fleet-pairing-backdrop")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".fleet-pairing-dialog")).ToHaveAttributeAsync("role", "dialog");
+        await Expect(Page.Locator(".fleet-pairing-dialog")).ToHaveAttributeAsync("aria-modal", "true");
+        await Page.Locator(".fleet-pairing-dialog").GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Zrušit$|^Cancel$") }).ClickAsync();
+        await Expect(Page.Locator(".fleet-pairing-backdrop")).ToHaveCountAsync(0);
+    }
+
+    [Test]
+    public async Task Visitor_booking_opens_in_the_shared_admin_dialog()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/visitors");
+        await Page.Locator("#visitors-open-create").ClickAsync();
+
+        var dialog = Page.Locator(".visitors-create-dialog");
+        await Expect(Page.Locator(".visitors-create-backdrop")).ToBeVisibleAsync();
+        await Expect(dialog).ToHaveAttributeAsync("role", "dialog");
+        await Expect(dialog).ToHaveAttributeAsync("aria-modal", "true");
+        await Expect(dialog.Locator("input[type='date']")).ToBeVisibleAsync();
+
+        await dialog.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Zrušit$|^Cancel$") }).ClickAsync();
+        await Expect(Page.Locator(".visitors-create-backdrop")).ToHaveCountAsync(0);
     }
 
     [Test]

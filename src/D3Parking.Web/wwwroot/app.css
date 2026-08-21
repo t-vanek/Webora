@@ -4228,6 +4228,7 @@ h1:focus {
     min-width: 0;
 }
 
+.admin-dialog-backdrop,
 .resident-dialog-backdrop {
     position: fixed;
     inset: 0;
@@ -4239,6 +4240,7 @@ h1:focus {
     background: rgba(0, 0, 0, .48);
 }
 
+.admin-dialog,
 .resident-dialog {
     display: flex;
     width: min(560px, calc(100vw - 32px));
@@ -4252,7 +4254,10 @@ h1:focus {
     box-shadow: 0 20px 64px rgba(0, 0, 0, .28);
 }
 
+.admin-dialog__head,
 .resident-dialog__head {
+    position: relative;
+    z-index: 0;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -4261,16 +4266,97 @@ h1:focus {
     border-bottom: 1px solid var(--brand-hairline, #e3e6e7);
 }
 
+.admin-dialog__head small,
 .resident-dialog__head small {
     color: var(--neutral-foreground-hint, #616161);
     font-size: 11px;
     font-weight: 700;
 }
 
+.admin-dialog__head h2,
 .resident-dialog__head h2 {
     margin: 3px 0 0;
     font-size: 20px;
     line-height: 1.25;
+}
+
+.admin-dialog--small { width: min(480px, calc(100vw - 32px)); }
+.admin-dialog--medium { width: min(560px, calc(100vw - 32px)); }
+.admin-dialog--wide { width: min(760px, calc(100vw - 32px)); }
+
+.admin-dialog__body {
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+    padding: 18px 20px 20px;
+    overflow-y: auto;
+}
+
+.admin-dialog__actions {
+    position: sticky;
+    bottom: -20px;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px -20px -20px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--brand-hairline, #e3e6e7);
+    background: var(--neutral-layer-floating, var(--neutral-layer-1, #fff));
+}
+
+.visitors-dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.visitors-dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+}
+
+.visitors-dialog-grid--schedule {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.visitors-dialog-grid fluent-text-field,
+.visitors-dialog-grid fluent-select,
+.visitors-dialog-field .parking-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.visitors-dialog-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+}
+
+.directory-dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.directory-dialog-form .admin-head__intro {
+    margin: 0 0 2px;
+}
+
+.directory-dialog-form fluent-text-field,
+.directory-dialog-form fluent-select {
+    width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+    .visitors-dialog-grid,
+    .visitors-dialog-grid--schedule {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* --- Provozní dohled: fronta případů a detail případu --- */
@@ -4724,11 +4810,13 @@ h1:focus {
 }
 
 @media (max-width: 768px) {
+    .admin-dialog-backdrop,
     .resident-dialog-backdrop {
         align-items: flex-end;
         padding: 0;
     }
 
+    .admin-dialog,
     .resident-dialog {
         width: 100%;
         max-height: min(88vh, 720px);
@@ -5458,8 +5546,52 @@ h1:focus {
 }
 
 .planner-setting-row > .parking-input,
-.planner-setting-row > fluent-number-field {
+.planner-setting-row > fluent-number-field,
+.planner-setting-row > fluent-text-field,
+.planner-setting-row > fluent-text-area,
+.planner-setting-row > fluent-select,
+.planner-setting-row > .site-setting-row__control {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.planner-setting-row--top {
+    align-items: start;
+}
+
+.planner-setting-row--top > .planner-setting-row__label {
+    padding-top: 7px;
+}
+
+.site-setting-row__control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.site-setting-row__control--options {
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.site-settings-message {
+    width: 100%;
+    max-width: 596px;
+    box-sizing: border-box;
+}
+
+.site-settings-page .planner-setting-row > code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.site-settings-page .planner-settings-column > .settings-lock {
+    width: calc(100% - 356px);
+    max-width: 240px;
+    margin-left: 356px;
 }
 
 .planner-setting-row > fluent-switch {
@@ -5564,6 +5696,12 @@ h1:focus {
     }
 
     .planner-setting-note {
+        width: 100%;
+        max-width: 440px;
+        margin-left: 0;
+    }
+
+    .site-settings-page .planner-settings-column > .settings-lock {
         width: 100%;
         max-width: 440px;
         margin-left: 0;
@@ -8102,10 +8240,6 @@ h1:focus {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 12px;
-    border: 1px solid var(--warning-rest, #f7a900);
-    border-radius: var(--brand-radius-lg);
-    background: color-mix(in srgb, var(--warning-rest, #f7a900) 7%, var(--neutral-layer-1));
 }
 
 .fleet-pairing fluent-select {

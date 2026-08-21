@@ -90,6 +90,35 @@ public sealed class ResidentSpotService(
             }
         }
 
+        // A private handoff does not create a public release row. Surface its live reservation as
+        // a taken day nevertheless, so the resident can use the same reclaim controls and the
+        // configured reclaim policy remains the single authority for both public and named shares.
+        var directWindows = await (
+            from handoff in dbContext.ResidentSpotHandoffs.AsNoTracking()
+            join reservation in dbContext.Reservations.AsNoTracking()
+                on handoff.ReservationId equals reservation.Id
+            where handoff.ResidentId == userId && handoff.SpotId == spot.Id
+                && handoff.Status == ResidentSpotHandoffStatus.Accepted
+                && reservation.SpotId == spot.Id
+                && (reservation.Status == ReservationStatus.Reserved || reservation.Status == ReservationStatus.CheckedIn)
+                && reservation.EndUtc > now
+            select new { reservation.StartUtc, reservation.EndUtc })
+            .ToListAsync(cancellationToken);
+        foreach (var window in directWindows)
+        {
+            var first = SiteTime.Today(window.StartUtc > now ? window.StartUtc : now, timeZone);
+            var last = SiteTime.Today(window.EndUtc.AddTicks(-1), timeZone);
+            for (var date = first; date <= last; date = date.AddDays(1))
+            {
+                if (date < today || upcoming.Any(day => day.Date == date))
+                {
+                    continue;
+                }
+                upcoming.Add(new ReleasedDayDto(date, TakenByGuest: true, DirectHandoff: true));
+            }
+        }
+        upcoming.Sort((left, right) => left.Date.CompareTo(right.Date));
+
         return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, state, releasedToday, upcoming,
             resident.Membership?.PlannedUseDays ?? spot.PlannedUseDays,
             resident.Membership?.AutoReleaseUnplannedDays ?? spot.AutoReleaseUnplannedDays,
@@ -139,6 +168,17 @@ public sealed class ResidentSpotService(
         }
         var spot = resident.Spot;
         var assignedDates = await AssignedDatesAsync(dbContext, spot, userId, fromDate, toDate, cancellationToken);
+
+        var (handoffRangeStart, _) = SiteTime.Day(fromDate, timeZone);
+        var (_, handoffRangeEnd) = SiteTime.Day(toDate, timeZone);
+        var pendingHandoff = await dbContext.ResidentSpotHandoffs.AnyAsync(h => h.SpotId == spot.Id
+            && (h.Status == ResidentSpotHandoffStatus.PendingResident || h.Status == ResidentSpotHandoffStatus.Offered)
+            && h.ExpiresAtUtc > now && h.StartUtc < handoffRangeEnd && h.EndUtc > handoffRangeStart,
+            cancellationToken);
+        if (pendingHandoff)
+        {
+            return ParkingResult.Failure("Parking_Handoff_Error_AlreadyPending");
+        }
 
         var plan = await PlanReleaseRewardsAsync(dbContext, spot, userId, fromDate, toDate, policy, timeZone, now, cancellationToken,
             date => assignedDates.Contains(date));
@@ -220,12 +260,37 @@ public sealed class ResidentSpotService(
             })
             .ToHashSet();
 
+        var pendingPrivateWindows = await dbContext.ResidentSpotHandoffs.AsNoTracking()
+            .Where(h => h.SpotId == spot.Id
+                && (h.Status == ResidentSpotHandoffStatus.PendingResident || h.Status == ResidentSpotHandoffStatus.Offered)
+                && h.ExpiresAtUtc > now && h.StartUtc < rangeEnd && h.EndUtc > rangeStart)
+            .Select(h => new { h.StartUtc, h.EndUtc })
+            .ToListAsync(cancellationToken);
+        var acceptedPrivateWindows = await (
+            from handoff in dbContext.ResidentSpotHandoffs.AsNoTracking()
+            join reservation in dbContext.Reservations.AsNoTracking() on handoff.ReservationId equals reservation.Id
+            where handoff.SpotId == spot.Id && handoff.Status == ResidentSpotHandoffStatus.Accepted
+                && reservation.SpotId == spot.Id
+                && (reservation.Status == ReservationStatus.Reserved || reservation.Status == ReservationStatus.CheckedIn)
+                && reservation.StartUtc < rangeEnd && reservation.EndUtc > rangeStart
+            select new { reservation.StartUtc, reservation.EndUtc })
+            .ToListAsync(cancellationToken);
+        var privateDays = pendingPrivateWindows.Concat(acceptedPrivateWindows)
+            .SelectMany(window =>
+            {
+                var first = SiteTime.Today(window.StartUtc, timeZone);
+                var last = SiteTime.Today(window.EndUtc.AddTicks(-1), timeZone);
+                return Enumerable.Range(0, last.DayNumber - first.DayNumber + 1).Select(first.AddDays);
+            })
+            .ToHashSet();
+
         var plan = new List<(DateOnly Date, int Points)>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
             if (!policy.IsReservationDateAllowed(date)
                 || alreadyReleased.Contains(date)
                 || claimedDays.Contains(date)
+                || privateDays.Contains(date)
                 || include?.Invoke(date) == false)
             {
                 continue;
@@ -274,7 +339,28 @@ public sealed class ResidentSpotService(
         var releases = await dbContext.SpotReleases
             .Where(r => r.SpotId == spot.Id && r.OwnerId == userId && r.Date >= fromDate && r.Date <= toDate)
             .ToListAsync(cancellationToken);
-        if (releases.Count == 0)
+
+        var directHandoffs = await (
+            from handoff in dbContext.ResidentSpotHandoffs
+            join reservation in dbContext.Reservations
+                on handoff.ReservationId equals reservation.Id
+            where handoff.ResidentId == userId && handoff.SpotId == spot.Id
+                && handoff.Status == ResidentSpotHandoffStatus.Accepted
+                && reservation.SpotId == spot.Id
+                && (reservation.Status == ReservationStatus.Reserved || reservation.Status == ReservationStatus.CheckedIn)
+            select new { Handoff = handoff, Reservation = reservation })
+            .ToListAsync(cancellationToken);
+        var directReservationIds = directHandoffs
+            .Where(pair =>
+            {
+                var first = SiteTime.Today(pair.Reservation.StartUtc, timeZone);
+                var last = SiteTime.Today(pair.Reservation.EndUtc.AddTicks(-1), timeZone);
+                return first <= toDate && last >= fromDate;
+            })
+            .Select(pair => pair.Reservation.Id)
+            .ToHashSet();
+
+        if (releases.Count == 0 && directReservationIds.Count == 0)
         {
             return ParkingResult.Failure("Parking_Error_NothingToReclaim");
         }
@@ -299,7 +385,8 @@ public sealed class ResidentSpotService(
                 var (dayStart, dayEnd) = SiteTime.Day(release.Date, timeZone);
                 return reservation.StartUtc < dayEnd && reservation.EndUtc > dayStart;
             }).ToList();
-            if (overlappingReleases.Count == 0)
+            var directHandoff = directReservationIds.Contains(reservation.Id);
+            if (overlappingReleases.Count == 0 && !directHandoff)
             {
                 continue;
             }
@@ -311,7 +398,7 @@ public sealed class ResidentSpotService(
 
             var manualBinding = policy.ManualReleasesAreBinding
                 && policy.ResidentReclaimPolicy != ResidentReclaimPolicy.AbsolutePriority
-                && overlappingReleases.Any(r => r.Source == SpotReleaseSource.Manual);
+                && (directHandoff || overlappingReleases.Any(r => r.Source == SpotReleaseSource.Manual));
             var beforeDeadline = policy.IsBeforeResidentProtectionDeadline(reservation.StartUtc, now, timeZone);
             if (policy.ResidentReclaimPolicy == ResidentReclaimPolicy.AdvancePriority && !beforeDeadline)
             {

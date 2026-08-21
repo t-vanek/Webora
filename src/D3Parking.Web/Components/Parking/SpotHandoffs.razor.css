@@ -1,0 +1,19 @@
+.resident-handoff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    gap: 1rem;
+    margin-block: 1rem;
+}
+
+.resident-handoff-grid .quick-range {
+    align-items: end;
+}
+
+.resident-handoff-grid .parking-input {
+    width: 100%;
+}
+
+.reservation-card {
+    gap: .75rem;
+    flex-wrap: wrap;
+}

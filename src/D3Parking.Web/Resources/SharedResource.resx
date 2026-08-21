@@ -335,18 +335,25 @@
   <data name="Settings_CanonicalHost" xml:space="preserve"><value>Kanonická doména</value></data>
   <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>Např. www.example.com – použije se pro absolutní odkazy (e-maily, kanonické URL).</value></data>
   <data name="Settings_Scheme" xml:space="preserve"><value>Protokol</value></data>
+  <data name="Settings_SchemeHelp" xml:space="preserve"><value>HTTPS je doporučené pro produkci. HTTP používejte jen v důvěryhodném lokálním prostředí nebo za reverzní proxy.</value></data>
   <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Settings_PortHelp" xml:space="preserve"><value>Prázdné = výchozí (80/443).</value></data>
   <data name="Settings_ForceHttps" xml:space="preserve"><value>Vynutit HTTPS (přesměrovat HTTP→HTTPS)</value></data>
+  <data name="Settings_ForceHttpsHelp" xml:space="preserve"><value>Každý požadavek přes HTTP přesměruje na HTTPS. Zapněte až po zprovoznění certifikátu a HTTPS endpointu.</value></data>
   <data name="Settings_Www" xml:space="preserve"><value>Tvar www</value></data>
+  <data name="Settings_WwwHelp" xml:space="preserve"><value>Určuje, zda se návštěvníci přesměrují na doménu s www, bez www, nebo se ponechá původní tvar.</value></data>
   <data name="Settings_Www_NoPreference" xml:space="preserve"><value>Bez preference</value></data>
   <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Preferovat www</value></data>
   <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Preferovat bez www</value></data>
   <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
   <data name="Settings_HstsEnabled" xml:space="preserve"><value>Zapnout HSTS</value></data>
+  <data name="Settings_HstsEnabledHelp" xml:space="preserve"><value>Prohlížeči sdělí, že má tento web po stanovenou dobu otevírat pouze přes HTTPS.</value></data>
   <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Platnost (dny)</value></data>
+  <data name="Settings_HstsMaxAgeHelp" xml:space="preserve"><value>Počet dnů, po které si prohlížeč zapamatuje povinné HTTPS. Vyšší hodnota zvyšuje ochranu, ale prodlužuje návrat změny.</value></data>
   <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Včetně subdomén</value></data>
+  <data name="Settings_HstsIncludeSubDomainsHelp" xml:space="preserve"><value>Rozšíří HSTS také na všechny subdomény. Zapněte jen tehdy, pokud každá subdoména spolehlivě podporuje HTTPS.</value></data>
   <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadHelp" xml:space="preserve"><value>Povolí deklaraci pro zařazení domény do preload seznamu prohlížečů. Vyžaduje HSTS i pro všechny subdomény.</value></data>
   <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Pozor: zařazení do HSTS preload seznamu je obtížné vrátit zpět a vynutí HTTPS i pro všechny subdomény na dlouhou dobu.</value></data>
   <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protokol je nastaven na HTTP, ale vynucení HTTPS je zapnuté – přesměrování bude směřovat na HTTPS.</value></data>
   <data name="Settings_Aliases" xml:space="preserve"><value>Aliasy domén</value></data>
@@ -439,6 +446,7 @@
   <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Malá písmena v URL</value></data>
   <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Cesty s velkými písmeny se přesměrují na malá (query a soubory se nemění).</value></data>
   <data name="Settings_TrailingSlash" xml:space="preserve"><value>Koncové lomítko</value></data>
+  <data name="Settings_TrailingSlashHelp" xml:space="preserve"><value>Sjednotí adresy stránek přidáním nebo odebráním koncového lomítka pomocí přesměrování.</value></data>
   <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>Beze změny</value></data>
   <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Vždy přidat „/“</value></data>
   <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Vždy odstranit „/“</value></data>
@@ -2486,4 +2494,67 @@
   <data name="Parking_Settings_AutoVerifyMaxKmTooltip" xml:space="preserve"><value>Největší vzdálenost adresy od parkoviště pro automatické schválení.</value></data>
   <data name="Parking_Settings_MaxReleasesPerDayTooltip" xml:space="preserve"><value>Nejvyšší počet uvolněných dnů, za které může jeden rezident během dne získat odměnu. Nula znamená bez odměn.</value></data>
   <data name="Parking_Settings_MaxRangeDaysTooltip" xml:space="preserve"><value>Nejdelší období, které může rezident uvolnit jedním krokem.</value></data>
+  <data name="Parking_Handoff_Title" xml:space="preserve"><value>Jmenovité předání místa</value></data>
+  <data name="Parking_Handoff_Subtitle" xml:space="preserve"><value>Soukromá nabídka nebo žádost pro termín {0}. Místo se nezveřejní ve společném fondu.</value></data>
+  <data name="Parking_Handoff_OfferTitle" xml:space="preserve"><value>Nabídnout své místo</value></data>
+  <data name="Parking_Handoff_OfferHelp" xml:space="preserve"><value>Vyberte konkrétního kolegu. Rezervace vznikne teprve po jeho přijetí.</value></data>
+  <data name="Parking_Handoff_RequestTitle" xml:space="preserve"><value>Požádat rezidenta</value></data>
+  <data name="Parking_Handoff_RequestHelp" xml:space="preserve"><value>Vyhledejte rezidenta jménem, e-mailem nebo kódem místa.</value></data>
+  <data name="Parking_Handoff_FindUser" xml:space="preserve"><value>Hledat uživatele</value></data>
+  <data name="Parking_Handoff_FindResident" xml:space="preserve"><value>Hledat rezidenta</value></data>
+  <data name="Parking_Handoff_SearchPlaceholder" xml:space="preserve"><value>Alespoň 2 znaky jména nebo e-mailu</value></data>
+  <data name="Parking_Handoff_ResidentSearchPlaceholder" xml:space="preserve"><value>Jméno, e-mail nebo kód místa</value></data>
+  <data name="Parking_Handoff_Search" xml:space="preserve"><value>Vyhledat</value></data>
+  <data name="Parking_Handoff_Recipient" xml:space="preserve"><value>Příjemce</value></data>
+  <data name="Parking_Handoff_Resident" xml:space="preserve"><value>Rezident</value></data>
+  <data name="Parking_Handoff_SelectUser" xml:space="preserve"><value>Vyberte uživatele</value></data>
+  <data name="Parking_Handoff_SelectResident" xml:space="preserve"><value>Vyberte rezidenta</value></data>
+  <data name="Parking_Handoff_SendOffer" xml:space="preserve"><value>Odeslat nabídku</value></data>
+  <data name="Parking_Handoff_SendRequest" xml:space="preserve"><value>Odeslat žádost</value></data>
+  <data name="Parking_Handoff_AutoReservationNotice" xml:space="preserve"><value>Schválení rezidentem automaticky vytvoří rezervaci za nejvýše nyní zobrazenou cenu a použije běžný týdenní limit.</value></data>
+  <data name="Parking_Handoff_Mine" xml:space="preserve"><value>Moje nabídky a žádosti</value></data>
+  <data name="Parking_Handoff_To" xml:space="preserve"><value>Pro: {0}</value></data>
+  <data name="Parking_Handoff_From" xml:space="preserve"><value>Od: {0}</value></data>
+  <data name="Parking_Handoff_RequestedFrom" xml:space="preserve"><value>Žádost rezidentovi: {0}</value></data>
+  <data name="Parking_Handoff_RequestedBy" xml:space="preserve"><value>Žádá: {0}</value></data>
+  <data name="Parking_Handoff_ApproveAndReserve" xml:space="preserve"><value>Schválit a rezervovat</value></data>
+  <data name="Parking_Handoff_AcceptAndReserve" xml:space="preserve"><value>Přijmout a rezervovat</value></data>
+  <data name="Parking_Handoff_Decline" xml:space="preserve"><value>Odmítnout</value></data>
+  <data name="Parking_Handoff_Cancel" xml:space="preserve"><value>Stáhnout</value></data>
+  <data name="Parking_Handoff_Status_PendingResident" xml:space="preserve"><value>Čeká na rezidenta</value></data>
+  <data name="Parking_Handoff_Status_Offered" xml:space="preserve"><value>Čeká na příjemce</value></data>
+  <data name="Parking_Handoff_Status_Accepted" xml:space="preserve"><value>Rezervováno</value></data>
+  <data name="Parking_Handoff_Status_Declined" xml:space="preserve"><value>Odmítnuto</value></data>
+  <data name="Parking_Handoff_Status_Cancelled" xml:space="preserve"><value>Staženo</value></data>
+  <data name="Parking_Handoff_Status_Expired" xml:space="preserve"><value>Vypršelo</value></data>
+  <data name="Parking_Handoff_Status_Superseded" xml:space="preserve"><value>Nahrazeno jiným předáním</value></data>
+  <data name="Parking_Handoff_Reclaim_ConfirmedBookingProtected" xml:space="preserve"><value>Podle aktuálních pravidel má potvrzená rezervace přednost před návratem místa rezidentovi.</value></data>
+  <data name="Parking_Handoff_Reclaim_AdvancePriority" xml:space="preserve"><value>Rezident může místo získat zpět jen před nastavenou ochrannou lhůtou; systém nejprve hledá náhradu.</value></data>
+  <data name="Parking_Handoff_Reclaim_ReplacementOnly" xml:space="preserve"><value>Rezident může místo získat zpět pouze tehdy, když systém najde příjemci náhradní místo.</value></data>
+  <data name="Parking_Handoff_Reclaim_AdvanceOrReplacement" xml:space="preserve"><value>Návrat místa se řídí ochrannou lhůtou a dostupností bezpečného náhradního místa.</value></data>
+  <data name="Parking_Handoff_Reclaim_AbsolutePriority" xml:space="preserve"><value>Rezident má podle aktuálních pravidel absolutní přednost; při chybějící náhradě se použije nastavená náhradní akce.</value></data>
+  <data name="Parking_Handoff_OfferSent" xml:space="preserve"><value>Soukromá nabídka byla odeslána.</value></data>
+  <data name="Parking_Handoff_RequestSent" xml:space="preserve"><value>Žádost byla odeslána rezidentovi.</value></data>
+  <data name="Parking_Handoff_ReservationCreated" xml:space="preserve"><value>Rezervace byla vytvořena.</value></data>
+  <data name="Parking_Handoff_Declined" xml:space="preserve"><value>Jmenovité předání bylo odmítnuto.</value></data>
+  <data name="Parking_Handoff_Cancelled" xml:space="preserve"><value>Jmenovité předání bylo staženo.</value></data>
+  <data name="Parking_Handoff_Error_Self" xml:space="preserve"><value>Místo nelze předat sobě.</value></data>
+  <data name="Parking_Handoff_Error_InvalidWindow" xml:space="preserve"><value>Pro jmenovité předání vyberte budoucí platný termín.</value></data>
+  <data name="Parking_Handoff_Error_NoResidentSpot" xml:space="preserve"><value>Rezident nemá aktivní přidělené místo.</value></data>
+  <data name="Parking_Handoff_Error_RecipientUnavailable" xml:space="preserve"><value>Vybraný uživatel nyní nemůže rezervaci přijmout.</value></data>
+  <data name="Parking_Handoff_Error_NotAssigned" xml:space="preserve"><value>Rezident nemá místo přidělené pro celý vybraný termín.</value></data>
+  <data name="Parking_Handoff_Error_PubliclyReleased" xml:space="preserve"><value>Místo už bylo pro tento termín veřejně uvolněno.</value></data>
+  <data name="Parking_Handoff_Error_SpotConflict" xml:space="preserve"><value>Místo už je pro tento termín rezervované.</value></data>
+  <data name="Parking_Handoff_Error_AlreadyPending" xml:space="preserve"><value>Pro tento termín už existuje nevyřízená soukromá nabídka nebo žádost.</value></data>
+  <data name="Parking_Handoff_Error_NotActive" xml:space="preserve"><value>Nabídka nebo žádost už není aktivní.</value></data>
+  <data name="Parking_Handoff_Error_NotAllowed" xml:space="preserve"><value>Tuto akci nemůžete provést.</value></data>
+  <data name="Parking_Handoff_Error_PriceIncreased" xml:space="preserve"><value>Cena se od odeslání žádosti zvýšila. Uživatel musí odeslat novou žádost.</value></data>
+  <data name="Parking_Handoff_Error_NoSearchResults" xml:space="preserve"><value>Nebyli nalezeni žádní odpovídající uživatelé.</value></data>
+  <data name="Parking_Handoff_Error_Generic" xml:space="preserve"><value>Jmenovité předání se nepodařilo dokončit.</value></data>
+  <data name="Parking_Handoff_Error_RequestCannotComplete" xml:space="preserve"><value>Žádost nyní nelze převést na rezervaci. Žadatel musí zkontrolovat své rezervační podmínky.</value></data>
+  <data name="Help_Handoff_Q" xml:space="preserve"><value>Jak funguje jmenovité předání rezidentního místa?</value></data>
+  <data name="Help_Handoff_A1" xml:space="preserve"><value>Rezident může pro vybraný termín soukromě nabídnout své dosud neuvolněné místo konkrétnímu uživateli. Rezervace vznikne po přijetí nabídky.</value></data>
+  <data name="Help_Handoff_A2" xml:space="preserve"><value>Uživatel může o stejné místo požádat rezidenta. Schválení žádosti vytvoří rezervaci automaticky, nejvýše za cenu odsouhlasenou při odeslání.</value></data>
+  <data name="Help_Handoff_A3" xml:space="preserve"><value>Soukromé předání může obejít obecnou frontu, ale nemůže odebrat místo, které už bylo veřejně uvolněno, nabídnuto čekateli nebo rezervováno.</value></data>
+  <data name="Help_Handoff_A4" xml:space="preserve"><value>Příjemce používá běžný plánovací limit a případné kredity. Možnost rezidenta získat místo zpět se řídí aktuální firemní konfigurací.</value></data>
 </root>

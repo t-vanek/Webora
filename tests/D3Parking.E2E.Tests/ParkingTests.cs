@@ -8,6 +8,17 @@ namespace D3Parking.E2E.Tests;
 public class ParkingTests : AdminTest
 {
     [Test]
+    public async Task Planner_exposes_named_handoffs_and_resident_requests()
+    {
+        await Pages.GotoInteractiveAsync(Page, "/parking");
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Jmenovité předání místa" }))
+            .ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Požádat rezidenta" }))
+            .ToBeVisibleAsync();
+    }
+
+    [Test]
     public async Task Achievements_page_shows_only_personal_achievements()
     {
         await Page.GotoAsync("/parking/achievements");

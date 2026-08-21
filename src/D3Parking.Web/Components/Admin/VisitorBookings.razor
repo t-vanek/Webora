@@ -26,9 +26,9 @@
             </div>
             <p class="admin-head__intro">@L["Parking_Visitors_Intro"]</p>
         </div>
-        <FluentButton Appearance="Appearance.Accent" IconStart="@(_createOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
-                      OnClick="() => _createOpen = !_createOpen">
-            @L[_createOpen ? "Parking_Visitors_CloseBooking" : "Parking_Visitors_NewBooking"]
+        <FluentButton Id="visitors-open-create" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())"
+                      Disabled="@_createOpen" OnClick="() => _createOpen = true">
+            @L["Parking_Visitors_NewBooking"]
         </FluentButton>
     </div>
 
@@ -42,60 +42,13 @@
         </section>
     }
 
-    @if (_error is not null)
+    @if (_error is not null && !_createOpen)
     {
         <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
     }
     @if (_info is not null)
     {
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
-    }
-
-    @if (_createOpen)
-    {
-    <div class="form-panel visitors-create-panel">
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-            <FluentLabel Typo="Typography.Subject">@L["Parking_Visitors_NewBooking"]</FluentLabel>
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_Date"]</FluentLabel>
-                    <input type="date" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
-                           min="@FirstBookableDay.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
-                </div>
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_From"]</FluentLabel>
-                    <input type="time" @bind="_from" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
-                </div>
-                <div>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Visitors_To"]</FluentLabel>
-                    <input type="time" @bind="_to" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
-                </div>
-                <FluentSelect TOption="ParkingSpotDto" Items="_freeSpots" Width="140px"
-                              OptionText="@(s => s.Code)" OptionValue="@(s => s.Id.ToString())"
-                              @bind-SelectedOption="_selectedSpot" Label="@L["Parking_Spot"]" />
-            </FluentStack>
-            @if (SelectedCalendarErrorKey is { } calendarError)
-            {
-                <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L[calendarError]</FluentMessageBar>
-            }
-            @if (_freeSpots.Count == 0)
-            {
-                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Visitors_NoFreeSpots"]</FluentLabel>
-            }
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
-                <FluentTextField @bind-Value="_visitorName" Label="@L["Parking_Visitors_Name"]" Style="width:220px" Maxlength="128" />
-                <FluentTextField @bind-Value="_company" Label="@L["Parking_Visitors_Company"]" Style="width:200px" Maxlength="128" />
-                <FluentTextField @bind-Value="_plate" Label="@L["Parking_Visitors_Plate"]" Style="width:150px" Maxlength="16" />
-                <FluentSelect TOption="UserSummary" Items="_users" Width="220px"
-                              OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
-                              @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
-                <FluentButton Appearance="Appearance.Accent" OnClick="BookAsync"
-                              Disabled="@(_actionBusy || _selectedSpot is null || SelectedCalendarErrorKey is not null)">
-                    @L["Parking_Visitors_Book"]
-                </FluentButton>
-            </FluentStack>
-        </FluentStack>
-    </div>
     }
 
     <div class="visitors-commandbar">
@@ -159,6 +112,61 @@
         </div>
     }
 </FluentStack>
+
+@if (_createOpen)
+{
+    <AdminDialog Title="@L["Parking_Visitors_NewBooking"]" Eyebrow="@L["Parking_Visitors_Title"]"
+                 Size="wide" Class="visitors-create-dialog" BackdropClass="visitors-create-backdrop"
+                 Busy="@_actionBusy" OnClose="CloseCreate">
+        <div class="visitors-dialog-form">
+            @if (_error is not null)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
+            }
+            <div class="visitors-dialog-grid visitors-dialog-grid--schedule">
+                <label class="visitors-dialog-field">
+                    <span>@L["Parking_Visitors_Date"]</span>
+                    <input type="date" autofocus @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
+                           min="@FirstBookableDay.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
+                </label>
+                <label class="visitors-dialog-field">
+                    <span>@L["Parking_Visitors_From"]</span>
+                    <input type="time" @bind="_from" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                </label>
+                <label class="visitors-dialog-field">
+                    <span>@L["Parking_Visitors_To"]</span>
+                    <input type="time" @bind="_to" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                </label>
+                <FluentSelect TOption="ParkingSpotDto" Items="_freeSpots"
+                              OptionText="@(s => s.Code)" OptionValue="@(s => s.Id.ToString())"
+                              @bind-SelectedOption="_selectedSpot" Label="@L["Parking_Spot"]" />
+            </div>
+            @if (SelectedCalendarErrorKey is { } calendarError)
+            {
+                <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L[calendarError]</FluentMessageBar>
+            }
+            @if (_freeSpots.Count == 0)
+            {
+                <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Visitors_NoFreeSpots"]</FluentLabel>
+            }
+            <div class="visitors-dialog-grid">
+                <FluentTextField @bind-Value="_visitorName" Label="@L["Parking_Visitors_Name"]" Maxlength="128" />
+                <FluentTextField @bind-Value="_company" Label="@L["Parking_Visitors_Company"]" Maxlength="128" />
+                <FluentTextField @bind-Value="_plate" Label="@L["Parking_Visitors_Plate"]" Maxlength="16" />
+                <FluentSelect TOption="UserSummary" Items="_users"
+                              OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
+                              @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
+            </div>
+            <div class="admin-dialog__actions">
+                <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="CloseCreate">@L["Common_Cancel"]</FluentButton>
+                <FluentButton Id="visitors-book" Appearance="Appearance.Accent" OnClick="BookAsync"
+                              Disabled="@(_actionBusy || _selectedSpot is null || SelectedCalendarErrorKey is not null)">
+                    @L["Parking_Visitors_Book"]
+                </FluentButton>
+            </div>
+        </div>
+    </AdminDialog>
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
@@ -264,6 +272,8 @@
     // the same window (the second would clear the success message and show a conflict error).
     private bool _actionBusy;
 
+    private void CloseCreate() => _createOpen = false;
+
     private async Task BookAsync()
     {
         if (_actionBusy)
@@ -289,6 +299,7 @@
                 _selectedHost = null;
                 await ReloadFreeSpotsAsync();
                 await ReloadBookingsAsync();
+                _createOpen = false;
             }
             else
             {

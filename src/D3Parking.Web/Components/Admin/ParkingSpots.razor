@@ -20,9 +20,10 @@
             <p class="admin-head__intro">@L["Parking_Admin_Intro"]</p>
         </div>
         <FluentButton Appearance="Appearance.Accent" Class="spots-create-action"
-                      IconStart="@(_createOpen ? new Icons.Regular.Size20.Dismiss() : new Icons.Regular.Size20.Add())"
-                      OnClick="() => _createOpen = !_createOpen">
-            @L[_createOpen ? "Parking_Admin_CloseCreate" : "Parking_Admin_AddSpots"]
+                      IconStart="@(new Icons.Regular.Size20.Add())"
+                      Disabled="@_createOpen"
+                      OnClick="() => _createOpen = true">
+            @L["Parking_Admin_AddSpots"]
         </FluentButton>
     </div>
 
@@ -46,19 +47,21 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
     }
 
-    @* A plain panel, deliberately not FluentCard: fluent-card ships contain:content, which clips
-       the select's dropped-down listbox to the card edge — the "Typ" menu opened as a sliver
-       peeking from under the panel. *@
     @if (_createOpen)
     {
-    <div class="form-panel spots-create-panel">
+    <AdminDialog Title="@L["Parking_Admin_AddSpots"]"
+                 Eyebrow="@L["Parking_Admin_Title"]"
+                 Size="wide"
+                 Class="spots-create-dialog"
+                 BackdropClass="spots-create-backdrop"
+                 OnClose="CloseCreate">
         <FluentTabs @bind-ActiveTabId="_activeAddTab">
             <FluentTab Id="tab-single" Label="@L["Parking_Admin_Tab_Single"]">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                         @* Immediate: bind on (composed) input events — the change event of the underlying
                            web component does not cross the shadow boundary reliably. *@
-                        <FluentTextField Id="single-code" Immediate="true" @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" />
+                        <FluentTextField Id="single-code" Immediate="true" @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" autofocus />
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
@@ -128,7 +131,10 @@
                 </FluentStack>
             </FluentTab>
         </FluentTabs>
-    </div>
+        <div class="admin-dialog__actions">
+            <FluentButton Appearance="Appearance.Outline" OnClick="CloseCreate">@L["Common_Cancel"]</FluentButton>
+        </div>
+    </AdminDialog>
     }
 
     <div class="spots-commandbar">
@@ -282,20 +288,14 @@
 
 @if (SelectedResidentSpot is { } residentSpot)
 {
-    <div class="resident-dialog-backdrop" @onclick="CloseResidentEditor">
-        <section class="resident-dialog" role="dialog" aria-modal="true"
-                 aria-labelledby="resident-dialog-title" @onclick:stopPropagation="true">
-            <header class="resident-dialog__head">
-                <div>
-                    <small>@L["Parking_Admin_ManageResidents"]</small>
-                    <h2 id="resident-dialog-title">@L["Parking_Admin_ResidentsForSpot", residentSpot.Code]</h2>
-                </div>
-                <FluentButton Appearance="Appearance.Stealth" OnClick="CloseResidentEditor"
-                              aria-label="@L["Common_Close"]">@L["Common_Close"]</FluentButton>
-            </header>
-            @ResidentEditor(residentSpot)
-        </section>
-    </div>
+    <AdminDialog Title="@L["Parking_Admin_ResidentsForSpot", residentSpot.Code]"
+                 Eyebrow="@L["Parking_Admin_ManageResidents"]"
+                 Size="medium"
+                 Class="resident-assignment-dialog"
+                 BackdropClass="resident-dialog-backdrop"
+                 OnClose="CloseResidentEditor">
+        @ResidentEditor(residentSpot)
+    </AdminDialog>
 }
 
 @code {
@@ -523,6 +523,8 @@
 
         _residentEditorSpotId = null;
     }
+
+    private void CloseCreate() => _createOpen = false;
 
     private string ResidentSearch(Guid spotId) =>
         _residentSearch.GetValueOrDefault(spotId, string.Empty);

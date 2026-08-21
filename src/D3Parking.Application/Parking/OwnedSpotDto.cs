@@ -19,7 +19,7 @@ public enum OwnedSpotDayState
 }
 
 /// <summary>A day the resident released, and whether taking it back will displace a guest plan.</summary>
-public sealed record ReleasedDayDto(DateOnly Date, bool TakenByGuest);
+public sealed record ReleasedDayDto(DateOnly Date, bool TakenByGuest, bool DirectHandoff = false);
 
 /// <summary>A resident's view of their reserved spot, with today's state and sharing controls.</summary>
 public sealed record OwnedSpotDto(

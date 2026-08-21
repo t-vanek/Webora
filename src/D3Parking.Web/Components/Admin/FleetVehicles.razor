@@ -169,69 +169,7 @@
                 }
             </div>
 
-            @if (_editorOpen)
-            {
-                <aside class="admin-panel fleet-side fleet-editor" aria-label="@L["Fleet_Editor_Label"]">
-                    <div class="fleet-side__head">
-                        <div>
-                            <span class="fleet-side__eyebrow">@(_editing is null ? L["Fleet_Editor_New"] : L["Fleet_Editor_Edit"])</span>
-                            <strong>@(_editing is null ? L["Fleet_Admin_AddTitle"] : _editing.Plate)</strong>
-                        </div>
-                        <button type="button" class="fleet-more" aria-label="@L["Fleet_Action_Close"]" @onclick="CloseSide">
-                            <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" Color="Color.Custom" CustomColor="currentColor" />
-                        </button>
-                    </div>
-
-                    @if (_optionsBusy)
-                    {
-                        <div class="loading"><FluentProgressRing /></div>
-                    }
-                    else
-                    {
-                        <div class="fleet-form">
-                            <FluentTextField Id="fleet-plate" Immediate="true" @bind-Value="_formPlate" Maxlength="16"
-                                             Label="@L["Fleet_Admin_Plate"]" Placeholder="1AB 2345" />
-                            <FluentSelect Id="fleet-type" TOption="VehicleType"
-                                          Items="@_vehicleTypes"
-                                          OptionValue="@(t => t.ToString())"
-                                          OptionText="@(t => L[$"Fleet_Type_{t}"].Value)"
-                                          Value="@_formType.ToString()"
-                                          ValueChanged="@(v => OnTypeChanged(v))"
-                                          Label="@L["Fleet_Admin_Type"]" />
-                            <FluentTextField @bind-Value="_formName" Maxlength="128" Label="@L["Fleet_Admin_Name"]" />
-                            <FluentTextField Id="fleet-email" @bind-Value="_formEmail" Maxlength="256" Label="@L["Fleet_Admin_DriverEmail"]" />
-                            @if (_formType == VehicleType.Company)
-                            {
-                                <FluentSelect TOption="string"
-                                              Items="@SpotOptions"
-                                              OptionValue="@(id => id)"
-                                              OptionText="@(id => SpotLabel(id))"
-                                              @bind-Value="_formSpotId"
-                                              Label="@L["Fleet_Admin_Spot"]" />
-                            }
-                            <FluentTextField @bind-Value="_formNotes" Maxlength="512" Label="@L["Fleet_Admin_Notes"]" />
-
-                            <div class="fleet-form__hint">
-                                <strong>@L["Fleet_Editor_Entitlement"]</strong>
-                                <span>@(_formType == VehicleType.Company ? L["Fleet_Editor_CompanyHint"] : L["Fleet_Editor_EmployeeHint"])</span>
-                            </div>
-
-                            <div class="fleet-side__actions">
-                                @if (_editing is null)
-                                {
-                                    <FluentButton Id="fleet-add" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateAsync">@L["Fleet_Admin_Add"]</FluentButton>
-                                }
-                                else
-                                {
-                                    <FluentButton Id="fleet-save" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="SaveEditAsync">@L["Fleet_Admin_Save"]</FluentButton>
-                                }
-                                <FluentButton Appearance="Appearance.Outline" OnClick="CloseSide">@L["Fleet_Admin_Cancel"]</FluentButton>
-                            </div>
-                        </div>
-                    }
-                </aside>
-            }
-            else if (_selected is not null)
+            @if (_selected is not null && !_editorOpen)
             {
                 var selectedPill = StatePill(_selected);
                 <aside class="admin-panel fleet-side" aria-live="polite" aria-label="@L["Fleet_Detail_Label"]">
@@ -279,45 +217,9 @@
                         </section>
                     }
 
-                    @if (_pairingOpen)
-                    {
-                        <section class="fleet-pairing">
-                            <h3>@L["Fleet_Pair_Title"]</h3>
-                            @if (_optionsBusy)
-                            {
-                                <FluentProgressRing Style="width:24px;height:24px" />
-                            }
-                            else
-                            {
-                                <FluentSelect TOption="string"
-                                              Items="@UserOptions"
-                                              OptionValue="@(id => id)"
-                                              OptionText="@(id => UserLabel(id))"
-                                              Value="@_pairUserId"
-                                              ValueChanged="OnPairUserChanged"
-                                              Label="@L["Fleet_Admin_PairedUser"]" />
-                                @if (!_pairingConfirmed)
-                                {
-                                    <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="PreparePairing">
-                                        @L["Fleet_Pair_Review"]
-                                    </FluentButton>
-                                }
-                                else
-                                {
-                                    <div class="fleet-pairing__confirm">
-                                        <strong>@L["Fleet_Pair_ConfirmTitle"]</strong>
-                                        <span>@PairingConfirmationText</span>
-                                    </div>
-                                    <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmPairingAsync">@L["Fleet_Pair_Confirm"]</FluentButton>
-                                    <FluentButton Appearance="Appearance.Outline" OnClick="() => _pairingConfirmed = false">@L["Fleet_Pair_Back"]</FluentButton>
-                                }
-                            }
-                        </section>
-                    }
-
                     <div class="fleet-side__actions">
                         <FluentButton Appearance="Appearance.Accent" OnClick="() => BeginEditAsync(_selected)">@L["Fleet_Admin_Edit"]</FluentButton>
-                        <FluentButton Appearance="Appearance.Outline" OnClick="BeginPairAsync">@PairActionLabel(_selected)</FluentButton>
+                        <FluentButton Id="fleet-open-pair" Appearance="Appearance.Outline" OnClick="BeginPairAsync">@PairActionLabel(_selected)</FluentButton>
                         @if (_selected.IsActive)
                         {
                             <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="() => SetActiveAsync(_selected.Id, false)">@L["Fleet_Admin_Deactivate"]</FluentButton>
@@ -333,6 +235,112 @@
         </div>
     }
 </FluentStack>
+
+@if (_editorOpen)
+{
+    <AdminDialog Title="@(_editing is null ? L["Fleet_Admin_AddTitle"] : _editing.Plate)"
+                 Eyebrow="@(_editing is null ? L["Fleet_Editor_New"] : L["Fleet_Editor_Edit"])"
+                 Size="medium"
+                 Class="fleet-editor"
+                 BackdropClass="fleet-dialog-backdrop"
+                 Busy="@_busy"
+                 OnClose="CloseSide">
+        @if (_optionsBusy)
+        {
+            <div class="loading"><FluentProgressRing /></div>
+        }
+        else
+        {
+            <div class="fleet-form">
+                        <FluentTextField Id="fleet-plate" Immediate="true" @bind-Value="_formPlate" Maxlength="16"
+                                         Label="@L["Fleet_Admin_Plate"]" Placeholder="1AB 2345" autofocus />
+                        <FluentSelect Id="fleet-type" TOption="VehicleType"
+                                      Items="@_vehicleTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Fleet_Type_{t}"].Value)"
+                                      Value="@_formType.ToString()"
+                                      ValueChanged="@(v => OnTypeChanged(v))"
+                                      Label="@L["Fleet_Admin_Type"]" />
+                        <FluentTextField @bind-Value="_formName" Maxlength="128" Label="@L["Fleet_Admin_Name"]" />
+                        <FluentTextField Id="fleet-email" @bind-Value="_formEmail" Maxlength="256" Label="@L["Fleet_Admin_DriverEmail"]" />
+                        @if (_formType == VehicleType.Company)
+                        {
+                            <FluentSelect TOption="string"
+                                          Items="@SpotOptions"
+                                          OptionValue="@(id => id)"
+                                          OptionText="@(id => SpotLabel(id))"
+                                          @bind-Value="_formSpotId"
+                                          Label="@L["Fleet_Admin_Spot"]" />
+                        }
+                        <FluentTextField @bind-Value="_formNotes" Maxlength="512" Label="@L["Fleet_Admin_Notes"]" />
+
+                        <div class="fleet-form__hint">
+                            <strong>@L["Fleet_Editor_Entitlement"]</strong>
+                            <span>@(_formType == VehicleType.Company ? L["Fleet_Editor_CompanyHint"] : L["Fleet_Editor_EmployeeHint"])</span>
+                        </div>
+
+                        <div class="admin-dialog__actions">
+                            @if (_editing is null)
+                            {
+                                <FluentButton Id="fleet-add" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateAsync">@L["Fleet_Admin_Add"]</FluentButton>
+                            }
+                            else
+                            {
+                                <FluentButton Id="fleet-save" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="SaveEditAsync">@L["Fleet_Admin_Save"]</FluentButton>
+                            }
+                            <FluentButton Appearance="Appearance.Outline" OnClick="CloseSide">@L["Fleet_Admin_Cancel"]</FluentButton>
+                        </div>
+            </div>
+        }
+    </AdminDialog>
+}
+
+@if (_pairingOpen && _selected is { } pairingVehicle)
+{
+    <AdminDialog Title="@L["Fleet_Pair_Title"]"
+                 Eyebrow="@pairingVehicle.Plate"
+                 Size="small"
+                 Class="fleet-pairing-dialog"
+                 BackdropClass="fleet-pairing-backdrop"
+                 Busy="@_busy"
+                 OnClose="ClosePairing">
+        <div class="fleet-pairing">
+            @if (_optionsBusy)
+            {
+                <div class="loading"><FluentProgressRing Style="width:24px;height:24px" /></div>
+            }
+            else
+            {
+                <FluentSelect TOption="string"
+                              Items="@UserOptions"
+                              OptionValue="@(id => id)"
+                              OptionText="@(id => UserLabel(id))"
+                              Value="@_pairUserId"
+                              ValueChanged="OnPairUserChanged"
+                              Label="@L["Fleet_Admin_PairedUser"]" autofocus />
+                @if (_pairingConfirmed)
+                {
+                    <div class="fleet-pairing__confirm">
+                        <strong>@L["Fleet_Pair_ConfirmTitle"]</strong>
+                        <span>@PairingConfirmationText</span>
+                    </div>
+                }
+                <div class="admin-dialog__actions">
+                    @if (!_pairingConfirmed)
+                    {
+                        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="PreparePairing">@L["Fleet_Pair_Review"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="ClosePairing">@L["Common_Cancel"]</FluentButton>
+                    }
+                    else
+                    {
+                        <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmPairingAsync">@L["Fleet_Pair_Confirm"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Outline" OnClick="() => _pairingConfirmed = false">@L["Fleet_Pair_Back"]</FluentButton>
+                    }
+                </div>
+            }
+        </div>
+    </AdminDialog>
+}
 
 @code {
     private const string FleetViewActive = "active";
@@ -385,7 +393,7 @@
     private int ActionVehicleCount => _summary?.ActionCount ?? 0;
     private int AssignedSpotCount => _summary?.AssignedSpotCount ?? 0;
     private int PageCount => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)PageSize));
-    private bool SideOpen => _editorOpen || _selected is not null;
+    private bool SideOpen => !_editorOpen && _selected is not null;
     private bool HasActiveFilters => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_typeFilter) || !string.IsNullOrEmpty(_parkingFilter);
 
     private string ActiveViewDescription => _view switch
@@ -602,6 +610,12 @@
     }
 
     private void PreparePairing() => _pairingConfirmed = true;
+
+    private void ClosePairing()
+    {
+        _pairingOpen = false;
+        _pairingConfirmed = false;
+    }
 
     private void CloseSide()
     {

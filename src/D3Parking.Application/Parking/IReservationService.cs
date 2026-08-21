@@ -39,6 +39,13 @@ public interface IReservationService
         bool confirmResidentRelease = false, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Accepts the private handoff identified by <paramref name="handoffId"/> and creates its
+    /// recipient's ordinary reservation in the same transaction. The actor is either the recipient
+    /// accepting a resident offer or the resident approving a user's request.
+    /// </summary>
+    Task<ParkingResult> AcceptHandoffAsync(Guid actorId, Guid handoffId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The caller's live apology voucher, or null: an approved one (redeemable for one free
     /// reservation) wins over a pending one still awaiting the spot manager's review.
     /// </summary>

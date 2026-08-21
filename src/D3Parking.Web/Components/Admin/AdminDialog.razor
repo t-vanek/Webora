@@ -1,0 +1,42 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* Shared modal shell for short, focused administration tasks. The caller owns the form state;
+   this component owns the interaction contract and visual structure. *@
+<div class="admin-dialog-backdrop @BackdropClass" tabindex="-1"
+     @onclick="CloseAsync" @onkeydown="HandleKeyDown">
+    <section class="admin-dialog admin-dialog--@Size @Class" role="dialog" aria-modal="true"
+             aria-labelledby="@_titleId" @onclick:stopPropagation="true">
+        <header class="admin-dialog__head">
+            <div>
+                @if (!string.IsNullOrWhiteSpace(Eyebrow))
+                {
+                    <small>@Eyebrow</small>
+                }
+                <h2 id="@_titleId">@Title</h2>
+            </div>
+            <FluentButton Appearance="Appearance.Stealth" Disabled="@Busy" OnClick="CloseAsync"
+                          aria-label="@L["Common_Close"]">@L["Common_Close"]</FluentButton>
+        </header>
+        <div class="admin-dialog__body">
+            @ChildContent
+        </div>
+    </section>
+</div>
+
+@code {
+    private readonly string _titleId = $"admin-dialog-{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Eyebrow { get; set; }
+    [Parameter] public string Size { get; set; } = "medium";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? BackdropClass { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Task CloseAsync() => Busy ? Task.CompletedTask : OnClose.InvokeAsync();
+
+    private Task HandleKeyDown(KeyboardEventArgs args) =>
+        args.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+}

@@ -335,18 +335,25 @@
   <data name="Settings_CanonicalHost" xml:space="preserve"><value>Canonical domain</value></data>
   <data name="Settings_CanonicalHostHelp" xml:space="preserve"><value>E.g. www.example.com – used for absolute links (emails, canonical URLs).</value></data>
   <data name="Settings_Scheme" xml:space="preserve"><value>Protocol</value></data>
+  <data name="Settings_SchemeHelp" xml:space="preserve"><value>HTTPS is recommended for production. Use HTTP only in a trusted local environment or behind a reverse proxy.</value></data>
   <data name="Settings_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Settings_PortHelp" xml:space="preserve"><value>Empty = default (80/443).</value></data>
   <data name="Settings_ForceHttps" xml:space="preserve"><value>Force HTTPS (redirect HTTP→HTTPS)</value></data>
+  <data name="Settings_ForceHttpsHelp" xml:space="preserve"><value>Redirects every HTTP request to HTTPS. Enable only after the certificate and HTTPS endpoint are working.</value></data>
   <data name="Settings_Www" xml:space="preserve"><value>www form</value></data>
+  <data name="Settings_WwwHelp" xml:space="preserve"><value>Controls whether visitors are redirected to the www domain, the non-www domain, or the original form is kept.</value></data>
   <data name="Settings_Www_NoPreference" xml:space="preserve"><value>No preference</value></data>
   <data name="Settings_Www_PreferWww" xml:space="preserve"><value>Prefer www</value></data>
   <data name="Settings_Www_PreferNonWww" xml:space="preserve"><value>Prefer non-www</value></data>
   <data name="Settings_Hsts" xml:space="preserve"><value>HSTS</value></data>
   <data name="Settings_HstsEnabled" xml:space="preserve"><value>Enable HSTS</value></data>
+  <data name="Settings_HstsEnabledHelp" xml:space="preserve"><value>Tells browsers to open this site over HTTPS only for the configured period.</value></data>
   <data name="Settings_HstsMaxAge" xml:space="preserve"><value>Max age (days)</value></data>
+  <data name="Settings_HstsMaxAgeHelp" xml:space="preserve"><value>Number of days browsers remember that HTTPS is mandatory. A higher value improves protection but makes rollback slower.</value></data>
   <data name="Settings_HstsIncludeSubDomains" xml:space="preserve"><value>Include subdomains</value></data>
+  <data name="Settings_HstsIncludeSubDomainsHelp" xml:space="preserve"><value>Extends HSTS to every subdomain. Enable only when every subdomain reliably supports HTTPS.</value></data>
   <data name="Settings_HstsPreload" xml:space="preserve"><value>Preload</value></data>
+  <data name="Settings_HstsPreloadHelp" xml:space="preserve"><value>Allows the domain to declare eligibility for browser preload lists. HSTS must also include all subdomains.</value></data>
   <data name="Settings_HstsPreloadWarning" xml:space="preserve"><value>Warning: joining the HSTS preload list is hard to reverse and forces HTTPS for all subdomains for a long time.</value></data>
   <data name="Settings_ForceHttpsSchemeWarning" xml:space="preserve"><value>Protocol is set to HTTP but Force HTTPS is on — redirects will target HTTPS.</value></data>
   <data name="Settings_Aliases" xml:space="preserve"><value>Domain aliases</value></data>
@@ -439,6 +446,7 @@
   <data name="Settings_LowercaseUrls" xml:space="preserve"><value>Lowercase URLs</value></data>
   <data name="Settings_LowercaseUrlsHelp" xml:space="preserve"><value>Paths with uppercase letters are redirected to lowercase (query and files are left as-is).</value></data>
   <data name="Settings_TrailingSlash" xml:space="preserve"><value>Trailing slash</value></data>
+  <data name="Settings_TrailingSlashHelp" xml:space="preserve"><value>Normalizes page addresses by redirecting to a URL with or without a trailing slash.</value></data>
   <data name="Settings_TrailingSlash_None" xml:space="preserve"><value>No change</value></data>
   <data name="Settings_TrailingSlash_Add" xml:space="preserve"><value>Always add “/”</value></data>
   <data name="Settings_TrailingSlash_Remove" xml:space="preserve"><value>Always remove “/”</value></data>
@@ -2486,4 +2494,67 @@
   <data name="Parking_Settings_AutoVerifyMaxKmTooltip" xml:space="preserve"><value>Maximum distance from the parking lot for automatic address approval.</value></data>
   <data name="Parking_Settings_MaxReleasesPerDayTooltip" xml:space="preserve"><value>Maximum number of released days one resident can be rewarded for per day. Zero disables rewards.</value></data>
   <data name="Parking_Settings_MaxRangeDaysTooltip" xml:space="preserve"><value>Longest period a resident can release in one action.</value></data>
+  <data name="Parking_Handoff_Title" xml:space="preserve"><value>Named spot handoff</value></data>
+  <data name="Parking_Handoff_Subtitle" xml:space="preserve"><value>A private offer or request for {0}. The spot is not released to the shared pool.</value></data>
+  <data name="Parking_Handoff_OfferTitle" xml:space="preserve"><value>Offer your spot</value></data>
+  <data name="Parking_Handoff_OfferHelp" xml:space="preserve"><value>Choose a specific colleague. Their reservation is created only after they accept.</value></data>
+  <data name="Parking_Handoff_RequestTitle" xml:space="preserve"><value>Request a resident's spot</value></data>
+  <data name="Parking_Handoff_RequestHelp" xml:space="preserve"><value>Find a resident by name, email, or spot code.</value></data>
+  <data name="Parking_Handoff_FindUser" xml:space="preserve"><value>Find a user</value></data>
+  <data name="Parking_Handoff_FindResident" xml:space="preserve"><value>Find a resident</value></data>
+  <data name="Parking_Handoff_SearchPlaceholder" xml:space="preserve"><value>At least 2 characters of a name or email</value></data>
+  <data name="Parking_Handoff_ResidentSearchPlaceholder" xml:space="preserve"><value>Name, email, or spot code</value></data>
+  <data name="Parking_Handoff_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Parking_Handoff_Recipient" xml:space="preserve"><value>Recipient</value></data>
+  <data name="Parking_Handoff_Resident" xml:space="preserve"><value>Resident</value></data>
+  <data name="Parking_Handoff_SelectUser" xml:space="preserve"><value>Select a user</value></data>
+  <data name="Parking_Handoff_SelectResident" xml:space="preserve"><value>Select a resident</value></data>
+  <data name="Parking_Handoff_SendOffer" xml:space="preserve"><value>Send offer</value></data>
+  <data name="Parking_Handoff_SendRequest" xml:space="preserve"><value>Send request</value></data>
+  <data name="Parking_Handoff_AutoReservationNotice" xml:space="preserve"><value>Resident approval automatically creates the reservation for no more than the currently shown price and uses the normal weekly limit.</value></data>
+  <data name="Parking_Handoff_Mine" xml:space="preserve"><value>My offers and requests</value></data>
+  <data name="Parking_Handoff_To" xml:space="preserve"><value>For: {0}</value></data>
+  <data name="Parking_Handoff_From" xml:space="preserve"><value>From: {0}</value></data>
+  <data name="Parking_Handoff_RequestedFrom" xml:space="preserve"><value>Requested from: {0}</value></data>
+  <data name="Parking_Handoff_RequestedBy" xml:space="preserve"><value>Requested by: {0}</value></data>
+  <data name="Parking_Handoff_ApproveAndReserve" xml:space="preserve"><value>Approve and reserve</value></data>
+  <data name="Parking_Handoff_AcceptAndReserve" xml:space="preserve"><value>Accept and reserve</value></data>
+  <data name="Parking_Handoff_Decline" xml:space="preserve"><value>Decline</value></data>
+  <data name="Parking_Handoff_Cancel" xml:space="preserve"><value>Withdraw</value></data>
+  <data name="Parking_Handoff_Status_PendingResident" xml:space="preserve"><value>Waiting for resident</value></data>
+  <data name="Parking_Handoff_Status_Offered" xml:space="preserve"><value>Waiting for recipient</value></data>
+  <data name="Parking_Handoff_Status_Accepted" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Parking_Handoff_Status_Declined" xml:space="preserve"><value>Declined</value></data>
+  <data name="Parking_Handoff_Status_Cancelled" xml:space="preserve"><value>Withdrawn</value></data>
+  <data name="Parking_Handoff_Status_Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Parking_Handoff_Status_Superseded" xml:space="preserve"><value>Superseded by another handoff</value></data>
+  <data name="Parking_Handoff_Reclaim_ConfirmedBookingProtected" xml:space="preserve"><value>Under the current rules, the confirmed reservation takes priority over a resident reclaim.</value></data>
+  <data name="Parking_Handoff_Reclaim_AdvancePriority" xml:space="preserve"><value>The resident may reclaim only before the protection deadline; the system looks for a replacement first.</value></data>
+  <data name="Parking_Handoff_Reclaim_ReplacementOnly" xml:space="preserve"><value>The resident may reclaim only when the recipient can be moved to a replacement spot.</value></data>
+  <data name="Parking_Handoff_Reclaim_AdvanceOrReplacement" xml:space="preserve"><value>Reclaim follows the protection deadline and availability of a safe replacement spot.</value></data>
+  <data name="Parking_Handoff_Reclaim_AbsolutePriority" xml:space="preserve"><value>The resident has absolute priority under the current rules; the configured fallback applies when no replacement exists.</value></data>
+  <data name="Parking_Handoff_OfferSent" xml:space="preserve"><value>The private offer was sent.</value></data>
+  <data name="Parking_Handoff_RequestSent" xml:space="preserve"><value>The request was sent to the resident.</value></data>
+  <data name="Parking_Handoff_ReservationCreated" xml:space="preserve"><value>The reservation was created.</value></data>
+  <data name="Parking_Handoff_Declined" xml:space="preserve"><value>The named handoff was declined.</value></data>
+  <data name="Parking_Handoff_Cancelled" xml:space="preserve"><value>The named handoff was withdrawn.</value></data>
+  <data name="Parking_Handoff_Error_Self" xml:space="preserve"><value>You cannot hand a spot to yourself.</value></data>
+  <data name="Parking_Handoff_Error_InvalidWindow" xml:space="preserve"><value>Select a valid future time for a named handoff.</value></data>
+  <data name="Parking_Handoff_Error_NoResidentSpot" xml:space="preserve"><value>The resident has no active assigned spot.</value></data>
+  <data name="Parking_Handoff_Error_RecipientUnavailable" xml:space="preserve"><value>The selected user cannot currently receive a reservation.</value></data>
+  <data name="Parking_Handoff_Error_NotAssigned" xml:space="preserve"><value>The resident is not assigned the spot for the whole selected time.</value></data>
+  <data name="Parking_Handoff_Error_PubliclyReleased" xml:space="preserve"><value>The spot has already been released publicly for this time.</value></data>
+  <data name="Parking_Handoff_Error_SpotConflict" xml:space="preserve"><value>The spot is already reserved for this time.</value></data>
+  <data name="Parking_Handoff_Error_AlreadyPending" xml:space="preserve"><value>A pending private offer or request already exists for this time.</value></data>
+  <data name="Parking_Handoff_Error_NotActive" xml:space="preserve"><value>The offer or request is no longer active.</value></data>
+  <data name="Parking_Handoff_Error_NotAllowed" xml:space="preserve"><value>You cannot perform this action.</value></data>
+  <data name="Parking_Handoff_Error_PriceIncreased" xml:space="preserve"><value>The price increased after the request was sent. The user must send a new request.</value></data>
+  <data name="Parking_Handoff_Error_NoSearchResults" xml:space="preserve"><value>No matching users were found.</value></data>
+  <data name="Parking_Handoff_Error_Generic" xml:space="preserve"><value>The named handoff could not be completed.</value></data>
+  <data name="Parking_Handoff_Error_RequestCannotComplete" xml:space="preserve"><value>The request cannot currently be converted into a reservation. The requester must check their booking conditions.</value></data>
+  <data name="Help_Handoff_Q" xml:space="preserve"><value>How does a named resident-spot handoff work?</value></data>
+  <data name="Help_Handoff_A1" xml:space="preserve"><value>For a selected time, a resident can privately offer their still-held spot to a specific user. The reservation is created when the user accepts.</value></data>
+  <data name="Help_Handoff_A2" xml:space="preserve"><value>A user can request the same spot from its resident. Approval creates the reservation automatically, for no more than the price authorized when sending the request.</value></data>
+  <data name="Help_Handoff_A3" xml:space="preserve"><value>A private handoff may bypass the general queue, but cannot take a spot already released publicly, offered to a waiter, or reserved.</value></data>
+  <data name="Help_Handoff_A4" xml:space="preserve"><value>The recipient uses the normal planner limit and any enabled credits. Whether the resident may reclaim the spot follows the current company configuration.</value></data>
 </root>

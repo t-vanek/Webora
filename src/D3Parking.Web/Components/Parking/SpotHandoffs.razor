@@ -1,0 +1,244 @@
+@inject IResidentSpotHandoffService Handoffs
+@inject IParkingSettingsService ParkingSettings
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+<section class="resident-tools" aria-labelledby="spot-handoffs-title">
+    <div class="resident-tools__head">
+        <div class="resident-tools__title">
+            <h2 id="spot-handoffs-title">@L["Parking_Handoff_Title"]</h2>
+        </div>
+        <p>@L["Parking_Handoff_Subtitle", WindowText]</p>
+    </div>
+
+    @if (_error is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
+    }
+
+    <p class="owned-note">@ReclaimPolicyText</p>
+
+    <div class="resident-handoff-grid">
+        @if (CanOffer)
+        {
+            <div class="resident-plan-card">
+                <h3>@L["Parking_Handoff_OfferTitle"]</h3>
+                <p>@L["Parking_Handoff_OfferHelp"]</p>
+                <div class="field">
+                    <label for="handoff-recipient-search">@L["Parking_Handoff_FindUser"]</label>
+                    <div class="quick-range">
+                        <input id="handoff-recipient-search" class="parking-input" @bind="_recipientSearch"
+                               placeholder="@L["Parking_Handoff_SearchPlaceholder"]" />
+                        <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                      OnClick="SearchRecipientsAsync">@L["Parking_Handoff_Search"]</FluentButton>
+                    </div>
+                </div>
+                @if (_recipients.Count > 0)
+                {
+                    <div class="field">
+                        <label for="handoff-recipient">@L["Parking_Handoff_Recipient"]</label>
+                        <select id="handoff-recipient" class="parking-input" @bind="_recipientId">
+                            <option value="">@L["Parking_Handoff_SelectUser"]</option>
+                            @foreach (var user in _recipients)
+                            {
+                                <option value="@user.Id">@UserLabel(user)</option>
+                            }
+                        </select>
+                    </div>
+                    <FluentButton Appearance="Appearance.Accent" Disabled="@(_busy || !SelectedRecipient.HasValue)"
+                                  OnClick="CreateOfferAsync">@L["Parking_Handoff_SendOffer"]</FluentButton>
+                }
+            </div>
+        }
+
+        <div class="resident-plan-card">
+            <h3>@L["Parking_Handoff_RequestTitle"]</h3>
+            <p>@L["Parking_Handoff_RequestHelp"]</p>
+            <div class="field">
+                <label for="handoff-resident-search">@L["Parking_Handoff_FindResident"]</label>
+                <div class="quick-range">
+                    <input id="handoff-resident-search" class="parking-input" @bind="_residentSearch"
+                           placeholder="@L["Parking_Handoff_ResidentSearchPlaceholder"]" />
+                    <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
+                                  OnClick="SearchResidentsAsync">@L["Parking_Handoff_Search"]</FluentButton>
+                </div>
+            </div>
+            @if (_residents.Count > 0)
+            {
+                <div class="field">
+                    <label for="handoff-resident">@L["Parking_Handoff_Resident"]</label>
+                    <select id="handoff-resident" class="parking-input" @bind="_residentId">
+                        <option value="">@L["Parking_Handoff_SelectResident"]</option>
+                        @foreach (var resident in _residents)
+                        {
+                            <option value="@resident.Id">@UserLabel(resident)</option>
+                        }
+                    </select>
+                </div>
+                <p class="owned-note">@L["Parking_Handoff_AutoReservationNotice"]</p>
+                <FluentButton Appearance="Appearance.Accent" Disabled="@(_busy || !SelectedResident.HasValue)"
+                              OnClick="CreateRequestAsync">@L["Parking_Handoff_SendRequest"]</FluentButton>
+            }
+        </div>
+    </div>
+
+    @if (_items.Count > 0)
+    {
+        <div class="resident-plan-card">
+            <h3>@L["Parking_Handoff_Mine"]</h3>
+            <div class="reservation-list">
+                @foreach (var item in _items.Take(12))
+                {
+                    <article class="reservation-card">
+                        <div>
+                            <strong>@item.SpotCode · @FormatWindow(item.StartUtc, item.EndUtc)</strong>
+                            <div>@Counterparty(item)</div>
+                            <small>@L[$"Parking_Handoff_Status_{item.Status}"]</small>
+                        </div>
+                        @if (CanAccept(item))
+                        {
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="() => AcceptAsync(item.Id)">
+                                @(item.Kind == ResidentSpotHandoffKind.UserRequest
+                                    ? L["Parking_Handoff_ApproveAndReserve"]
+                                    : L["Parking_Handoff_AcceptAndReserve"])
+                            </FluentButton>
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                          OnClick="() => DeclineAsync(item.Id)">@L["Parking_Handoff_Decline"]</FluentButton>
+                        }
+                        else if (CanCancel(item))
+                        {
+                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
+                                          OnClick="() => CancelAsync(item.Id)">@L["Parking_Handoff_Cancel"]</FluentButton>
+                        }
+                    </article>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+    [Parameter, EditorRequired] public DateTimeOffset StartUtc { get; set; }
+    [Parameter, EditorRequired] public DateTimeOffset EndUtc { get; set; }
+    [Parameter] public bool CanOffer { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private IReadOnlyList<ResidentSpotHandoffDto> _items = [];
+    private IReadOnlyList<ResidentSpotHandoffUserDto> _recipients = [];
+    private IReadOnlyList<ResidentSpotHandoffUserDto> _residents = [];
+    private string? _recipientSearch;
+    private string? _residentSearch;
+    private string? _recipientId;
+    private string? _residentId;
+    private string? _error;
+    private string? _info;
+    private bool _busy;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
+    private IncentivePolicy _policy = IncentivePolicy.Default;
+
+    private Guid? SelectedRecipient => Guid.TryParse(_recipientId, out var id) ? id : null;
+    private Guid? SelectedResident => Guid.TryParse(_residentId, out var id) ? id : null;
+    private string WindowText => FormatWindow(StartUtc, EndUtc);
+    private string ReclaimPolicyText => L[$"Parking_Handoff_Reclaim_{_policy.ResidentReclaimPolicy}"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var zone = SiteSettings.GetTimeZoneAsync();
+        var policy = ParkingSettings.GetPolicyAsync();
+        await Task.WhenAll(zone, policy);
+        _timeZone = zone.Result;
+        _policy = policy.Result;
+        await ReloadAsync();
+    }
+
+    private async Task SearchRecipientsAsync()
+    {
+        _error = null;
+        _recipients = await Handoffs.SearchRecipientsAsync(UserId, _recipientSearch);
+        _recipientId = null;
+        if (_recipients.Count == 0) _error = "Parking_Handoff_Error_NoSearchResults";
+    }
+
+    private async Task SearchResidentsAsync()
+    {
+        _error = null;
+        _residents = await Handoffs.SearchResidentsAsync(UserId, _residentSearch);
+        _residentId = null;
+        if (_residents.Count == 0) _error = "Parking_Handoff_Error_NoSearchResults";
+    }
+
+    private Task CreateOfferAsync() => SelectedRecipient is { } recipientId
+        ? RunAsync(() => Handoffs.CreateOfferAsync(UserId, recipientId, StartUtc, EndUtc), "Parking_Handoff_OfferSent")
+        : Task.CompletedTask;
+
+    private Task CreateRequestAsync() => SelectedResident is { } residentId
+        ? RunAsync(() => Handoffs.CreateRequestAsync(UserId, residentId, StartUtc, EndUtc), "Parking_Handoff_RequestSent")
+        : Task.CompletedTask;
+
+    private Task AcceptAsync(Guid id) => RunAsync(() => Handoffs.AcceptAsync(UserId, id), "Parking_Handoff_ReservationCreated");
+    private Task DeclineAsync(Guid id) => RunAsync(() => Handoffs.DeclineAsync(UserId, id), "Parking_Handoff_Declined");
+    private Task CancelAsync(Guid id) => RunAsync(() => Handoffs.CancelAsync(UserId, id), "Parking_Handoff_Cancelled");
+
+    private async Task RunAsync(Func<Task<ParkingResult>> action, string successKey)
+    {
+        _busy = true;
+        _error = null;
+        _info = null;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                _error = result.Errors.FirstOrDefault() ?? "Parking_Handoff_Error_Generic";
+                return;
+            }
+
+            _info = successKey;
+            _recipientId = null;
+            _residentId = null;
+            await ReloadAsync();
+            await Changed.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ReloadAsync() => _items = await Handoffs.GetMineAsync(UserId);
+
+    private bool CanAccept(ResidentSpotHandoffDto item) => item.Status switch
+    {
+        ResidentSpotHandoffStatus.Offered => item.RecipientId == UserId,
+        ResidentSpotHandoffStatus.PendingResident => item.ResidentId == UserId,
+        _ => false,
+    };
+
+    private bool CanCancel(ResidentSpotHandoffDto item) => item.Status is
+        ResidentSpotHandoffStatus.Offered or ResidentSpotHandoffStatus.PendingResident
+        && (item.Kind == ResidentSpotHandoffKind.ResidentOffer ? item.ResidentId == UserId : item.RecipientId == UserId);
+
+    private string Counterparty(ResidentSpotHandoffDto item) => item.Kind switch
+    {
+        ResidentSpotHandoffKind.ResidentOffer when item.ResidentId == UserId => L["Parking_Handoff_To", item.RecipientName],
+        ResidentSpotHandoffKind.ResidentOffer => L["Parking_Handoff_From", item.ResidentName],
+        ResidentSpotHandoffKind.UserRequest when item.RecipientId == UserId => L["Parking_Handoff_RequestedFrom", item.ResidentName],
+        _ => L["Parking_Handoff_RequestedBy", item.RecipientName],
+    };
+
+    private string UserLabel(ResidentSpotHandoffUserDto user) => user.SpotCode is { Length: > 0 }
+        ? $"{user.DisplayName} · {user.SpotCode}"
+        : user.DisplayName;
+
+    private string FormatWindow(DateTimeOffset startUtc, DateTimeOffset endUtc)
+    {
+        var start = TimeZoneInfo.ConvertTime(startUtc, _timeZone);
+        var end = TimeZoneInfo.ConvertTime(endUtc, _timeZone);
+        return $"{start:g} – {end:t}";
+    }
+}

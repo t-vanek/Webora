@@ -90,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<ICalendarSubscriptionService, CalendarSubscriptionService>();
         services.AddScoped<IAchievementService, AchievementService>();
         services.AddScoped<IResidentSpotService, ResidentSpotService>();
+        services.AddScoped<IResidentSpotHandoffService, ResidentSpotHandoffService>();
         services.AddScoped<IUserLocationService, UserLocationService>();
         services.AddScoped<ICollusionService, CollusionService>();
         services.AddScoped<IAvailabilityCampaignService, AvailabilityCampaignService>();

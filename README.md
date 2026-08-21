@@ -60,7 +60,8 @@ Příjezd ani odjezd se nepotvrzuje; připomínky jsou pouze informační.
 - **Pochvala v aplikaci i e-mailem** — nový achievement se uloží do centra oznámení, doručí živě
   a zařadí do odolné e-mailové fronty podle uživatelských a firemních pravidel doručování.
 - **Adaptivní ceny** — volitelný regulátor, který sám ladí přirážku za špičku k cílové obsazenosti.
-- **Rezidentní místa** — místa držená pro vlastníka, který může nepotřebované dny sdílet do fondu.
+- **Rezidentní místa** — místa držená pro vlastníka, který může nepotřebované dny sdílet do fondu
+  nebo je pro jediný termín jmenovitě nabídnout konkrétnímu kolegovi.
 - **Vozový park s typy vozidel** — evidence vozidel podle SPZ s bezpečným párováním na účty
   (SPZ + e-mail řidiče + kód z e-mailu). **Firemní vozidlo** má vedle rezervací nárok i na vlastní
   rezidentní místo (spárováním se řidič stává rezidentem); **vozidlo zaměstnance** rezervuje pouze
@@ -286,9 +287,14 @@ pak řízeno **plánem využití rezidenta**:
   (značka „aplikováno do"), takže údržba nemůže znovu sdílet den, který si rezident vzal zpět.
   Plán je autoritativní už pro dnešní den. Uložení plánu značku zahodí, takže se nový
   plán použije na celý horizont (a den vzatý zpět před změnou tím může být uvolněn znovu).
-- **Konečná přednost rezidenta:** uvolněný den si může vzít zpět i poté, co si místo naplánoval host.
-  Plán hosta se bez sankce zruší, celý rozpočet nebo kupón se vrátí a systém mu pošle notifikaci.
-  Nabídka držená čekateli se stáhne, ale čekatel o pořadí nepřijde a dostane další uvolněné místo.
+- **Jmenovité předání:** dosud veřejně neuvolněné místo může rezident pro konkrétní termín nabídnout
+  vybranému uživateli; uživatel naopak může poslat žádost konkrétnímu rezidentovi. Přijetí nabídky
+  nebo schválení žádosti vytvoří běžnou rezervaci příjemce. Soukromá kapacita může obejít obecnou
+  frontu, ale nikdy nevezme místo, které už je veřejně uvolněné, přidržené nebo rezervované.
+- **Návrat místa rezidentovi je konfigurovatelný:** potvrzená rezervace může být plně chráněná,
+  chráněná po lhůtě, přesunutelná pouze s náhradou nebo podřízená absolutní prioritě rezidenta.
+  Systém vždy nejprve hledá bezpečné náhradní místo a podle nastavení případně rezervaci vrátí do
+  fronty, zruší s plnou vratkou, nebo předá zásah správci.
 - Plánované dny nevyžadují denní potvrzení ani zvláštní rezidentní připomínku.
 
 Za samotné uvolnění se nic nepřipisuje. Teprve když sdílený den skutečně využije kolega, započítá

@@ -44,6 +44,7 @@ internal static class EmployeeLifecycleCleanup
         // These rows remain useful for capacity, economy and incident reports. Without an Identity
         // row their user id cannot be resolved to a name, e-mail, address or plate.
         var history = await dbContext.Reservations.CountAsync(r => r.UserId == userId, cancellationToken)
+            + await dbContext.ResidentSpotHandoffs.CountAsync(h => h.ResidentId == userId || h.RecipientId == userId, cancellationToken)
             + await dbContext.AccountAuditEvents.CountAsync(a => a.UserId == userId, cancellationToken)
             + await dbContext.PointsLedgerEntries.CountAsync(p => p.UserId == userId, cancellationToken)
             + await dbContext.UserBadges.CountAsync(b => b.UserId == userId, cancellationToken)
@@ -169,6 +170,13 @@ internal static class EmployeeLifecycleCleanup
                 .SetProperty(q => q.Status, QueueEntryStatus.Cancelled)
                 .SetProperty(q => q.OfferedSpotId, (Guid?)null)
                 .SetProperty(q => q.OfferExpiresAtUtc, (DateTimeOffset?)null), cancellationToken);
+
+        await dbContext.ResidentSpotHandoffs
+            .Where(h => (h.ResidentId == userId || h.RecipientId == userId)
+                && (h.Status == ResidentSpotHandoffStatus.PendingResident || h.Status == ResidentSpotHandoffStatus.Offered))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(h => h.Status, ResidentSpotHandoffStatus.Cancelled)
+                .SetProperty(h => h.RespondedAtUtc, now), cancellationToken);
 
         await dbContext.VisitorBookings
             .Where(v => v.Status == VisitorBookingStatus.Booked && v.EndUtc > now

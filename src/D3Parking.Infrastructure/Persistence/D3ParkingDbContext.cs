@@ -51,6 +51,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<SpotDayAssignment> SpotDayAssignments => Set<SpotDayAssignment>();
 
+    public DbSet<ResidentSpotHandoff> ResidentSpotHandoffs => Set<ResidentSpotHandoff>();
+
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     public DbSet<CalendarSubscription> CalendarSubscriptions => Set<CalendarSubscription>();
@@ -631,6 +633,22 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             badge.HasKey(b => b.Id);
             badge.Property(b => b.Badge).HasConversion<string>().HasMaxLength(32);
             badge.HasIndex(b => new { b.UserId, b.Badge }).IsUnique();
+        });
+
+        builder.Entity<ResidentSpotHandoff>(handoff =>
+        {
+            handoff.ToTable("ResidentSpotHandoffs");
+            handoff.HasKey(h => h.Id);
+            handoff.Property(h => h.Kind).HasConversion<string>().HasMaxLength(24);
+            handoff.Property(h => h.Status).HasConversion<string>().HasMaxLength(24);
+            handoff.HasIndex(h => new { h.ResidentId, h.Status, h.StartUtc });
+            handoff.HasIndex(h => new { h.RecipientId, h.Status, h.StartUtc });
+            handoff.HasIndex(h => new { h.SpotId, h.Status, h.StartUtc })
+                .IncludeProperties(h => new { h.EndUtc, h.ExpiresAtUtc });
+            handoff.HasIndex(h => h.ReservationId).HasFilter("[ReservationId] IS NOT NULL");
+            handoff.Property<byte[]>("Version").IsRowVersion();
+            handoff.HasOne<ParkingSpot>().WithMany().HasForeignKey(h => h.SpotId).OnDelete(DeleteBehavior.Restrict);
+            handoff.HasOne<Reservation>().WithMany().HasForeignKey(h => h.ReservationId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<ParkingContribution>(contribution =>
