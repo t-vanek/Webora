@@ -288,9 +288,20 @@ public sealed class ReservationService(
                 return ParkingResult.Failure("Parking_Handoff_Error_NotActive");
             }
 
-            var recipientActive = await dbContext.Users.AsNoTracking()
-                .AnyAsync(u => u.Id == userId && u.Status == AccountStatus.Active, cancellationToken);
-            if (!recipientActive)
+            // A request can sit pending for hours. Re-check both account state and the live
+            // permission here: resident approval is a confused-deputy boundary and must not create
+            // a reservation for somebody whose parking access was revoked after the handoff was
+            // sent.
+            var recipientEligible = await dbContext.Users.AsNoTracking()
+                .AnyAsync(u => u.Id == userId && u.Status == AccountStatus.Active, cancellationToken)
+                && await (from userRole in dbContext.UserRoles
+                          join claim in dbContext.RoleClaims on userRole.RoleId equals claim.RoleId
+                          where userRole.UserId == userId
+                              && claim.ClaimType == D3ParkingClaimTypes.Permission
+                              && claim.ClaimValue == Permissions.Parking.Reserve
+                          select userRole.UserId)
+                    .AnyAsync(cancellationToken);
+            if (!recipientEligible)
             {
                 return ParkingResult.Failure("Parking_Handoff_Error_RecipientUnavailable");
             }
