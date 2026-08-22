@@ -1,8 +1,61 @@
+.resident-handoff-tile {
+    padding: 18px;
+    border: 1px solid var(--brand-hairline, #ececec);
+    border-radius: var(--brand-radius-lg, 12px);
+    background: var(--neutral-layer-1, #fff);
+    box-shadow: var(--brand-shadow-soft, 0 8px 24px rgba(0, 0, 0, .05));
+}
+
+.resident-handoff-tile > .resident-tools__head {
+    padding: 0;
+}
+
+.resident-handoff-tile > .owned-note {
+    margin: 0;
+    overflow: visible;
+    line-height: 1.45;
+    text-overflow: clip;
+    white-space: normal;
+}
+
 .resident-handoff-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
     gap: 1rem;
-    margin-block: 1rem;
+    margin-block: .25rem 0;
+}
+
+.resident-plan-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+    padding: 1rem;
+    border: 1px solid var(--neutral-stroke-rest, #e0e0e0);
+    border-radius: var(--brand-radius-lg, 12px);
+    background: var(--neutral-layer-2, #fafafa);
+}
+
+.resident-plan-card h3,
+.resident-plan-card p {
+    margin: 0;
+}
+
+.resident-plan-card h3 {
+    color: var(--neutral-foreground-rest, #242424);
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.resident-plan-card > p {
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-size: .8rem;
+    line-height: 1.45;
+}
+
+.resident-plan-card > fluent-button {
+    align-self: flex-start;
 }
 
 .resident-handoff-grid .quick-range {
@@ -16,4 +69,24 @@
 .reservation-card {
     gap: .75rem;
     flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .resident-handoff-tile {
+        padding: 14px;
+    }
+
+    .resident-plan-card {
+        padding: 14px;
+    }
+
+    .resident-handoff-grid .quick-range {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .resident-plan-card > fluent-button,
+    .resident-handoff-grid .quick-range fluent-button {
+        width: 100%;
+    }
 }
