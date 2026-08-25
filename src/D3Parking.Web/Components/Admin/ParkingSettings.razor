@@ -4,8 +4,11 @@
 @using D3Parking.Application.Parking.Maps
 @using D3Parking.Application.Notifications
 @using D3Parking.Domain.Notifications
+@using System.Globalization
 @inject IParkingSettingsService SettingsService
 @inject INotificationRuleService NotificationRules
+@inject ISiteSettingsService SiteSettings
+@inject TimeProvider TimeProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResource> L
 
@@ -104,6 +107,10 @@
                                 }
                             </select>
                         </div>
+                        <FluentLabel Class="planner-setting-note planner-setting-note--horizon"
+                                     Typo="Typography.Body" Color="Color.Neutral" aria-live="polite">
+                            @L["Parking_Settings_HorizonThrough", SettingsLastBookableDayLabel]
+                        </FluentLabel>
                         <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
                                 <span>@L["Parking_Settings_SameDayReservationsAllowed"]</span>
@@ -770,6 +777,20 @@
             </FluentTab>
         </FluentTabs>
 
+        @if (_calendarImpact is { RequiresConfirmation: true } impact)
+        {
+            <div class="settings-calendar-impact" role="alert" aria-labelledby="settings-calendar-impact-title">
+                <div>
+                    <strong id="settings-calendar-impact-title">@L["Parking_Settings_CalendarImpact_Title"]</strong>
+                    <span>@L["Parking_Settings_CalendarImpact_Text", impact.Reservations, impact.QueueEntries, impact.Handoffs, impact.VisitorBookings, impact.SpotReleases]</span>
+                </div>
+                <div class="settings-calendar-impact__actions">
+                    <FluentButton OnClick="ConfirmCalendarChangeAsync" Appearance="Appearance.Accent">@L["Parking_Settings_CalendarImpact_Confirm"]</FluentButton>
+                    <FluentButton OnClick="CancelCalendarChange" Appearance="Appearance.Stealth">@L["Common_Cancel"]</FluentButton>
+                </div>
+            </div>
+        }
+
         <div class="settings-savebar">
             <span class="@(!string.IsNullOrEmpty(_error) ? "settings-savebar__error" : null)"
                   role="@(!string.IsNullOrEmpty(_error) ? "alert" : null)">
@@ -791,8 +812,18 @@
     private List<NotificationRuleForm> _notificationRules = [];
     private bool _hasOrientationMap;
     private long _orientationMapVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    private ParkingSettingsDto? _pendingCalendarSettings;
+    private IReadOnlyList<NotificationDeliveryRuleDto>? _pendingNotificationRules;
+    private ParkingCalendarChangeImpactDto? _calendarImpact;
+    private DateOnly _settingsToday;
 
     private string OrientationMapUrl => $"/api/parking/orientation-map?v={_orientationMapVersion}";
+
+    private DateOnly SettingsLastBookableDay =>
+        _settingsToday.AddDays(Math.Clamp(_form?.ReservationHorizonDays ?? 14, 1, 366));
+
+    private string SettingsLastBookableDayLabel =>
+        SettingsLastBookableDay.ToDateTime(TimeOnly.MinValue).ToString("d", CultureInfo.CurrentCulture);
 
     // Section switches. Derived from the stored values on load; on save an off switch forces the
     // group's driving values to zero, which is what the domain treats as "feature disabled".
@@ -894,6 +925,8 @@
         var state = await AuthState!;
         var admin = await UserManager.GetUserAsync(state.User);
         _adminId = admin?.Id ?? Guid.Empty;
+        var timeZone = await SiteSettings.GetTimeZoneAsync();
+        _settingsToday = SiteTime.Today(TimeProvider.GetUtcNow(), timeZone);
         await LoadAsync();
     }
 
@@ -1158,6 +1191,9 @@
     private async Task SaveAsync()
     {
         _message = _error = null;
+        _pendingCalendarSettings = null;
+        _pendingNotificationRules = null;
+        _calendarImpact = null;
         var dto = new ParkingSettingsDto(
             0,
             0,
@@ -1261,10 +1297,45 @@
             return;
         }
 
-        var result = await SettingsService.UpdateAsync(dto, _adminId);
+        var impact = await SettingsService.GetCalendarChangeImpactAsync(dto);
+        if (impact.RequiresConfirmation)
+        {
+            _pendingCalendarSettings = dto;
+            _pendingNotificationRules = notificationRules;
+            _calendarImpact = impact;
+            return;
+        }
+
+        await CommitSettingsAsync(dto, notificationRules, false);
+    }
+
+    private async Task ConfirmCalendarChangeAsync()
+    {
+        if (_pendingCalendarSettings is not { } dto || _pendingNotificationRules is not { } rules)
+        {
+            return;
+        }
+
+        await CommitSettingsAsync(dto, rules, true);
+    }
+
+    private void CancelCalendarChange()
+    {
+        _pendingCalendarSettings = null;
+        _pendingNotificationRules = null;
+        _calendarImpact = null;
+    }
+
+    private async Task CommitSettingsAsync(
+        ParkingSettingsDto dto,
+        IReadOnlyList<NotificationDeliveryRuleDto> notificationRules,
+        bool confirmCalendarInvalidation)
+    {
+        var result = await SettingsService.UpdateAsync(dto, _adminId, confirmCalendarInvalidation);
         if (result.Succeeded)
         {
             await NotificationRules.UpdateAsync(notificationRules, _adminId);
+            CancelCalendarChange();
             _message = L["Parking_Settings_Saved"];
             await LoadAsync();
         }
