@@ -468,17 +468,32 @@
   <data name="Parking_AlternateSearch_Text" xml:space="preserve"><value>Use search only if you need another spot or another time.</value></data>
   <data name="Parking_AlternateSearch_Action" xml:space="preserve"><value>Find another spot</value></data>
   <data name="Parking_AlternateSearch_Find" xml:space="preserve"><value>Find a spot</value></data>
-  <data name="Parking_ResidentState_Held_Title" xml:space="preserve"><value>Spot {0} is held for you today</value></data>
-  <data name="Parking_ResidentState_Held_Text" xml:space="preserve"><value>Your plan keeps the resident spot for you. If you do not need it today, you can release it for somebody else.</value></data>
-  <data name="Parking_ResidentState_HeldSelected_Title" xml:space="preserve"><value>Spot {0} is held for you on the selected day</value></data>
-  <data name="Parking_ResidentState_HeldSelected_Text" xml:space="preserve"><value>If you do not need it on this day, you can release it for others.</value></data>
-  <data name="Parking_ResidentState_Claimed_Title" xml:space="preserve"><value>Spot {0} is confirmed for you all day</value></data>
-  <data name="Parking_ResidentState_Claimed_Text" xml:space="preserve"><value>Your resident spot is yours today and is not offered to others. Use search only if you need another spot or another time.</value></data>
-  <data name="Parking_ResidentState_SharedFree_Title" xml:space="preserve"><value>Spot {0} is released for the selected day and still free</value></data>
-  <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>The spot is offered to others for the selected day, but nobody has reserved it yet.</value></data>
-  <data name="Parking_ResidentState_SharedFreeAuto_Text" xml:space="preserve"><value>Your resident spot was offered to others after the cutoff, but nobody has reserved it yet. Confirming arrival takes it back.</value></data>
-  <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Someone else reserved spot {0} for the selected day</value></data>
-  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>A colleague already confirmed this spot. You may request it back; the system first finds a replacement and observes the company protection deadline.</value></data>
+  <data name="Parking_ResidentState_Held_Title" xml:space="preserve"><value>Assigned to you</value></data>
+  <data name="Parking_ResidentState_Held_Text" xml:space="preserve"><value>The spot is assigned to you for the selected day. If you do not need it, you can release it to others.</value></data>
+  <data name="Parking_ResidentState_HeldSelected_Title" xml:space="preserve"><value>Assigned to you</value></data>
+  <data name="Parking_ResidentState_HeldSelected_Text" xml:space="preserve"><value>The spot is assigned to you for the selected day. If you do not need it, you can release it to others.</value></data>
+  <data name="Parking_ResidentState_Claimed_Title" xml:space="preserve"><value>Assigned to you · {0}</value></data>
+  <data name="Parking_ResidentState_Claimed_Text" xml:space="preserve"><value>The spot is assigned to you for the selected day and is not offered to others.</value></data>
+  <data name="Parking_ResidentState_SharedFree_Title" xml:space="preserve"><value>Released · no reservation</value></data>
+  <data name="Parking_ResidentState_SharedFreeReleased_Text" xml:space="preserve"><value>The spot is released for the selected day and has no reservation yet.</value></data>
+  <data name="Parking_ResidentState_SharedFreeAuto_Text" xml:space="preserve"><value>The spot was offered to others after the cutoff but has no reservation yet. You can take it back.</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Title" xml:space="preserve"><value>Released · reserved</value></data>
+  <data name="Parking_ResidentState_SharedTaken_Text" xml:space="preserve"><value>The released spot has one or more reservations. You can request its return under the parking rules.</value></data>
+  <data name="Parking_ResidentState_AssignedToName" xml:space="preserve"><value>Assigned to: {0}</value></data>
+  <data name="Parking_ResidentState_AssignedToName_Text" xml:space="preserve"><value>The spot is assigned to {0} for the selected day. Choose a spot from the shared pool.</value></data>
+  <data name="Parking_ResidentState_BookingByName" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Parking_ResidentState_ReservedByName" xml:space="preserve"><value>Reserved by: {0}</value></data>
+  <data name="Parking_ResidentState_ReservedByMultiple" xml:space="preserve"><value>Reserved by multiple users</value></data>
+  <data name="Parking_ResidentState_SharedTakenReleasedBy_Text" xml:space="preserve"><value>{0} released the spot. Every booking user and time is listed below.</value></data>
+  <data name="Parking_ResidentState_Unavailable_Title" xml:space="preserve"><value>Spot status unavailable</value></data>
+  <data name="Parking_ResidentState_Unavailable_Text" xml:space="preserve"><value>The resident assignment could not be loaded for the selected day. Try refreshing the page.</value></data>
+  <data name="Parking_ResidentState_FormerUser" xml:space="preserve"><value>Former user</value></data>
+  <data name="Parking_ResidentState_RequestReturn" xml:space="preserve"><value>Request return</value></data>
+  <data name="Parking_ResidentState_ReturnConfirmTitle" xml:space="preserve"><value>Request the return of spot {0}?</value></data>
+  <data name="Parking_ResidentState_ReturnConfirmText" xml:space="preserve"><value>The system will first try to move the reservation holders to suitable replacement spots. If the parking rules do not allow it, nothing will change.</value></data>
+  <data name="Parking_ResidentState_ReturnConfirmKeep" xml:space="preserve"><value>Keep reservations</value></data>
+  <data name="Parking_ResidentState_TakeBack" xml:space="preserve"><value>Take spot back</value></data>
+  <data name="Parking_ResidentState_ReleaseDay" xml:space="preserve"><value>Release this day</value></data>
   <data name="Parking_Date" xml:space="preserve"><value>Date</value></data>
   <data name="Parking_From" xml:space="preserve"><value>From</value></data>
   <data name="Parking_To" xml:space="preserve"><value>To</value></data>
@@ -520,7 +535,7 @@
   <data name="Parking_OffPeak" xml:space="preserve"><value>Off-peak</value></data>
   <data name="Parking_Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Parking_Status" xml:space="preserve"><value>Status</value></data>
-  <data name="Parking_CheckIn" xml:space="preserve"><value>Check in</value></data>
+  <data name="Parking_CheckIn" xml:space="preserve"><value>Mark arrival</value></data>
   <data name="Parking_Release" xml:space="preserve"><value>Release</value></data>
   <data name="Parking_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Parking_Complete" xml:space="preserve"><value>Leave</value></data>
@@ -530,14 +545,27 @@
   <data name="Parking_State_Reserved" xml:space="preserve"><value>Planned</value></data>
   <data name="Parking_Planner_Eyebrow" xml:space="preserve"><value>Planning schedule</value></data>
   <data name="Parking_Planner_Title" xml:space="preserve"><value>My parking week</value></data>
-  <data name="Parking_Planner_Help" xml:space="preserve"><value>Select a day, set the time and plan an available spot.</value></data>
+  <data name="Parking_Planner_Help_AllDay" xml:space="preserve"><value>Select a day and plan an available spot for the whole day.</value></data>
+  <data name="Parking_Planner_Help_TimeWindow" xml:space="preserve"><value>Select a day, set the start and end time, and plan an available spot.</value></data>
   <data name="Parking_Planner_PreviousWeek" xml:space="preserve"><value>Previous week</value></data>
   <data name="Parking_Planner_NextWeek" xml:space="preserve"><value>Next week</value></data>
   <data name="Parking_Planner_Today" xml:space="preserve"><value>Today</value></data>
-  <data name="Parking_Planner_FreeDay" xml:space="preserve"><value>No reservation</value></data>
-  <data name="Parking_Planner_ResidentSpot" xml:space="preserve"><value>Your resident spot</value></data>
-  <data name="Parking_Planner_ReleasedFree" xml:space="preserve"><value>Released · still free</value></data>
-  <data name="Parking_Planner_ReleasedTaken" xml:space="preserve"><value>Released · reserved by a colleague</value></data>
+  <data name="Parking_Planner_FreeDay" xml:space="preserve"><value>You have no reservation</value></data>
+  <data name="Parking_Planner_UnavailableDay" xml:space="preserve"><value>Outside the booking window</value></data>
+  <data name="Parking_Planner_ReservationNotAllowed" xml:space="preserve"><value>Booking not allowed</value></data>
+  <data name="Parking_Planner_NotAllowed_SameDay" xml:space="preserve"><value>Bookings not allowed · today</value></data>
+  <data name="Parking_Planner_NotAllowed_Weekday" xml:space="preserve"><value>Bookings not allowed · this weekday</value></data>
+  <data name="Parking_Planner_NotAllowed_Weekend" xml:space="preserve"><value>Bookings not allowed · weekend</value></data>
+  <data name="Parking_Planner_NotAllowed_PublicHoliday" xml:space="preserve"><value>Bookings not allowed · public holiday</value></data>
+  <data name="Parking_ResidentState_Held_BookingBlocked_Text" xml:space="preserve"><value>The spot is assigned to you for the selected day, but configuration does not permit a new booking. It therefore cannot be released or handed off for this day.</value></data>
+  <data name="Parking_ResidentState_Assigned_BookingBlocked_Text" xml:space="preserve"><value>The spot is assigned to {0} for the selected day. Configuration does not permit a new booking for this day.</value></data>
+  <data name="Parking_ResidentState_SharedFree_BookingBlocked_Text" xml:space="preserve"><value>The spot is released, but configuration does not permit a new booking for this day. The resident can reclaim it.</value></data>
+  <data name="Parking_ResidentState_ExistingBooking_BookingBlocked_Text" xml:space="preserve"><value>The displayed booking already exists. Configuration does not permit another booking for this day.</value></data>
+  <data name="Parking_Handoff_BookingBlocked" xml:space="preserve"><value>A booking cannot be created for the selected time: {0}</value></data>
+  <data name="Parking_Handoff_BlockedSubtitle" xml:space="preserve"><value>Spot handoff and requests are unavailable when bookings are not permitted for the selected time.</value></data>
+  <data name="Parking_Planner_ResidentSpot" xml:space="preserve"><value>Shared resident spot</value></data>
+  <data name="Parking_Planner_ReleasedFree" xml:space="preserve"><value>Released · no reservation</value></data>
+  <data name="Parking_Planner_ReleasedTaken" xml:space="preserve"><value>Released · reserved</value></data>
   <data name="Parking_Planner_PastDay" xml:space="preserve"><value>Past day</value></data>
   <data name="Parking_Planner_TodayMarker" xml:space="preserve"><value>Today</value></data>
   <data name="Parking_State_CheckedIn" xml:space="preserve"><value>On site</value></data>
@@ -922,22 +950,22 @@
   <data name="Parking_Settings_Error_PeakRange" xml:space="preserve"><value>Peak end must be after peak start.</value></data>
   <data name="Parking_Owned_Title" xml:space="preserve"><value>Your reserved spot</value></data>
   <data name="Parking_Owned_SpotLabel" xml:space="preserve"><value>Resident spot</value></data>
-  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>The spot is yours today</value></data>
-  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>The spot is released today and still free</value></data>
-  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>A colleague reserved the spot today</value></data>
+  <data name="Parking_OwnedState_Held" xml:space="preserve"><value>Assigned to you</value></data>
+  <data name="Parking_OwnedState_SharedFree" xml:space="preserve"><value>Released · no reservation</value></data>
+  <data name="Parking_OwnedState_SharedTaken" xml:space="preserve"><value>Released · reserved</value></data>
   <data name="Parking_Owned_TodayHeldText" xml:space="preserve"><value>If you do not need it today, you can release it for others.</value></data>
   <data name="Parking_Owned_TodaySharedFreeText" xml:space="preserve"><value>You can take the spot back without affecting anyone else.</value></data>
   <data name="Parking_Owned_TodaySharedTakenText" xml:space="preserve"><value>The system returns it only under the company rule: it safely moves the colleague first, otherwise it may deny the reclaim.</value></data>
   <data name="Parking_Owned_ReleaseToday" xml:space="preserve"><value>Release today</value></data>
   <data name="Parking_Owned_ReclaimToday" xml:space="preserve"><value>Return my spot</value></data>
-  <data name="Parking_Owned_ReclaimTodayWarning" xml:space="preserve"><value>A colleague reserved the spot today. Taking it back cancels their reservation; their planning budget is returned and they are notified.</value></data>
-  <data name="Parking_Owned_ReclaimTodayWarning_NoCredits" xml:space="preserve"><value>A colleague reserved the spot today. Taking it back cancels their reservation and notifies them.</value></data>
+  <data name="Parking_Owned_ReclaimTodayWarning" xml:space="preserve"><value>The spot already has a reservation. Requesting its return may move or cancel it; the booking user gets their planning budget back and is notified.</value></data>
+  <data name="Parking_Owned_ReclaimTodayWarning_NoCredits" xml:space="preserve"><value>The spot already has a reservation. Requesting its return may move or cancel it and the booking user is notified.</value></data>
   <data name="Parking_Owned_Release" xml:space="preserve"><value>Release</value></data>
   <data name="Parking_Owned_Released" xml:space="preserve"><value>The spot was released to others.</value></data>
   <data name="Parking_Owned_ResidentToolsEyebrow" xml:space="preserve"><value>Resident spot</value></data>
   <data name="Parking_Owned_ResidentToolsTitle" xml:space="preserve"><value>Manage my spot</value></data>
   <data name="Parking_Owned_ResidentToolsTitleWithSpot" xml:space="preserve"><value>Plan for spot {0}</value></data>
-  <data name="Parking_Owned_ResidentToolsSubtitle" xml:space="preserve"><value>Set the days when you use the spot.</value></data>
+  <data name="Parking_Owned_ResidentToolsSubtitle" xml:space="preserve"><value>Set the days when the spot should remain assigned to you.</value></data>
   <data name="Parking_Owned_ResidentToolsHint" xml:space="preserve"><value>Plan when you use spot {0} and release the days you do not need it.</value></data>
   <data name="Parking_Owned_ReleaseSection" xml:space="preserve"><value>Release days</value></data>
   <data name="Parking_Owned_ReleasedDaysSection" xml:space="preserve"><value>My released days</value></data>
@@ -962,7 +990,7 @@
   <data name="Parking_Error_SpotTakenToday" xml:space="preserve"><value>Someone else already took the spot today.</value></data>
   <data name="Parking_Error_SpotTaken" xml:space="preserve"><value>The target spot is no longer free for that window.</value></data>
   <data name="Parking_Error_SameSpot" xml:space="preserve"><value>The reservation is already on that spot.</value></data>
-  <data name="Parking_Error_AlreadyClaimed" xml:space="preserve"><value>You already confirmed arrival for that day.</value></data>
+  <data name="Parking_Error_AlreadyClaimed" xml:space="preserve"><value>The spot is already assigned to you for that day.</value></data>
   <data name="Parking_Error_PastDate" xml:space="preserve"><value>You can't release a day in the past.</value></data>
   <data name="Parking_Owned_ReleaseDateRequired" xml:space="preserve"><value>Choose valid start and end dates.</value></data>
   <data name="Parking_Owned_ReleaseRangeTooLong" xml:space="preserve"><value>Choose no more than {0} days.</value></data>
@@ -981,7 +1009,7 @@
   <data name="Parking_Owned_ReleaseRangeAction" xml:space="preserve"><value>Release selected days</value></data>
   <data name="Parking_Owned_NoReleaseReward" xml:space="preserve"><value>No point reward</value></data>
   <data name="Parking_Owned_ReclaimPeriod" xml:space="preserve"><value>Take period back</value></data>
-  <data name="Parking_Owned_ReclaimPeriodWarning" xml:space="preserve"><value>Colleagues already use {0} days in this period. Confirming cancels their reservations with a full refund and notification.</value></data>
+  <data name="Parking_Owned_ReclaimPeriodWarning" xml:space="preserve"><value>{0} days in this period already have reservations. Requesting their return may move or cancel them; booking users receive refunds and notifications.</value></data>
   <data name="Parking_Owned_ReclaimConfirm" xml:space="preserve"><value>Confirm take-back</value></data>
   <data name="Parking_Owned_PeriodAllFree" xml:space="preserve"><value>Every day is still free.</value></data>
   <data name="Parking_Owned_PeriodAllTaken" xml:space="preserve"><value>Colleagues have reserved every day.</value></data>
@@ -992,7 +1020,7 @@
   <data name="Parking_Error_InvalidRange" xml:space="preserve"><value>The end of the range must be after its start.</value></data>
   <data name="Parking_Error_RangeTooLong" xml:space="preserve"><value>The range is too long.</value></data>
   <data name="Parking_Error_NothingToRelease" xml:space="preserve"><value>Nothing to release in the chosen range.</value></data>
-  <data name="Parking_Error_NothingToReclaim" xml:space="preserve"><value>Nothing to take back — the chosen days aren't released, or somebody has already booked them.</value></data>
+  <data name="Parking_Error_NothingToReclaim" xml:space="preserve"><value>Nothing to return — the spot is not assigned to you or is no longer released on the selected days.</value></data>
   <data name="Parking_Owned_ReleasedDays" xml:space="preserve"><value>Released days</value></data>
   <data name="Parking_Owned_DayTaken" xml:space="preserve"><value>(taken)</value></data>
   <data name="Parking_Owned_ReclaimFrom" xml:space="preserve"><value>Take back from</value></data>
@@ -1000,11 +1028,11 @@
   <data name="Parking_Owned_Reclaim" xml:space="preserve"><value>Take back</value></data>
   <data name="Parking_Owned_Reclaimed" xml:space="preserve"><value>The days are yours again — the spot is held for you once more.</value></data>
   <data name="Parking_Owned_ReclaimHint" xml:space="preserve"><value>You may request a booked day too. The system first looks for a safe replacement and then applies the company protection deadline; if the conditions are not met, nothing changes.</value></data>
-  <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Past the cutoff the spot is offered to others, but until somebody takes it, confirming arrival takes it back.</value></data>
+  <data name="Parking_Owned_AutoShareReclaimHint" xml:space="preserve"><value>Past the cutoff the spot is offered to others. You can take it back while it has no reservation.</value></data>
   <data name="Parking_Owned_PlanDays" xml:space="preserve"><value>Days I need the spot</value></data>
   <data name="Parking_Owned_PlanAutoRelease" xml:space="preserve"><value>Auto release</value></data>
   <data name="Parking_Owned_SavePlan" xml:space="preserve"><value>Save plan</value></data>
-  <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Unselected days are released up to {0} days ahead and earn the advance reward. Selected days stay yours. You can take any released day back; if a colleague already planned it, they receive a full refund and notification. Saving reapplies the plan over the whole horizon.</value></data>
+  <data name="Parking_Owned_PlanHint" xml:space="preserve"><value>Unselected days are released up to {0} days ahead and earn the advance reward. Selected days remain assigned to you. You can directly take back a day with no reservation; for a reserved day, request its return. Saving reapplies the plan over the whole horizon.</value></data>
   <data name="Parking_Owned_PlanSaved" xml:space="preserve"><value>Usage plan saved.</value></data>
   <data name="Parking_Settings_ResidentClawback" xml:space="preserve"><value>Reward clawback when the taker no-shows (%)</value></data>
   <data name="Parking_Settings_ResidentPlanHorizon" xml:space="preserve"><value>Plan ahead (days)</value></data>
@@ -2232,7 +2260,7 @@
   <data name="Parking_Error_ResidentCapacityBelowCount" xml:space="preserve"><value>Capacity cannot be lower than the current resident count.</value></data>
   <data name="Parking_Error_ResidentCapacityReached" xml:space="preserve"><value>The parking spot has reached its resident capacity.</value></data>
   <data name="Parking_Error_ResidentUnavailable" xml:space="preserve"><value>The user is inactive or no longer available for assignment.</value></data>
-  <data name="Parking_OwnedState_NotAssigned" xml:space="preserve"><value>Another resident uses the spot today</value></data>
+  <data name="Parking_OwnedState_NotAssigned" xml:space="preserve"><value>Assigned to another resident</value></data>
   <data name="Parking_Owned_TodayNotAssignedText" xml:space="preserve"><value>Choose a spot from the shared pool.</value></data>
   <data name="Parking_Defect_Close" xml:space="preserve"><value>Close report form</value></data>
   <data name="Parking_Settings_Tab_Planner" xml:space="preserve"><value>Reservations</value></data>
@@ -2249,7 +2277,7 @@
   <data name="Parking_Settings_SameDayReservationsAllowed" xml:space="preserve"><value>Allow bookings for today</value></data>
   <data name="Parking_Settings_SameDayReservationsTooltip" xml:space="preserve"><value>When disabled, a new employee booking, visitor booking, or waitlist entry can start no earlier than the next local calendar day. Existing bookings for today remain valid.</value></data>
   <data name="Parking_Settings_WeekdayRule" xml:space="preserve"><value>Regular days</value></data>
-  <data name="Parking_Settings_ReservationHorizonTooltip" xml:space="preserve"><value>Sets the latest date available for a reservation, visit, waitlist entry, or automatic spot release.</value></data>
+  <data name="Parking_Settings_ReservationHorizonTooltip" xml:space="preserve"><value>Sets the number of local calendar days from today. The last displayed day is included, and the same rule applies to reservations, visits, the waitlist, and automatic spot releases.</value></data>
   <data name="Parking_Settings_WeekdayRuleTooltip" xml:space="preserve"><value>Sets the weekdays available for reservations. Custom selection reveals the individual days.</value></data>
   <data name="Parking_Settings_PublicHolidayTooltip" xml:space="preserve"><value>When enabled, Czech public holidays can also be reserved if they are among the allowed weekdays.</value></data>
   <data name="Parking_Settings_Weekdays_Custom" xml:space="preserve"><value>Custom selection</value></data>
@@ -2295,14 +2323,16 @@
   <data name="Parking_Settings_BudgetResult" xml:space="preserve"><value>Budget result</value></data>
   <data name="Parking_Settings_BudgetSummaryEnabled" xml:space="preserve"><value>The balance is topped up to at most {0} credits {1}. One reservation costs {2} credits.</value></data>
   <data name="Parking_Settings_BudgetSummaryDisabled" xml:space="preserve"><value>Reservations do not use credits and have no price.</value></data>
-  <data name="Parking_Settings_Horizon_1Week" xml:space="preserve"><value>1 week</value></data>
-  <data name="Parking_Settings_Horizon_2Weeks" xml:space="preserve"><value>2 weeks</value></data>
-  <data name="Parking_Settings_Horizon_3Weeks" xml:space="preserve"><value>3 weeks</value></data>
-  <data name="Parking_Settings_Horizon_4Weeks" xml:space="preserve"><value>4 weeks</value></data>
-  <data name="Parking_Settings_Horizon_1Month" xml:space="preserve"><value>1 month (30 days)</value></data>
-  <data name="Parking_Settings_Horizon_3Months" xml:space="preserve"><value>3 months (90 days)</value></data>
-  <data name="Parking_Settings_Horizon_6Months" xml:space="preserve"><value>Half a year (183 days)</value></data>
-  <data name="Parking_Settings_Horizon_1Year" xml:space="preserve"><value>1 year (365 days)</value></data>
+  <data name="Parking_Settings_Horizon_1Week" xml:space="preserve"><value>7 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_2Weeks" xml:space="preserve"><value>14 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_3Weeks" xml:space="preserve"><value>21 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_4Weeks" xml:space="preserve"><value>28 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_1Month" xml:space="preserve"><value>30 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_3Months" xml:space="preserve"><value>90 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_6Months" xml:space="preserve"><value>183 days ahead</value></data>
+  <data name="Parking_Settings_Horizon_1Year" xml:space="preserve"><value>365 days ahead</value></data>
+  <data name="Parking_Settings_HorizonThrough" xml:space="preserve"><value>Last bookable day: {0}, inclusive.</value></data>
+  <data name="Parking_Planner_HorizonThrough" xml:space="preserve"><value>Bookings through {0}, inclusive</value></data>
   <data name="Parking_Settings_AllowedWeekdays" xml:space="preserve"><value>Bookable weekdays</value></data>
   <data name="Parking_Settings_AllowedWeekdaysHelp" xml:space="preserve"><value>Select at least one day. This restriction applies to new reservations and joining the queue.</value></data>
   <data name="Parking_Settings_AllowedWeekdaysSummary" xml:space="preserve"><value>Reservations are allowed only on: {0}.</value></data>
@@ -2319,7 +2349,7 @@
   <data name="Parking_Error_PublicHolidayNotAllowed" xml:space="preserve"><value>Reservations are not allowed on public holidays. Choose another day.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit" xml:space="preserve"><value>You have already planned the allowed number of days for this week. Another free space can be booked once its last-minute window opens.</value></data>
   <data name="Parking_Error_WeeklyReservationLimit_NoLastMinute" xml:space="preserve"><value>You have already planned the allowed number of days for this week.</value></data>
-  <data name="Parking_Error_ResidentDayAlreadyBooked" xml:space="preserve"><value>A colleague already has a confirmed plan for this released day. A parking manager can handle an exceptional change.</value></data>
+  <data name="Parking_Error_ResidentDayAlreadyBooked" xml:space="preserve"><value>This released day already has a reservation. Ask the parking manager to handle an exceptional change.</value></data>
   <data name="Parking_Planner_Rules" xml:space="preserve"><value>Reservations can be made {0} days ahead. The weekly limit is {1} days per person. During the final {2} hours before the start, the limit does not apply to remaining spots.</value></data>
   <data name="Parking_Planner_Rules_NoWeeklyLimit" xml:space="preserve"><value>Reservations can be made {0} days ahead. The weekly limit is disabled.</value></data>
   <data name="Parking_Planner_Rules_NoLastMinute" xml:space="preserve"><value>Reservations can be made {0} days ahead. Shared capacity can be used on at most {1} distinct days per person and week.</value></data>
@@ -2387,8 +2417,8 @@
   <data name="Parking_Reserved_ResidentReleased_FreeCompensation" xml:space="preserve"><value>The booking is confirmed without credits and your resident spot was released.</value></data>
   <data name="Parking_AlternativeSpot_ResidentReturned" xml:space="preserve"><value>The booking was cancelled and your free resident spot is yours again.</value></data>
   <data name="Parking_Settings_ResidentPriorityRecommended" xml:space="preserve"><value>Recommended: Hybrid, binding manual releases, protection from 18:00 the previous day, and queue fallback before the deadline. On the parking day a confirmed colleague never loses their plan without a replacement.</value></data>
-  <data name="Parking_Error_ResidentReplacementUnavailable" xml:space="preserve"><value>Resident priority requires a replacement, but no suitable spot is currently available.</value></data>
-  <data name="Parking_Error_ResidentReclaimManagerRequired" xml:space="preserve"><value>After the protection deadline a confirmed booking cannot be changed through self-service without a replacement. Contact the parking manager.</value></data>
+  <data name="Parking_Error_ResidentReplacementUnavailable" xml:space="preserve"><value>The spot cannot be returned now. No suitable replacement is available for the booking users.</value></data>
+  <data name="Parking_Error_ResidentReclaimManagerRequired" xml:space="preserve"><value>The spot cannot be returned through self-service. Contact the parking manager.</value></data>
   <data name="Nav_AdminNotifications" xml:space="preserve"><value>Delivery</value></data>
   <data name="Nav_Short_Notifications" xml:space="preserve"><value>Mail</value></data>
   <data name="Audit_Type_NotificationDeliveryRetried" xml:space="preserve"><value>Notification email retried</value></data>
@@ -2494,11 +2524,16 @@
   <data name="Parking_Settings_AutoVerifyMaxKmTooltip" xml:space="preserve"><value>Maximum distance from the parking lot for automatic address approval.</value></data>
   <data name="Parking_Settings_MaxReleasesPerDayTooltip" xml:space="preserve"><value>Maximum number of released days one resident can be rewarded for per day. Zero disables rewards.</value></data>
   <data name="Parking_Settings_MaxRangeDaysTooltip" xml:space="preserve"><value>Longest period a resident can release in one action.</value></data>
-  <data name="Parking_Handoff_Title" xml:space="preserve"><value>Named spot handoff</value></data>
+  <data name="Parking_Handoff_Title" xml:space="preserve"><value>Spot handoff</value></data>
   <data name="Parking_Handoff_Subtitle" xml:space="preserve"><value>A private offer or request for {0}. The spot is not released to the shared pool.</value></data>
-  <data name="Parking_Handoff_OfferTitle" xml:space="preserve"><value>Offer your spot</value></data>
-  <data name="Parking_Handoff_OfferHelp" xml:space="preserve"><value>Choose a specific colleague. Their reservation is created only after they accept.</value></data>
+  <data name="Parking_Handoff_OfferSubtitle" xml:space="preserve"><value>You can only hand off your own resident spot. Choose who you want to offer it to for this time.</value></data>
+  <data name="Parking_Handoff_RequestSubtitle" xml:space="preserve"><value>Need a specific resident spot? Send a request to its resident.</value></data>
+  <data name="Parking_Handoff_ResidentSubtitle" xml:space="preserve"><value>You can only hand off your resident spot when it is assigned to you for the selected time.</value></data>
+  <data name="Parking_Handoff_ResidentNoOffer" xml:space="preserve"><value>You have no spot of your own to hand off for the selected time.</value></data>
+  <data name="Parking_Handoff_OfferTitle" xml:space="preserve"><value>Hand off your spot</value></data>
+  <data name="Parking_Handoff_OfferHelp" xml:space="preserve"><value>Choose a recipient. Their reservation is created after they accept the offer.</value></data>
   <data name="Parking_Handoff_RequestTitle" xml:space="preserve"><value>Request a resident's spot</value></data>
+  <data name="Parking_Handoff_RequestSection" xml:space="preserve"><value>Request from a resident</value></data>
   <data name="Parking_Handoff_RequestHelp" xml:space="preserve"><value>Find a resident by name, email, or spot code.</value></data>
   <data name="Parking_Handoff_FindUser" xml:space="preserve"><value>Find a user</value></data>
   <data name="Parking_Handoff_FindResident" xml:space="preserve"><value>Find a resident</value></data>
@@ -2513,6 +2548,8 @@
   <data name="Parking_Handoff_SendRequest" xml:space="preserve"><value>Send request</value></data>
   <data name="Parking_Handoff_AutoReservationNotice" xml:space="preserve"><value>Resident approval automatically creates the reservation for no more than the currently shown price and uses the normal weekly limit.</value></data>
   <data name="Parking_Handoff_Mine" xml:space="preserve"><value>My offers and requests</value></data>
+  <data name="Parking_Handoff_ActionRequired" xml:space="preserve"><value>Waiting for your response</value></data>
+  <data name="Parking_Handoff_HistoryWithCount" xml:space="preserve"><value>Handoff history ({0})</value></data>
   <data name="Parking_Handoff_To" xml:space="preserve"><value>For: {0}</value></data>
   <data name="Parking_Handoff_From" xml:space="preserve"><value>From: {0}</value></data>
   <data name="Parking_Handoff_RequestedFrom" xml:space="preserve"><value>Requested from: {0}</value></data>
@@ -2536,10 +2573,10 @@
   <data name="Parking_Handoff_OfferSent" xml:space="preserve"><value>The private offer was sent.</value></data>
   <data name="Parking_Handoff_RequestSent" xml:space="preserve"><value>The request was sent to the resident.</value></data>
   <data name="Parking_Handoff_ReservationCreated" xml:space="preserve"><value>The reservation was created.</value></data>
-  <data name="Parking_Handoff_Declined" xml:space="preserve"><value>The named handoff was declined.</value></data>
-  <data name="Parking_Handoff_Cancelled" xml:space="preserve"><value>The named handoff was withdrawn.</value></data>
+  <data name="Parking_Handoff_Declined" xml:space="preserve"><value>The spot handoff was declined.</value></data>
+  <data name="Parking_Handoff_Cancelled" xml:space="preserve"><value>The spot handoff was withdrawn.</value></data>
   <data name="Parking_Handoff_Error_Self" xml:space="preserve"><value>You cannot hand a spot to yourself.</value></data>
-  <data name="Parking_Handoff_Error_InvalidWindow" xml:space="preserve"><value>Select a valid future time for a named handoff.</value></data>
+  <data name="Parking_Handoff_Error_InvalidWindow" xml:space="preserve"><value>Select a valid future time for the spot handoff.</value></data>
   <data name="Parking_Handoff_Error_NoResidentSpot" xml:space="preserve"><value>The resident has no active assigned spot.</value></data>
   <data name="Parking_Handoff_Error_RecipientUnavailable" xml:space="preserve"><value>The selected user cannot currently receive a reservation.</value></data>
   <data name="Parking_Handoff_Error_NotAssigned" xml:space="preserve"><value>The resident is not assigned the spot for the whole selected time.</value></data>
@@ -2550,11 +2587,42 @@
   <data name="Parking_Handoff_Error_NotAllowed" xml:space="preserve"><value>You cannot perform this action.</value></data>
   <data name="Parking_Handoff_Error_PriceIncreased" xml:space="preserve"><value>The price increased after the request was sent. The user must send a new request.</value></data>
   <data name="Parking_Handoff_Error_NoSearchResults" xml:space="preserve"><value>No matching users were found.</value></data>
-  <data name="Parking_Handoff_Error_Generic" xml:space="preserve"><value>The named handoff could not be completed.</value></data>
+  <data name="Parking_Handoff_Error_Generic" xml:space="preserve"><value>The spot handoff could not be completed.</value></data>
   <data name="Parking_Handoff_Error_RequestCannotComplete" xml:space="preserve"><value>The request cannot currently be converted into a reservation. The requester must check their booking conditions.</value></data>
-  <data name="Help_Handoff_Q" xml:space="preserve"><value>How does a named resident-spot handoff work?</value></data>
+  <data name="Parking_Handoff_Error_ResidentCannotRequest" xml:space="preserve"><value>A resident cannot use this feature to request another resident's spot. They can only offer their assigned spot.</value></data>
+  <data name="Help_Handoff_Q" xml:space="preserve"><value>How does a resident-spot handoff work?</value></data>
   <data name="Help_Handoff_A1" xml:space="preserve"><value>For a selected time, a resident can privately offer their still-held spot to a specific user. The reservation is created when the user accepts.</value></data>
   <data name="Help_Handoff_A2" xml:space="preserve"><value>A user can request the same spot from its resident. Approval creates the reservation automatically, for no more than the price authorized when sending the request.</value></data>
   <data name="Help_Handoff_A3" xml:space="preserve"><value>A private handoff may bypass the general queue, but cannot take a spot already released publicly, offered to a waiter, or reserved.</value></data>
   <data name="Help_Handoff_A4" xml:space="preserve"><value>The recipient uses the normal planner limit and any enabled credits. Whether the resident may reclaim the spot follows the current company configuration.</value></data>
+  <data name="Parking_Settings_CalendarChangeConfirmationRequired" xml:space="preserve"><value>The calendar change requires confirmation that future records will be invalidated.</value></data>
+  <data name="Parking_Settings_CalendarImpact_Title" xml:space="preserve"><value>The change invalidates future parking</value></data>
+  <data name="Parking_Settings_CalendarImpact_Text" xml:space="preserve"><value>The following will be cancelled: reservations {0}, queue entries {1}, handoffs {2}, visitor bookings {3}; spot releases removed {4}. Charged credits and a redeemed voucher will be restored.</value></data>
+  <data name="Parking_Settings_CalendarImpact_Confirm" xml:space="preserve"><value>Confirm change and cancellations</value></data>
+  <data name="Parking_Handoff_History" xml:space="preserve"><value>Offer and request history (all dates)</value></data>
+  <data name="Parking_Planner_Assigned" xml:space="preserve"><value>Assigned</value></data>
+  <data name="Parking_Planner_Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Parking_Planner_DateUnavailable" xml:space="preserve"><value>Date unavailable</value></data>
+  <data name="Parking_Planner_Reason_SameDay" xml:space="preserve"><value>Today</value></data>
+  <data name="Parking_Planner_Reason_Weekday" xml:space="preserve"><value>Day not enabled</value></data>
+  <data name="Parking_Planner_Reason_Weekend" xml:space="preserve"><value>Weekend</value></data>
+  <data name="Parking_Planner_Reason_PublicHoliday" xml:space="preserve"><value>Public holiday</value></data>
+  <data name="Parking_Planner_Reason_OutsideHorizon" xml:space="preserve"><value>Outside booking period</value></data>
+  <data name="Parking_Planner_Reason_Unavailable" xml:space="preserve"><value>Parking rules are unavailable</value></data>
+  <data name="Parking_Planner_DetailAndActions" xml:space="preserve"><value>Details and actions</value></data>
+  <data name="Parking_Planner_OpenDetailAndActions" xml:space="preserve"><value>{0} — open details and actions.</value></data>
+  <data name="Parking_Planner_DetailTitle" xml:space="preserve"><value>Parking details</value></data>
+  <data name="Parking_Planner_Detail_Spot" xml:space="preserve"><value>Space</value></data>
+  <data name="Parking_Planner_Detail_User" xml:space="preserve"><value>Assigned resident</value></data>
+  <data name="Parking_Planner_Detail_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Parking_Planner_Detail_SpotReservations" xml:space="preserve"><value>Bookings for space {0}</value></data>
+  <data name="Parking_Planner_Detail_OtherReservations" xml:space="preserve"><value>Your other bookings for this day</value></data>
+  <data name="Parking_Planner_Detail_OtherReservationsHelp" xml:space="preserve"><value>These bookings do not use resident space {0}. They are other spaces you have booked for the same day.</value></data>
+  <data name="Parking_Planner_Detail_SourceResident" xml:space="preserve"><value>Resident allocation</value></data>
+  <data name="Parking_Planner_Detail_SourceReleased" xml:space="preserve"><value>Released resident space</value></data>
+  <data name="Parking_Planner_Detail_SourceShared" xml:space="preserve"><value>Shared resident space</value></data>
+  <data name="Parking_Planner_Detail_SourcePersonal" xml:space="preserve"><value>My booking</value></data>
+  <data name="Parking_Planner_Detail_SourceSchedule" xml:space="preserve"><value>Parking schedule</value></data>
+  <data name="Parking_Planner_Detail_PastText" xml:space="preserve"><value>This day has passed. The details are shown for reference only.</value></data>
+  <data name="Parking_Planner_Detail_NoReservationText" xml:space="preserve"><value>You do not have a booking for this day yet.</value></data>
 </root>

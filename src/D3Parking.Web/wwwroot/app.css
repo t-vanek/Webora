@@ -60,6 +60,14 @@
     --brand-accent-foreground: var(--accent-foreground-rest, var(--brand-violet-deep));
     --brand-positive-foreground: color-mix(in srgb, var(--brand-green) 50%, var(--neutral-foreground-rest, #1a1a1a));
 
+    /* Shared resident schedule: semantic colors stay identical on the dashboard, planner and
+       selected-day detail. Text and icons accompany every color, so no state relies on hue alone. */
+    --resident-state-mine: #884DFF;
+    --resident-state-assigned: #0A4A5E;
+    --resident-state-released-free: #0D702F;
+    --resident-state-released-booked: #9D5D00;
+    --resident-state-unknown: #5F6B6D;
+
     /* Text na značkových plochách */
     --brand-on-sherpa: var(--brand-white);
     --brand-on-violet: var(--brand-white);
@@ -471,6 +479,73 @@ h1:focus {
     color: var(--accent-foreground-rest);
 }
 
+.handoff-card {
+    display: block;
+    padding: 16px 18px;
+}
+
+.resident-tools.handoff-card__content {
+    gap: 14px;
+    padding: 0;
+}
+
+.handoff-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.handoff-card__heading {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.handoff-card__heading > fluent-icon {
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.handoff-card__heading h2,
+.handoff-card__heading p,
+.handoff-card__policy {
+    margin: 0;
+}
+
+.handoff-card__heading h2 {
+    font-size: 18px;
+    line-height: 1.3;
+}
+
+.handoff-card__heading p,
+.handoff-card__policy {
+    margin-top: 3px;
+    color: var(--neutral-foreground-hint, #6b6b6b);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.handoff-card__window {
+    flex: 0 0 auto;
+    padding: 4px 9px;
+    border: 1px solid color-mix(in srgb, var(--brand-violet, #884DFF) 24%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brand-violet, #884DFF) 8%, var(--neutral-layer-1, #fff));
+    color: var(--neutral-foreground-rest, #242424);
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.handoff-card__policy {
+    padding: 9px 11px;
+    border-left: 3px solid var(--brand-sherpa, #0A4A5E);
+    border-radius: 0 var(--brand-radius, 6px) var(--brand-radius, 6px) 0;
+    background: color-mix(in srgb, var(--brand-sherpa, #0A4A5E) 6%, var(--neutral-layer-1, #fff));
+}
+
 .calendar-subscription__secret {
     grid-column: 1 / -1;
     display: grid;
@@ -535,6 +610,14 @@ h1:focus {
     .calendar-subscription__actions fluent-button {
         width: 100%;
     }
+
+    .handoff-card__header {
+        flex-direction: column;
+    }
+
+    .handoff-card__window {
+        margin-left: 30px;
+    }
 }
 
 .reserve-layout {
@@ -593,6 +676,20 @@ h1:focus {
     color: var(--neutral-foreground-hint, #666);
 }
 
+.parking-planner__horizon {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 8px;
+    padding: 4px 8px;
+    border: 1px solid color-mix(in srgb, var(--accent-fill-rest, #5b2da3) 22%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent-fill-rest, #5b2da3) 7%, var(--neutral-layer-1, #fff));
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
 .parking-planner__eyebrow {
     color: var(--accent-fill-rest, #5b2da3);
     font-size: 11px;
@@ -607,20 +704,35 @@ h1:focus {
     gap: 4px;
 }
 
+.parking-planner__nav fluent-button:first-child,
+.parking-planner__nav fluent-button:last-child {
+    min-width: 36px;
+}
+
 .parking-planner__week {
     display: grid;
     grid-template-columns: repeat(7, minmax(128px, 1fr));
+    grid-auto-rows: minmax(130px, auto);
     gap: 8px;
     overflow-x: auto;
-    padding-bottom: 3px;
+    padding: 2px 2px 4px;
+}
+
+.parking-planner__day-shell {
+    position: relative;
+    min-width: 0;
+    height: 100%;
 }
 
 .parking-planner__day {
     display: flex;
-    min-height: 112px;
+    width: 100%;
+    height: 100%;
+    min-height: 130px;
+    box-sizing: border-box;
     flex-direction: column;
     gap: 8px;
-    padding: 11px;
+    padding: 10px;
     border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
     border-radius: var(--brand-radius, 8px);
     background: var(--neutral-layer-1, #fff);
@@ -636,8 +748,10 @@ h1:focus {
 }
 
 .parking-planner__day.is-selected {
-    border-color: var(--accent-fill-rest, #5b2da3);
-    box-shadow: inset 0 0 0 1px var(--accent-fill-rest, #5b2da3);
+    position: relative;
+    z-index: 1;
+    border-color: var(--neutral-stroke-rest, #d1d1d1);
+    box-shadow: 0 0 0 2px var(--accent-fill-rest, #5b2da3);
 }
 
 .parking-planner__day.is-today .parking-planner__date {
@@ -656,8 +770,11 @@ h1:focus {
 
 .parking-planner__date {
     display: flex;
+    width: 100%;
+    min-height: 18px;
+    flex: 0 0 18px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 6px;
     font-size: 12px;
     font-weight: 800;
@@ -674,12 +791,98 @@ h1:focus {
     }
 
 .parking-planner__empty {
+    display: flex;
+    min-height: 78px;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--resident-state-unknown) 28%, transparent);
+    border-left: 4px solid var(--resident-state-unknown);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--resident-state-unknown) 5%, var(--neutral-layer-1, #fff));
     color: var(--neutral-foreground-hint, #777);
     font-size: 12px;
 }
 
+.parking-planner__open-detail {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 22px;
+    border-radius: 6px;
+    color: var(--neutral-foreground-hint, #616161);
+}
+
+.parking-planner__day:hover .parking-planner__open-detail {
+    background: var(--neutral-fill-stealth-hover, rgba(0, 0, 0, .06));
+    color: var(--neutral-foreground-rest, #242424);
+}
+
+.parking-planner__day[aria-expanded="true"] .parking-planner__open-detail {
+    background: color-mix(in srgb, var(--accent-fill-rest, #5b2da3) 10%, transparent);
+    color: var(--accent-fill-rest, #5b2da3);
+}
+
+.parking-planner__empty--restricted {
+    border-color: color-mix(in srgb, var(--resident-state-released-booked) 34%, transparent);
+    border-left-color: var(--resident-state-released-booked);
+    background: color-mix(in srgb, var(--resident-state-released-booked) 8%, var(--neutral-layer-1, #fff));
+    color: color-mix(in srgb, var(--resident-state-released-booked) 65%, var(--neutral-foreground-rest, #242424));
+}
+
+.parking-planner__empty--restricted strong {
+    color: inherit;
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.parking-planner__empty--restricted > small {
+    margin-left: 21px;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.parking-planner__status-line,
+.parking-planner__restriction {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 5px;
+}
+
+.parking-planner__status-line > span:last-child,
+.parking-planner__restriction > span:last-child {
+    min-width: 0;
+}
+
+.parking-planner__status-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    align-items: center;
+    justify-content: center;
+}
+
+.parking-planner__status-icon fluent-icon {
+    width: 16px;
+    height: 16px;
+}
+
 .parking-planner__booking {
     display: flex;
+    min-height: 78px;
+    box-sizing: border-box;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 2px;
     padding: 7px 8px;
@@ -691,6 +894,57 @@ h1:focus {
 
 .parking-planner__booking strong {
     font-size: 12px;
+}
+
+.parking-planner__booking small {
+    display: block;
+    overflow: hidden;
+    color: inherit;
+    font-size: 10px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.parking-planner__booking .parking-planner__person {
+    margin-left: 21px;
+    font-weight: 650;
+}
+
+.parking-planner__booking .parking-planner__restriction {
+    color: var(--resident-state-released-booked);
+    font-weight: 750;
+    white-space: normal;
+}
+
+.parking-planner__booking--resident-mine {
+    border: 1px solid color-mix(in srgb, var(--resident-state-mine) 34%, transparent);
+    border-left: 4px solid var(--resident-state-mine);
+    background: color-mix(in srgb, var(--resident-state-mine) 8%, var(--neutral-layer-1, #fff));
+}
+
+.parking-planner__booking--resident-assigned {
+    border: 1px solid color-mix(in srgb, var(--resident-state-assigned) 34%, transparent);
+    border-left: 4px solid var(--resident-state-assigned);
+    background: color-mix(in srgb, var(--resident-state-assigned) 8%, var(--neutral-layer-1, #fff));
+}
+
+.parking-planner__booking--resident-released-free {
+    border: 1px solid color-mix(in srgb, var(--resident-state-released-free) 34%, transparent);
+    border-left: 4px solid var(--resident-state-released-free);
+    background: color-mix(in srgb, var(--resident-state-released-free) 8%, var(--neutral-layer-1, #fff));
+}
+
+.parking-planner__booking--resident-released-booked {
+    border: 1px solid color-mix(in srgb, var(--resident-state-released-booked) 34%, transparent);
+    border-left: 4px solid var(--resident-state-released-booked);
+    background: color-mix(in srgb, var(--resident-state-released-booked) 8%, var(--neutral-layer-1, #fff));
+}
+
+.parking-planner__booking--resident-unknown {
+    border: 1px dashed color-mix(in srgb, var(--resident-state-unknown) 45%, transparent);
+    border-left: 4px solid var(--resident-state-unknown);
+    background: color-mix(in srgb, var(--resident-state-unknown) 6%, var(--neutral-layer-1, #fff));
 }
 
 .parking-planner__booking--released-free {
@@ -705,6 +959,123 @@ h1:focus {
     color: var(--neutral-foreground-rest, #242424);
 }
 
+.parking-day-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.parking-day-detail__status {
+    --parking-detail-state: var(--resident-state-unknown);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid color-mix(in srgb, var(--parking-detail-state) 30%, transparent);
+    border-left: 4px solid var(--parking-detail-state);
+    border-radius: var(--brand-radius, 8px);
+    background: color-mix(in srgb, var(--parking-detail-state) 7%, var(--neutral-layer-1, #fff));
+}
+
+.parking-day-detail__status--mine { --parking-detail-state: var(--resident-state-mine); }
+.parking-day-detail__status--assigned { --parking-detail-state: var(--resident-state-assigned); }
+.parking-day-detail__status--released-free,
+.parking-day-detail__status--free { --parking-detail-state: var(--resident-state-released-free); }
+.parking-day-detail__status--released-booked,
+.parking-day-detail__status--blocked { --parking-detail-state: var(--resident-state-released-booked); }
+
+.parking-day-detail__status > .parking-planner__status-icon {
+    margin-top: 1px;
+    color: var(--parking-detail-state);
+}
+
+.parking-day-detail__status > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.parking-day-detail__status strong {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.parking-day-detail__status span:last-child {
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.parking-day-detail__facts {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--neutral-stroke-rest, #d1d1d1);
+    border-radius: var(--brand-radius, 8px);
+}
+
+.parking-day-detail__facts > div {
+    display: grid;
+    grid-template-columns: minmax(130px, .45fr) minmax(0, 1fr);
+    gap: 16px;
+    padding: 10px 12px;
+}
+
+.parking-day-detail__facts > div + div {
+    border-top: 1px solid var(--brand-hairline, #e3e6e7);
+}
+
+.parking-day-detail__facts dt {
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.parking-day-detail__facts dd {
+    min-width: 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.parking-day-detail__bookings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.parking-day-detail__bookings h3 {
+    margin: 0 0 2px;
+    font-size: 13px;
+}
+
+.parking-day-detail__bookings > p {
+    margin: -1px 0 2px;
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.parking-day-detail__bookings > div {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    background: var(--neutral-layer-2, #f7f7f7);
+    font-size: 12px;
+}
+
+@media (max-width: 480px) {
+    .parking-day-detail__facts > div {
+        grid-template-columns: 1fr;
+        gap: 3px;
+    }
+}
+
 .owned-spot-panel {
     width: 100%;
 }
@@ -715,28 +1086,65 @@ h1:focus {
     gap: 12px;
 }
 
+.resident-return-dialog__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.resident-return-dialog__content > p {
+    margin: 0;
+    color: var(--neutral-foreground-hint, #616161);
+    line-height: 1.5;
+}
+
 .resident-status-strip {
     display: grid;
     grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
     align-items: center;
     gap: 16px;
     padding: 14px 18px;
-    border: 1px solid rgba(136, 77, 255, .20);
-    border-left: 4px solid var(--brand-violet);
+    border: 1px solid color-mix(in srgb, var(--resident-state-mine) 24%, transparent);
+    border-left: 4px solid var(--resident-state-mine);
     border-radius: var(--brand-radius-lg);
-    background: rgba(136, 77, 255, .05);
+    background: color-mix(in srgb, var(--resident-state-mine) 6%, var(--neutral-layer-1, #fff));
 }
 
-.resident-status-strip--SharedFree {
-    border-color: rgba(13, 112, 47, .20);
-    border-left-color: var(--brand-sherpa, #0d702f);
-    background: rgba(137, 225, 3, .10);
+.resident-status-strip--assigned {
+    border-color: color-mix(in srgb, var(--resident-state-assigned) 24%, transparent);
+    border-left-color: var(--resident-state-assigned);
+    background: color-mix(in srgb, var(--resident-state-assigned) 6%, var(--neutral-layer-1, #fff));
 }
 
-.resident-status-strip--SharedTaken {
-    border-color: rgba(157, 93, 0, .24);
-    border-left-color: #9d5d00;
-    background: rgba(255, 185, 0, .10);
+.resident-status-strip--released-free {
+    border-color: color-mix(in srgb, var(--resident-state-released-free) 24%, transparent);
+    border-left-color: var(--resident-state-released-free);
+    background: color-mix(in srgb, var(--resident-state-released-free) 7%, var(--neutral-layer-1, #fff));
+}
+
+.resident-status-strip--released-booked {
+    border-color: color-mix(in srgb, var(--resident-state-released-booked) 28%, transparent);
+    border-left-color: var(--resident-state-released-booked);
+    background: color-mix(in srgb, var(--resident-state-released-booked) 7%, var(--neutral-layer-1, #fff));
+}
+
+.resident-status-strip--unknown {
+    border-color: color-mix(in srgb, var(--resident-state-unknown) 28%, transparent);
+    border-left-color: var(--resident-state-unknown);
+    background: color-mix(in srgb, var(--resident-state-unknown) 6%, var(--neutral-layer-1, #fff));
+}
+
+.resident-status-strip--blocked {
+    grid-template-columns: auto minmax(0, 1fr);
+    border-color: color-mix(in srgb, #c47b00 34%, transparent);
+    border-left-color: #c47b00;
+    background: color-mix(in srgb, #fff4ce 62%, var(--neutral-layer-1, #fff));
+    color: #7a4b00;
+}
+
+.resident-status-strip--blocked .resident-status-strip__state strong,
+.resident-status-strip--blocked .resident-status-strip__state span {
+    color: inherit;
 }
 
 .resident-status-strip__identity,
@@ -784,12 +1192,53 @@ h1:focus {
     line-height: 1.4;
 }
 
+.resident-status-strip__state .resident-status-strip__restriction {
+    align-items: center;
+    color: #9a6700;
+    display: flex;
+    font-weight: 750;
+    gap: 5px;
+    margin-top: 3px;
+}
+
+.today-card__meta--warning {
+    align-items: center;
+    color: #9a6700;
+    display: flex;
+    font-weight: 700;
+    gap: 5px;
+}
+
+.today-card__value--warning {
+    align-items: center;
+    color: #9a6700;
+    display: flex;
+    gap: 6px;
+}
+
 .resident-status-strip__actions {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
     justify-self: end;
+}
+
+.resident-booking-list {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+    color: var(--neutral-foreground-rest, #242424);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.resident-booking-list > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .resident-status-strip__confirmation {
@@ -3268,7 +3717,11 @@ h1:focus {
 
 .today-card--reserve { border-left-color: var(--brand-violet); }
 .today-card--queue { border-left-color: var(--brand-green); }
-.today-card--resident { border-left-color: var(--brand-violet-deep); }
+.today-card--resident { border-left-color: var(--resident-state-mine); }
+.today-card--resident-assigned { border-left-color: var(--resident-state-assigned); }
+.today-card--resident-released-free { border-left-color: var(--resident-state-released-free); }
+.today-card--resident-released-booked { border-left-color: var(--resident-state-released-booked); }
+.today-card--resident-unknown { border-left-color: var(--resident-state-unknown); }
 .today-card--wallet { border-left-color: var(--brand-sherpa); }
 
 .today-card__label {
@@ -3282,6 +3735,12 @@ h1:focus {
 .today-card__value {
     font-size: 16px;
     font-weight: 600;
+}
+
+.today-card__value--metric {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
 }
 
 .today-card__meta {
@@ -3355,6 +3814,15 @@ h1:focus {
     .home-map-panel__actions {
         grid-column: 1 / -1;
         justify-content: flex-start;
+    }
+
+    .resident-return-confirmation {
+        flex-direction: column;
+    }
+
+    .resident-return-confirmation__actions,
+    .resident-return-confirmation__actions fluent-button {
+        width: 100%;
     }
 }
 
@@ -3670,6 +4138,10 @@ h1:focus {
 .settings-savebar { position: sticky; z-index: 5; bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--neutral-stroke-rest, #d1d1d1); border-radius: var(--brand-radius-lg); background: var(--neutral-layer-1, #fff); box-shadow: 0 8px 22px rgba(0, 0, 0, .12); }
 .settings-savebar > span { color: var(--neutral-foreground-hint, #616161); font-size: 12px; }
 .settings-savebar > span.settings-savebar__error { color: var(--error, #b10e1e); font-weight: 600; }
+.settings-calendar-impact { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid #d99000; border-left: 4px solid #c47b00; border-radius: var(--brand-radius-lg); background: #fff8e1; color: #6f4500; }
+.settings-calendar-impact > div:first-child { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.settings-calendar-impact > div:first-child span { font-size: 13px; line-height: 1.4; }
+.settings-calendar-impact__actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; }
 
 /* Nový účet */
 .user-create-page form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
@@ -4240,6 +4712,14 @@ h1:focus {
     background: rgba(0, 0, 0, .48);
 }
 
+/* The app header is a Fluent flex item with its own stacking level. Lift the main layout only
+   while one of our modal shells is present, otherwise an open account menu can sit above the
+   backdrop and remain interactive. */
+.main:has(.admin-dialog-backdrop, .resident-dialog-backdrop) {
+    position: relative;
+    z-index: 11;
+}
+
 .admin-dialog,
 .resident-dialog {
     display: flex;
@@ -4278,6 +4758,32 @@ h1:focus {
     margin: 3px 0 0;
     font-size: 20px;
     line-height: 1.25;
+}
+
+.resident-return-confirmation {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid color-mix(in srgb, var(--resident-state-released-booked) 32%, transparent);
+    border-left: 4px solid var(--resident-state-released-booked);
+    border-radius: var(--brand-radius);
+    background: color-mix(in srgb, var(--resident-state-released-booked) 7%, var(--neutral-layer-1, #fff));
+}
+
+.resident-return-confirmation > div:first-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.resident-return-confirmation__actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .admin-dialog--small { width: min(480px, calc(100vw - 32px)); }
@@ -5602,6 +6108,10 @@ h1:focus {
     width: calc(100% - 356px);
     max-width: 240px;
     margin-left: 356px;
+}
+
+.planner-setting-note--horizon {
+    line-height: 1.4;
 }
 
 .planner-tooltip-trigger {

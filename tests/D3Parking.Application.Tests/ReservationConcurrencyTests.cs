@@ -356,6 +356,73 @@ public class ReservationConcurrencyTests
         });
     }
 
+    [Test]
+    public async Task Resident_assignment_does_not_bypass_the_global_booking_calendar()
+    {
+        var residentId = Guid.NewGuid();
+        var spot = new ParkingSpot($"GB-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard);
+        spot.AssignOwner(residentId);
+        await SeedAsync(db => db.ParkingSpots.Add(spot));
+
+        var workdaysOnly = _policy with
+        {
+            AllowedReservationWeekdays = Weekday.Workdays,
+            WeeklyReservationLimitEnabled = false,
+        };
+        var service = new ReservationService(
+            _factory, new FixedParkingSettings(workdaysOnly), new FakeSiteSettings(),
+            new FixedTimeProvider(Now), new NullNotificationService(),
+            new PassthroughLocalizer<ParkingMessages>());
+        var sunday = new DateTimeOffset(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+
+        var result = await service.ReserveAsync(residentId, spot.Id, sunday, sunday.AddHours(8));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Errors, Does.Contain("Parking_Error_ReservationWeekdayNotAllowed"));
+        await using var db = new D3ParkingDbContext(_options);
+        Assert.That(await db.Reservations.AnyAsync(r => r.SpotId == spot.Id), Is.False,
+            "Owning the spot must not create a booking on a date disabled by configuration.");
+    }
+
+    [Test]
+    public async Task Named_handoff_does_not_bypass_the_global_booking_calendar()
+    {
+        var residentId = Guid.NewGuid();
+        var recipientId = Guid.NewGuid();
+        var spot = new ParkingSpot($"GH-{Guid.NewGuid():N}"[..10], ParkingSpotType.Standard);
+        spot.AssignOwner(residentId);
+        var sunday = new DateTimeOffset(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+        var handoff = ResidentSpotHandoff.CreateOffer(
+            spot.Id, residentId, recipientId, sunday, sunday.AddHours(8), Now, Now.AddHours(6));
+        await SeedAsync(db =>
+        {
+            db.ParkingSpots.Add(spot);
+            db.ResidentSpotHandoffs.Add(handoff);
+        });
+
+        var service = new ReservationService(
+            _factory,
+            new FixedParkingSettings(_policy with
+            {
+                AllowedReservationWeekdays = Weekday.Workdays,
+                WeeklyReservationLimitEnabled = false,
+            }),
+            new FakeSiteSettings(), new FixedTimeProvider(Now), new NullNotificationService(),
+            new PassthroughLocalizer<ParkingMessages>());
+
+        var result = await service.AcceptHandoffAsync(recipientId, handoff.Id);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Errors, Does.Contain("Parking_Error_ReservationWeekdayNotAllowed"));
+        await using var db = new D3ParkingDbContext(_options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(db.Reservations.Any(r => r.SpotId == spot.Id), Is.False);
+            Assert.That(db.ResidentSpotHandoffs.Single(h => h.Id == handoff.Id).Status,
+                Is.EqualTo(ResidentSpotHandoffStatus.Offered));
+        });
+    }
+
     private static void GrantParkingReserve(D3ParkingDbContext db, Guid userId)
     {
         var role = new ApplicationRole($"Parker-{Guid.NewGuid():N}");

@@ -1,5 +1,6 @@
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using NUnit.Framework;
 
 namespace D3Parking.Application.Tests;
@@ -161,6 +162,34 @@ public class ReservationWindowRulesTests
             SiteTime.At(new DateOnly(2026, 8, 24), new TimeOnly(8, 0), Prague), Prague), Is.True);
         Assert.That(policy.IsReservationWeekdayAllowed(
             SiteTime.At(new DateOnly(2026, 8, 25), new TimeOnly(8, 0), Prague), Prague), Is.False);
+    }
+
+    [Test]
+    public void One_global_calendar_rule_explains_every_blocked_date()
+    {
+        var today = new DateOnly(2026, 8, 25);
+        var policy = new IncentivePolicy
+        {
+            ReservationHorizonDays = 365,
+            SameDayReservationsAllowed = false,
+            AllowedReservationWeekdays = Weekday.Workdays,
+            PublicHolidayReservationsAllowed = false,
+            HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(policy.GetReservationDateAvailability(today, today),
+                Is.EqualTo(ReservationDateAvailability.SameDayNotAllowed));
+            Assert.That(policy.GetReservationDateAvailability(new DateOnly(2026, 8, 30), today),
+                Is.EqualTo(ReservationDateAvailability.WeekendNotAllowed));
+            Assert.That(policy.GetReservationDateAvailability(new DateOnly(2026, 10, 28), today),
+                Is.EqualTo(ReservationDateAvailability.PublicHolidayNotAllowed));
+            Assert.That(policy.GetReservationDateAvailability(new DateOnly(2027, 8, 25), today),
+                Is.EqualTo(ReservationDateAvailability.Allowed));
+            Assert.That(policy.GetReservationDateAvailability(new DateOnly(2027, 8, 26), today),
+                Is.EqualTo(ReservationDateAvailability.OutsideReservationHorizon));
+        });
     }
 
     [TestCase(Weekday.Everyday, 7, 7)]

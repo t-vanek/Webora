@@ -50,10 +50,7 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         if (endUtc <= startUtc
             || !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone)
-            || !policy.IsReservationStartDateAllowed(startUtc, now, timeZone)
-            || !policy.IsWithinReservationHorizon(startUtc, now, timeZone)
-            || !policy.IsReservationWeekdayAllowed(startUtc, timeZone)
-            || !policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
+            || policy.GetReservationDateAvailability(startUtc, now, timeZone) != ReservationDateAvailability.Allowed)
         {
             return [];
         }
@@ -234,27 +231,9 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
         }
 
-        if (!policy.IsWithinReservationHorizon(startUtc, now, timeZone))
+        if (policy.GetReservationDateAvailability(startUtc, now, timeZone).ToParkingErrorKey() is { } dateError)
         {
-            return ParkingResult.Failure(
-                !policy.IsReservationStartDateAllowed(startUtc, now, timeZone)
-                    ? "Parking_Error_SameDayReservationsNotAllowed"
-                    : "Parking_Error_ReservationHorizon");
-        }
-
-        if (!policy.IsReservationWeekdayAllowed(startUtc, timeZone))
-        {
-            return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
-        }
-
-        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
-        {
-            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
-        }
-
-        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
-        {
-            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
+            return ParkingResult.Failure(dateError);
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -1306,22 +1285,9 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
         }
 
-        if (!policy.IsWithinReservationHorizon(startUtc, now, timeZone))
+        if (policy.GetReservationDateAvailability(startUtc, now, timeZone).ToParkingErrorKey() is { } dateError)
         {
-            return ParkingResult.Failure(
-                !policy.IsReservationStartDateAllowed(startUtc, now, timeZone)
-                    ? "Parking_Error_SameDayReservationsNotAllowed"
-                    : "Parking_Error_ReservationHorizon");
-        }
-
-        if (!policy.IsReservationWeekdayAllowed(startUtc, timeZone))
-        {
-            return ParkingResult.Failure("Parking_Error_ReservationWeekdayNotAllowed");
-        }
-
-        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
-        {
-            return ParkingResult.Failure("Parking_Error_PublicHolidayNotAllowed");
+            return ParkingResult.Failure(dateError);
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -1479,10 +1445,7 @@ public sealed class ReservationService(
             }
             else if (!ReservationWindowRules.MatchesMode(
                          entry.StartUtc, entry.EndUtc, policy.ReservationTimeMode, timeZone)
-                     || !policy.IsReservationStartDateAllowed(entry.StartUtc, now, timeZone)
-                     || !policy.IsWithinReservationHorizon(entry.StartUtc, now, timeZone)
-                     || !policy.IsReservationWeekdayAllowed(entry.StartUtc, timeZone)
-                     || !policy.IsPublicHolidayReservationAllowed(entry.StartUtc, timeZone))
+                     || policy.GetReservationDateAvailability(entry.StartUtc, now, timeZone) != ReservationDateAvailability.Allowed)
             {
                 // A settings change may make an older queue request invalid. Do not let it keep a
                 // spot held or turn into a booking that the current calendar would reject.
@@ -1702,6 +1665,7 @@ public sealed class ReservationService(
 
         return restored;
     }
+
 
     private static async Task RestoreVoucherAsync(D3ParkingDbContext dbContext, Guid reservationId, DateTimeOffset now, CancellationToken cancellationToken)
     {

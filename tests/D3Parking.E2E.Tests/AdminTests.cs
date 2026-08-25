@@ -335,6 +335,10 @@ public class AdminTests : AdminTest
         await Expect(Page.GetByRole(AriaRole.Switch, new() { NameString = "Povolit rezervace na dnešní den" }))
             .ToBeVisibleAsync();
         await Expect(Page.Locator(".planner-panel .settings-section__title")).ToHaveCountAsync(6);
+        await Expect(Page.Locator("#planner-horizon option[value='365']"))
+            .ToHaveTextAsync("365 dní dopředu");
+        await Expect(Page.Locator(".planner-setting-note--horizon"))
+            .ToContainTextAsync(new Regex(@"Poslední rezervovatelný den: \d{1,2}\.\s?\d{1,2}\.\s?\d{4} včetně\."));
 
         var horizonBox = await Page.Locator("#planner-horizon").BoundingBoxAsync();
         var weekdaysBox = await Page.Locator("#planner-weekdays").BoundingBoxAsync();
@@ -354,7 +358,8 @@ public class AdminTests : AdminTest
         });
 
         await Page.Locator("#planner-horizon-help").FocusAsync();
-        await Expect(Page.GetByText(new Regex("Určuje nejzazší datum"))).ToBeVisibleAsync();
+        await Expect(Page.GetByText(new Regex("Určuje počet místních kalendářních dnů od dneška")))
+            .ToBeVisibleAsync();
 
         await Expect(Page.GetByText("Upozornění na vytížení", new() { Exact = true })).ToBeVisibleAsync();
         var lowOccupancySwitch = Page.GetByRole(AriaRole.Switch, new()

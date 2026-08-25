@@ -22,6 +22,20 @@ public interface IParkingSettingsService
 
     Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default);
 
+    /// <summary>Future records that the proposed calendar rules would make invalid.</summary>
+    Task<ParkingCalendarChangeImpactDto> GetCalendarChangeImpactAsync(
+        ParkingSettingsDto settings,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingCalendarChangeImpactDto.None);
+
+    /// <summary>Updates settings, explicitly confirming cancellation of affected future records.</summary>
+    Task<ParkingResult> UpdateAsync(
+        ParkingSettingsDto settings,
+        Guid actingUserId,
+        bool confirmCalendarInvalidation,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(settings, actingUserId, cancellationToken);
+
     Task<ParkingMapImageDto?> GetOrientationMapAsync(CancellationToken cancellationToken = default);
 
     Task<ParkingResult> SetOrientationMapAsync(byte[] content, Guid actingUserId, CancellationToken cancellationToken = default);
@@ -43,3 +57,17 @@ public sealed record PlannerCapacityDto(
     int SharedSpots,
     int ActiveResidents,
     int RegisteredVehicles);
+
+public sealed record ParkingCalendarChangeImpactDto(
+    int Reservations,
+    int QueueEntries,
+    int Handoffs,
+    int VisitorBookings,
+    int SpotReleases)
+{
+    public static ParkingCalendarChangeImpactDto None { get; } = new(0, 0, 0, 0, 0);
+
+    public int Total => Reservations + QueueEntries + Handoffs + VisitorBookings + SpotReleases;
+
+    public bool RequiresConfirmation => Total > 0;
+}

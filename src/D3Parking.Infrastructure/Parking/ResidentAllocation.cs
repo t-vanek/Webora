@@ -9,6 +9,19 @@ internal static class ResidentAllocation
 {
     public static async Task<HashSet<DateOnly>> AssignedDatesAsync(
         D3ParkingDbContext dbContext, ParkingSpot spot, Guid userId,
+        DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken) =>
+        (await AssignedUsersAsync(dbContext, spot, fromDate, toDate, cancellationToken))
+            .Where(day => day.Value == userId)
+            .Select(day => day.Key)
+            .ToHashSet();
+
+    /// <summary>
+    /// Resolves the resident entitled to every physical day. The same map powers authorization and
+    /// the named resident schedule, so what the UI says can never drift from what booking rules
+    /// enforce.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<DateOnly, Guid>> AssignedUsersAsync(
+        D3ParkingDbContext dbContext, ParkingSpot spot,
         DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken)
     {
         var residents = await dbContext.ParkingSpotResidents.AsNoTracking()
@@ -20,17 +33,14 @@ internal static class ResidentAllocation
 
         if (residents.Count == 0)
         {
-            return spot.OwnerId == userId ? AllDates(fromDate, toDate) : [];
-        }
-
-        if (residents.All(r => r.UserId != userId))
-        {
-            return [];
+            return spot.OwnerId is { } ownerId
+                ? AllDates(fromDate, toDate).ToDictionary(date => date, _ => ownerId)
+                : new Dictionary<DateOnly, Guid>();
         }
 
         if (residents.Count == 1)
         {
-            return AllDates(fromDate, toDate);
+            return AllDates(fromDate, toDate).ToDictionary(date => date, _ => residents[0].UserId);
         }
 
         var residentById = residents.ToDictionary(r => r.Id, r => r.UserId);
@@ -42,7 +52,7 @@ internal static class ResidentAllocation
             .Where(a => residentById.ContainsKey(a.ResidentId))
             .ToDictionary(a => a.Date, a => residentById[a.ResidentId]);
 
-        var assigned = new HashSet<DateOnly>();
+        var assigned = new Dictionary<DateOnly, Guid>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
             var assignedUser = overrides.GetValueOrDefault(date);
@@ -51,10 +61,7 @@ internal static class ResidentAllocation
                 assignedUser = residents[Math.Abs(date.DayNumber % residents.Count)].UserId;
             }
 
-            if (assignedUser == userId)
-            {
-                assigned.Add(date);
-            }
+            assigned[date] = assignedUser;
         }
 
         return assigned;

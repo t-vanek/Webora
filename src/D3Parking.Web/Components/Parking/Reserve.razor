@@ -1,7 +1,9 @@
 @page "/parking"
 @attribute [HasPermission(Permissions.Parking.Reserve)]
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @using System.Globalization
+@using D3Parking.Web.Components.Admin
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject IReservationService Reservations
 @inject IParkingSettingsService ParkingSettings
@@ -11,6 +13,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject ProtectedLocalStorage Storage
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Parking_Title"]</PageTitle>
 
@@ -88,14 +91,19 @@
         </div>
     }
 
-    @if (_ownedSpot is not null)
+    @if (_ownedSpot is { } ownedSpot)
     {
         <section class="parking-planner" aria-labelledby="parking-planner-title">
             <div class="parking-planner__head">
                 <div>
                     <span class="parking-planner__eyebrow">@L["Parking_Planner_Eyebrow"]</span>
                     <h2 id="parking-planner-title">@L["Parking_Planner_Title"]</h2>
-                    <p>@L["Parking_Planner_Help"]</p>
+                    <p>@L[IsAllDayMode
+                        ? "Parking_Planner_Help_AllDay"
+                        : "Parking_Planner_Help_TimeWindow"]</p>
+                    <span class="parking-planner__horizon" aria-live="polite">
+                        @L["Parking_Planner_HorizonThrough", PlannerLastDayLabel]
+                    </span>
                 </div>
                 <div class="parking-planner__nav">
                     <FluentButton Appearance="Appearance.Stealth" OnClick="() => MovePlannerWeekAsync(-1)" aria-label="@L["Parking_Planner_PreviousWeek"]">←</FluentButton>
@@ -107,105 +115,349 @@
                 @foreach (var date in PlannerWeekDates)
                 {
                     var bookings = PlannerBookings(date);
-                    var residentRelease = ResidentRelease(date);
-                    var residentSpotHeld = ResidentOwnsDay(date);
-                    <button type="button" class="parking-planner__day @(date == _day ? "is-selected" : null) @(date == PlannerToday ? "is-today" : null) @(date < PlannerToday ? "is-past" : null) @(!IsPlannerDateBookable(date) ? "is-unavailable" : null)"
-                            @onclick="() => SelectPlannerDayAsync(date)">
-                        <span class="parking-planner__date">
-                            @PlannerDateLabel(date)
-                            @if (date == PlannerToday)
+                    var residentDay = ResidentDay(date);
+                    var plannerDateState = GetPlannerDateState(date);
+                    <div class="parking-planner__day-shell">
+                        <button id="@PlannerDetailTriggerId(date)" type="button"
+                                class="parking-planner__day @(date == _day ? "is-selected" : null) @(date == PlannerToday ? "is-today" : null) @PlannerDateStateClass(plannerDateState)"
+                                aria-label="@L["Parking_Planner_OpenDetailAndActions", PlannerDayAriaLabel(date, residentDay, plannerDateState)]"
+                                aria-haspopup="dialog" aria-expanded="@(_detailDay == date)"
+                                title="@L["Parking_Planner_DetailAndActions"]"
+                                @onclick="() => OpenPlannerDayDetailAsync(date)">
+                            <span class="parking-planner__date">
+                                @PlannerDateLabel(date)
+                                @if (date == PlannerToday)
+                                {
+                                    <small>@L["Parking_Planner_TodayMarker"]</small>
+                                }
+                                <span class="parking-planner__open-detail" aria-hidden="true">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Info())" Color="Color.Custom" CustomColor="currentColor" />
+                                </span>
+                            </span>
+                            @if (SuppressResidentIdentity(plannerDateState))
                             {
-                                <small>@L["Parking_Planner_TodayMarker"]</small>
-                            }
-                        </span>
-                        @if (bookings.Count == 0 && !residentSpotHeld && residentRelease is null)
-                        {
-                            <span class="parking-planner__empty">@(date < PlannerToday ? L["Parking_Planner_PastDay"] : L["Parking_Planner_FreeDay"])</span>
-                        }
-                        else
-                        {
-                            @if (residentSpotHeld)
-                            {
-                                <span class="parking-planner__booking">
-                                    <strong>@_ownedSpot.Code</strong>
-                                    <span>@L["Parking_Planner_ResidentSpot"]</span>
+                                <span class="parking-planner__empty parking-planner__empty--restricted" title="@PlannerDateRestrictionText(date)">
+                                    <span class="parking-planner__status-line">
+                                        <ParkingPlannerStatusIcon Kind="@PlannerIconKind(plannerDateState, null)" />
+                                        <strong>@PlannerRestrictedStateTitle(plannerDateState)</strong>
+                                    </span>
+                                    <small>@PlannerRestrictedStateReason(plannerDateState)</small>
                                 </span>
                             }
-                            else if (residentRelease is not null)
+                            else if (residentDay is null
+                                 && date >= PlannerToday && date <= PlannerLastDay)
                             {
-                                <span class="parking-planner__booking @(residentRelease.TakenByGuest ? "parking-planner__booking--released-taken" : "parking-planner__booking--released-free")">
-                                    <strong>@_ownedSpot.Code</strong>
-                                    <span>@(residentRelease.TakenByGuest ? L["Parking_Planner_ReleasedTaken"] : L["Parking_Planner_ReleasedFree"])</span>
+                                <span class="parking-planner__booking parking-planner__booking--resident-unknown">
+                                    <strong>@ownedSpot.Code</strong>
+                                    <span class="parking-planner__status-line">
+                                        <ParkingPlannerStatusIcon Kind="unknown" />
+                                        <span>@L["Parking_ResidentState_Unavailable_Title"]</span>
+                                    </span>
                                 </span>
                             }
-                            @foreach (var booking in bookings)
+                            else if (bookings.Count == 0 && residentDay is null)
                             {
-                                <span class="parking-planner__booking">
-                                    <strong>@booking.SpotCode</strong>
-                                    <span>@ReservationWhen(booking)</span>
+                                <span class="parking-planner__empty" title="@PlannerDateRestrictionText(date)">
+                                    <span class="parking-planner__status-line">
+                                        <ParkingPlannerStatusIcon Kind="@PlannerIconKind(plannerDateState, null)" />
+                                        <span>@PlannerEmptyStateText(plannerDateState)</span>
+                                    </span>
                                 </span>
                             }
-                        }
-                    </button>
+                            else
+                            {
+                                @if (residentDay is not null)
+                                {
+                                    <span class="parking-planner__booking parking-planner__booking--resident-@ResidentStateClass(residentDay)">
+                                        <strong>@ownedSpot.Code</strong>
+                                        <span class="parking-planner__status-line">
+                                            <ParkingPlannerStatusIcon Kind="@PlannerIconKind(plannerDateState, residentDay)" />
+                                            <span>@PlannerResidentStateLabel(residentDay)</span>
+                                        </span>
+                                        @if (PlannerResidentName(residentDay) is { } residentName)
+                                        {
+                                            <small class="parking-planner__person" title="@residentName">@residentName</small>
+                                        }
+                                        @if (residentDay.Bookings.Count > 0)
+                                        {
+                                            @foreach (var residentBooking in residentDay.Bookings)
+                                            {
+                                                <small title="@UserName(residentBooking.User)">@ResidentBookingLine(residentBooking)</small>
+                                            }
+                                        }
+                                    </span>
+                                }
+                                @foreach (var booking in bookings.Where(booking => residentDay is null || booking.SpotCode != ownedSpot.Code))
+                                {
+                                    <span class="parking-planner__booking">
+                                        <strong>@booking.SpotCode</strong>
+                                        <span class="parking-planner__status-line">
+                                            <ParkingPlannerStatusIcon Kind="reserved" />
+                                            <span>@ReservationWhen(booking)</span>
+                                        </span>
+                                    </span>
+                                }
+                            }
+                        </button>
+                    </div>
                 }
             </div>
         </section>
 
-        <section class="resident-status-strip resident-status-strip--@SelectedResidentDayState"
-                 aria-labelledby="resident-day-status">
-            <div class="resident-status-strip__identity">
-                <span>@L["Parking_Owned_SpotLabel"]</span>
-                <div>
-                    <strong>@_ownedSpot.Code</strong>
-                    <span class="pill pill--type">@L[$"Parking_SpotType_{_ownedSpot.Type}"]</span>
+        @if (_detailDay is { } detailDate)
+        {
+            var detailState = GetPlannerDateState(detailDate);
+            var detailResidentDay = ResidentDay(detailDate);
+            var detailBookings = PlannerBookings(detailDate);
+            var otherBookings = detailBookings
+                .Where(booking => detailResidentDay is null || booking.SpotCode != ownedSpot.Code)
+                .ToList();
+            var detailRestricted = SuppressResidentIdentity(detailState);
+            <AdminDialog Title="@L["Parking_Planner_DetailTitle"]"
+                         Eyebrow="@PlannerDetailDateLabel(detailDate)"
+                         Size="medium"
+                         Class="parking-day-dialog"
+                         BackdropClass="parking-day-dialog-backdrop"
+                         OnClose="ClosePlannerDayDetailAsync">
+                <div class="parking-day-detail">
+                    <div class="parking-day-detail__status parking-day-detail__status--@PlannerDetailStateClass(detailState, detailResidentDay)">
+                        <ParkingPlannerStatusIcon Kind="@PlannerIconKind(detailState, detailResidentDay)" />
+                        <div>
+                            <strong>@PlannerDetailStateTitle(detailState, detailResidentDay, detailBookings)</strong>
+                            <span>@PlannerDetailStateDescription(detailDate, detailState, detailResidentDay)</span>
+                        </div>
+                    </div>
+
+                    @if (!detailRestricted)
+                    {
+                        <dl class="parking-day-detail__facts">
+                            @if (detailResidentDay is not null)
+                            {
+                                <div>
+                                    <dt>@L["Parking_Planner_Detail_Spot"]</dt>
+                                    <dd>@ownedSpot.Code</dd>
+                                </div>
+                            }
+                            @if (PlannerResidentName(detailResidentDay) is { } assignedName)
+                            {
+                                <div>
+                                    <dt>@L["Parking_Planner_Detail_User"]</dt>
+                                    <dd>@assignedName</dd>
+                                </div>
+                            }
+                            <div>
+                                <dt>@L["Parking_Planner_Detail_Source"]</dt>
+                                <dd>@PlannerDetailSource(detailResidentDay, detailBookings)</dd>
+                            </div>
+                        </dl>
+
+                        @if (detailResidentDay is { Bookings.Count: > 0 })
+                        {
+                            <section class="parking-day-detail__bookings" aria-labelledby="parking-day-detail-spot-bookings-title">
+                                <h3 id="parking-day-detail-spot-bookings-title">@L["Parking_Planner_Detail_SpotReservations", ownedSpot.Code]</h3>
+                                @foreach (var booking in detailResidentDay.Bookings)
+                                {
+                                    <div>
+                                        <ParkingPlannerStatusIcon Kind="reserved" />
+                                        <span title="@UserName(booking.User)">@ResidentBookingLine(booking)</span>
+                                    </div>
+                                }
+                            </section>
+                        }
+
+                        @if (otherBookings.Count > 0)
+                        {
+                            <section class="parking-day-detail__bookings parking-day-detail__bookings--other"
+                                     aria-labelledby="parking-day-detail-other-bookings-title">
+                                <h3 id="parking-day-detail-other-bookings-title">@L["Parking_Planner_Detail_OtherReservations"]</h3>
+                                <p>@L["Parking_Planner_Detail_OtherReservationsHelp", ownedSpot.Code]</p>
+                                @foreach (var booking in otherBookings)
+                                {
+                                    <div>
+                                        <ParkingPlannerStatusIcon Kind="reserved" />
+                                        <span><strong>@booking.SpotCode</strong> · @ReservationWhen(booking)</span>
+                                    </div>
+                                }
+                            </section>
+                        }
+                    }
+
+                    @if (!detailRestricted
+                         && (DetailCanManageRelease || DetailCanReclaim
+                             || DetailCanRequestReturn || DetailCanFindAlternative))
+                    {
+                        <div class="admin-dialog__actions">
+                        @if (DetailCanReleaseToday)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ReleaseTodayFromDetailAsync">
+                                @L["Parking_ResidentState_ReleaseDay"]
+                            </FluentButton>
+                        }
+                        else if (DetailCanManageRelease)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" OnClick="ManageReleaseFromDetailAsync">
+                                @L["Parking_ResidentState_ManageRelease"]
+                            </FluentButton>
+                        }
+                        else if (DetailCanReclaim)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="ReclaimFromDetailAsync">
+                                @L["Parking_ResidentState_TakeBack"]
+                            </FluentButton>
+                        }
+                        else if (DetailCanRequestReturn)
+                        {
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy" OnClick="RequestReturnFromDetailAsync">
+                                @L["Parking_ResidentState_RequestReturn"]
+                            </FluentButton>
+                        }
+                        @if (DetailCanFindAlternative)
+                        {
+                            <FluentButton Appearance="Appearance.Outline" OnClick="FindAlternativeFromDetailAsync">
+                                @(HasResidentAssignmentForSelectedDay ? L["Parking_AlternateSearch_Action"] : L["Parking_AlternateSearch_Find"])
+                            </FluentButton>
+                        }
+                        </div>
+                    }
                 </div>
+            </AdminDialog>
+        }
+
+        @if (_confirmResidentReturnDate == _day && SelectedResidentDay is { } returnDay)
+        {
+            <AdminDialog Title="@L["Parking_ResidentState_ReturnConfirmTitle", ownedSpot.Code]"
+                         Size="small"
+                         Class="resident-return-dialog"
+                         BackdropClass="resident-dialog-backdrop"
+                         OnClose="CancelSelectedResidentReturnAsync">
+                <div class="resident-return-dialog__content" aria-describedby="resident-return-help">
+                    @if (returnDay.Bookings.Count > 0)
+                    {
+                        <div class="parking-day-detail__bookings">
+                            @foreach (var booking in returnDay.Bookings)
+                            {
+                                <div>
+                                    <ParkingPlannerStatusIcon Kind="reserved" />
+                                    <span title="@UserName(booking.User)">@ResidentBookingLine(booking)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <p id="resident-return-help">@L["Parking_ResidentState_ReturnConfirmText"]</p>
+                    <div class="admin-dialog__actions">
+                        <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy"
+                                      OnClick="ConfirmSelectedResidentReturnAsync">@L["Parking_ResidentState_RequestReturn"]</FluentButton>
+                        <FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy"
+                                      OnClick="CancelSelectedResidentReturnAsync">@L["Parking_ResidentState_ReturnConfirmKeep"]</FluentButton>
+                    </div>
+                </div>
+            </AdminDialog>
+        }
+
+        <FluentCard Class="owned-spot-panel resident-plan-card">
+            <div class="owned-spot">
+                <section class="resident-tools" aria-labelledby="resident-tools-title"
+                         tabindex="-1" @ref="_residentTools">
+                    <div class="resident-tools__head">
+                        <div class="resident-tools__title">
+                            <h2 id="resident-tools-title">@L["Parking_Owned_ResidentToolsTitleWithSpot", ownedSpot.Code]</h2>
+                            @SmartHint("resident-tools-hint", L["Parking_Owned_ResidentToolsHint", ownedSpot.Code].Value, forceIcon: true)
+                        </div>
+                        <p>@L["Parking_Owned_ResidentToolsSubtitle"]</p>
+                    </div>
+
+                    <details class="owned-section">
+                        <summary class="owned-section__summary">
+                            <span class="owned-section__label">
+                                <span>@L["Parking_Owned_ReleaseSection"]</span>
+                                @SmartHint("owned-release-hint", L["Parking_Owned_ReleaseHint"].Value, forceIcon: true)
+                            </span>
+                        </summary>
+                        <div class="owned-fields">
+                            <div class="field">
+                                <label>@L["Parking_Owned_ReleaseFrom"]</label>
+                                <input type="date" min="@ReleaseMinDate" max="@ReleaseMaxDate" required
+                                       aria-invalid="@(ReleaseRangeValidationMessage is not null ? "true" : null)"
+                                       aria-describedby="release-range-feedback"
+                                       @bind="_releaseFrom" @bind:after="ReleaseFromChangedAsync" class="parking-input" />
+                            </div>
+                            <div class="field release-duration-field">
+                                <label>@L["Parking_Owned_ReleaseDuration"]</label>
+                                <div class="quick-range" role="group" aria-label="@L["Parking_Owned_QuickRelease"]">
+                                    @ReleasePresetButton(ReleasePreset.OneDay, L["Parking_Owned_ReleaseOneDay"].Value)
+                                    @ReleasePresetButton(ReleasePreset.OneWeek, L["Parking_Owned_ReleaseOneWeek"].Value)
+                                    @ReleasePresetButton(ReleasePreset.TwoWeeks, L["Parking_Owned_ReleaseTwoWeeks"].Value)
+                                    @ReleasePresetButton(ReleasePreset.Custom, L["Parking_Owned_ReleaseCustom"].Value)
+                                </div>
+                            </div>
+                            <div class="field release-end-field">
+                                <label>@L["Parking_Owned_ReleaseTo"]</label>
+                                <input type="date" min="@ReleaseMinDate" max="@ReleaseMaxDate" required
+                                       aria-invalid="@(ReleaseRangeValidationMessage is not null ? "true" : null)"
+                                       aria-describedby="release-range-feedback"
+                                       disabled="@(_releasePreset != ReleasePreset.Custom)"
+                                       @bind="_releaseTo" @bind:after="ReleaseToChangedAsync" class="parking-input" />
+                            </div>
+                            @if (ReleaseRangeValidationMessage is { } validationMessage)
+                            {
+                                <div id="release-range-feedback" class="release-range-feedback release-range-feedback--error" role="alert">
+                                    @validationMessage
+                                </div>
+                            }
+                            else if (!ReleaseRangeHasHeldDay)
+                            {
+                                <div id="release-range-feedback" class="release-range-feedback" aria-live="polite">
+                                    @L["Parking_Error_NothingToRelease"]
+                                </div>
+                            }
+                            else
+                            {
+                                <div id="release-range-feedback" class="release-range-summary" aria-live="polite">
+                                    <div>
+                                        <strong>@L["Parking_Owned_ReleaseDaysCount", ReleaseRangeDayCount]</strong>
+                                        <span>@L["Parking_Owned_ReleaseReturns", ReleaseReturnDate.ToString("d", CultureInfo.CurrentCulture)]</span>
+                                    </div>
+                                </div>
+                            }
+                            <FluentButton Appearance="Appearance.Accent" Disabled="@(_actionBusy || !ReleaseRangeIsValid || !ReleaseRangeHasHeldDay)"
+                                          OnClick="ReleaseOwnedAsync">@L["Parking_Owned_ReleaseRangeAction"]</FluentButton>
+                        </div>
+                    </details>
+
+                    @* Standing usage plan: kept days belong to the resident without a presence action;
+                       the rest are released ahead of time by the maintenance loop. *@
+                    <details class="owned-section">
+                        <summary class="owned-section__summary">
+                            <span class="owned-section__label">
+                                <span>@L["Parking_Owned_PlanSection"]</span>
+                                @SmartHint("owned-plan-hint", L["Parking_Owned_PlanHint", ownedSpot.PlanHorizonDays].Value, forceIcon: true)
+                            </span>
+                        </summary>
+                        <div class="plan-days">
+                            @foreach (var (flag, label) in PlanWeekdays)
+                            {
+                                <FluentButton Appearance="@(_planDays.HasFlag(flag) ? Appearance.Accent : Appearance.Outline)"
+                                              Disabled="@_actionBusy" OnClick="() => TogglePlanDay(flag)">@label</FluentButton>
+                            }
+                        </div>
+                        <div class="owned-plan-actions">
+                            <FluentSwitch @bind-Value="_planAutoRelease" Label="@L["Parking_Owned_PlanAutoRelease"]" />
+                            <FluentButton Disabled="@_actionBusy" OnClick="SaveUsagePlanAsync">@L["Parking_Owned_SavePlan"]</FluentButton>
+                        </div>
+                    </details>
+                </section>
             </div>
-            <div class="resident-status-strip__state">
-                <strong id="resident-day-status">@SelectedResidentDayTitle</strong>
-                <span>@SelectedResidentDayText</span>
-            </div>
-            <div class="resident-status-strip__actions">
-                @if (HasResidentAssignmentForSelectedDay && SelectedResidentRelease is null && _day == PlannerToday)
-                {
-                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy"
-                                  OnClick="ReleaseOwnedTodayAsync">@L["Parking_Owned_ReleaseToday"]</FluentButton>
-                }
-                else if (HasResidentAssignmentForSelectedDay && SelectedResidentRelease is not null && _day == PlannerToday)
-                {
-                    <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy"
-                                  OnClick="RequestReclaimOwnedTodayAsync">@L["Parking_Owned_ReclaimToday"]</FluentButton>
-                }
-                else if (HasResidentAssignmentForSelectedDay && _day >= PlannerToday && SelectedResidentRelease is not null)
-                {
-                    <FluentButton Appearance="Appearance.Accent" Disabled="@_actionBusy"
-                                  OnClick="ReclaimSelectedResidentDayAsync">@L["Parking_ResidentState_TakeBackSpot", _ownedSpot.Code]</FluentButton>
-                }
-                else if (HasResidentAssignmentForSelectedDay && _day >= PlannerToday)
-                {
-                    <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy"
-                                  OnClick="FocusResidentManagementAsync">@L["Parking_ResidentState_ManageRelease"]</FluentButton>
-                }
-                @if (_day >= PlannerToday && CanSearchAlternativeForSelectedDay && !SharedSearchExpanded)
-                {
-                    <FluentButton Appearance="Appearance.Outline" OnClick="ShowSharedSearchAsync">
-                        @(HasResidentAssignmentForSelectedDay ? L["Parking_AlternateSearch_Action"] : L["Parking_AlternateSearch_Find"])
-                    </FluentButton>
-                }
-            </div>
-        </section>
+        </FluentCard>
     }
 
-    @if (_userId != Guid.Empty)
+    @if (_userId != Guid.Empty && !ReservationWorkspaceHasPriority)
     {
-        <CalendarSubscriptionCard UserId="_userId" />
-        <SpotHandoffs UserId="_userId" StartUtc="Start" EndUtc="End"
-                      CanOffer="HasResidentAssignmentForSelectedDay && SelectedResidentRelease is null"
-                      Changed="ReloadAfterHandoffAsync" />
+        @ParkingSupportCards()
     }
 
     <div class="reserve-layout">
         <main class="reserve-main">
-            @if (!HasHeldResidentSpotForSelectedDay || SharedSearchExpanded)
+            @if (SelectedDateAllowsNewReservation && (!HasHeldResidentSpotForSelectedDay || SharedSearchExpanded))
             {
                 @SharedSearchArea()
             }
@@ -380,165 +632,25 @@
 
         </main>
 
-        @if (_ownedSpot is not null)
-        {
-            <aside class="reserve-side">
-                <FluentCard Class="owned-spot-panel">
-                    <div class="owned-spot">
-                        <section class="resident-tools" aria-labelledby="resident-tools-title"
-                                 tabindex="-1" @ref="_residentTools">
-                            <div class="resident-tools__head">
-                                <div class="resident-tools__title">
-                                    <h2 id="resident-tools-title">@L["Parking_Owned_ResidentToolsTitleWithSpot", _ownedSpot.Code]</h2>
-                                    @SmartHint("resident-tools-hint", L["Parking_Owned_ResidentToolsHint", _ownedSpot.Code].Value, forceIcon: true)
-                                </div>
-                                <p>@L["Parking_Owned_ResidentToolsSubtitle"]</p>
-                            </div>
-
-                        <details class="owned-section" open>
-                            <summary class="owned-section__summary">
-                                <span class="owned-section__label">
-                                    <span>@L["Parking_Owned_ReleaseSection"]</span>
-                                    @SmartHint("owned-release-hint", L["Parking_Owned_ReleaseHint"].Value, forceIcon: true)
-                                </span>
-                            </summary>
-                            <div class="owned-fields">
-                                <div class="field">
-                                    <label>@L["Parking_Owned_ReleaseFrom"]</label>
-                                    <input type="date" min="@ReleaseMinDate" max="@ReleaseMaxDate" required
-                                           aria-invalid="@(ReleaseRangeValidationMessage is not null ? "true" : null)"
-                                           aria-describedby="release-range-feedback"
-                                           @bind="_releaseFrom" @bind:after="ReleaseFromChangedAsync" class="parking-input" />
-                                </div>
-                                <div class="field release-duration-field">
-                                    <label>@L["Parking_Owned_ReleaseDuration"]</label>
-                                    <div class="quick-range" role="group" aria-label="@L["Parking_Owned_QuickRelease"]">
-                                        @ReleasePresetButton(ReleasePreset.OneDay, L["Parking_Owned_ReleaseOneDay"].Value)
-                                        @ReleasePresetButton(ReleasePreset.OneWeek, L["Parking_Owned_ReleaseOneWeek"].Value)
-                                        @ReleasePresetButton(ReleasePreset.TwoWeeks, L["Parking_Owned_ReleaseTwoWeeks"].Value)
-                                        @ReleasePresetButton(ReleasePreset.Custom, L["Parking_Owned_ReleaseCustom"].Value)
-                                    </div>
-                                </div>
-                                <div class="field release-end-field">
-                                    <label>@L["Parking_Owned_ReleaseTo"]</label>
-                                    <input type="date" min="@ReleaseMinDate" max="@ReleaseMaxDate" required
-                                           aria-invalid="@(ReleaseRangeValidationMessage is not null ? "true" : null)"
-                                           aria-describedby="release-range-feedback"
-                                           disabled="@(_releasePreset != ReleasePreset.Custom)"
-                                           @bind="_releaseTo" @bind:after="ReleaseToChangedAsync" class="parking-input" />
-                                </div>
-                                @if (ReleaseRangeValidationMessage is { } validationMessage)
-                                {
-                                    <div id="release-range-feedback" class="release-range-feedback release-range-feedback--error" role="alert">
-                                        @validationMessage
-                                    </div>
-                                }
-                                else if (!ReleaseRangeHasHeldDay)
-                                {
-                                    <div id="release-range-feedback" class="release-range-feedback" aria-live="polite">
-                                        @L["Parking_Error_NothingToRelease"]
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div id="release-range-feedback" class="release-range-summary" aria-live="polite">
-                                        <div>
-                                            <strong>@L["Parking_Owned_ReleaseDaysCount", ReleaseRangeDayCount]</strong>
-                                            <span>@L["Parking_Owned_ReleaseReturns", ReleaseReturnDate.ToString("d", CultureInfo.CurrentCulture)]</span>
-                                        </div>
-                                    </div>
-                                }
-                                <FluentButton Appearance="Appearance.Accent" Disabled="@(_actionBusy || !ReleaseRangeIsValid || !ReleaseRangeHasHeldDay)"
-                                              OnClick="ReleaseOwnedAsync">@L["Parking_Owned_ReleaseRangeAction"]</FluentButton>
-                            </div>
-                        </details>
-
-                        @* Standing usage plan: kept days belong to the resident without a presence action;
-                           the rest are released ahead of time by the maintenance loop. *@
-                        <details class="owned-section">
-                            <summary class="owned-section__summary">
-                                <span class="owned-section__label">
-                                    <span>@L["Parking_Owned_PlanSection"]</span>
-                                    @SmartHint("owned-plan-hint", L["Parking_Owned_PlanHint", _ownedSpot.PlanHorizonDays].Value, forceIcon: true)
-                                </span>
-                            </summary>
-                            <div class="plan-days">
-                                @foreach (var (flag, label) in PlanWeekdays)
-                                {
-                                    <FluentButton Appearance="@(_planDays.HasFlag(flag) ? Appearance.Accent : Appearance.Outline)"
-                                                  Disabled="@_actionBusy" OnClick="() => TogglePlanDay(flag)">@label</FluentButton>
-                                }
-                            </div>
-                            <div class="owned-plan-actions">
-                                <FluentSwitch @bind-Value="_planAutoRelease" Label="@L["Parking_Owned_PlanAutoRelease"]" />
-                                <FluentButton Disabled="@_actionBusy" OnClick="SaveUsagePlanAsync">@L["Parking_Owned_SavePlan"]</FluentButton>
-                            </div>
-                        </details>
-                        </section>
-                    </div>
-                </FluentCard>
-            </aside>
-        }
-
-        <section class="reservations-panel">
-            <div class="reservations-head">
-                <div class="section-head">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.CalendarLtr())" Color="Color.Accent" />
-                    <span>@ReservationsPanelTitle</span>
-                    @if (_ownedSpot is not null)
-                    {
-                        @SmartHint("other-reservations-hint", ReservationsPanelHint, forceIcon: true)
-                    }
-                </div>
-                @if (_myReservations is not null)
-                {
-                    <div class="reservation-tabs" role="tablist" aria-label="@ReservationsPanelTitle">
-                        @ReservationTab(ReservationView.Upcoming, L["Parking_Reservations_TabUpcoming"].Value, UpcomingReservations.Count)
-                        @ReservationTab(ReservationView.History, L["Parking_Reservations_TabHistory"].Value, HistoryReservations.Count)
-                    </div>
-                }
-            </div>
-            @if (_myReservations is null)
-            {
-                <div class="loading"><FluentProgressRing /></div>
-            }
-            else if (_myReservations.Count == 0)
-            {
-                <div class="empty-state empty-state--compact">@NoReservationsText</div>
-            }
-            else if (VisibleReservations.Count == 0)
-            {
-                <div class="empty-state empty-state--compact">@ReservationEmptyText</div>
-            }
-            else
-            {
-                <div class="reservations-table">
-                    <FluentDataGrid Items="@VisibleReservations.AsQueryable()" TGridItem="ReservationDto"
-                                    GridTemplateColumns="minmax(90px, .8fr) minmax(170px, 1.4fr) minmax(120px, 1fr) minmax(300px, auto)">
-                        <PropertyColumn Property="@(r => r.SpotCode)" Title="@L["Parking_Spot"]" />
-                        <TemplateColumn Title="@L["Parking_When"]">
-                            @ReservationWhen(context)
-                        </TemplateColumn>
-                        <TemplateColumn Title="@L["Parking_Status"]">
-                            <span class="reservation-status reservation-status--@context.Status">
-                                @L[$"Parking_State_{context.Status}"]
-                            </span>
-                        </TemplateColumn>
-                        <TemplateColumn Align="Align.End">
-                            @ReservationActions(context)
-                        </TemplateColumn>
-                    </FluentDataGrid>
-                </div>
-            }
-        </section>
     </div>
+
+    @if (_userId != Guid.Empty && ReservationWorkspaceHasPriority)
+    {
+        @ParkingSupportCards()
+    }
 </div>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private Guid _userId;
+    private string? _currentUserName;
     private DateOnly _day = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? _detailDay;
+    private readonly CancellationTokenSource _policyRefreshCancellation = new();
+    private readonly SemaphoreSlim _policyRefreshGate = new(1, 1);
+    private Task? _policyRefreshTask;
+    private DateOnly _policySnapshotDate;
     private TimeOnly _startTime = new(8, 0);
     private TimeOnly _endTime = new(17, 0);
 
@@ -552,7 +664,6 @@
     private ReservationQuoteDto? _quote;
     private int QuotePayableCost => _quote is { AutomaticCompensationAvailable: true } ? 0 : _quote?.Cost ?? 0;
     private IReadOnlyList<ReservationDto>? _myReservations;
-    private ReservationView _reservationView = ReservationView.Upcoming;
     private string _spotTypeFilter = string.Empty;
     private AvailableSort _availableSort = AvailableSort.Recommended;
     private int _availablePageIndex;
@@ -577,23 +688,131 @@
         TwoWeeks,
     }
 
+    private enum PlannerDateState
+    {
+        Past,
+        Bookable,
+        SameDayNotAllowed,
+        WeekdayNotAllowed,
+        WeekendNotAllowed,
+        PublicHolidayNotAllowed,
+        OutsideReservationHorizon,
+        PolicyUnavailable,
+    }
+
     private DateOnly PlannerToday => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
     private DateOnly PlannerLastDay => PlannerToday.AddDays(_policy?.ReservationHorizonDays ?? 14);
 
-    private bool IsPlannerDateBookable(DateOnly date) =>
-        _policy is { } policy
-        && date >= policy.FirstBookableDate(PlannerToday)
-        && date <= PlannerLastDay
-        && policy.IsReservationDateAllowed(date);
-
-    private string? SelectedCalendarErrorKey => _policy switch
+    private PlannerDateState GetPlannerDateState(DateOnly date)
     {
-        null => null,
-        _ when _day < PlannerToday || _day > PlannerLastDay => "Parking_Error_ReservationHorizon",
-        { SameDayReservationsAllowed: false } when _day == PlannerToday => "Parking_Error_SameDayReservationsNotAllowed",
-        { } policy when !policy.AllowedReservationWeekdays.Sanitize().Includes(_day) => "Parking_Error_ReservationWeekdayNotAllowed",
-        { PublicHolidayReservationsAllowed: false } policy
-            when HolidayCalendar.IsPublicHoliday(_day, policy.HolidayCalendarRegion) => "Parking_Error_PublicHolidayNotAllowed",
+        if (date < PlannerToday)
+        {
+            return PlannerDateState.Past;
+        }
+
+        if (date > PlannerLastDay)
+        {
+            return PlannerDateState.OutsideReservationHorizon;
+        }
+
+        if (_policy is null)
+        {
+            return PlannerDateState.PolicyUnavailable;
+        }
+
+        return _policy.GetReservationDateAvailability(date, PlannerToday) switch
+        {
+            ReservationDateAvailability.Allowed => PlannerDateState.Bookable,
+            ReservationDateAvailability.Past => PlannerDateState.Past,
+            ReservationDateAvailability.SameDayNotAllowed => PlannerDateState.SameDayNotAllowed,
+            ReservationDateAvailability.OutsideReservationHorizon => PlannerDateState.OutsideReservationHorizon,
+            ReservationDateAvailability.WeekdayNotAllowed => PlannerDateState.WeekdayNotAllowed,
+            ReservationDateAvailability.WeekendNotAllowed => PlannerDateState.WeekendNotAllowed,
+            ReservationDateAvailability.PublicHolidayNotAllowed => PlannerDateState.PublicHolidayNotAllowed,
+            _ => PlannerDateState.PolicyUnavailable,
+        };
+    }
+
+    private static bool IsReservationBlockedState(PlannerDateState state) => state is
+        PlannerDateState.SameDayNotAllowed or PlannerDateState.WeekdayNotAllowed
+        or PlannerDateState.WeekendNotAllowed or PlannerDateState.PublicHolidayNotAllowed;
+
+    private static bool SuppressResidentIdentity(PlannerDateState state) =>
+        IsReservationBlockedState(state)
+        || state is PlannerDateState.OutsideReservationHorizon or PlannerDateState.PolicyUnavailable;
+
+    private static string PlannerDateStateClass(PlannerDateState state) => state switch
+    {
+        PlannerDateState.Past => "is-past is-unavailable",
+        _ when IsReservationBlockedState(state) => "is-reservation-blocked",
+        PlannerDateState.OutsideReservationHorizon => "is-outside-horizon is-unavailable",
+        PlannerDateState.PolicyUnavailable => "is-unavailable",
+        _ => string.Empty,
+    };
+
+    private static string PlannerIconKind(PlannerDateState state, ResidentSpotDayDto? residentDay)
+    {
+        if (SuppressResidentIdentity(state))
+        {
+            return IsReservationBlockedState(state) ? "blocked" : "outside";
+        }
+
+        if (residentDay is not null)
+        {
+            return ResidentStateClass(residentDay);
+        }
+
+        return state switch
+        {
+            PlannerDateState.Past => "past",
+            _ when IsReservationBlockedState(state) => "blocked",
+            PlannerDateState.OutsideReservationHorizon => "outside",
+            PlannerDateState.Bookable => "free",
+            _ => "unknown",
+        };
+    }
+
+    private string PlannerEmptyStateText(PlannerDateState state) => state switch
+    {
+        PlannerDateState.Past => L["Parking_Planner_PastDay"].Value,
+        PlannerDateState.SameDayNotAllowed => L["Parking_Planner_NotAllowed_SameDay"].Value,
+        PlannerDateState.WeekdayNotAllowed => L["Parking_Planner_NotAllowed_Weekday"].Value,
+        PlannerDateState.WeekendNotAllowed => L["Parking_Planner_NotAllowed_Weekend"].Value,
+        PlannerDateState.PublicHolidayNotAllowed => L["Parking_Planner_NotAllowed_PublicHoliday"].Value,
+        PlannerDateState.OutsideReservationHorizon or PlannerDateState.PolicyUnavailable =>
+            L["Parking_Planner_UnavailableDay"].Value,
+        _ => L["Parking_Planner_FreeDay"].Value,
+    };
+
+    private string PlannerRestrictedStateTitle(PlannerDateState state) =>
+        IsReservationBlockedState(state)
+            ? L["Parking_Planner_ReservationNotAllowed"].Value
+            : L["Parking_Planner_DateUnavailable"].Value;
+
+    private string PlannerRestrictedStateReason(PlannerDateState state) => state switch
+    {
+        PlannerDateState.SameDayNotAllowed => L["Parking_Planner_Reason_SameDay"].Value,
+        PlannerDateState.WeekdayNotAllowed => L["Parking_Planner_Reason_Weekday"].Value,
+        PlannerDateState.WeekendNotAllowed => L["Parking_Planner_Reason_Weekend"].Value,
+        PlannerDateState.PublicHolidayNotAllowed => L["Parking_Planner_Reason_PublicHoliday"].Value,
+        PlannerDateState.OutsideReservationHorizon => L["Parking_Planner_Reason_OutsideHorizon"].Value,
+        _ => L["Parking_Planner_Reason_Unavailable"].Value,
+    };
+
+    private string? PlannerDateRestrictionText(DateOnly date) =>
+        CalendarErrorKey(date) is { } key ? L[key].Value : null;
+
+    private string? SelectedCalendarErrorKey => CalendarErrorKey(_day);
+
+    private string? CalendarErrorKey(DateOnly date) => _policy?.GetReservationDateAvailability(date, PlannerToday) switch
+    {
+        ReservationDateAvailability.Allowed or null => null,
+        ReservationDateAvailability.SameDayNotAllowed => "Parking_Error_SameDayReservationsNotAllowed",
+        ReservationDateAvailability.WeekdayNotAllowed or ReservationDateAvailability.WeekendNotAllowed =>
+            "Parking_Error_ReservationWeekdayNotAllowed",
+        ReservationDateAvailability.PublicHolidayNotAllowed => "Parking_Error_PublicHolidayNotAllowed",
+        ReservationDateAvailability.Past or ReservationDateAvailability.OutsideReservationHorizon =>
+            "Parking_Error_ReservationHorizon",
         _ => null,
     };
 
@@ -624,23 +843,211 @@
             .ToList();
     }
 
-    private bool ResidentOwnsDay(DateOnly date) =>
-        date >= PlannerToday
-        && _ownedSpot is not null
-        && _ownedSpot.ResidentAssignedDates.Contains(date)
-        && ResidentRelease(date) is null;
+    private ResidentSpotDayDto? ResidentDay(DateOnly date) =>
+        _ownedSpot?.DaySchedule.FirstOrDefault(day => day.Date == date);
 
-    private ReleasedDayDto? ResidentRelease(DateOnly date) =>
-        _ownedSpot?.UpcomingReleases.FirstOrDefault(release => release.Date == date);
+    private string PlannerDayAriaLabel(
+        DateOnly date,
+        ResidentSpotDayDto? day,
+        PlannerDateState state)
+    {
+        if (SuppressResidentIdentity(state))
+        {
+            var restriction = PlannerDateRestrictionText(date) ?? PlannerEmptyStateText(state);
+            return $"{PlannerDateLabel(date)}, {restriction}";
+        }
+
+        var label = day is null
+            ? PlannerDateLabel(date)
+            : $"{PlannerDateLabel(date)}, {_ownedSpot?.Code}, {ResidentStateTitle(day)}";
+        var availability = state switch
+        {
+            _ when IsReservationBlockedState(state) => PlannerDateRestrictionText(date),
+            PlannerDateState.OutsideReservationHorizon => L["Parking_Planner_UnavailableDay"].Value,
+            PlannerDateState.Past => L["Parking_Planner_PastDay"].Value,
+            _ => null,
+        };
+        return availability is null ? label : $"{label}, {availability}";
+    }
 
     private string PlannerDateLabel(DateOnly date) =>
         date.ToDateTime(TimeOnly.MinValue).ToString("ddd d.M.", CultureInfo.CurrentCulture);
 
+    private string PlannerLastDayLabel =>
+        PlannerLastDay.ToDateTime(TimeOnly.MinValue).ToString("d", CultureInfo.CurrentCulture);
+
+    private string PlannerDetailDateLabel(DateOnly date) =>
+        date.ToDateTime(TimeOnly.MinValue).ToString("dddd d. MMMM yyyy", CultureInfo.CurrentCulture);
+
+    private static string PlannerDetailTriggerId(DateOnly date) =>
+        $"parking-planner-detail-{date:yyyyMMdd}";
+
+    private async Task OpenPlannerDayDetailAsync(DateOnly date)
+    {
+        await SelectPlannerDayAsync(date);
+        _detailDay = date;
+    }
+
+    private Task ClosePlannerDayDetailAsync() => ClosePlannerDayDetailAsync(restoreFocus: true);
+
+    private async Task ClosePlannerDayDetailAsync(bool restoreFocus)
+    {
+        var triggerId = _detailDay is { } date ? PlannerDetailTriggerId(date) : null;
+        _detailDay = null;
+        await InvokeAsync(StateHasChanged);
+
+        if (!restoreFocus || triggerId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("d3parkingFocus.byId", triggerId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit disappeared while the dialog was closing; there is no focus to restore.
+        }
+    }
+
+    private string PlannerDetailStateClass(PlannerDateState state, ResidentSpotDayDto? day) =>
+        SuppressResidentIdentity(state)
+            ? IsReservationBlockedState(state) ? "blocked" : "unavailable"
+            : day is not null
+                ? ResidentStateClass(day)
+                : state == PlannerDateState.Bookable ? "free" : "unknown";
+
+    private string PlannerDetailStateTitle(
+        PlannerDateState state,
+        ResidentSpotDayDto? day,
+        IReadOnlyList<ReservationDto> bookings)
+    {
+        if (SuppressResidentIdentity(state))
+        {
+            return PlannerRestrictedStateTitle(state);
+        }
+
+        if (day is not null)
+        {
+            return ResidentStateTitle(day);
+        }
+
+        return bookings.Count > 0
+            ? L["Parking_Planner_Reserved"].Value
+            : PlannerEmptyStateText(state);
+    }
+
+    private string PlannerDetailStateDescription(
+        DateOnly date,
+        PlannerDateState state,
+        ResidentSpotDayDto? day)
+    {
+        if (SuppressResidentIdentity(state))
+        {
+            return PlannerRestrictedStateReason(state);
+        }
+
+        if (day is not null)
+        {
+            return SelectedResidentDayText;
+        }
+
+        return state == PlannerDateState.Past
+            ? L["Parking_Planner_Detail_PastText"].Value
+            : L["Parking_Planner_Detail_NoReservationText"].Value;
+    }
+
+    private string PlannerDetailSource(
+        ResidentSpotDayDto? day,
+        IReadOnlyList<ReservationDto> bookings) => day?.State switch
+    {
+        OwnedSpotDayState.Held or OwnedSpotDayState.NotAssigned =>
+            L["Parking_Planner_Detail_SourceResident"].Value,
+        OwnedSpotDayState.SharedFree => L["Parking_Planner_Detail_SourceReleased"].Value,
+        OwnedSpotDayState.SharedTaken => L["Parking_Planner_Detail_SourceShared"].Value,
+        _ when bookings.Count > 0 => L["Parking_Planner_Detail_SourcePersonal"].Value,
+        _ => L["Parking_Planner_Detail_SourceSchedule"].Value,
+    };
+
+    private bool CanReleaseSelectedResidentDayToday =>
+        SelectedDateAllowsNewReservation
+        && _day == PlannerToday
+        && SelectedResidentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true };
+
+    private bool CanManageSelectedResidentRelease =>
+        SelectedDateAllowsNewReservation
+        && _day >= PlannerToday
+        && SelectedResidentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true };
+
+    private bool CanReclaimSelectedResidentDay =>
+        SelectedDateAllowsNewReservation
+        && SelectedResidentDay is { State: OwnedSpotDayState.SharedFree, CanReclaim: true };
+
+    private bool CanRequestSelectedResidentReturn =>
+        SelectedDateAllowsNewReservation
+        && SelectedResidentDay is { State: OwnedSpotDayState.SharedTaken, CanReclaim: true };
+
+    private bool CanFindAlternativeForSelectedDay =>
+        SelectedDateAllowsNewReservation
+        && CanSearchAlternativeForSelectedDay
+        && !SharedSearchExpanded;
+
+    private bool DetailCanReleaseToday =>
+        _detailDay is not null && CanReleaseSelectedResidentDayToday;
+
+    private bool DetailCanManageRelease =>
+        _detailDay is not null && CanManageSelectedResidentRelease;
+
+    private bool DetailCanReclaim =>
+        _detailDay is not null
+        && CanReclaimSelectedResidentDay;
+
+    private bool DetailCanRequestReturn =>
+        _detailDay is not null
+        && CanRequestSelectedResidentReturn;
+
+    private bool DetailCanFindAlternative =>
+        _detailDay is not null
+        && CanFindAlternativeForSelectedDay;
+
+    private async Task ReleaseTodayFromDetailAsync()
+    {
+        await ClosePlannerDayDetailAsync(restoreFocus: false);
+        await ReleaseOwnedTodayAsync();
+    }
+
+    private async Task ManageReleaseFromDetailAsync()
+    {
+        await ClosePlannerDayDetailAsync(restoreFocus: false);
+        await FocusResidentManagementAsync();
+    }
+
+    private async Task FindAlternativeFromDetailAsync()
+    {
+        await ClosePlannerDayDetailAsync(restoreFocus: false);
+        await ShowSharedSearchAsync();
+    }
+
+    private async Task ReclaimFromDetailAsync()
+    {
+        await ClosePlannerDayDetailAsync(restoreFocus: false);
+        await ReclaimSelectedResidentDayAsync();
+    }
+
+    private async Task RequestReturnFromDetailAsync()
+    {
+        await ClosePlannerDayDetailAsync(restoreFocus: false);
+        RequestSelectedResidentReturn();
+    }
+
     private async Task SelectPlannerDayAsync(DateOnly date)
     {
+        await RefreshPolicyIfChangedAsync();
         _day = date;
+        _confirmResidentReturnDate = null;
         _sharedSearchRequested = false;
-        if (HasHeldResidentSpotForSelectedDay)
+        if (!SelectedDateAllowsNewReservation || HasHeldResidentSpotForSelectedDay)
         {
             _available = null;
             _quote = null;
@@ -656,6 +1063,49 @@
     private Task MovePlannerWeekAsync(int weeks) => SelectPlannerDayAsync(_day.AddDays(weeks * 7));
 
     private Task PlannerTodayAsync() => SelectPlannerDayAsync(PlannerToday);
+
+    private async Task<bool> RefreshPolicyIfChangedAsync(CancellationToken cancellationToken = default)
+    {
+        await _policyRefreshGate.WaitAsync(cancellationToken);
+        try
+        {
+            var policy = await ParkingSettings.GetPolicyAsync(cancellationToken);
+            var today = PlannerToday;
+            if (policy == _policy && today == _policySnapshotDate)
+            {
+                return false;
+            }
+
+            _policy = policy;
+            _policySnapshotDate = today;
+            _alternativeConfirmationSpot = null;
+            _confirmResidentReturnDate = null;
+            InvalidateSearch();
+            await Task.WhenAll(ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
+            await InvokeAsync(StateHasChanged);
+            return true;
+        }
+        finally
+        {
+            _policyRefreshGate.Release();
+        }
+    }
+
+    private async Task WatchPolicyChangesAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(() => RefreshPolicyIfChangedAsync(cancellationToken));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected when the reservation page is closed or navigated away from.
+        }
+    }
 
     private sealed record ParkingReservePreferences(
         string StartTime,
@@ -815,53 +1265,10 @@
         return (left.Length - l).CompareTo(right.Length - r);
     }
 
-    private enum ReservationView
-    {
-        Upcoming,
-        History,
-    }
-
     private DateTimeOffset ReservationNow => DateTimeOffset.UtcNow;
 
     private IReadOnlyList<ReservationDto> ActiveReservations =>
         _myReservations?.Where(IsActiveReservation).OrderBy(r => r.StartUtc).ToList() ?? [];
-
-    private IReadOnlyList<ReservationDto> FutureReservations =>
-        _myReservations?.Where(IsFutureReservation).OrderBy(r => r.StartUtc).ToList() ?? [];
-
-    // A resident still sees every real booking they made. Owning a held spot only hides the search
-    // for that selected day; it must never hide an active or future booking from this overview.
-    private IReadOnlyList<ReservationDto> UpcomingReservations =>
-        _myReservations?.Where(r => IsActiveReservation(r) || IsFutureReservation(r))
-            .OrderBy(r => r.StartUtc)
-            .ToList() ?? [];
-
-    private IReadOnlyList<ReservationDto> HistoryReservations =>
-        _myReservations?.Where(r => !IsActiveReservation(r) && !IsFutureReservation(r)).ToList() ?? [];
-
-    private IReadOnlyList<ReservationDto> VisibleReservations => _reservationView switch
-    {
-        ReservationView.History => HistoryReservations,
-        _ => UpcomingReservations,
-    };
-
-    private string ReservationsPanelTitle => L[_ownedSpot is null
-        ? "Parking_MyReservations"
-        : "Parking_MyOtherReservations"].Value;
-
-    private string ReservationsPanelHint => L["Parking_MyOtherReservations_Hint", _ownedSpot?.Code ?? string.Empty].Value;
-
-    private string NoReservationsText => L[_ownedSpot is null
-        ? "Parking_NoReservations"
-        : "Parking_NoOtherReservations"].Value;
-
-    private string ReservationEmptyText => (_ownedSpot is not null, _reservationView) switch
-    {
-        (true, ReservationView.History) => L["Parking_Reservations_EmptyOtherHistory"].Value,
-        (true, _) => L["Parking_Reservations_EmptyOtherUpcoming"].Value,
-        (false, ReservationView.History) => L["Parking_Reservations_EmptyHistory"].Value,
-        _ => L["Parking_Reservations_EmptyUpcoming"].Value,
-    };
 
     private bool IsActiveReservation(ReservationDto reservation)
     {
@@ -871,20 +1278,6 @@
             && now >= reservation.StartUtc - TimeSpan.FromMinutes(15)
             && now < reservation.EndUtc;
     }
-
-    private bool IsFutureReservation(ReservationDto reservation) =>
-        reservation.Status == ReservationStatus.Reserved
-        && ReservationNow < reservation.StartUtc - TimeSpan.FromMinutes(15);
-
-    private RenderFragment ReservationTab(ReservationView view, string label, int count) => __builder =>
-    {
-        var selected = _reservationView == view;
-        <button type="button" class="reservation-tab @(selected ? "is-selected" : null)"
-                role="tab" aria-selected="@selected" @onclick="() => _reservationView = view">
-            <span>@label</span>
-            <span class="count-chip">@count</span>
-        </button>
-    };
 
     private RenderFragment ReservationActions(ReservationDto reservation) => __builder =>
     {
@@ -1130,18 +1523,20 @@
     private DateTimeOffset Start => SearchWindow.Start;
     private DateTimeOffset End => SearchWindow.End;
 
-    private ReleasedDayDto? SelectedResidentRelease =>
-        _ownedSpot?.UpcomingReleases.FirstOrDefault(release => release.Date == _day);
+    private ResidentSpotDayDto? SelectedResidentDay => ResidentDay(_day);
+
+    private bool SelectedDateAllowsNewReservation => GetPlannerDateState(_day) == PlannerDateState.Bookable;
+
+    private string SelectedBookingRestrictionText =>
+        PlannerEmptyStateText(GetPlannerDateState(_day));
 
     // A resident who kept their assigned spot for the selected day has nothing to reserve from the
     // shared pool. Only explicitly released days expose the ordinary search.
     private bool HasHeldResidentSpotForSelectedDay =>
-        _ownedSpot is not null
-        && _ownedSpot.ResidentAssignedDates.Contains(_day)
-        && SelectedResidentRelease is null;
+        SelectedResidentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true };
 
     private bool HasResidentAssignmentForSelectedDay =>
-        _ownedSpot?.ResidentAssignedDates.Contains(_day) == true;
+        SelectedResidentDay?.IsAssignedToCurrentUser == true;
 
     private bool CanSearchAlternativeForSelectedDay =>
         !HasHeldResidentSpotForSelectedDay
@@ -1149,6 +1544,8 @@
 
     private bool _sharedSearchRequested;
     private bool SharedSearchExpanded => _sharedSearchRequested || _available is not null || _quote is not null || _highlightSearch;
+    private bool ResidentAlternativeSearchHasPriority => _ownedSpot is not null && SharedSearchExpanded;
+    private bool ReservationWorkspaceHasPriority => _ownedSpot is null || ResidentAlternativeSearchHasPriority;
 
     private bool OnlyResidentSpotIsAvailable =>
         _available is { Count: > 0 }
@@ -1161,47 +1558,95 @@
             ? L["Parking_NoneAvailable_OnlyResidentSpot"].Value
             : L["Parking_NoneAvailable"].Value;
 
-    private string TodayResidentParkingText => _ownedSpot?.TodayState switch
+    private string SelectedResidentDayTitle => SelectedResidentDay is { } day
+        ? ResidentStateTitle(day)
+        : L["Parking_ResidentState_Unavailable_Title"].Value;
+
+    private string ResidentStateTitle(ResidentSpotDayDto day) => day switch
     {
-        OwnedSpotDayState.Held => L["Parking_Owned_TodayHeldText"].Value,
-        OwnedSpotDayState.SharedFree => L["Parking_Owned_TodaySharedFreeText"].Value,
-        OwnedSpotDayState.SharedTaken => L["Parking_Owned_TodaySharedTakenText"].Value,
-        OwnedSpotDayState.NotAssigned => L["Parking_Owned_TodayNotAssignedText"].Value,
-        _ => L["Parking_AlternateSearch_Text"].Value,
+        { State: OwnedSpotDayState.Held } => L["Parking_ResidentState_Held_Title"].Value,
+        { State: OwnedSpotDayState.NotAssigned, AssignedResident: { } resident } =>
+            L["Parking_ResidentState_AssignedToName", UserName(resident)].Value,
+        { State: OwnedSpotDayState.SharedFree } => L["Parking_ResidentState_SharedFree_Title"].Value,
+        { State: OwnedSpotDayState.SharedTaken } => ReservedStateTitle(day),
+        _ => L["Parking_ResidentState_Unavailable_Title"].Value,
     };
 
-    private OwnedSpotDayState SelectedResidentDayState => _day == PlannerToday
-        ? _ownedSpot?.TodayState ?? OwnedSpotDayState.Held
-        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
-            ? OwnedSpotDayState.NotAssigned
-            : SelectedResidentRelease switch
-        {
-            { TakenByGuest: true } => OwnedSpotDayState.SharedTaken,
-            { TakenByGuest: false } => OwnedSpotDayState.SharedFree,
-            _ => OwnedSpotDayState.Held,
-        };
+    private string PlannerResidentStateLabel(ResidentSpotDayDto day) => day.State switch
+    {
+        OwnedSpotDayState.NotAssigned => L["Parking_Planner_Assigned"].Value,
+        OwnedSpotDayState.SharedTaken => L["Parking_Planner_Reserved"].Value,
+        _ => ResidentStateTitle(day),
+    };
 
-    private string SelectedResidentDayTitle => _day == PlannerToday
-        ? L[$"Parking_OwnedState_{_ownedSpot!.TodayState}"].Value
-        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
-            ? L["Parking_OwnedState_NotAssigned"].Value
-        : SelectedResidentRelease switch
-        {
-            { TakenByGuest: true } => L["Parking_ResidentState_SharedTaken_Title", _ownedSpot!.Code].Value,
-            { TakenByGuest: false } => L["Parking_ResidentState_SharedFree_Title", _ownedSpot!.Code].Value,
-            _ => L["Parking_ResidentState_HeldSelected_Title", _ownedSpot!.Code].Value,
-        };
+    private string? PlannerResidentName(ResidentSpotDayDto? day) => day switch
+    {
+        { AssignedResident: { } resident } => UserName(resident),
+        { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true } => _currentUserName,
+        _ => null,
+    };
 
-    private string SelectedResidentDayText => _day == PlannerToday
-        ? TodayResidentParkingText
-        : !_ownedSpot!.ResidentAssignedDates.Contains(_day)
-            ? L["Parking_Owned_TodayNotAssignedText"].Value
-        : SelectedResidentRelease switch
+    private string SelectedResidentDayText => !SelectedDateAllowsNewReservation
+        ? SelectedResidentBlockedDayText
+        : SelectedResidentDay switch
+    {
+        { State: OwnedSpotDayState.Held } => L["Parking_ResidentState_Held_Text"].Value,
+        { State: OwnedSpotDayState.NotAssigned, AssignedResident: { } resident } =>
+            L["Parking_ResidentState_AssignedToName_Text", UserName(resident)].Value,
+        { State: OwnedSpotDayState.SharedFree } => L["Parking_ResidentState_SharedFreeReleased_Text"].Value,
+        { State: OwnedSpotDayState.SharedTaken, ReleasedByResident: { } resident } =>
+            L["Parking_ResidentState_SharedTakenReleasedBy_Text", UserName(resident)].Value,
+        { State: OwnedSpotDayState.SharedTaken } => L["Parking_ResidentState_SharedTaken_Text"].Value,
+        _ => L["Parking_ResidentState_Unavailable_Text"].Value,
+    };
+
+    private string SelectedResidentBlockedDayText => SelectedResidentDay switch
+    {
+        { State: OwnedSpotDayState.Held } => L["Parking_ResidentState_Held_BookingBlocked_Text"].Value,
+        { State: OwnedSpotDayState.NotAssigned, AssignedResident: { } resident } =>
+            L["Parking_ResidentState_Assigned_BookingBlocked_Text", UserName(resident)].Value,
+        { State: OwnedSpotDayState.SharedFree } => L["Parking_ResidentState_SharedFree_BookingBlocked_Text"].Value,
+        { State: OwnedSpotDayState.SharedTaken } => L["Parking_ResidentState_ExistingBooking_BookingBlocked_Text"].Value,
+        _ => L["Parking_ResidentState_Unavailable_Text"].Value,
+    };
+
+    private static string ResidentStateClass(ResidentSpotDayDto? day) => day?.State switch
+    {
+        OwnedSpotDayState.Held => "mine",
+        OwnedSpotDayState.NotAssigned => "assigned",
+        OwnedSpotDayState.SharedFree => "released-free",
+        OwnedSpotDayState.SharedTaken => "released-booked",
+        _ => "unknown",
+    };
+
+    private string ReservedStateTitle(ResidentSpotDayDto day)
+    {
+        var names = day.Bookings.Select(booking => UserName(booking.User))
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        return names.Count switch
         {
-            { TakenByGuest: true } => L["Parking_ResidentState_SharedTaken_Text"].Value,
-            { TakenByGuest: false } => L["Parking_ResidentState_SharedFreeReleased_Text"].Value,
-            _ => L["Parking_ResidentState_HeldSelected_Text"].Value,
+            1 => L["Parking_ResidentState_ReservedByName", names[0]].Value,
+            > 1 => L["Parking_ResidentState_ReservedByMultiple"].Value,
+            _ => L["Parking_ResidentState_SharedTaken_Title"].Value,
         };
+    }
+
+    private string UserName(ParkingUserLabelDto user) =>
+        user.Name ?? L["Parking_ResidentState_FormerUser"].Value;
+
+    private string ResidentBookingLine(ResidentSpotBookingDto booking) =>
+        L["Parking_ResidentState_BookingByName", ResidentBookingWhen(booking), UserName(booking.User)].Value;
+
+    private string ResidentBookingWhen(ResidentSpotBookingDto booking)
+    {
+        var start = TimeZoneInfo.ConvertTime(booking.StartUtc, _tz);
+        var end = TimeZoneInfo.ConvertTime(booking.EndUtc, _tz);
+        return start.TimeOfDay == TimeSpan.Zero && end.TimeOfDay == TimeSpan.Zero
+            && DateOnly.FromDateTime(end.DateTime) == DateOnly.FromDateTime(start.DateTime).AddDays(1)
+                ? L["Parking_AllDay"].Value
+                : $"{start:t}–{end:t}";
+    }
 
     private RenderFragment SharedSearchArea() => __builder =>
     {
@@ -1215,6 +1660,17 @@
         }
 
         @SharedSearchPanel()
+    };
+
+    private RenderFragment ParkingSupportCards() => __builder =>
+    {
+        <SpotHandoffs UserId="_userId" StartUtc="Start" EndUtc="End"
+                      CanOffer="@(HasHeldResidentSpotForSelectedDay && SelectedDateAllowsNewReservation)"
+                      BookingAllowed="SelectedDateAllowsNewReservation"
+                      BookingRestrictionText="@SelectedBookingRestrictionText"
+                      IsResident="@(_ownedSpot is not null)"
+                      Changed="ReloadAfterHandoffAsync" />
+        <CalendarSubscriptionCard UserId="_userId" />
     };
 
     private RenderFragment SharedSearchPanel() => __builder =>
@@ -1364,6 +1820,7 @@
         // round trips, all of which the prerender waits for, into one.
         var user = await UserManager.GetUserAsync(state.User);
         _userId = user?.Id ?? Guid.Empty;
+        _currentUserName = string.IsNullOrWhiteSpace(user?.DisplayName) ? user?.Email : user.DisplayName;
 
         var policy = ParkingSettings.GetPolicyAsync();
         var timeZone = SiteSettings.GetTimeZoneAsync();
@@ -1375,6 +1832,7 @@
         // used the server's clock, and around midnight a UTC-hosted server would preselect the
         // wrong local day for the lot.
         _day = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+        _policySnapshotDate = _day;
         _releaseFrom = _day.ToDateTime(TimeOnly.MinValue);
         _releaseTo = _releaseFrom;
 
@@ -1385,6 +1843,7 @@
         await Task.WhenAll(home, orientationMap, ReloadOwnedSpotAsync(), ReloadReservationsAsync(), ReloadQueueAsync());
         _distanceKm = home.Result.Verified ? home.Result.DistanceKm : null;
         _hasOrientationMap = orientationMap.Result is not null;
+        _policyRefreshTask = WatchPolicyChangesAsync(_policyRefreshCancellation.Token);
     }
 
     private void OpenOrientationMap(string spotCode)
@@ -1682,15 +2141,22 @@
     private async Task ReclaimSelectedResidentDayAsync() =>
         await RunResidentAsync(() => ResidentSpots.ReclaimAsync(_userId, _day, _day), "Parking_Owned_Reclaimed");
 
-    private async Task ReclaimOwnedTodayAsync()
+    private DateOnly? _confirmResidentReturnDate;
+
+    private void RequestSelectedResidentReturn() => _confirmResidentReturnDate = _day;
+
+    private void CancelSelectedResidentReturn() => _confirmResidentReturnDate = null;
+
+    private Task CancelSelectedResidentReturnAsync()
     {
-        var today = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
-        await RunResidentAsync(() => ResidentSpots.ReclaimAsync(_userId, today, today), "Parking_Owned_Reclaimed");
+        CancelSelectedResidentReturn();
+        return Task.CompletedTask;
     }
 
-    private async Task RequestReclaimOwnedTodayAsync()
+    private async Task ConfirmSelectedResidentReturnAsync()
     {
-        await ReclaimOwnedTodayAsync();
+        _confirmResidentReturnDate = null;
+        await ReclaimSelectedResidentDayAsync();
     }
 
     private async Task SaveUsagePlanAsync()
@@ -1745,10 +2211,19 @@
     /// </param>
     private async Task FindAvailableAsync(bool keepMessages = false)
     {
+        await RefreshPolicyIfChangedAsync();
         if (!keepMessages)
         {
             _error = _info = null;
             ResetAvailablePage();
+        }
+
+        if (SelectedCalendarErrorKey is { } calendarError)
+        {
+            _available = [];
+            _quote = null;
+            _error = calendarError;
+            return;
         }
 
         if (_policy is { } policy && !policy.IsReservationWeekdayAllowed(Start, _tz))
@@ -2022,12 +2497,6 @@
     private async Task ReloadReservationsAsync()
     {
         _myReservations = await Reservations.GetMyReservationsAsync(_userId);
-        if (VisibleReservations.Count == 0)
-        {
-            _reservationView = UpcomingReservations.Count > 0
-                ? ReservationView.Upcoming
-                : _reservationView;
-        }
     }
 
     private async Task ConfirmAlternativeReservationAsync()
@@ -2044,5 +2513,16 @@
     {
         _alternativeConfirmationSpot = null;
         _error = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _policyRefreshCancellation.CancelAsync();
+        if (_policyRefreshTask is not null)
+        {
+            await _policyRefreshTask;
+        }
+
+        _policyRefreshCancellation.Dispose();
     }
 }

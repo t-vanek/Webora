@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using D3Parking.Application.Parking;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
@@ -236,6 +237,7 @@ public class ParkingSpotPagingTests
         {
             UserName = $"first-{Guid.NewGuid():N}@example.test",
             Email = $"first-{Guid.NewGuid():N}@example.test",
+            DisplayName = "Jan Novák",
             Status = AccountStatus.Active,
         };
         first.NormalizedUserName = first.UserName.ToUpperInvariant();
@@ -244,6 +246,7 @@ public class ParkingSpotPagingTests
         {
             UserName = $"second-{Guid.NewGuid():N}@example.test",
             Email = $"second-{Guid.NewGuid():N}@example.test",
+            DisplayName = "Petra Svobodová",
             Status = AccountStatus.Active,
         };
         second.NormalizedUserName = second.UserName.ToUpperInvariant();
@@ -269,8 +272,13 @@ public class ParkingSpotPagingTests
             Assert.That(shared.ResidentList.Select(r => r.UserId), Is.EquivalentTo(new[] { first.Id, second.Id }));
         });
 
+        var policy = new IncentivePolicy
+        {
+            ReservationHorizonDays = 60,
+            ResidentPlanHorizonDays = 21,
+        };
         var residentSpots = new ResidentSpotService(new TestDbContextFactory(_options),
-            new FakeParkingSettings(), new FakeSiteSettings(), new FixedTimeProvider(Now),
+            new FakeParkingSettings(policy), new FakeSiteSettings(), new FixedTimeProvider(Now),
             new NullNotificationService(), new PassthroughLocalizer<ParkingMessages>());
         var firstView = await residentSpots.GetMyOwnedSpotAsync(first.Id);
         var secondView = await residentSpots.GetMyOwnedSpotAsync(second.Id);
@@ -281,6 +289,27 @@ public class ParkingSpotPagingTests
             Assert.That(firstDays.Intersect(secondDays), Is.Empty, "A physical day belongs to one resident only.");
             Assert.That(firstDays.Union(secondDays).Count(), Is.EqualTo(firstView.PlanHorizonDays + 1),
                 "The rotation must not leave a day without a resident entitlement.");
+            Assert.That(firstView.DaySchedule.Select(day => day.AssignedResident?.Name).Distinct(),
+                Is.EquivalentTo(new[] { "Jan Novák", "Petra Svobodová" }),
+                "Every co-resident must see who owns each day, not an anonymous 'other resident'.");
+            Assert.That(firstView.DaySchedule.Where(day => day.IsAssignedToCurrentUser)
+                .All(day => day.AssignedResident?.UserId == first.Id), Is.True);
+            Assert.That(secondView.DaySchedule.Where(day => day.IsAssignedToCurrentUser)
+                .All(day => day.AssignedResident?.UserId == second.Id), Is.True);
+            Assert.That(firstView.DaySchedule.Count, Is.EqualTo(policy.ReservationHorizonDays + 1),
+                "The named schedule must cover every day the reservation planner can display.");
+        });
+
+        var farDate = DateOnly.FromDateTime(Now.UtcDateTime).AddDays(45);
+        var firstFarDay = firstView.DaySchedule.Single(day => day.Date == farDate);
+        var secondFarDay = secondView.DaySchedule.Single(day => day.Date == farDate);
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstFarDay.AssignedResident?.UserId, Is.EqualTo(secondFarDay.AssignedResident?.UserId));
+            Assert.That(firstFarDay.IsAssignedToCurrentUser, Is.Not.EqualTo(secondFarDay.IsAssignedToCurrentUser));
+            Assert.That(firstFarDay.AllocationState, Is.Not.EqualTo(ResidentAllocationState.Unknown));
+            Assert.That(firstFarDay.BookingState, Is.EqualTo(ResidentBookingState.None));
+            Assert.That(firstFarDay.State, Is.AnyOf(OwnedSpotDayState.Held, OwnedSpotDayState.NotAssigned));
         });
 
         Assert.That((await _spots.RemoveResidentAsync(spot.Id, second.Id)).Succeeded, Is.True);

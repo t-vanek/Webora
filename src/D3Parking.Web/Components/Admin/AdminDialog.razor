@@ -4,7 +4,7 @@
    this component owns the interaction contract and visual structure. *@
 <div class="admin-dialog-backdrop @BackdropClass" tabindex="-1"
      @onclick="CloseAsync" @onkeydown="HandleKeyDown">
-    <section class="admin-dialog admin-dialog--@Size @Class" role="dialog" aria-modal="true"
+    <section @ref="_dialog" class="admin-dialog admin-dialog--@Size @Class" role="dialog" aria-modal="true" tabindex="-1"
              aria-labelledby="@_titleId" @onclick:stopPropagation="true">
         <header class="admin-dialog__head">
             <div>
@@ -25,6 +25,7 @@
 
 @code {
     private readonly string _titleId = $"admin-dialog-{Guid.NewGuid():N}";
+    private ElementReference _dialog;
 
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public string? Eyebrow { get; set; }
@@ -39,4 +40,12 @@
 
     private Task HandleKeyDown(KeyboardEventArgs args) =>
         args.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _dialog.FocusAsync();
+        }
+    }
 }
