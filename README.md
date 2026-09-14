@@ -14,6 +14,8 @@ Současný plánovač nevyžaduje potvrzování příjezdu ani odjezdu. Voliteln
 
 Řešení obsahuje Domain (pravidla), Application (rozhraní, DTO, handlery), Infrastructure (implementace služeb a SQL), Web (server), Web.Client (WASM zvoneček), Contracts (sdílené kontrakty) a dva testovací projekty. Používá .NET 10, Blazor a SQL Server.
 
+`build-release.ps1` je pro **sestavení ZIPu ze zdrojů** na počítači s Gitem a .NET SDK; bez parametrů se zeptá na verzi a nechá výsledek viditelný. `D3Parking-<verze>.ps1` je pro **instalaci a správu hotového ZIPu** na serveru a vyžaduje práva správce. Oba používají PowerShell 7.4+; postup při zavírajícím se okně builderu je v návodu k deploymentu.
+
 ## Vývoj na Windows
 
 1. Nainstalujte SDK z `global.json` a SQL Server Express LocalDB nebo vlastní testovací SQL Server.
