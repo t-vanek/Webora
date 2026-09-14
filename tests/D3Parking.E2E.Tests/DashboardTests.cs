@@ -119,14 +119,13 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
-    public async Task Today_section_shows_the_wallet_card_with_credits_and_points()
+    public async Task Today_section_shows_personal_achievements_when_credits_are_disabled()
     {
         // The wallet card is the one "today" card every parking user has (a score row always
         // exists for the seeded admin); the reservation/queue/resident cards are data-dependent.
         await Page.GotoAsync("/");
         var wallet = Page.Locator(".today-card--wallet");
         await Expect(wallet).ToBeVisibleAsync();
-        await Expect(wallet).ToContainTextAsync("kreditů");
-        await Expect(wallet).ToContainTextAsync("bodů");
+        await Expect(wallet).ToContainTextAsync("Moje ocenění");
     }
 }

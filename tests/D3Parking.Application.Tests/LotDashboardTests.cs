@@ -38,7 +38,7 @@ public class LotDashboardTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_LotDashboardTests",
+            InitialCatalog = $"D3Parking_LotDashboardTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

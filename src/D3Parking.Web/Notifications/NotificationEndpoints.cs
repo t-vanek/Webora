@@ -166,9 +166,7 @@ public static class NotificationEndpoints
 
     // Transport-level sanity check; the length caps mirror the column sizes in the database.
     private static bool IsValidSubscription(PushSubscriptionDto subscription) =>
-        Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out var uri)
-        && uri.Scheme == Uri.UriSchemeHttps
-        && subscription.Endpoint.Length <= 800
+        PushEndpointPolicy.IsAllowed(subscription.Endpoint)
         && !string.IsNullOrWhiteSpace(subscription.P256dh) && subscription.P256dh.Length <= 128
         && !string.IsNullOrWhiteSpace(subscription.Auth) && subscription.Auth.Length <= 64;
 

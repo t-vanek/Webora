@@ -89,8 +89,8 @@ public class ResponsiveTests : PageTest
         await Page.Locator(".nav-drawer-toggle").ClickAsync();
         await Expect(Page.Locator(".nav-drawer--open")).ToBeVisibleAsync();
 
-        await Page.Locator(".nav-drawer").GetByRole(AriaRole.Link, new() { NameString = "Můj přínos" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("leaderboard"));
+        await Page.Locator(".nav-drawer").GetByRole(AriaRole.Link, new() { NameString = "Ocenění" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("parking/achievements"));
         await Expect(Page.Locator(".nav-drawer--open")).ToHaveCountAsync(0);
     }
 }

@@ -45,7 +45,7 @@ public class VoucherApprovalTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_VoucherApprovalTests",
+            InitialCatalog = $"D3Parking_VoucherApprovalTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()
@@ -57,7 +57,7 @@ public class VoucherApprovalTests
         await dbContext.Database.EnsureCreatedAsync();
 
         var factory = new TestDbContextFactory(_options);
-        var parkingSettings = new FixedParkingSettings(IncentivePolicy.Default);
+        var parkingSettings = new FixedParkingSettings(IncentivePolicy.Default with { BaseReservationCost = 10 });
         var siteSettings = new FakeSiteSettings();
         var time = new FixedTimeProvider(Now);
         _notifications = new RecordingNotificationService();
@@ -127,6 +127,14 @@ public class VoucherApprovalTests
     }
 
     [Test]
+    public async Task Forged_image_content_is_rejected_before_booking_or_database_changes()
+    {
+        var outcome = await _reservations.ReportBlockedSpotAsync(Guid.NewGuid(), Guid.NewGuid(), false,
+            new BlockedSpotPhoto("<html><script>alert(1)</script></html>"u8.ToArray(), "image/jpeg"));
+        Assert.That(outcome.Error, Is.EqualTo("Parking_Error_PhotoType"));
+    }
+
+    [Test]
     public async Task Credits_disabled_records_report_without_creating_compensation()
     {
         var (userId, reservation) = await SeedBlockedReservationAsync("V-02N");
@@ -181,6 +189,12 @@ public class VoucherApprovalTests
 
         var freeSpot = new ParkingSpot("V-05F", ParkingSpotType.Standard);
         await SeedAsync(db => db.ParkingSpots.Add(freeSpot));
+        await using (var funded = new D3ParkingDbContext(_options))
+        {
+            var wallet = await funded.ParkerScores.SingleAsync(s => s.UserId == userId);
+            wallet.RefundCredits(100, Now);
+            await funded.SaveChangesAsync();
+        }
 
         var booking = await _reservations.ReserveAsync(userId, freeSpot.Id, Now.AddHours(4), Now.AddHours(8));
 
@@ -264,7 +278,7 @@ public class VoucherApprovalTests
         Assert.That((await _spots.ApproveVoucherAsync(voucherId, managerId)).Succeeded, Is.True);
 
         var offeredSpot = new ParkingSpot("V-06O", ParkingSpotType.Standard);
-        var start = Now.AddDays(1);
+        var start = Now.AddDays(1).AddHours(-10);
         var queue = new QueueEntry(userId, start, start.AddHours(8), Now);
         queue.Offer(offeredSpot.Id, Now.AddMinutes(30));
         await SeedAsync(db =>
@@ -392,6 +406,7 @@ public class VoucherApprovalTests
             content[i] = (byte)(seed * 31 + i);
         }
 
+        content[0] = 0xFF; content[1] = 0xD8; content[2] = 0xFF;
         return new BlockedSpotPhoto(content, "image/jpeg");
     }
 

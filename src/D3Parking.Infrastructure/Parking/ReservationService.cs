@@ -41,7 +41,6 @@ public sealed class ReservationService(
 
     // Formats the mandatory photo proof may come in — kept to what a browser renders inline,
     // so the spot manager's review never needs a download. Size is bounded by BlockedSpotPhoto.MaxBytes.
-    private static readonly string[] AllowedPhotoContentTypes = ["image/jpeg", "image/png", "image/webp"];
 
     public async Task<IReadOnlyList<ParkingSpotDto>> GetAvailableSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
@@ -879,10 +878,12 @@ public sealed class ReservationService(
             return BlockedSpotOutcome.Failure("Parking_Error_PhotoTooLarge");
         }
 
-        if (!AllowedPhotoContentTypes.Contains(photo.ContentType, StringComparer.OrdinalIgnoreCase))
+        var detectedContentType = D3Parking.Application.Parking.Maps.ImageContentType.Detect(photo.Content);
+        if (detectedContentType is null)
         {
             return BlockedSpotOutcome.Failure("Parking_Error_PhotoType");
         }
+        photo = photo with { ContentType = detectedContentType };
 
         // The SHA-256 fingerprint is the anti-reuse identity of the picture: the same file can
         // prove exactly one mismatch, ever — no matter who resubmits it or when.

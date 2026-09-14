@@ -67,7 +67,7 @@ public class OversightCaseTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_OversightCaseTests",
+            InitialCatalog = $"D3Parking_OversightCaseTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()
@@ -85,7 +85,7 @@ public class OversightCaseTests
         var notifications = new RecordingNotificationService();
         var messages = new PassthroughLocalizer<ParkingMessages>();
         var siteSettings = new FakeSiteSettings();
-        var parkingSettings = new FakeParkingSettings(IncentivePolicy.Default);
+        var parkingSettings = new FakeParkingSettings(IncentivePolicy.Default with { BaseReservationCost = 10 });
 
         _notifications = notifications;
         var spots = new ParkingSpotService(factory, notifications, parkingSettings, siteSettings, _clock, messages);
@@ -246,6 +246,13 @@ public class OversightCaseTests
     {
         var (owner, guest) = await SeedSharingPairAsync("C-05", interactions: 6);
         await SeedSettingsAsync();
+        // Exercise persisted legacy data explicitly; the current planner disables this feature.
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            var settings = await db.ParkingSettings.SingleAsync();
+            db.Entry(settings).Property(s => s.AntiCollusionEnabled).CurrentValue = true;
+            await db.SaveChangesAsync();
+        }
 
         Assert.That(await _collusion.ScanAsync(), Is.EqualTo(1), "The pair is concentrated enough to flag.");
         await _oversight.EnsureCasesAsync();
@@ -1171,6 +1178,7 @@ public class OversightCaseTests
             content[i] = (byte)(seed * 37 + i);
         }
 
+        content[0] = 0xFF; content[1] = 0xD8; content[2] = 0xFF;
         return new BlockedSpotPhoto(content, "image/jpeg");
     }
 

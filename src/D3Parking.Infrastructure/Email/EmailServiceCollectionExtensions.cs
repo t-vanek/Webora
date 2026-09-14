@@ -14,6 +14,8 @@ public static class EmailServiceCollectionExtensions
             .Validate(o => o.Port is >= 1 and <= 65535, "Smtp:Port must be between 1 and 65535.")
             .Validate(o => o.TimeoutSeconds is >= 5 and <= 300,
                 "Smtp:TimeoutSeconds must be between 5 and 300.")
+            .Validate(o => Enum.IsDefined(o.Authentication) && Enum.IsDefined(o.Security),
+                "Smtp:Authentication or Security contains an unsupported value.")
             .Validate(o => System.Net.Mail.MailAddress.TryCreate(o.SenderEmail, out _),
                 "Smtp:SenderEmail must be a valid email address.")
             .Validate(o => o.Authentication != SmtpAuthMode.Basic

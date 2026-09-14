@@ -29,14 +29,14 @@ public class ParkingTests : AdminTest
     }
 
     [Test]
-    public async Task Searching_a_window_shows_a_price_quote()
+    public async Task Searching_a_window_shows_capacity_without_price_when_credits_are_disabled()
     {
         await Pages.GotoInteractiveAsync(Page, "/parking");
         await Expect(Page.Locator(".booking-bar__row input[type=date]")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Najít") }).ClickAsync();
-        await Expect(Page.Locator(".price-tag__num")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".quote-panel")).ToBeVisibleAsync();
         await Expect(Page.Locator(".quote-meter .meter")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".quote-panel .pill")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".price-tag__num")).ToHaveCountAsync(0);
     }
 
     [Test]
@@ -45,6 +45,9 @@ public class ParkingTests : AdminTest
         await Pages.GotoInteractiveAsync(Page, "/parking");
         var bar = Page.Locator(".booking-bar__row");
         await Expect(bar.Locator("input[type=date]")).ToBeVisibleAsync();
+        var find = Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Najít") });
+        await find.ClickAsync();
+        await Expect(Page.Locator(".quote-panel")).ToBeVisibleAsync();
 
         // A few days out (never "in the past") at a two-digit hour, randomised so
         // re-runs don't collide on an already-booked spot.
@@ -56,10 +59,17 @@ public class ParkingTests : AdminTest
         var date = bar.Locator("input[type=date]");
         await date.FillAsync(iso);
         await date.BlurAsync();
+        await Expect(Page.Locator(".quote-panel")).ToHaveCountAsync(0);
+        await find.ClickAsync();
+        await Expect(Page.Locator(".quote-panel")).ToBeVisibleAsync();
         await bar.Locator("input[type=time]").Nth(0).FillAsync($"{hh}:00");
         await bar.Locator("input[type=time]").Nth(0).BlurAsync();
+        await Expect(Page.Locator(".quote-panel")).ToHaveCountAsync(0);
+        await find.ClickAsync();
+        await Expect(Page.Locator(".quote-panel")).ToBeVisibleAsync();
         await bar.Locator("input[type=time]").Nth(1).FillAsync($"{hh}:30");
         await bar.Locator("input[type=time]").Nth(1).BlurAsync();
+        await Expect(Page.Locator(".quote-panel")).ToHaveCountAsync(0);
         await Expect(date).ToHaveValueAsync(iso);
 
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Najít") }).ClickAsync();

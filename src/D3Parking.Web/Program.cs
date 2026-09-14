@@ -26,7 +26,21 @@ System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Inst
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, services, configuration) => configuration
+// Maintenance commands exit before DI starts any worker or runs identity seeding.
+var deploymentCommand = builder.Configuration["deployment-command"];
+var installRoot = deploymentCommand == "manifest" ? null : DeploymentConfiguration.Load(builder);
+if (deploymentCommand is not null)
+{
+    Environment.ExitCode = await DeploymentCommands.RunAsync(builder, deploymentCommand, installRoot);
+    return;
+}
+DeploymentConfiguration.Validate(builder.Configuration, builder.Environment.EnvironmentName);
+builder.Services.AddWindowsService();
+if (installRoot is not null) DeploymentConfiguration.ConfigurePersistence(builder, installRoot);
+
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
@@ -39,8 +53,12 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Filter.ByExcluding(logEvent =>
         logEvent.Exception is { } exception
         && (exception.GetBaseException() as ArgumentNullException)?.ParamName == "jsObjectReference"
-        && exception.ToString().Contains("FluentMenu.OnAfterRenderAsync", StringComparison.Ordinal))
-    .WriteTo.Console());
+        && exception.ToString().Contains("FluentMenu.OnAfterRenderAsync", StringComparison.Ordinal));
+    if (installRoot is not null)
+        configuration.WriteTo.File(Path.Combine(installRoot, "logs", "application-.log"),
+            rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30,
+            fileSizeLimitBytes: 20_000_000, rollOnFileSizeLimit: true);
+});
 
 // Application + infrastructure layers (EF Core/SQL Server, OpenIddict stores, identity seeder).
 builder.Services.AddApplication();
@@ -161,13 +179,16 @@ builder.Host.UseWolverine(opts =>
 
 var app = builder.Build();
 
+// Migrate in Development before any settings reader touches the database; validate in production.
+await app.SeedIdentityAsync();
+
 // Publishes the Entra sign-in scheme if the stored settings ask for it. Done before the first
 // request so the pipeline is settled, and repeated by the settings page on every save.
 await app.UseEntraIdAuthenticationAsync();
 
 // Development certificates regenerate with the machine/container, so in production every issued
 // token would die on redeploy. Keep working, but warn loudly until real ones are configured.
-if (!app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("IdentityServer:Enabled"))
 {
     var identityCertificates = app.Configuration.GetSection(IdentityServerCertificateOptions.SectionName)
         .Get<IdentityServerCertificateOptions>() ?? new IdentityServerCertificateOptions();
@@ -189,6 +210,7 @@ else
 }
 
 app.UseForwardedHeaders();
+app.UseOperationalEndpoints();
 
 // Applies the configured page charset (re-encodes text/html when it is not UTF-8).
 app.UsePageCharset();
@@ -292,8 +314,5 @@ app.MapGet("/culture/set", (string culture, string? redirectUri, HttpContext con
             : "/";
     return Results.Redirect(localTarget);
 });
-
-// Apply migrations (development) and seed roles, permissions and the admin account.
-await app.SeedIdentityAsync();
 
 app.Run();

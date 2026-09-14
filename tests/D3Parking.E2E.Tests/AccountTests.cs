@@ -74,9 +74,8 @@ public class AccountTests : AdminTest
             response => response.Url.EndsWith("/account/signout", StringComparison.Ordinal));
         Assert.That(signOutResponse.Status, Is.EqualTo(302));
 
-        // The anonymous landing has its own "Přihlásit se" hero button, so target the header link
-        // by class — the assertion is about the public header coming back.
-        await Expect(Page.Locator(".header-nav-link[href='login']")).ToBeVisibleAsync();
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/login"));
+        await Expect(Pages.Field(Page, "Input.Email")).ToBeVisibleAsync();
         await Expect(Page.Locator(".wallet-chip")).ToHaveCountAsync(0);
         Assert.That(Page.Url, Does.Not.Contain("/logout"));
     }

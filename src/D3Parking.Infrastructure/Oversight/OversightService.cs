@@ -200,6 +200,13 @@ public sealed class OversightService(
             return ParkingResult.Failure("Parking_Defect_Error_PhotoTooLarge");
         }
 
+        if (photo is not null)
+        {
+            var detected = D3Parking.Application.Parking.Maps.ImageContentType.Detect(photo.Content);
+            if (detected is null) return ParkingResult.Failure("Parking_Error_PhotoType");
+            photo = photo with { ContentType = detected };
+        }
+
         await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
         {
             var settings = await LoadSettingsAsync(dbContext, cancellationToken);

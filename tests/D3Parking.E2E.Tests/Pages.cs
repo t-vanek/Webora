@@ -31,10 +31,9 @@ public static class Pages
 
     /// <summary>
     /// Navigates and waits for the InteractiveServer circuit to attach before returning: the
-    /// _blazor websocket must open and the server must answer over it (handshake ack + first
-    /// render batch). This replaces the fixed "hydration" sleeps — those guessed, and a click
-    /// fired during the handshake is silently dropped, which made the suite flaky on slow runs.
-    /// SignalR keep-alive pings backstop the wait, so it can never hang past the timeout.
+    /// browser must acknowledge applying a render batch. Counting two incoming frames also
+    /// counted root-attachment messages and could return while the DOM was still prerendered.
+    /// Individual tests additionally wait for the page's data-dependent controls/results.
     /// </summary>
     public static async Task GotoInteractiveAsync(IPage page, string url)
     {
@@ -47,12 +46,10 @@ public static class Pages
                 return;
             }
 
-            var frames = 0;
-            socket.FrameReceived += (_, _) =>
+            socket.FrameSent += (_, frame) =>
             {
-                // Frame 1 is the SignalR handshake ack, frame 2 the first render batch — after
-                // that the interactive islands have their event handlers wired.
-                if (Interlocked.Increment(ref frames) >= 2)
+                var payload = frame.Text ?? System.Text.Encoding.UTF8.GetString(frame.Binary ?? []);
+                if (payload.Contains("OnRenderCompleted", StringComparison.Ordinal))
                 {
                     attached.TrySetResult();
                 }

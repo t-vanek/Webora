@@ -49,7 +49,14 @@ public class AdminTests : AdminTest
     public async Task Roles_matrix_view_shows_a_column_per_permission_group()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/roles");
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Matice$") }).ClickAsync();
+        // Setting the view is idempotent. An initial render can replace the prerendered
+        // button during circuit attachment; wait for the resulting view, then retry that click.
+        for (var attempt = 0; attempt < 3 && !await Page.Locator(".role-matrix").IsVisibleAsync(); attempt++)
+        {
+            await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Matice$") }).ClickAsync();
+            try { await Page.Locator(".role-matrix").WaitForAsync(new() { Timeout = 3000 }); }
+            catch (TimeoutException) when (attempt < 2) { }
+        }
 
         await Expect(Page.Locator(".role-matrix")).ToBeVisibleAsync();
         await Expect(Page.Locator(".role-matrix thead")).ToContainTextAsync("Parkoviště");
@@ -228,6 +235,8 @@ public class AdminTests : AdminTest
 
         // Flip the type via the inline select in the type column (first select of the row).
         // Options carry localized labels; the CSS modifier class stays enum-based.
+        await Page.Locator(".spots-create-dialog").GetByRole(AriaRole.Button, new() { NameString = "Zrušit", Exact = true }).ClickAsync();
+        await Expect(Page.Locator(".spots-create-backdrop")).ToHaveCountAsync(0);
         await row.Locator("fluent-select").First.ClickAsync();
         await row.Locator("fluent-option", new() { HasText = "Pro držitele ZTP" }).ClickAsync();
         await Expect(row.Locator(".type-pill--Disabled")).ToBeVisibleAsync();
@@ -309,16 +318,16 @@ public class AdminTests : AdminTest
         // A click that lands during the circuit handshake is silently dropped and the tab never
         // switches — wait for the circuit instead of guessing with a sleep.
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
-        await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
-        await Page.Locator("fluent-tab", new() { HasText = "Důvěra a ochrana" }).ClickAsync();
-        await Expect(Page.GetByText("Graf důvěry", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Cena rezervace", new() { Exact = true })).ToBeVisibleAsync();
+        await Page.Locator("fluent-tab", new() { HasText = "Provoz a přehled" }).ClickAsync();
+        await Expect(Page.Locator("#operations-sla-critical")).ToBeVisibleAsync();
     }
 
     [Test]
     public async Task Saving_the_rules_and_pricing_form_confirms_success()
     {
         await Pages.GotoInteractiveAsync(Page, "/admin/parking/settings");
-        await Expect(Page.GetByText("Ekonomika rezervací")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Cena rezervace", new() { Exact = true })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Uložit nastavení") }).ClickAsync();
         await Expect(Page.GetByText(new Regex("uloženo|saved", RegexOptions.IgnoreCase))).ToBeVisibleAsync();
     }
