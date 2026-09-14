@@ -276,6 +276,8 @@ public sealed class NotificationService(
 
     public async Task SubscribeToPushAsync(Guid userId, PushSubscriptionDto subscription, CancellationToken cancellationToken = default)
     {
+        if (!PushEndpointPolicy.IsAllowed(subscription.Endpoint))
+            throw new ArgumentException("Unsupported browser push service.", nameof(subscription));
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await dbContext.PushSubscriptions
             .FirstOrDefaultAsync(s => s.Endpoint == subscription.Endpoint, cancellationToken);

@@ -102,7 +102,7 @@ public class IdentitySeeder(
                 if (!created.Succeeded)
                 {
                     logger.LogError("Failed to create role {Role}: {Errors}", roleName, Describe(created));
-                    continue;
+                    throw new InvalidOperationException("Could not initialize a built-in role.");
                 }
 
                 logger.LogInformation("Created role {Role}", roleName);
@@ -228,20 +228,23 @@ public class IdentitySeeder(
             if (!created.Succeeded)
             {
                 logger.LogError("Failed to create admin {Email}: {Errors}", seed.AdminEmail, Describe(created));
-                return;
+                throw new InvalidOperationException("Could not create the initial administrator; check IdentitySeed configuration.");
             }
 
             logger.LogInformation("Created admin account {Email}", seed.AdminEmail);
         }
-        else if (admin.Status != AccountStatus.Active)
+        else
         {
-            admin.Status = AccountStatus.Active;
-            await userManager.UpdateAsync(admin);
+            // Bootstrap is creation only. Restart must never reactivate a blocked account or
+            // restore permissions deliberately removed by an administrator.
+            return;
         }
 
         if (!await userManager.IsInRoleAsync(admin, Roles.Administrator))
         {
-            await userManager.AddToRoleAsync(admin, Roles.Administrator);
+            var assigned = await userManager.AddToRoleAsync(admin, Roles.Administrator);
+            if (!assigned.Succeeded)
+                throw new InvalidOperationException("Could not assign the initial administrator role.");
         }
     }
 

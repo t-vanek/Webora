@@ -107,6 +107,9 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddIdentityServer(this IServiceCollection services, IConfiguration configuration)
     {
+        // Protocol handlers/clients are not implemented yet. Cookie sign-in and Entra use Identity
+        // independently; do not expose an incomplete authorization server by default.
+        if (!configuration.GetValue<bool>("IdentityServer:Enabled")) return services;
         var certificates = configuration.GetSection(IdentityServerCertificateOptions.SectionName)
             .Get<IdentityServerCertificateOptions>() ?? new IdentityServerCertificateOptions();
 

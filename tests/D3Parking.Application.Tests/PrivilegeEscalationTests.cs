@@ -46,7 +46,7 @@ public class PrivilegeEscalationTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_PrivilegeEscalationTests",
+            InitialCatalog = $"D3Parking_PrivilegeEscalationTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

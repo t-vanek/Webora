@@ -31,7 +31,7 @@ public class ResidentUsagePlanTests
         ResidentReleaseMaxPoints = 40,
     };
 
-    [OneTimeSetUp]
+    [SetUp]
     public async Task SetUpAsync()
     {
         var configured = Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer");
@@ -42,7 +42,7 @@ public class ResidentUsagePlanTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_ResidentUsagePlanTests",
+            InitialCatalog = $"D3Parking_ResidentUsagePlanTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()
@@ -54,7 +54,7 @@ public class ResidentUsagePlanTests
         await dbContext.Database.EnsureCreatedAsync();
     }
 
-    [OneTimeTearDown]
+    [TearDown]
     public async Task TearDownAsync()
     {
         if (_options is not null)

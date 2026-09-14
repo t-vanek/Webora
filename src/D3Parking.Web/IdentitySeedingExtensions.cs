@@ -18,6 +18,11 @@ public static class IdentitySeedingExtensions
             var dbContext = services.GetRequiredService<D3ParkingDbContext>();
             await dbContext.Database.MigrateAsync();
         }
+        else
+        {
+            var dbContext = services.GetRequiredService<D3ParkingDbContext>();
+            await Hosting.DeploymentDatabase.RequireCurrentSchemaAsync(dbContext, CancellationToken.None);
+        }
 
         var seeder = services.GetRequiredService<IdentitySeeder>();
         await seeder.SeedAsync();

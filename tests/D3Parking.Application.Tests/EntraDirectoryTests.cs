@@ -43,7 +43,7 @@ public class EntraDirectoryTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_EntraDirectoryTests",
+            InitialCatalog = $"D3Parking_EntraDirectoryTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

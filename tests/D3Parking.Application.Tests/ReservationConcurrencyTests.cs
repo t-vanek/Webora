@@ -53,7 +53,7 @@ public class ReservationConcurrencyTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_ConcurrencyTests",
+            InitialCatalog = $"D3Parking_ConcurrencyTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

@@ -16,23 +16,29 @@ public static class MismatchPhotoEndpoints
     public static IEndpointRouteBuilder MapMismatchPhotoApi(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/parking/mismatches/{id:guid}/photo",
-            async (Guid id, IParkingSpotService spots, CancellationToken ct) =>
+            async (Guid id, HttpContext http, IParkingSpotService spots, CancellationToken ct) =>
             {
                 var photo = await spots.GetMismatchPhotoAsync(id, ct);
-                return photo is null
-                    ? Results.NotFound()
-                    : Results.File(photo.Content, photo.ContentType);
+                return SafePhoto(http, photo);
             }).RequireAuthorization(PermissionPolicies.For(Permissions.Parking.ReviewMismatches));
 
         app.MapGet("/api/parking/defects/{id:guid}/photo",
-            async (Guid id, IOversightService oversight, CancellationToken ct) =>
+            async (Guid id, HttpContext http, IOversightService oversight, CancellationToken ct) =>
             {
                 var photo = await oversight.GetDefectPhotoAsync(id, ct);
-                return photo is null
-                    ? Results.NotFound()
-                    : Results.File(photo.Content, photo.ContentType);
+                return SafePhoto(http, photo);
             }).RequireAuthorization(PermissionPolicies.For(Permissions.Parking.ManageSpots));
 
         return app;
+    }
+
+    // Recheck historical uploads too: their stored MIME type predates upload validation.
+    internal static IResult SafePhoto(HttpContext http, MismatchPhotoDto? photo)
+    {
+        http.Response.Headers.CacheControl = "private, no-store";
+        http.Response.Headers.XContentTypeOptions = "nosniff";
+        http.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+        var type = photo is null ? null : D3Parking.Application.Parking.Maps.ImageContentType.Detect(photo.Content);
+        return type is null ? Results.NotFound() : Results.File(photo!.Content, type);
     }
 }

@@ -1,331 +1,107 @@
-# D3Parking — technická dokumentace
+# Architektura a vývoj
 
-Architektura, nasazení, konfigurace, vývoj a technické poznámky. Produktový a funkční popis
-(motivační systém, kreditová ekonomika, fronta, žebříčky…) najdeš v hlavním [README](../README.md).
+Popis vychází ze zdrojového kódu. Provozní postup je v [ADMIN-GUIDE.md](ADMIN-GUIDE.md), release v [DEPLOYMENT.md](DEPLOYMENT.md), nastavení v [CONFIGURATION.md](CONFIGURATION.md).
 
-## Obsah
+## Projekty
 
-- [Architektura](#architektura)
-- [Nasazení](#nasazení)
-- [Konfigurace](#konfigurace)
-- [Vývoj](#vývoj)
-- [Technické poznámky](#technické-poznámky)
+| Projekt | Skutečná odpovědnost |
+|---|---|
+| Domain | Entity a pravidla rezervací, kalendáře, peněženky, rezidentů, účtů a dohledu; bez frameworkových balíčků. |
+| Contracts | Datové kontrakty oznámení sdílené s prohlížečem. |
+| Application | Rozhraní služeb, DTO, validace, kalendářní renderer, Mapperly a Wolverine handlery; reference Domain a Contracts. |
+| Infrastructure | Implementace většiny případů užití, EF Core, Identity stores, Entra, SMTP, push a geokódování. |
+| Web | Program.cs, DI, cookie autentizace, autorizace, Blazor stránky, endpointy, SignalR a background služby. |
+| Web.Client | WASM NotificationBell a klient oznámení; reference Contracts. |
+| Application.Tests | Doménové, servisní, bezpečnostní, provozní a SQL integrační testy; referencují také Infrastructure a Web. |
+| E2E.Tests | NUnit/Playwright nad skutečným hostem a izolovanou dočasnou DB. |
 
-## Architektura
+Názvy projektů mají prefix `D3Parking.`. Velká část aplikační logiky je v Infrastructure, nikoli v Application. Cyklické projektové reference audit neodhalil. NuGet verze jsou centrální v `Directory.Packages.props`, uzamčené závislosti v `packages.lock.json`, SDK v `global.json`.
 
-Řešení v **.NET 10** organizované podle Clean Architecture; tok závislostí je
-`Domain ← Application ← Infrastructure ← Web`.
+## Funkce podle implementace
 
-| Projekt | Odpovědnost | Klíčové závislosti |
-| --- | --- | --- |
-| `D3Parking.Domain` | Entity, hodnotové objekty, doménová pravidla. Bez frameworkových závislostí. | — |
-| `D3Parking.Application` | Případy užití a Wolverine handlery zpráv. | WolverineFx |
-| `D3Parking.Infrastructure` | EF Core/SQL Server perzistence, ASP.NET Identity, OpenIddict, SMTP, geokódování. | EF Core, Microsoft.EntityFrameworkCore.SqlServer, MailKit, OpenIddict |
-| `D3Parking.Web` | Host: Blazor Web App (Auto), SignalR, Serilog, Wolverine, OpenIddict server, údržba. | Serilog, WolverineFx, OpenIddict.AspNetCore |
-| `D3Parking.Web.Client` | Komponenty Blazor WebAssembly klienta. | — |
+| Oblast | Implementace a hranice |
+|---|---|
+| Plánovač | `/parking`: časové okno/celý den, horizont, povolené dny, svátky, týdenní limit, rezervace bez check-in/out. |
+| Rozpočet | `BaseReservationCost=0` vypíná kredity; jinak pevná cena. `ComputeReservationCost` ignoruje obsazenost. Obnova dorovnává cílový rozpočet podle denní/týdenní/měsíční/roční periody. |
+| Fronta | Nabídky míst mají expiraci, převzetí znovu ověřuje pravidla a dostupnost. Historický DB stav `Reserved` odpovídá plánované rezervaci. |
+| Rezidenti | Sdílení dní, týdenní plán, více rezidentů, ochrana sdílených rezervací, alternativní místo a adresné předání (`ResidentSpotHandoffService`). |
+| Ocenění | Pozitivní trvalé příspěvky a `/parking/achievements`. Bez aktuálního veřejného žebříčku, reputačních penalizací a cenových výhod úrovní. |
+| Neshody | Fotografie zablokovaného místa, přesun/refundace. Kupón jen při zapnutých kreditech; oprávněný recenzent nesmí schválit vlastní. Platnost v `ApologyVoucherValidity` je 90 dní. |
+| Dohled | `/admin/parking/oversight`: vlastník, lhůty, historie, doplnění a odvolání. Staré druhy případů mohou zůstat v historii. |
+| Vozidla/návštěvy | SPZ, párovací kód e-mailem, rezidence firemního vozidla, návštěvy bez účtu přes recepci. |
+| Mapa | Jeden orientační PNG/JPEG/WebP v ParkingSettings, max. 12 MiB. Editor tvarů a rezervace klikáním na kreslené místo jsou odstraněné. |
+| Notifikace | DB schránka, SignalR, volitelný Web Push, uživatelské preference a firemní pravidla doručování. |
+| Kalendář | Vlastní `.ics` export a odběr s odvolatelným tokenem, ETag a stabilním UID/revizí. Pouze čtení. |
+| Lokalizace/PWA | cs/en, parkovací stránky InteractiveServer, zvoneček WASM, offline stránka bez offline rezervování. |
 
-## Nasazení
+Adaptivní ceny, reputace a graf důvěry se v aktuální údržbě nepočítají. CollusionService zůstává pro historické `Completed` záznamy; aktuální administrace nastavení neutralizuje. Starý sloupec ani název oprávnění neznamenají aktivní funkci.
 
-Předpoklady jsou **.NET 10 SDK** (runtime pro produkci) a **Microsoft SQL Server** — stačí
-SQL Server Express nebo LocalDB, které je součástí Visual Studia a .NET workloadu pro data.
-Aplikace běží přímo na hostiteli, žádná kontejnerizace se nepoužívá.
+## Autentizace a autorizace
 
-```bash
-# 1. Vytvoření/aktualizace schématu (v Development se aplikuje i automaticky při startu)
-dotnet ef database update --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
+Identity používá cookie, unikátní username a kontrolu unikátního e-mailu. Pět chybných hesel uzamkne účet na pět minut. Security stamp se u cookie i interaktivních circuitů kontroluje po pěti minutách. Produkční aplikační cookie je Secure. JSON zápisy oznámení a externí signout explicitně ověřují antiforgery token; formuláře používají antiforgery infrastrukturu Blazoru.
 
-# 2. Spuštění
-dotnet run --project src/D3Parking.Web
-```
+Role: Administrator, LotManager, FrontDesk, IncentiveCoordinator, Analyst, UserManager, Auditor, Employee. Oprávnění se skládají přes skupiny a materializují do role claims (`DefaultRoleGroups`, `DefaultPermissionGroups`). Built-in role/skupiny se synchronizují při startu. Bootstrap existujícího uživatele nepovýší ani neodblokuje. Administrativní služby chrání posledního administrátora a omezují udělování silnějších oprávnění.
 
-Připojení k databázi je v `ConnectionStrings:SqlServer`; výchozí hodnota míří na LocalDB:
+Entra ID je volitelný poskytovatel: tenant a stabilní object ID, JIT a SCIM Users (ne Groups). Konfigurační sekce EntraId přepisuje odpovídající DB hodnoty; DB tajemství chrání Data Protection. Propojený účet může mít místní heslo; bez SCIM/místní blokace odchod z adresáře místní heslo nezneplatní.
 
-```jsonc
-// LocalDB (výchozí, vývoj na Windows)
-"Server=(localdb)\\MSSQLLocalDB;Database=D3Parking;Trusted_Connection=True;TrustServerCertificate=True"
+**OpenIddict není hotový autorizační server:** stores a registrace protokolových cest existují, jejich aplikační obsluha a registrace klientů chybí. Ve výchozím stavu je vypnutý; podporovaný produkční profil zapnutí odmítá. Entra přihlášení je nezávislé.
 
-// Pojmenovaná instance / SQL Server Express s integrovaným ověřením
-"Server=.\\SQLEXPRESS;Database=D3Parking;Trusted_Connection=True;TrustServerCertificate=True"
+## HTTP hranice
 
-// Samostatný server s SQL ověřením
-"Server=sql.example.com,1433;Database=D3Parking;User Id=d3parking;Password=***;Encrypt=True"
-```
+| Cesty | Přístup |
+|---|---|
+| GET `/health/live`, `/health/ready`, `/version` | Minimální veřejné provozní informace; ready ověřuje SQL schéma a čtení modelových sloupců. Bez stacktrace/connection stringů. |
+| `/api/notifications` a podcesty | Přihlášení; seznam, počet, preference a push odběry. Přesné route/verb mapy: NotificationEndpoints.cs. |
+| GET `/api/antiforgery/token` | Přihlášený WASM klient. |
+| `/hubs/notifications` | Autorizovaný SignalR, cílení na uživatele. |
+| GET `/api/parking/reservations/{id:guid}/calendar` | Pouze vlastní živá rezervace. |
+| GET `/api/parking/calendar/{token}.ics` | Bez cookie; tajný 256bitový token, DB obsahuje pouze jeho hash. |
+| GET `/api/parking/orientation-map` | Parking.View, rastrový obrázek a nosniff; žádný ETag ani veřejná cache. |
+| GET `/api/parking/mismatches/{id:guid}/photo` | Parking.ReviewMismatches; detekovaný rastr, private/no-store. |
+| GET `/api/parking/defects/{id:guid}/photo` | Parking.ManageSpots; ochrana i historických uploadů. |
+| `/account/external/*`, `/account/signout`, `/signin-entra`, `/signout-entra` | Externí challenge/callback/signout a OIDC middleware; callback cesty lze konfigurovat. |
+| `/scim/v2/Users`, `/{id}`, `/scim/v2/ServiceProviderConfig` | Zapnutý SCIM, bearer token s konstantním časem porovnání. Mapy verbů: ScimEndpoints.cs. |
+| GET `/manifest.webmanifest`, `/culture/set` | Manifest a jazyk s místním návratem. |
 
-Pro produkci je vhodné publikovat (`dotnet publish -c Release`) a hostovat pod IIS nebo jako
-službu Windows / systemd za reverzní proxy; přeposílané hlavičky se konfigurují v sekci
-`ForwardedHeaders`. Migrace se v produkci aplikují explicitně krokem 1, ne při startu.
+Parkovací zápisy převážně obsluhují serverové služby přes Blazor circuit; nejde o obecné REST API. Stránky jsou deklarované přes `@page` v `Components/Account`, `Admin`, `Parking` a `Pages`.
 
-## Konfigurace
+## Persistence, souběh, integrace
 
-Většina chování je **uložena v databázi a editovatelná za běhu** na `/admin/parking/settings`
-(`Parking.ManageIncentives`) — bez nasazování:
+SQL Server a `D3ParkingDbContext`. Seznam migrací generuje release ze sestavené assembly. Obrázky, rezervace, oznámení, audit a nastavení leží v DB; aplikace nepíše uploady do release.
 
-Stránka `/help` čte stejné nastavení při každém požadavku: zobrazuje efektivní ceny, odměny a
-lhůty, skrývá vypnuté části a správcovské kapitoly filtruje podle skutečných oprávnění uživatele.
-README je proto přehled schopností projektu, ne autoritativní popis konkrétní instalace.
+DbContextFactory poskytuje kontext pro každou operaci, Identity používá scoped kontext. Kritické rezervace/refundace mají serializable transakce, rowversion a opakování rozpoznaných konfliktů. Unikátní indexy chrání SPZ/členství/deduplikaci fotek, další indexy rezervace, frontu a ledger. Seeder používá transakci a SQL aplikační zámek. Podporovaný profil je jedna instance: MaintenanceGate není distribuovaný zámek.
 
-| Skupina | Volby |
-| --- | --- |
-| **Ekonomika rezervací** | základní cena, přirážka za špičku (%), přirážka za obsazenost (%), max. cena, měsíční příděl kreditů, držení místa z fronty (min) |
-| **Body** | odměna za včasné uvolnění plánu |
-| **Poptávkové odměny za uvolnění** | přirážka za obsazenost (%), bonus za čekajícího ve frontě, max. odměna |
-| **Úrovně** | hranice Stříbro/Zlato/Platina (bodů), rozklad reputace (%) + interval (dní) |
-| **Výhody úrovní** | přednost ve frontě / úroveň (min), bonus k přídělu / úroveň, sleva na cenu / úroveň (%) |
-| **Adaptivní ceny** | zapnout, cílová obsazenost (%), interval, zesílení, pásmo necitlivosti, max. krok, dolní/horní mez přirážky |
-| **Graf důvěry** | zapnout, interval přepočtu (hodin), práh odznaku Důvěryhodný |
-| **Anti-collusion** | zapnout, min. vzájemných interakcí, práh koncentrace (%), strop váhy hrany v důvěře, interval skenu |
-| **Provozní dohled** | lhůty pro kritickou/vysokou/běžnou/nízkou prioritu (hodin), práh a okno opakovaných hlášení na místě, hodina denního souhrnu, lhůta na odpověď řidiče (dní), lhůta na napadení nedostavení (dní), přijímat hlášení závad od uživatelů |
-| **Oznámení volné kapacity** | zapnout, horizont (dní), práh volné kapacity, min. souvislý úsek, hodina odeslání |
-| **Okno špičky** | čas začátku / konce |
-| **Časování (min)** | cutoff pro vratku při uvolnění, předstih připomínky, interval údržby |
-| **Rezidenti** | body za hodinu předstihu, strop odměny za den a horizont plánu využití (dní); počet uvolněných dní nemá měsíční limit |
-| **Poloha** | souřadnice parkoviště pro geokódování a ověření adres |
-| **Ověřování a limity** | auto-ověření + limit vzdálenosti, max. odměněných uvolnění/den, max. rozsah uvolnění (dny) |
-| **Orientační mapa** | jeden obrázek PNG/JPEG/WebP, nahrání nebo odstranění; slouží pouze řidičům k orientaci |
+`ParkingMaintenanceService` spouští připomínky, plán rezidentů, rozpočet, frontu, historický collusion scan, kapacitní kampaně a dohled; selhání kroku nevyřadí následující. `NotificationDeliveryWorker` doručuje SQL outbox s lease/backoff a maže dokončené záznamy po 30 dnech. `EntraSchemeSynchronizer` obnovuje nastavení po 30 sekundách.
 
-Některá pole datového modelu (`OffPeakBonusPoints`, no-show sankce, streak, odměna hosta podle
-dojezdu) zůstávají kvůli migraci starších databází, ale nový plánovač bez potvrzování přítomnosti je
-nastavuje na nulu a administrace je nenabízí jako aktivní pravidla.
+`IEmailSender` nyní potvrzuje až uložení šifrované zprávy do SQL `EmailDeliveries`. Platí to pro účtové e-maily i párovací kódy vozidel. `EmailDeliveryWorker` je doručuje nezávisle na notifikačních preferencích; existující `NotificationEmailDeliveries` má vlastní dispatcher. Wolverine už e-maily nepřenáší. Přibalený Roslyn obsluhuje zbývající messaging bez nainstalovaného SDK; neprobíhá build zdrojového projektu na serveru.
 
-### Microsoft Entra ID
+Fronta používá atomický SQL claim s jedinečným lease ID, pětiminutovou dobou pronájmu a dvouminutovým limitem SMTP operace. Pozdní dokončení starého pracovníka nepřepíše stav nového. Po chybách čeká 1/5/30/120 minut, nejvýše pět pokusů včetně přerušených. Neodeslané zprávy expirují po 24 hodinách; platnost odkazu/kódu se neprodlužuje a může být kratší. Stabilní Message-ID se zachovává při opakování, ale SMTP neposkytuje záruku právě jednoho doručení: pád po přijetí SMTP před zápisem výsledku může způsobit duplicitu.
 
-Napojení na Entra ID se spravuje na `/admin/settings` v záložce **Entra ID** (`Settings.View` /
-`Settings.Edit`), uloženo v databázi a auditované. Přihlašování a provisioning jsou dva nezávislé
-přepínače; dokud není zapnutý ani jeden, aplikace běží jen s místními hesly jako dřív.
+Payload včetně adresy a tokenů chrání Data Protection (`D3Parking.EmailOutbox.v1`); záloha DB vyžaduje také klíčenku a ochranný certifikát. Obsah se odstraní při Sent/Failed/expiraci, provozní metadata po 30 dnech od dokončení. Chybový záznam obsahuje jen typ chyby. Nedostupnost SQL při enqueue se vrací volajícímu, zpráva se nepotvrzuje pouze v paměti. Uložení business změny a zprávy nejsou obecně jedna společná transakce; tato úprava zajišťuje přežití již potvrzeného enqueue, nikoli atomické dokončení všech účtových workflow.
 
-| Skupina | Volby |
-| --- | --- |
-| **Přihlašování** | zapnout, ID adresáře (tenant), ID aplikace (client), client secret, popisek tlačítka, authority, cesta po přihlášení / odhlášení |
-| **Zakládání účtů** | párování podle potvrzeného e-mailu, zakládání účtů při prvním přihlášení, výchozí role těchto účtů |
-| **Provisioning (SCIM)** | zapnout, bearer token, blokovat odebraný účet |
+Nominatim geokóduje adresy. Haversine počítá vzdálenost offline; volitelný OSRM má fallback. HTTP timeouty jsou 15 s. SMTP používá MailKit s nastavitelným timeoutem. HTTPS, SQL a SMTP prochází deployment kontrolou; Entra, push a geokódování vyžadují i funkční test na skutečné síti.
 
-Změna se projeví **bez restartu**: schéma OpenID Connect se po uložení publikuje nebo odebere za
-běhu. Dokud přihlašování není nakonfigurované, žádné schéma v pipeline není.
-
-Uložení ale sladí jen tu instanci, která ho obsloužila — snapshot nastavení i mapa schémat jsou
-v paměti procesu. Za víc instancemi to dorovnává `EntraSchemeSynchronizer`, který každých 30 s
-načte uložené nastavení a nechá `EntraSchemeReloader` srovnat stav; když se nic nezměnilo, neudělá
-nic (jinak by každý cyklus zahodil staženou discovery metadata a otevřel okno, kdy schéma
-neexistuje). Změna je tak živá všude do minuty, bez distribuované cache a bez další infrastruktury.
-
-**Tajemství** (client secret, SCIM token) se ukládají zašifrovaná přes ASP.NET Data Protection a
-stránka je nikdy nezobrazí zpět — jen řekne, že existují. Prázdné pole znamená „ponechat", odebrat
-se musí explicitně. Klíčenka Data Protection proto musí přežít redeploy; jinak se tajemství po
-restartu nedají dešifrovat, aplikace to zaloguje jako chybu a chová se, jako by nastavená nebyla.
-
-**Přednost konfigurace:** klíč přítomný v sekci `EntraId` (v `appsettings.json`, proměnné prostředí
-`EntraId__TenantId`, vaultu…) **přebíjí** uloženou hodnotu a příslušné pole na stránce zašedne s
-poznámkou proč. Prázdný řetězec se nepočítá jako nastavený. Proto v `appsettings.json` žádná sekce
-`EntraId` není — vyplněná sekce s výchozími hodnotami by feature zamkla dřív, než by ho šlo nastavit.
-
-Mapování rolí z adresáře na role aplikace zůstává na `/admin/directory`.
-
-**Role při zakládání účtu.** Když adresář o rolích mlčí — přihlášení bez přiřazené app role, nebo
-SCIM push, který role nenese — dostane *nově zakládaný* účet **výchozí role** z nastavení. Ty se
-zadávají jako role aplikace, ne jako app role adresáře, takže neprocházejí mapovací tabulkou;
-evidují se ale jako udělené za adresář, aby je první sync, který o rolích mluví, mohl zase odebrat.
-U už existujícího účtu znamená prázdná sada rolí přesně to — odeber, co adresář dřív udělil.
-`Administrator` se jako výchozí role neudělí nikdy, ani když ji někdo napíše do konfigurace, kam
-validace stránky nedosáhne.
-
-#### Souběh místního přihlášení a adresáře
-
-Obě cesty žijí vedle sebe a uživatel si na `/login` vybere. Na úrovni **účtu** platí, že o tom, co
-smí samoobsluha, nerozhoduje federace, ale **jestli účet má místní heslo**:
-
-| Účet | Heslo | Přes adresář | Změna hesla | Reset hesla | Změna e-mailu |
-| --- | --- | --- | --- | --- | --- |
-| Místní | ✅ | — | ✅ | ✅ | ✅ |
-| Založený adresářem (JIT/SCIM) | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Propojený (registroval se sám, pak se přihlásil přes adresář) | ✅ | ✅ | ✅ | ✅ | ❌ |
-
-Propojení účet o heslo nepřipraví — kdyby ho směl mít, ale nesměl ho změnit ani obnovit, uvízl by
-s přihlašovacím údajem, se kterým nejde nic dělat. **E-mail** je výjimka: ten adresáři patří vždy,
-protože se při každém přihlášení přepíše z tokenu, takže jeho změna se federovanému účtu odepře na
-stránce i ve službě.
-
-> Souběh počítá s tím, že odchod ze společnosti dojde až sem — přes SCIM, který účet zablokuje a
-> zavře obě cesty naráz. **Bez zapnutého provisioningu** se offboarding v adresáři do aplikace
-> nedostane a propojenému účtu zůstane funkční místní heslo.
-
-Na `/register` se firemní přihlášení nabízí taky. Bez toho je registrace pro člověka z adresáře
-slepá ulička: založí si místní účet s heslem, o kterém adresář neví, a přihlášení přes adresář ho
-pak odmítne, dokud e-mail nepotvrdí.
-
-**Odhlášení** federovaného účtu jde přes `POST /account/external/signout`, který ukončí místní
-session i tu v adresáři (RP-initiated logout s `id_token_hint`; ten se proto z přihlašovacího
-callbacku přenáší do aplikační cookie). Bez toho by další klik na „Přihlásit se přes…" tiše
-přihlásil téhož člověka zpět — na sdíleném počítači toho předchozího. Endpoint vyžaduje přihlášení
-a antiforgery token, proto `/logout` federovanému účtu vykreslí obyčejný `<form>` místo `EditForm`.
-Cesta zpět je `SignedOutCallbackPath` a musí sedět s registrací aplikace v Entře.
-
-Účet, který adresář právě založil, skončí na `/account/welcome` — jeden přeskočitelný krok na SPZ.
-Token ji nenese a bez ní účet vypadne z párování s vozovým parkem; krok proto po uložení volá
-`SyncUserPlateAsync` i `NotifyPairableAsync`, stejně jako profil a aktivace.
-
-**Přejmenování v adresáři** se propíše, ale jen když projde validací. Když adresář pošle adresu,
-kterou tu už drží jiný účet, `UpdateProfileAsync` změnu vrátí zpět a zaloguje — nikoli zapíše
-napůl. Unikátní index na `NormalizedEmail` neexistuje, takže polovičatý zápis by účtu natrvalo
-rozešel zobrazovanou adresu s tou vyhledávací. Přihlášení samotné to neblokuje.
-
-Možnosti na úrovni infrastruktury jsou v `appsettings.json`:
-
-```jsonc
-"Geocoding": { "NominatimBaseUrl": "https://nominatim.openstreetmap.org", "UserAgent": "D3Parking/1.0 (parking)" },
-"Distance":  { "Provider": "Haversine", "OsrmBaseUrl": "https://router.project-osrm.org" },
-"WebPush":   { "Subject": "mailto:admin@example.com", "PublicKey": "<VAPID>", "PrivateKey": "<VAPID>" },
-"IdentityServer": { "SigningCertificatePath": "<pfx>", "SigningCertificatePassword": "…", "EncryptionCertificatePath": "<pfx>", "EncryptionCertificatePassword": "…" }
-```
-
-**OpenIddict certifikáty:** bez nakonfigurované sekce `IdentityServer` se používají vývojové
-certifikáty (lokálně v pořádku). V produkci se ale regenerují se strojem/kontejnerem — každý
-redeploy by zneplatnil vydané tokeny, proto aplikace mimo Development loguje varování, dokud
-nejsou podepisovací a šifrovací PFX certifikáty nastavené.
-
-**Web Push (VAPID):** bez klíčů je push vypnutý (přepínač ve zvonečku se neukáže). Vývojový pár je
-v `appsettings.Development.json`; pro produkci vygenerujte vlastní (P-256, base64url) a soukromý
-klíč držte mimo repozitář (user secrets / proměnné prostředí):
+## Vývoj a testy
 
 ```powershell
-$ec = [System.Security.Cryptography.ECDsa]::Create([System.Security.Cryptography.ECCurve]::CreateFromFriendlyName('nistP256'))
-$p = $ec.ExportParameters($true); function B64Url([byte[]]$b) { [Convert]::ToBase64String($b).TrimEnd('=').Replace('+','-').Replace('/','_') }
-"PublicKey:  $(B64Url ([byte[]](,0x04 + $p.Q.X + $p.Q.Y)))"; "PrivateKey: $(B64Url $p.D)"
-```
-
-> **Poznámka k produkci:** odchozí přístup ke geokódovací (a případně routovací) službě musí být povolen
-> síťovou politikou a je nutné respektovat pravidla Nominatimu (rate limit, identifikující User-Agent).
-> Ukládání domácích adres je osobní údaj — získejte souhlas a nastavte retenční politiku.
-
-## Vývoj
-
-Jedinou vnější závislostí je SQL Server — aplikace nemá žádnou další infrastrukturu:
-
-```bash
-# Development automaticky aplikuje migrace a naseeduje administrátora
+dotnet restore D3Parking.slnx
+dotnet tool restore --tool-manifest dotnet-tools.json
 dotnet run --project src/D3Parking.Web
+
+$env:ConnectionStrings__SqlServer = 'Server=(localdb)\MSSQLLocalDB;Database=unused;Trusted_Connection=True;TrustServerCertificate=True'
+dotnet test tests/D3Parking.Application.Tests -c Release --artifacts-path artifacts/tests
+dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
+pwsh -File deployment/tests.ps1
+
+dotnet ef migrations add Nazev --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
 ```
 
-E-maily míří na `localhost:25` bez autentizace, což je výchozí port lokální záchytky
-[smtp4dev](https://github.com/rnwood/smtp4dev) — buď desktopové sestavení, nebo .NET nástroj
-(`dotnet tool install -g Rnwood.Smtp4dev`). Zachycené zprávy zobrazuje ve svém okně, případně přes
-REST API na `/api/messages`. Pro produkci nastavte `Smtp:Host`/`Smtp:Port` na reálný relay
-a `Smtp:Authentication` na `Basic` nebo `OAuth2`. `Smtp:TimeoutSeconds` (výchozí 30, povolené
-rozmezí 5–300) omezuje jeden síťový krok; host, port, odesílatel i povinné přihlašovací údaje se
-validují už při startu aplikace.
+Manifest nástroje je historicky v kořeni (`dotnet-tools.json`), proto je restore výslovný. Po uvedeném restore funguje `dotnet ef`; ověřeno příkazem `dotnet ef --version` (10.0.8). Produkční deployment tento vývojový nástroj nepotřebuje.
 
-Bez běžící záchytky aplikace funguje dál — odeslání se jen nezdaří na pozadí, request to neshodí
-(viz [Odesílání e-mailů](#technické-poznámky)).
+Bez ConnectionStrings__SqlServer se SQL testy v Application.Tests explicitně přeskočí. Testy zakládají GUID databáze, které po běhu maží. E2E automaticky volí volný loopback port a vlastní DB. BASE_URL používejte jen pro vyhrazené testovací prostředí; suite mění účty, nastavení a data. Viz [E2E README](../tests/D3Parking.E2E.Tests/README.md).
 
-**Databázové migrace** (prostředí `Development` je aplikuje při startu):
+`PublishedReleaseTests` navíc vyžaduje `D3PARKING_RELEASE_APP` s absolutní cestou ke složce `app` rozbaleného testovacího release. Spouští skutečné EXE dvakrát s izolovaným Development profilem/DB/klíčenkou a PATH bez SDK, kontroluje health, login, statické assety a zachování šifrovaných keys. Bez této proměnné se tento jediný smoke test přeskočí. `DeploymentCommandTests` provádí skutečný SQL backup do dočasné místní složky; je určený pro LocalDB nebo místní testovací SQL s přístupem do ní, ne pro vzdálený produkční SQL.
 
-```bash
-# aplikace nejnovějšího schématu
-dotnet ef database update --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
+Design-time kontext čte `D3PARKING_DESIGN_CONNECTION`, jinak LocalDB; nepřebírá automaticky produkční shared config. `scripts/2026-07-28-localtime-backfill.sql` je historická oprava konkrétního wall-clock/UTC problému, nikoli povinný krok čisté instalace. Na stará data jen po ověření původu a backupu.
 
-# přidání migrace po změně modelu
-dotnet ef migrations add <Nazev> --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
-```
-
-Nástroj `dotnet-ef` se obnoví přes `dotnet tool restore` (připnutý v `dotnet-tools.json`).
-
-**Jednorázové opravy dat** jsou ve složce `scripts/`. Nejsou součástí EF migrací, protože závisí na
-konfiguraci za běhu a pouštějí se ručně. Nasazujete-li přechod na místní čas nad existujícími daty,
-je nutné spustit [2026-07-28-localtime-backfill.sql](../scripts/2026-07-28-localtime-backfill.sql) —
-časy zadané před tou změnou se ukládaly, jako by wall-clock byl UTC. Skript má zkušební režim
-(`@Apply = 0`) a je idempotentní.
-
-## Technické poznámky
-
-- **Blazor Web App** s oběma interaktivními režimy; parkovací stránky se vykreslují na serveru
-  (`InteractiveServer`), zvoneček notifikací běží na WebAssembly.
-- **PWA:** aplikaci lze nainstalovat na plochu telefonu i počítače. Manifest generuje endpoint
-  `/manifest.webmanifest` — název a popis přebírá z Nastavení webu, jazyk z kultury requestu.
-  `wwwroot/service-worker.js` má záměrně konzervativní strategii: HTML se nikdy necachuje
-  (personalizovaný obsah, serverová interaktivita stejně potřebuje síť), statické assety jdou přes
-  stale-while-revalidate a při výpadku sítě dostane navigace předcachovanou `wwwroot/offline.html`.
-  Realtime a datové endpointy (`/_blazor`, `/hubs/`, `/api/`, `/connect/`, `/culture/`) jdou mimo
-  service worker. Ikony (běžné, maskable, apple-touch) jsou ve `wwwroot/icons/`; při změně strategie
-  nebo precache seznamu je potřeba zvýšit verzi cache v `service-worker.js`.
-
-  **Runtime WASM (`/_framework/`) jde cache-first**, ale jen soubory s content fingerprintem
-  v názvu — ty jsou immutable, takže nemohou být podány zastaralé; nefingerprintované
-  bootstrappery (`blazor.web.js`, `dotnet.js`) chodí dál ze sítě, aby nasazení nešlo zamknout na
-  starou verzi. Bez toho pravidla se ve **vývojovém** buildu stahovalo **18,5 MB při každém
-  refreshi**: zvoneček notifikací je WASM island, takže se runtime bootuje na každém načtení
-  stránky, a tehdy ještě přibalené netrimované balíky ikon Fluent UI (10,3 a 8,6 MB) se nevešly do
-  limitu prohlížeče na velikost jedné položky HTTP cache — Cache Storage takový limit nemá.
-  Publikovaný build tímhle netrpěl (celé `_framework` má 3,2 MB v Brotli), takže šlo o problém
-  vývojové smyčky. Nová verze souboru se do cache uloží a předchozí fingerprinty téhož souboru se
-  zahodí, aby cache nerostla s každým buildem.
-
-  **Klientský projekt (`D3Parking.Web.Client`) záměrně nereferencuje balíček ikon.** Jeho jediná
-  komponenta potřebuje dva glyfy, a balíček stál island ~22 MB z ~47 MB, které runtime při každém
-  bootu přečte; path data zvonečku jsou proto inline v `NotificationBell.razor`. Po odebrání má
-  `_framework` ve vývoji **28 MB místo 47 MB**. Blokování hlavního vlákna bootem to ale nezměnilo
-  (~377 ms) — to dělá instanciace runtime, ne velikost ikon. Jediné, co ho odstraní, je nebootovat
-  WASM vůbec, tedy přesunout zvoneček na `InteractiveServer`.
-
-  Zvoneček si při načtení stránky bere jen to, co zavřený ukazuje (počet nepřečtených
-  a ztlumení, paralelně); **seznam notifikací se dotahuje až při prvním otevření panelu**.
-- **Web Push:** notifikace se vedle SignalR zvonečku doručují i do zavřené nainstalované aplikace.
-  `NotificationService` publikuje přes `CompositeNotificationPublisher` (SignalR + volitelný
-  `WebPushNotificationPublisher` nad `Lib.Net.Http.WebPush`), takže ztlumení a rozsah kategorií
-  platí pro všechny kanály stejně. Subscriptions jsou v tabulce `PushSubscriptions` (endpoint je
-  unikátní; mrtvé subscriptions se mažou při 404/410 od push služby). Přihlášení zařízení řeší
-  přepínač ve zvonečku (`push.js` + `PUT/DELETE /api/notifications/push/subscription`); service
-  worker OS notifikaci potlačí, když je aplikace zrovna viditelná. Konfigurace: [VAPID klíče](#konfigurace).
-- **Orientační mapa parkoviště:** `ParkingSettings` drží jeden volitelný obrázek a jeho detekovaný
-  typ obsahu. `ImageContentType.Detect` ověřuje magic bytes a povoluje jen PNG/JPEG/WebP; SVG ani
-  deklarovaný typ z uploadu se nepovažují za důvěryhodné. Limit je 12 MiB. Čtení přes
-  `/api/parking/orientation-map` posílá `X-Content-Type-Options: nosniff`, veřejnou cache a ETag.
-  Po změně se invaliduje paměťová cache a UI používá verzovanou URL. Obrázek je pouze orientační —
-  dostupnost a rezervaci dál řídí katalog `ParkingSpot` a plánované bloky.
-- **Lokalizace:** řetězce UI v `D3Parking.Web/Resources/SharedResource.*.resx`; serverové texty notifikací
-  v `D3Parking.Infrastructure/Resources/ParkingMessages.*.resx`.
-- **Autentizace:** ASP.NET Core Identity (cookie přihlášení) + OpenIddict server + RBAC dle oprávnění.
-- **Časové zóny:** vše se ukládá a porovnává v UTC, ale pravidla jsou psaná v **místním čase parkoviště**
-  — okno špičky, denní držení místa rezidentem i hranice dne (denní limity, uvolnění) se vyhodnocují
-  v zóně z `DefaultTimeZoneId` (Nastavení webu → Regionální; bez ní se použije zóna serveru). Převody
-  řeší `SiteTime` v doménové vrstvě, offset se dohledává pro každý okamžik zvlášť, takže letní čas
-  sedí. Zadaný čas rezervace je místní wall-clock a do UTC se převádí až na vstupu.
-- **Odesílání e-mailů:** notifikační e-maily mají vlastní databázový outbox
-  `NotificationEmailDeliveries`. Dispatcher volá přímo `IEmailTransport` (`SmtpEmailSender`) a stav
-  `Sent` zapíše až po úspěšném `SMTP DATA`; při chybě používá progresivní backoff, lease proti
-  souběžnému odeslání a po vyčerpání pokusů umožní ruční opakování v administraci. Účtové e-maily
-  (registrace a reset hesla) nadále používají `IEmailSender` a lokální Wolverine frontu s opakováním
-  po 5 s / 30 s / 2 min; tato část fronty je v paměti a čekající zprávy při vypnutí procesu nepřežijí.
-- **Kalendář:** jednorázový export i soukromý odběr renderuje `CalendarIcsRenderer`. Odběr je dostupný
-  bez cookie přes 256bitový token v URL; v databázi je pouze jeho SHA-256 hash a uživatel jej může
-  rotovat nebo zrušit. Události drží stabilní `UID`, `SEQUENCE`, `LAST-MODIFIED` a zrušení jako
-  `STATUS:CANCELLED`; endpoint podporuje ETag. Feed vrací budoucnost a posledních 30 dní, aby klient
-  stihl převzít zrušení. iCalendar je formát, nikoli zapisovací protokol, proto změny z externího
-  kalendáře nejsou přijímány — plný opačný směr vyžaduje Graph/Google Calendar API nebo CalDAV a
-  nesmí obejít validační pravidla plánovače.
-- **Údržba na pozadí:** `ParkingMaintenanceService` v intervalu `SweepInterval` řeší informační
-  připomínky, plán rezidentních míst, rekonciliaci sdílení, měsíční příděl, frontu, rozklad reputace, adaptivní ceny, graf důvěry
-  a nakonec provozní dohled (viz níže). Každý krok je izolovaný — selhání jednoho nesmí přeskočit ty za ním.
-- **Provozní dohled:** `OversightCase` je obálka nad signálem, nikdy jeho kopie — ukazuje na
-  `OccupancyMismatch`, `CollusionFlag`, `SpotDefectReport` nebo rovnou `Reservation` (u sporu
-  o nedostavení) přes `(Kind, SubjectId)` a důkazy se čtou ze zdrojových služeb za běhu. Případy
-  nad signály, které vyvolalo parkoviště, **nezakládají služby, které je vyvolaly**, ale
-  `IOversightService.EnsureCasesAsync` (idempotentní anti-join): hlášení vzniká na kritické cestě
-  řidiče a sken v údržbové smyčce a ani jedno nesmí spadnout kvůli frontě. Případy, které otevře
-  **člověk** (spor o nedostavení), vznikají přímo tím úkonem — reconciliace by neměla co dohánět,
-  protože rezervace tam ležela celou dobu a nezměnilo se na ní nic než to, že se někdo ozval.
-  Unikátní index `(Kind, SubjectId)` je zároveň tím, co drží pravidlo „jeden spor na rezervaci". Tentýž kód je zároveň
-  migrací pro signály starší než případy. Volá se jak ze smyčky, tak při načtení fronty, aby recenzent
-  nečekal na sweep.
-
-  `OversightCaseEvent` je append-only historie; viditelnost (`Internal` / `Participants`) je jediné,
-  co dělí pohled správce od pohledu řidiče, a filtruje se **v dotazu**, ne v šabloně. Zápisy ve stejný
-  okamžik řadí stínový identity sloupec `Ordinal` — jedna akce jich umí zapsat víc a samotný čas by
-  jejich pořadí neurčil.
-
-  Číslo případu je z databázové sekvence `OversightCaseNumbers` (dvě založení v jednom sweepu se
-  o číslo nesmí porvat). Souběh dvou recenzentů nad jedním případem hlídá stínový `rowversion` —
-  poražený zápis se přečte znovu a narazí na strážce („už rozhodnuto"), místo aby přebil první verdikt.
-
-  Co kdo **vidí** (druh případu) a co kdo **smí** (přiřadit, rozhodnout vůči osobě) nese jediný objekt
-  `OversightScope`, takže obrazovka, která by kontrolu zapomněla, stejně narazí na službu. Případ druhu,
-  na který volající nevidí, se tváří jako neexistující — „na případ 142 nemáš právo" už prozrazuje, že
-  případ 142 existuje.
+`.codex`/`.claude` jsou historické vývojové helpery; některé umějí kontejnery. Produkční balíček je neobsahuje a tento postup je nespouští. Výše uvedené příkazy používají nativní SQL Server.

@@ -7,6 +7,8 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers Condition="'$(MSBuildProjectName)' != 'D3Parking.Web.Client'">win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
 </Project>

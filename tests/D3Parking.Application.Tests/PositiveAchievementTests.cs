@@ -33,7 +33,7 @@ public sealed class PositiveAchievementTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_PositiveAchievementTests",
+            InitialCatalog = $"D3Parking_PositiveAchievementTests_{Guid.NewGuid():N}",
         };
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()
             .UseSqlServer(builder.ConnectionString)

@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\D3Parking.Contracts\D3Parking.Contracts.csproj" />
+    <Content Remove="wwwroot/appsettings.Development.json" />
   </ItemGroup>
 
 </Project>

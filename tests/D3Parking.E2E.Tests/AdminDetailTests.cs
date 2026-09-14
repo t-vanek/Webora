@@ -66,9 +66,11 @@ public class AdminDetailTests : AdminTest
         // than leaving the first page sitting there.
         var search = Page.Locator("fluent-search#role-member-search input");
         await search.FillAsync("nikdo-takový");
+        await search.BlurAsync();
         await Expect(side.Locator(".empty-state")).ToBeVisibleAsync();
 
         await search.FillAsync("admin@");
+        await search.BlurAsync();
         await Expect(side).ToContainTextAsync("admin@d3parking.local");
     }
 
@@ -80,7 +82,7 @@ public class AdminDetailTests : AdminTest
 
         // The canonical id stays on screen beside the human label, so the two can be matched up.
         await Expect(Page.GetByText("Parking.ViewLeaderboard")).ToBeVisibleAsync();
-        await Expect(Page.GetByText("Zobrazit žebříček").First).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Zobrazit ocenění").First).ToBeVisibleAsync();
         // Built-in groups are seeder-managed and read-only.
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Uložit$") })).ToHaveCountAsync(0);
         // Which roles carry the group is the blast radius of any edit, so it is on the same page.
@@ -91,8 +93,8 @@ public class AdminDetailTests : AdminTest
     [Test]
     public async Task Creating_a_user_shows_the_form_card_with_role_options()
     {
-        await Page.GotoAsync("/admin/users/create");
-        await Expect(Page.Locator(".profile-section")).ToBeVisibleAsync();
+        await Pages.GotoInteractiveAsync(Page, "/admin/users/create");
+        await Expect(Page.Locator(".user-create-section").First).ToBeVisibleAsync();
         await Expect(Page.GetByText("Administrátor")).ToBeVisibleAsync(); // a role checkbox
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Nový účet") }))
             .ToBeVisibleAsync();

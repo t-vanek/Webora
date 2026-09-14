@@ -35,7 +35,7 @@ public class ReservationPagingTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_ReservationPagingTests",
+            InitialCatalog = $"D3Parking_ReservationPagingTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

@@ -46,7 +46,7 @@ public class ResidentPriorityTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_ResidentPriorityTests",
+            InitialCatalog = $"D3Parking_ResidentPriorityTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

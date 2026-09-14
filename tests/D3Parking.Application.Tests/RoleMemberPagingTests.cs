@@ -42,7 +42,7 @@ public class RoleMemberPagingTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_RoleMemberPagingTests",
+            InitialCatalog = $"D3Parking_RoleMemberPagingTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

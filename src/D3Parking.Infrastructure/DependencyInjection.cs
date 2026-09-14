@@ -72,6 +72,7 @@ public static class DependencyInjection
                 // blackholed push service must be bounded by the same 15 s the other outbound
                 // clients (OSRM, Nominatim) use, not HttpClient's default 100 s.
                 .ConfigureHttpClient(http => http.Timeout = TimeSpan.FromSeconds(15))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
                 .AddTypedClient(http => new PushServiceClient(http)
                 {
                     DefaultAuthentication = new VapidAuthentication(webPushOptions.PublicKey, webPushOptions.PrivateKey)

@@ -41,7 +41,7 @@ public class FleetPairingTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_FleetPairingTests",
+            InitialCatalog = $"D3Parking_FleetPairingTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

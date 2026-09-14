@@ -44,7 +44,7 @@ public class AuditPagingTests
 
         var builder = new SqlConnectionStringBuilder(configured)
         {
-            InitialCatalog = "D3Parking_AuditPagingTests",
+            InitialCatalog = $"D3Parking_AuditPagingTests_{Guid.NewGuid():N}",
         };
 
         _options = new DbContextOptionsBuilder<D3ParkingDbContext>()

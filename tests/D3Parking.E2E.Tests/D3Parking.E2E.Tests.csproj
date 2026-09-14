@@ -13,4 +13,8 @@
     <PackageReference Include="NUnit3TestAdapter" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../src/D3Parking.Infrastructure/D3Parking.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

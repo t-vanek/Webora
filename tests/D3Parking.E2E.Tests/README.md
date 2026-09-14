@@ -1,62 +1,42 @@
-# D3Parking.E2E.Tests
+# Prohlížečové testy D3Parking
 
-[Playwright for .NET](https://playwright.dev/dotnet/) end-to-end tests
-(`Microsoft.Playwright.NUnit`) that drive the real Blazor app in a browser. They
-cover authentication, the home dashboard, the parking flow (including the
-timezone round-trip regression), the admin pages and detail forms, the account
-pages and the responsive layout.
+Playwright pro .NET ovládá skutečnou aplikaci v Chromium. Sada pokrývá přihlášení a autorizaci, odhlášení včetně CSRF, osobní ocenění, plánování s kontrolou zvoleného času, administraci, orientační mapu a mobilní rozložení.
 
-## Prerequisites
+## Spuštění na Windows
 
-- .NET SDK 10
-- A reachable Microsoft SQL Server — by default SQL Server LocalDB
-  (`(localdb)\MSSQLLocalDB`), see `ConnectionStrings:SqlServer` in
-  `src/D3Parking.Web/appsettings.json`. Development applies the migrations on start.
-  In Claude Code on the web the SessionStart hook (`.claude/hooks/session-start.sh`)
-  starts SQL Server 2022 in Docker and exports `ConnectionStrings__SqlServer`
-  automatically.
-- The Playwright browser. After the first build, install it once:
+Potřebujete SDK z global.json, nativní SQL Server nebo LocalDB a oprávnění zakládat/mazat testovací databáze. Prohlížeč se při prvním spuštění stáhne automaticky; další běhy používají instalovaný Chromium.
 
-  ```bash
-  pwsh tests/D3Parking.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
-  ```
-
-  The `WebAppFixture` also runs `playwright install chromium` on start, so a
-  plain `dotnet test` will fetch it if missing.
-
-## Run
-
-```bash
-dotnet test tests/D3Parking.E2E.Tests/D3Parking.E2E.Tests.csproj
+```powershell
+dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
 ```
 
-`WebAppFixture` starts the app with
-`dotnet run --project src/D3Parking.Web/D3Parking.Web.csproj --urls http://localhost:5163`
-if nothing is already listening, signs in once as the seeded admin and stores
-the session for the authenticated fixtures. Point the suite at another instance
-(and skip the self-start) with `BASE_URL`:
+WebAppFixture automaticky spustí Development host na volném loopback portu, vytvoří vlastní databázi D3Parking_E2E_<GUID>, počká na /health/ready a přihlásí testovacího správce. Po běhu ukončí svůj proces, odstraní pouze vlastní DB a dočasný soubor přihlášení. Existující instanci na localhost automaticky nepřebírá. Vývojové přihlašovací údaje jsou v appsettings.Development.json a Pages.cs; do release nevstupují.
 
-```bash
-BASE_URL=https://staging.example.com dotnet test
+Jiný nativní testovací SQL server lze zadat proměnnou prostředí (název DB fixture nahradí vlastním GUID):
+
+```powershell
+$env:ConnectionStrings__SqlServer = 'Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True'
+dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
 ```
 
-Headed / debugging:
+Výslovné BASE_URL použije již běžící **vyhrazenou testovací** instanci s očekávaným testovacím účtem a daty. Pokud neodpoví readiness, test skončí; nezakládá náhradní host. Testy mění účty, nastavení, místa a rezervace, proto BASE_URL nesmí mířit na produkci. Fixture tuto externí DB nemaže ani neosévá.
 
-```bash
-HEADED=1 PWDEBUG=1 dotnet test
+```powershell
+$env:BASE_URL = 'https://vyhrazene-testy.example.cz'
+dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
+Remove-Item Env:BASE_URL
 ```
 
-## Layout
+## Obsah
 
-- `WebAppFixture.cs` — assembly setup: ensures the app is up and saves the admin session.
-- `Pages.cs` — `AnonymousTest` / `AdminTest` base classes and shared interactions.
-- `AuthTests.cs` — login, registration and authorization redirects (signed out).
-- `DashboardTests.cs` — the home hero and quick-action tiles.
-- `ParkingTests.cs` — leaderboard hero, price quote and a reserve round-trip.
-- `AdminTests.cs` — lists, settings tabs, saving settings and the collusion empty state.
-- `AdminDetailTests.cs` — user/role edit and the create-form validation.
-- `AccountTests.cs` — the account hub, profile sections and sign-out.
-- `ResponsiveTests.cs` — no horizontal overflow and the compact header at 390px.
+- WebAppFixture.cs: izolovaný host, DB a přihlášený kontext.
+- Pages.cs: společné interakce a připojení InteractiveServer circuitu.
+- AuthTests.cs / AccountTests.cs: autentizace, autorizace, profil a CSRF odhlášení.
+- DashboardTests.cs / ParkingTests.cs: přehled, osobní ocenění, kapacita a rezervace.
+- AdminTests.cs / AdminDetailTests.cs: role/skupiny, uživatelé, místa, vozidla, návštěvy, pravidla, dohled.
+- OrientationMapTests.cs: nahrání aktuální PNG mapy, náhled a chráněný obrazový endpoint.
+- ResponsiveTests.cs: úzký viewport, navigace a horizontální přetékání.
 
-Credentials come from `IdentitySeed` in `src/D3Parking.Web/appsettings.json`
-(`admin@d3parking.local` / `Admin123$`).
+Odstraněný editor map se netestuje. Výchozí plánování má nulovou pevnou cenu, proto výchozí UI nezobrazuje starý kreditový ani reputační model. SQL testy placeného režimu mají cenu výslovně nastavenou ve fixture.
+
+Čekání na websocket samo o sobě nezaručuje dokončení všech asynchronních inicializací stránky. Testy navazují na viditelný výsledek akce; opakování je přípustné pouze pro idempotentní volbu pohledu, nikoli pro neověřené duplicitní rezervace.

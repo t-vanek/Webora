@@ -52,6 +52,11 @@ public sealed class WebPushNotificationPublisher(
         var deadSubscriptions = new System.Collections.Concurrent.ConcurrentBag<Guid>();
         await Task.WhenAll(subscriptions.Select(async subscription =>
         {
+            if (!PushEndpointPolicy.IsAllowed(subscription.Endpoint))
+            {
+                logger.LogWarning("Skipping unsupported push subscription {SubscriptionId}.", subscription.Id);
+                return;
+            }
             var target = new PushServiceSubscription { Endpoint = subscription.Endpoint };
             target.SetKey(PushEncryptionKeyName.P256DH, subscription.P256dh);
             target.SetKey(PushEncryptionKeyName.Auth, subscription.Auth);
@@ -66,7 +71,8 @@ public sealed class WebPushNotificationPublisher(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to deliver a push notification to {Endpoint}.", subscription.Endpoint);
+                logger.LogWarning("Push delivery failed for subscription {SubscriptionId}: {ErrorType}.",
+                    subscription.Id, ex.GetType().Name);
             }
         }));
 
