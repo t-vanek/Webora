@@ -1,123 +1,147 @@
-# Návod pro správce
+# Návod pro správce — jeden PowerShell průvodce
 
-Tento návod předpokládá Windows x64. Ukázky používají `C:\D3Parking`, službu `D3Parking` a veřejnou adresu `https://parking.company.cz:8443`. Nahraďte doménu skutečnou adresou své organizace. Instalační cesta může být jiná, pak přidejte `-InstallPath` ke každému příkazu.
+Pro běžnou správu stačí **D3Parking.ps1**, hotový release ZIP a jeho SHA-256. Skript funguje samostatně, bez dalších `.ps1`, Gitu nebo .NET SDK. Release obsahuje vlastní runtime. Používá Windows službu, Kestrel HTTPS a externí SQL Server.
 
-## První server — jednorázově
+## Spuštění
 
-1. Od IT si zajistěte podporovaný Windows Server x64, **PowerShell 7.4 nebo novější**, DNS pro veřejnou adresu a HTTPS certifikát PFX s privátním klíčem/heslem a odpovídající doménou v SAN. Nestačí vývojový certifikát. .NET SDK ani IIS nepotřebujete.
-2. Správce databáze připraví SQL Server, prázdnou databázi D3Parking a dva SQL účty: aplikace (čtení a zápis) a deployment (db_owner této DB). Dostanete dvě připojovací hodnoty. SQL certifikát musí být na serveru důvěryhodný. DBA vytvoří zálohovací adresář **na SQL Serveru**, povolí zápis jeho službě a ověří kapacitu. Vyžádejte si také SMTP relay, povoleného odesílatele a způsob ověření.
-3. Uložte důvěryhodný release ZIP a `.sha256` do `C:\Releases`. Ověřte součet proti hodnotě od vydavatele:
+Vydavatel předá `D3Parking-<verze>.ps1`, `D3Parking-<verze>-win-x64.zip` a jejich `.sha256`. Skript lze pro pohodlnější obsluhu přejmenovat na `D3Parking.ps1`; stejný soubor je také v kořeni ZIPu. Uchovávejte jej například v `C:\Releases`, mimo verzované adresáře aplikace. Původ skriptu i kontrolních součtů musí být důvěryhodný; SHA-256 není podpis vydavatele. Pokud Windows u staženého důvěryhodného skriptu požaduje odblokování, postupujte podle firemní politiky. Nevypínejte ji globálně.
 
-   ```powershell
-   Get-FileHash C:\Releases\D3Parking-1.2.3-win-x64.zip -Algorithm SHA256
-   ```
-
-   Teprve pak rozbalte ZIP například do `C:\Releases\D3Parking-1.2.3-tools`. Budete používat jeho složku `deployment` a dokumenty `docs`.
-4. Otevřete **PowerShell 7 jako správce** (Start → PowerShell 7 → pravé tlačítko → Spustit jako správce), nikoli starý Windows PowerShell 5.1. Spusťte:
-
-   ```powershell
-   cd C:\Releases\D3Parking-1.2.3-tools\deployment
-   .\initialize.ps1 -InstallPath C:\D3Parking -PublicUrl https://parking.company.cz:8443
-   ```
-
-   Vytvoří se adresáře, ochranný certifikát a zastavená služba. Aplikace zatím neběží. Cesta ani služba nesmí předem existovat; tím se chrání stávající instalace. Po úspěchu zkopírujte celou složku `deployment` do `C:\D3Parking\Deployment` pro další obsluhu.
-5. Otevřete `C:\D3Parking\config\appsettings.json`, `config\deployment.json`, `secrets\secrets.json` a `secrets\deployment.json` v textovém editoru spuštěném jako správce. Nahraďte všechny hodnoty `REPLACE_...`. JSON musí zachovat uvozovky/čárky; zpětné lomítko v cestě je `\\`. Neopisujte tajemství do e-mailu nebo do příkazové řádky. Popis klíčů je v CONFIGURATION.md. Pro první účet zvolte vlastní administrátorský e-mail a silné unikátní heslo.
-6. Nainstalujte HTTPS PFX; příkaz si bezpečně vyžádá heslo a nastaví i práva služby:
-
-   ```powershell
-   cd C:\D3Parking\Deployment
-   .\set-https-certificate.ps1 -CertificatePath C:\Releases\parking.company.cz.pfx
-   ```
-
-   Případný kořenový/intermediate certifikát organizace musí IT instalovat do důvěryhodného úložiště počítače. Heslo ochranného `protection.pfx` generuje initializer; neměňte je.
-7. Nechte IT povolit příchozí TCP port veřejného HTTPS (v příkladu 8443) z požadované sítě a odchozí SQL/SMTP. Health port 5081 se do sítě neotevírá. Ověřte DNS z tohoto serveru i z uživatelského počítače. Konfigurace neotevírá firewall automaticky.
-8. Spusťte kontrolu a nasazení:
-
-   ```powershell
-   .\deploy.ps1 -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip -CheckOnly
-   .\deploy.ps1 -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip
-   ```
-
-9. Počkejte na `Deployment completed successfully.` Otevřete veřejnou adresu v prohlížeči, přihlaste se vlastním administrátorem, nastavte časovou zónu parkoviště v Nastavení webu a ověřte e-mail. Odstraňte AdminEmail/AdminPassword z IdentitySeed v secrets.json; účet zůstane v DB. Zálohujte config, secrets a data/keys mimo server a s DBA nacvičte obnovu SQL backupu.
-
-Při přechodu ze staré instalace nejde o prázdnou databázi. Nejdříve viz poznámka o klíčence v CONFIGURATION.md a schvalování historických migrací v DEPLOYMENT.md. Nekopírujte vývojový appsettings do produkce.
-
-## Jak zjistím, že aplikace běží a jakou má verzi?
-
-V prohlížeči otevřete `https://parking.company.cz:8443/version`. Uvidíte `version`, `commit`, `environment`, `runtime`. Na `/health/ready` očekávejte HTTP 200 a `status: ready`. HTTP 503 znamená, že SQL/schéma není připravené. `/health/live` pouze potvrzuje běžící webový proces.
-
-Na serveru:
+Otevřete **PowerShell 7.4+ jako správce** na Windows x64 (nikoli Windows PowerShell 5.1):
 
 ```powershell
-Get-Service D3Parking
-Invoke-RestMethod http://127.0.0.1:5081/version
-Invoke-RestMethod http://127.0.0.1:5081/health/ready
+cd C:\Releases
+.\D3Parking.ps1
 ```
 
-Samotný stav Running není důkaz funkčnosti. Zkontrolujte také otevření stránky a přihlášení.
+Pro jinou instalaci použijte `.\D3Parking.ps1 -InstallPath D:\Apps\Parking`. Cestu lze změnit i v menu. Volba `-Action Help` vypíše stručnou nápovědu bez administrátorských práv.
 
-## Jak nasadím další verzi?
+## Co si připravit pro první instalaci
 
-1. Získejte nový ZIP a jeho ověřený checksum. Uložte je do `C:\Releases`.
-2. V PowerShellu 7 jako správce přejděte do `C:\D3Parking\Deployment`.
-3. Spusťte ` .\deploy.ps1 -ReleasePath C:\Releases\D3Parking-1.2.4-win-x64.zip -CheckOnly`.
-4. Je-li požadována revize migrací, pošlete DBA `database/migrations.sql` z daného release a seznam ID z výstupu. Po schválení vložte přesná ID do ApprovedMigrations v config/deployment.json a kontrolu opakujte. Pokud se mění nástroje, nahraďte celou složku Deployment ověřenou verzí z nového balíčku, když žádné nasazení neběží.
-5. Stejný příkaz spusťte bez `-CheckOnly`. Během zálohy/aktualizace nastane odstávka. Úspěch znamená až `Deployment completed successfully.` Konfiguraci do release nekopírujte.
+- Veřejnou HTTPS adresu, funkční DNS a PFX s privátním klíčem, heslem a odpovídající doménou v SAN. IT zajistí důvěru CA/intermediate certifikátů v úložišti počítače a přístup ke kontrole odvolání certifikátu.
+- Existující samostatnou SQL databázi a dva různé SQL účty: aplikace s právy čtení/zápisu a nasazení s `db_owner` této databáze. SQL certifikát musí být důvěryhodný; průvodce používá ověřené šifrované připojení.
+- Zálohovací adresář **na SQL Serveru**, do něhož může zapisovat služba SQL Serveru; připraví a kapacitu ověří DBA.
+- SMTP relay, port, odesílatele a způsob přihlášení (None, Basic nebo OAuth2). U OAuth2 také token endpoint, Client ID, Client secret a případný scope.
+- E-mail a vlastní silné heslo prvního správce.
+- Síťová pravidla od IT: příchozí veřejný HTTPS port a odchozí SQL/SMTP. Health port se do sítě neotevírá; poslouchá jen na `127.0.0.1`.
 
-## Restart
+Skript nevytváří SQL server ani databázi, neinstaluje certifikační autoritu, neotevírá firewall a nemění DNS. Tyto kroky závisejí na firemní infrastruktuře; jejich požadavky průvodce vypíše.
 
-```powershell
-Restart-Service D3Parking
-Invoke-RestMethod http://127.0.0.1:5081/health/ready
-```
+### Co přesně si vyžádat od IT
 
-Pokud služba právě startuje, několik sekund počkejte a readiness zopakujte. Změna shared config vyžaduje restart. HTTPS certifikát lze obnovit pomocí set-https-certificate.ps1; nejdříve si připravte kontrolu a odstávku. Neměňte tím certifikát Data Protection.
+Následující příklad je zadání pro IT, ne hotové údaje vaší firmy. Hesla si nechte předat chráněným kanálem a do této tabulky je nezapisujte.
 
-## Rollback
-
-```powershell
-cd C:\D3Parking\Deployment
-.\deploy.ps1 -Rollback -CheckOnly
-.\deploy.ps1 -Rollback
-```
-
-Nástroj použije předchozí release, pořídí backup a zkontroluje shodu jeho schématu se skutečnou DB. Pokud ji odmítne, binárky ručně nepřepínejte. Obnova DB může ztratit zápisy vzniklé od backupu, proto ji rozhoduje DBA s vlastníkem dat.
-
-## Když deployment selže
-
-Přečtěte `[FAILED]` a cestu za `Details:`. Pokud selhal preflight, aplikace a databáze se nezměnily. Pokud začala migrace, služba může zůstat zastavená. Diagnostika je v `logs\deploy-*.log`, přidružených `.preflight.json`/`.upgrade.json`, `logs\application-*.log` a `state\in-progress.json`. Žurnál sám nemažte.
-
-| Zpráva/problém | Význam | Postup |
+| Údaj | Příklad a vysvětlení | Kdo jej dodá |
 |---|---|---|
-| Release checksum mismatch | ZIP neodpovídá vydavateli | Znovu stáhněte ZIP i ověřený součet; nespouštějte jeho skripty. |
-| Missing configuration / REPLACE hodnoty | Není dokončena konfigurace | Opravte shared JSON podle CONFIGURATION.md. |
-| Preflight failed at database | SQL připojení nebo oprávnění selhalo | DBA ověří server, DB, oba účty, síť a důvěru SQL certifikátu; v reportu je typ chyby a SQL číslo. |
-| Preflight failed at smtp | Relay/TLS/ověření není dostupné | Opravte SMTP nastavení nebo síť, pak opakujte kontrolu. |
-| HTTPS certificate… | PFX, heslo, SAN, platnost nebo důvěra CA | Dodejte správný certifikát/řetězec; nevypínejte ověřování TLS. |
-| Service … lacks Read/Modify | Služba nevidí soubor nebo nemůže zapisovat | Pro HTTPS použijte set-https-certificate.ps1. Ostatní ACL porovnejte s initializerem, neudělujte Everyone. |
-| Review database/migrations.sql | Připravená migrace vyžaduje revizi | DBA schválí konkrétní ID; doplňte ApprovedMigrations. |
-| Database migration history differs | Cizí/novější schéma nebo návrat přes změnu DB | S DBA vyberte správný release nebo obnovte recovery point. |
-| Health check failed | Proces neběží správně, SQL není připravené nebo odpověděla jiná verze | Čtěte application log; ověřte veřejné DNS/HTTPS, port a DB. |
-| An interrupted deployment needs recovery | Zůstala neuzavřená operace | Postup níže; neopakujte naslepo update. |
-| Target release already exists | Verzi nelze přepisovat | Vydejte novou verzi nebo obnovte existující přes recover; nepřepisujte DLL. |
+| Veřejná adresa | `https://parking.firma.cz:8443`; stejnou adresu použijete v prohlížeči. | Správce DNS/sítě |
+| HTTPS PFX a jeho heslo | Certifikát pro `parking.firma.cz` s privátním klíčem; SAN je seznam jmen webů, pro které platí. | Správce certifikátů |
+| SQL server a DB | `sql01.firma.cz,1433` a `D3Parking`; nezadávejte sem URL s `https://`. | DBA = správce databází |
+| Dva SQL účty | Např. `parking_app` pro aplikaci a `parking_deploy` pro zálohy/migrace; každý má vlastní heslo a odlišná práva. | DBA |
+| SQL zálohovací složka | Např. `D:\SqlBackups\D3Parking` **na SQL serveru**. Oprávnění zápisu potřebuje služba SQL Serveru. | DBA |
+| SMTP | Např. `smtp.firma.cz`, port 587, StartTls, Basic; správce musí potvrdit skutečnou kombinaci a povolit odesílatele. | Správce pošty |
+| Odesílatel a přihlášení SMTP | Např. `parking@firma.cz`; adresa odesílatele a přihlašovací jméno nemusí být stejné. | Správce pošty |
+| Síťová dostupnost | Veřejný HTTPS port k aplikaci; odchozí SQL a SMTP, případně OAuth2 a kontrola certifikátů. | Správce sítě |
 
-### Obnova přerušeného nasazení / databáze
+Před spuštěním průvodce si také zvolte instalační cestu, prostředí Production/Staging a vlastní e-mail/heslo prvního správce. PFX pro **Data Protection** nemusíte shánět: ten vytvoří průvodce. Podrobný slovník hodnot a ukázku propojení adres najdete v [CONFIGURATION.md](CONFIGURATION.md).
 
-1. Zastavte `D3Parking` a ověřte, že žádný další deployment neběží. Zachovejte všechny logy a `state/in-progress.json`.
-2. DBA zjistí skutečné schéma a případné částečné migrace. Cesta k backupu je v upgrade reportu/žurnálu. Podle situace dokončí bezpečnou opravu, nebo obnoví celou DB z vhodného backupu. Nástroje aplikace nikdy nespouštějí SQL restore ani Down automaticky.
-3. Pokud se obnovovaly také konfigurační soubory/klíče, vraťte odpovídající kompletní config, secrets, ochranný certifikát a data/keys. Chraňte jejich ACL. Ověřte platnost HTTPS.
-4. Vyberte ponechaný release odpovídající obnovené DB a spusťte:
+## První instalace krok za krokem
+
+1. Zvolte **1 — Instalace**, vyberte ZIP a potvrďte SHA-256. Součet nabídne ze souboru `.zip.sha256`; lze jej zadat ručně. Kontrolují se i všechny soubory uvnitř balíčku.
+2. Zadejte adresu, prostředí Production/Staging, jméno služby a místní health port. Průvodce před vytvořením adresářů a zastavené služby ukáže souhrn. Potvrzení je přesné `ANO`; Enter ruší daný krok.
+3. Vyplňte jednotlivé hodnoty SQL, SMTP, prvního správce a HTTPS PFX. Hesla se zadávají skrytě. Nemusíte ručně editovat JSON ani escapovat SQL hesla.
+4. Průvodce ověří novou konfiguraci v odděleném chráněném adresáři. Kontroluje SQL účty a schéma, SMTP spojení/přihlášení a certifikáty. Kontrola neodesílá e-mail. Teprve po úspěchu a potvrzení uloží nastavení a chráněnou zálohu původních souborů.
+5. Zobrazí plán nasazení: současnou a cílovou verzi, prostředí, migrace, SQL zálohu a předpoklad odstávky. Po potvrzení zastaví aplikaci, provede a ověří zálohu DB, aplikuje migrace a spustí službu. Úspěch oznámí až po lokální **i veřejné HTTPS** kontrole správné verze/commitu/prostředí.
+6. Otevřete aplikaci, přihlaste se, ověřte rezervaci a skutečné doručení e-mailu. V Nastavení webu nastavte časovou zónu parkoviště. Potom volbou **3 — Nastavení** odstraňte uložené údaje prvního správce; účet v databázi zůstane zachovaný. Zašifrované zálohy nebo ACL chráněné zálohy nastavení mohou staré údaje nadále obsahovat, proto je chraňte podle firemní retence.
+
+Zrušení po přípravě adresářů ponechá zastavenou službu a její konfiguraci. Pokud příprava úspěšně vytvořila všechny soubory, volba Instalace na stejné cestě nabídne dokončení. Při selhání samotné přípravy ještě před jejich vytvořením zachovejte zastavený stav a nechte IT posoudit neúplný adresář/službu; průvodce je automaticky nemaže.
+
+Při přechodu ze starší instalace s existující DB nejdříve řešte zachování klíčenky podle CONFIGURATION.md a revizi migrací podle DEPLOYMENT.md.
+
+## Kde jsou vysvětlivky a jak změnit nastavení
+
+Na nainstalovaném serveru otevřete jako správce `C:\D3Parking\config\appsettings.json` (nebo svou instalační cestu). Nad položkami jsou české řádky `//`: co položka dělá, jakou hodnotu očekává a odkud ji získat. Neveřejné údaje jsou popsané v `secrets\secrets.json`; tento soubor nikomu neposílejte. Stejnou nápovědu mají oba soubory `deployment.json`.
+
+Soubory ve `src` jsou určeny vývojáři. Soubory uvnitř `releases` jsou součástí ověřeného balíčku a neupravují se. Při nejasnosti nejprve použijte tabulku „Který soubor otevřít“ v CONFIGURATION.md.
+
+Pro běžnou změnu postupujte takto:
+
+1. Spusťte aktuální skript se správným `-InstallPath` a zvolte **3 — Nastavení**, pro samotný HTTPS PFX volbu **7**.
+2. Zkontrolujte nabízené hodnoty a odpovězte na otázky. Prázdné zadání ponechá nabízenou hodnotu; u existujících hesel je ponechání označeno v otázce. Nepoužívejte příklady z návodu místo skutečných údajů od IT.
+3. Vyčkejte na kontrolu SQL, SMTP a certifikátů. Při chybě původní soubory zůstávají zachované. Opravte příčinu uvedenou ve zprávě; nezkoušejte obcházet kontrolu TLS.
+4. Přečtěte souhrn a uložení potvrďte `ANO`. Průvodce pořídí chráněnou zálohu a zapíše hodnoty i vestavěné komentáře. Po neúplném zápisu použijte volbu **10 — Obnova zápisu nastavení**.
+5. Zvolte **6 — Řízený restart** a potvrďte krátkou odstávku. Teprve restart načte nové hodnoty. Potom ověřte veřejnou stránku, přihlášení a podle změny skutečný e-mail.
+
+Existující instalace získá nové vestavěné komentáře při uložení nastavení novým průvodcem. Samotná výměna skriptu soubory instalace nepřepisuje. Vlastní ruční komentáře se při uložení nepřenášejí; provozní poznámky udržujte zvlášť. Úpravy mimo nabídku průvodce (např. podrobnost logování) jsou pokročilá správa: přečtěte komentáře, chraňte zálohu souboru a před restartem použijte **5 — Diagnostika**. Diagnostika nemusí odhalit chybu každé volitelné integrace.
+
+## Další správa ze stejného menu
+
+| Volba | Co provede |
+|---|---|
+| 2 Aktualizace | Ověření ZIPu, revize migrací, plán, SQL backup, přepnutí a kontrola nové verze. |
+| 3 Nastavení | SQL, SMTP, adresy a HTTPS; ověření kandidáta a záloha před uložením. Nastavení se načte při příštím startu služby. |
+| 4 Stav | Stav služby, aktuální/předchozí verze, místo na disku, lokální a veřejná připravenost, neuzavřené operace. |
+| 5 Diagnostika | Stav, platnost HTTPS/ochranného PFX, integrita vydání, preflight a JSON s vybranými údaji bez hesel a syrových logů. |
+| 6 Řízený restart | Ověření konfigurace a identity služby, potvrzení odstávky, restart a obě readiness kontroly. |
+| 7 HTTPS certifikát | Ověření nového PFX a celé konfigurace, bezpečné uložení a práva služby. Potom použijte řízený restart. Ochranný PFX klíčenky se nemění. |
+| 8 Návrat předchozí verze | Binární rollback se zálohou a přesnou kontrolou shody databázového schématu. |
+| 9 Obnova nasazení | Spuštění konkrétní ponechané verze po ověření skutečného stavu DB s DBA. Vyžaduje zastavenou službu. |
+| 10 Obnova zápisu nastavení | Vrátí čtyři soubory z ověřené zálohy přerušené operace. Nemění DB ani nerestartuje službu. |
+| 11 Kontrola release | Plné předběžné kontroly vybraného ZIPu bez zastavení služby, migrace či kopírování do releases. |
+
+Migrace vyžadující review se automaticky neschválí. Průvodce ukáže cestu k SQL skriptu a přesná ID. Po revizi s DBA je správce zadá; jiný seznam nebo Enter aktualizaci ukončí. Schválení se ukládá do instalačního profilu. Kontrola `-CheckOnly` a automatické `-Yes` při chybějícím schválení skončí chybou.
+
+## Přímé příkazy
+
+```powershell
+.\D3Parking.ps1 -Action Update -ReleasePath C:\Releases\D3Parking-1.2.4-win-x64.zip -CheckOnly
+.\D3Parking.ps1 -Action Update -ReleasePath C:\Releases\D3Parking-1.2.4-win-x64.zip
+.\D3Parking.ps1 -Action Configure
+.\D3Parking.ps1 -Action Restart
+.\D3Parking.ps1 -Action Diagnostics
+.\D3Parking.ps1 -Action Rollback -CheckOnly
+.\D3Parking.ps1 -Action Rollback
+```
+
+`-CheckOnly` nemění službu, databázi ani uloženou konfiguraci; může vytvořit dočasné soubory, zámek a log. Pro operace Nastavení/Certifikát/Restart/Obnova nastavení není podporovaný a je odmítnut před změnami. `-Yes` přeskočí potvrzení plánu u předem připravených automatizovaných operací, nikoli bezpečnostní kontroly nebo revizi migrací. Pro automatizaci dodávejte ZIP/hash či verzi explicitně; instalační/nastavovací formulář zůstává interaktivní. Hesla nikdy nevkládejte do argumentů.
+
+## Když něco selže
+
+Čtěte českou zprávu `[CHYBA]`, doporučený další krok a cestu k protokolu. Předběžná kontrola služby ani DB nemění. Zápis konfigurace má vlastní transakční žurnál; neúplný zápis blokuje další deployment/restart do obnovy. Při zápisu dočasně vypne automatický start služby a po úspěchu/obnově vrátí původní režim. Běžící proces při tom nezastavuje. Stejně tak je automatický start vypnutý po dobu migrace, aby restart serveru nespustil starší aplikaci nad rozpracovanou DB. Další souběžnou změnu stejné instalace blokuje zámek. Neuzavřený žurnál může znamenat i právě probíhající operaci — nejprve ověřte, že jiný správce stále nepracuje.
+
+Protokoly jsou v `C:\D3Parking\logs`; stav v `state\installation.json`, žurnál deploymentu v `state\in-progress.json`, žurnál nastavení v `state\config-in-progress.json`. Zálohy nastavení v `backups` jsou dostupné administrátorům/SYSTEM a **obsahují tajemství**. Export diagnostiky záměrně obsahuje jen vybrané údaje; aplikační logy ani celé konfigurační zálohy neposílejte bez posouzení jejich obsahu.
+
+Při neúspěšném startu beze změny schématu se nástroj pokusí vrátit původní aplikaci. Pokud se DB mohla změnit nebo není znám výsledek migrace, aplikaci zastaví a zachová žurnál. Starší binárky nad změněným schématem nespustí.
+
+### Obnova aplikace / databáze
+
+1. S IT zastavte službu a ověřte, že jiný deployment neběží. Zachovejte logy a žurnál.
+2. DBA zjistí skutečné schéma/částečné migrace. Podle situace bezpečně dokončí opravu nebo obnoví odpovídající zálohu. SQL restore a EF Down skript nikdy neprovádí automaticky; obnovou lze ztratit novější zápisy.
+3. Při obnově celého serveru vraťte také odpovídající config, secrets, ochranný PFX a `data/keys` včetně ACL.
+4. Vyberte dostupný release odpovídající DB:
 
    ```powershell
-   .\recover.ps1 -Version 1.2.3 -CheckOnly
-   .\recover.ps1 -Version 1.2.3
+   .\D3Parking.ps1 -Action Recover -Version 1.2.3 -CheckOnly
+   .\D3Parking.ps1 -Action Recover -Version 1.2.3
    ```
 
-5. Recover odmítne jinou historii migrací, nic nemigruje a žurnál uzavře až po zdravém lokálním i veřejném HTTPS startu. Předchozí verzi po takové obnově záměrně nezaznamenává. Ověřte přihlášení a rezervaci, zaznamenejte DBA restore a případnou ztrátu novějších zápisů.
+5. Obnova nic nemigruje; žurnál uzavře až po zdravém startu. Ověřte přihlášení, rezervaci a e-mail. Zaznamenejte DBA restore a případnou ztrátu novějších dat.
 
-Při neúplném selhání samotného initialize (ještě žádný release/DB změna) ponechte službu zastavenou a po kontrole s IT odstraňte pouze nově vytvořenou prázdnou instalaci a její placeholder službu; nikdy existující ostrou instalaci. Pak proveďte inicializaci znovu.
+Zálohování mimo server, retenční pravidla a pravidelný nácvik obnovy zůstávají součástí provozu IT. Automatický skript je nenahrazuje.
+
+## Účtové e-maily po aktualizaci MAIL-001
+
+Migrace `20260914112604_AddDurableEmailOutbox` přidává pouze tabulku EmailDeliveries a indexy; stávající uživatele ani notifikační zprávy nemění. Proběhne standardním deploymentem se zálohou. Binární rollback před tuto migraci vyžaduje obvyklou DBA obnovu odpovídajícího schématu.
+
+Požadavek na e-mail nyní potvrdí jeho uložení do SQL. Worker se probouzí nejpozději po 15 sekundách a při chybě opakuje odeslání. Sledujte v application logu `Email delivery ... permanently failed` a `Email outbox dispatch failed`. DBA může bez čtení citlivého obsahu zjistit stav:
+
+```sql
+SELECT Status, COUNT(*) AS Messages, MIN(CreatedAtUtc) AS OldestCreatedUtc
+FROM dbo.EmailDeliveries GROUP BY Status;
+SELECT TOP (50) Id, Status, Attempts, CreatedAtUtc, NextAttemptUtc, LastError
+FROM dbo.EmailDeliveries WHERE Status <> 'Sent' ORDER BY CreatedAtUtc;
+```
+
+Při Failed opravte SMTP/SQL/klíčenku a požádejte o nový potvrzovací nebo obnovovací e-mail. Staré zprávy se nejpozději po 24 hodinách uzavřou; jejich token mohl vypršet dříve. Po restartu může při nejistém potvrzení SMTP přijít stejná zpráva dvakrát. Obnova fronty vyžaduje vedle DB také odpovídající Data Protection keys a PFX. Stará paměťová fronta z předchozí verze se zpětně rekonstruovat nedá.
 
 ## Co ručně neměnit
 
 Needitujte binárky, release.json, soubory ve verzovaném release ani stav installation.json. Nepřepisujte klíčenku nebo ochranný PFX, nemažte aktuální/předchozí release, nespouštějte vývojové helpery/SQL skripty na produkci. Starší nepoužívané release a backupy archivujte podle dohodnuté retence až po ověření možností obnovy.
-

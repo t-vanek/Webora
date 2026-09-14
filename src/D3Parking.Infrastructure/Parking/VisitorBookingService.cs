@@ -7,6 +7,7 @@ using D3Parking.Application.Settings;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
+using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Parking;
@@ -144,25 +145,9 @@ public sealed class VisitorBookingService(
 
         for (var date = first; date <= last; date = date.AddDays(1))
         {
-            if (date < policy.FirstBookableDate(today))
+            if (policy.GetReservationDateAvailability(date, today).ToParkingErrorKey() is { } error)
             {
-                return "Parking_Error_SameDayReservationsNotAllowed";
-            }
-
-            if (date > today.AddDays(Math.Clamp(policy.ReservationHorizonDays, 1, 366)))
-            {
-                return "Parking_Error_ReservationHorizon";
-            }
-
-            if (!policy.AllowedReservationWeekdays.Sanitize().Includes(date))
-            {
-                return "Parking_Error_ReservationWeekdayNotAllowed";
-            }
-
-            if (!policy.PublicHolidayReservationsAllowed
-                && HolidayCalendar.IsPublicHoliday(date, policy.HolidayCalendarRegion))
-            {
-                return "Parking_Error_PublicHolidayNotAllowed";
+                return error;
             }
         }
 

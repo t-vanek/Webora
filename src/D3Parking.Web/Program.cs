@@ -100,6 +100,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Background maintenance: sends planning reminders and maintains budgets, queues and shared days.
 builder.Services.AddHostedService<ParkingMaintenanceService>();
 builder.Services.AddHostedService<NotificationDeliveryWorker>();
+builder.Services.AddHostedService<D3Parking.Web.Email.EmailDeliveryWorker>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
@@ -163,7 +164,7 @@ builder.Services.AddRazorComponents()
     .AddAuthenticationStateSerialization(options => options.SerializeAllClaims = true);
 
 // Wolverine messaging: discovers handlers in the application assembly and runs them on in-process
-// local queues — no external broker. Email is the main user of this (see QueuedEmailSender).
+// local queues — no external broker. Emails use the dedicated SQL outboxes, not these queues.
 builder.Host.UseWolverine(opts =>
 {
     opts.Discovery.IncludeAssembly(typeof(IApplicationMarker).Assembly);
@@ -171,8 +172,8 @@ builder.Host.UseWolverine(opts =>
     // Hook handler transactions into EF Core's SaveChanges (transactional outbox/inbox).
     opts.UseEntityFrameworkCoreTransactions();
 
-    // Background work retries on its own instead of failing the request that queued it. A mail
-    // server that is down for longer than this drops the message — it can be requested again.
+    // Remaining message handlers have their own retry policy. SQL email workers manage
+    // persistence, attempt limits and backoff independently of Wolverine.
     opts.OnAnyException()
         .RetryWithCooldown(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2));
 });

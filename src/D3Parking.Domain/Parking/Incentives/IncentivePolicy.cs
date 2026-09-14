@@ -265,6 +265,49 @@ public sealed record IncentivePolicy
 
     public static IncentivePolicy Default { get; } = new();
 
+    /// <summary>
+    /// Evaluates the booking calendar without regard to the requesting user's role. This is the
+    /// authoritative date rule for ordinary users, residents, visitors, handoffs and waitlists.
+    /// </summary>
+    public ReservationDateAvailability GetReservationDateAvailability(DateOnly date, DateOnly today)
+    {
+        if (date < today)
+        {
+            return ReservationDateAvailability.Past;
+        }
+
+        if (date > today.AddDays(Math.Clamp(ReservationHorizonDays, 1, 366)))
+        {
+            return ReservationDateAvailability.OutsideReservationHorizon;
+        }
+
+        if (date == today && !SameDayReservationsAllowed)
+        {
+            return ReservationDateAvailability.SameDayNotAllowed;
+        }
+
+        if (!PublicHolidayReservationsAllowed
+            && HolidayCalendar.IsPublicHoliday(date, HolidayCalendarRegion))
+        {
+            return ReservationDateAvailability.PublicHolidayNotAllowed;
+        }
+
+        if (!AllowedReservationWeekdays.Sanitize().Includes(date))
+        {
+            return date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+                ? ReservationDateAvailability.WeekendNotAllowed
+                : ReservationDateAvailability.WeekdayNotAllowed;
+        }
+
+        return ReservationDateAvailability.Allowed;
+    }
+
+    public ReservationDateAvailability GetReservationDateAvailability(
+        DateTimeOffset start,
+        DateTimeOffset now,
+        TimeZoneInfo timeZone) =>
+        GetReservationDateAvailability(SiteTime.Today(start, timeZone), SiteTime.Today(now, timeZone));
+
     public DateOnly FirstBookableDate(DateOnly today) =>
         SameDayReservationsAllowed ? today : today.AddDays(1);
 

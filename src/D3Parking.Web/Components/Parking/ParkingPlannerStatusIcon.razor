@@ -1,0 +1,36 @@
+<span class="parking-planner__status-icon" aria-hidden="true">
+    @switch (Kind)
+    {
+        case "mine":
+            <FluentIcon Value="@(new Icons.Regular.Size20.Person())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "assigned":
+            <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "released-free":
+            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarCheckmark())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "released-booked":
+        case "reserved":
+            <FluentIcon Value="@(new Icons.Regular.Size20.VehicleCar())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "blocked":
+            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "outside":
+        case "past":
+            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarClock())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        case "free":
+            <FluentIcon Value="@(new Icons.Regular.Size20.CalendarLtr())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+        default:
+            <FluentIcon Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Custom" CustomColor="currentColor" />
+            break;
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Kind { get; set; } = "unknown";
+}

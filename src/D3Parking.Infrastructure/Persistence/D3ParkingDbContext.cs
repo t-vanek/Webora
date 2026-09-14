@@ -38,6 +38,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
     public DbSet<NotificationDeliveryRule> NotificationDeliveryRules => Set<NotificationDeliveryRule>();
 
     public DbSet<NotificationEmailDelivery> NotificationEmailDeliveries => Set<NotificationEmailDelivery>();
+    public DbSet<D3Parking.Domain.Email.EmailDelivery> EmailDeliveries => Set<D3Parking.Domain.Email.EmailDelivery>();
 
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
@@ -291,6 +292,16 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             // evaluate the same maintenance tick concurrently.
             campaign.HasIndex(c => new { c.Kind, c.CampaignDate }).IsUnique();
             campaign.HasIndex(c => new { c.Kind, c.PeriodStart, c.PeriodEnd });
+        });
+
+        builder.Entity<D3Parking.Domain.Email.EmailDelivery>(delivery =>
+        {
+            delivery.ToTable("EmailDeliveries");
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(32);
+            delivery.Property(d => d.LastError).HasMaxLength(128);
+            delivery.HasIndex(d => new { d.Status, d.NextAttemptUtc });
+            delivery.HasIndex(d => new { d.Status, d.CompletedAtUtc });
         });
 
         builder.Entity<VisitorBooking>(booking =>

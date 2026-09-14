@@ -70,6 +70,18 @@ window.d3parkingCalendar = {
     },
 };
 
+// Dialog callers use stable trigger ids so closing a modal returns keyboard users to the
+// exact control that opened it. requestAnimationFrame waits until Blazor has removed the modal.
+window.d3parkingFocus = {
+    byId(id) {
+        if (typeof id !== 'string') {
+            return;
+        }
+
+        window.requestAnimationFrame(() => document.getElementById(id)?.focus());
+    },
+};
+
 // Odhlášení ruší push subscription tohoto prohlížeče (formulář s data-push-unsubscribe):
 // sdílený počítač nesmí dál zobrazovat notifikace odhlášeného uživatele. Odeslání formuláře
 // se krátce pozdrží, aby prohlížeč odhlášku stihl dokončit; řádek na serveru se uklidí sám

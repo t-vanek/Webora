@@ -36,7 +36,7 @@ public static class DeploymentDatabase
     public static async Task RequireCurrentSchemaAsync(D3ParkingDbContext db, CancellationToken ct)
     {
         var state = await InspectAsync(db, ct);
-        if (state.Pending.Length != 0) throw new InvalidOperationException($"Pending database migrations: {state.Pending.Length}. Run deploy.ps1 before starting the application.");
+        if (state.Pending.Length != 0) throw new InvalidOperationException($"Pending database migrations: {state.Pending.Length}. Run D3Parking.ps1 -Action Update before starting the application.");
         // Query real model columns, not only SELECT 1 or migration-history rows.
         await db.ParkingSettings.AsNoTracking().Select(s => new { s.Id, s.ReservationTimeMode }).Take(1).ToListAsync(ct);
         await db.Users.AsNoTracking().Select(u => new { u.Id, u.Status }).Take(1).ToListAsync(ct);

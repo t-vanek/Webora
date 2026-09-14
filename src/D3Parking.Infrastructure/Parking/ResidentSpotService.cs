@@ -35,94 +35,139 @@ public sealed class ResidentSpotService(
             return null;
         }
         var spot = resident.Spot;
-        var horizonEnd = policy.ResidentPlanHorizonEnd(today);
-        var assignedDates = await AssignedDatesAsync(dbContext, spot, userId, today, horizonEnd, cancellationToken);
-        var assignedToday = assignedDates.Contains(today);
+        var planHorizonEnd = policy.ResidentPlanHorizonEnd(today);
+        var scheduleEnd = today.AddDays(Math.Clamp(policy.ReservationHorizonDays, 1, 366));
+        var assignedUsers = await ResidentAllocation.AssignedUsersAsync(
+            dbContext, spot, today, scheduleEnd, cancellationToken);
+        var assignedDates = assignedUsers
+            .Where(day => day.Key <= planHorizonEnd && day.Value == userId)
+            .Select(day => day.Key)
+            .ToHashSet();
 
-        var (dayStart, dayEnd) = SiteTime.Day(today, timeZone);
-        var releasedToday = await dbContext.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == today, cancellationToken);
-        var takenByOther = await dbContext.Reservations.AnyAsync(r => r.SpotId == spot.Id && r.UserId != userId
-            && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-            && r.EndUtc > now
-            && r.StartUtc < dayEnd && r.EndUtc > dayStart, cancellationToken);
-
-        OwnedSpotDayState state;
-        if (!assignedToday)
-        {
-            state = OwnedSpotDayState.NotAssigned;
-        }
-        else if (takenByOther)
-        {
-            state = OwnedSpotDayState.SharedTaken;
-        }
-        else if (releasedToday)
-        {
-            state = OwnedSpotDayState.SharedFree;
-        }
-        else
-        {
-            state = OwnedSpotDayState.Held;
-        }
-
-        // Today-or-later released days, each marked so the UI can keep confirmed guest plans
-        // read-only while still allowing an unbooked day to return to the resident.
-        var upcomingDates = await dbContext.SpotReleases
-            .Where(r => r.SpotId == spot.Id && r.OwnerId == userId && r.Date >= today)
+        var releases = await dbContext.SpotReleases.AsNoTracking()
+            .Where(r => r.SpotId == spot.Id && r.Date >= today && r.Date <= scheduleEnd)
             .OrderBy(r => r.Date)
-            .Select(r => r.Date)
+            .Select(r => new { r.Date, r.OwnerId })
             .ToListAsync(cancellationToken);
-        var upcoming = new List<ReleasedDayDto>(upcomingDates.Count);
-        if (upcomingDates.Count > 0)
-        {
-            var (horizonStart, _) = SiteTime.Day(upcomingDates[0], timeZone);
-            var (_, releaseHorizonEnd) = SiteTime.Day(upcomingDates[^1], timeZone);
-            var guestBookings = await dbContext.Reservations
-                .Where(r => r.SpotId == spot.Id && r.UserId != userId
-                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-                    && r.EndUtc > now
-                    && r.StartUtc < releaseHorizonEnd && r.EndUtc > horizonStart)
-                .Select(r => new { r.StartUtc, r.EndUtc })
-                .ToListAsync(cancellationToken);
-            foreach (var date in upcomingDates)
-            {
-                var (start, end) = SiteTime.Day(date, timeZone);
-                upcoming.Add(new ReleasedDayDto(date, guestBookings.Any(b => b.StartUtc < end && b.EndUtc > start)));
-            }
-        }
 
-        // A private handoff does not create a public release row. Surface its live reservation as
-        // a taken day nevertheless, so the resident can use the same reclaim controls and the
-        // configured reclaim policy remains the single authority for both public and named shares.
-        var directWindows = await (
+        var (horizonStart, _) = SiteTime.Day(today, timeZone);
+        var (_, horizonEndUtc) = SiteTime.Day(scheduleEnd, timeZone);
+        var bookings = await dbContext.Reservations.AsNoTracking()
+            .Where(r => r.SpotId == spot.Id
+                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                && r.EndUtc > now && r.StartUtc < horizonEndUtc && r.EndUtc > horizonStart)
+            .Select(r => new { r.Id, r.UserId, r.StartUtc, r.EndUtc })
+            .ToListAsync(cancellationToken);
+
+        // A private handoff does not create a public release row, but it still contributes a named
+        // booking and remains reclaimable by the resident who handed the day over.
+        var directHandoffs = await (
             from handoff in dbContext.ResidentSpotHandoffs.AsNoTracking()
             join reservation in dbContext.Reservations.AsNoTracking()
                 on handoff.ReservationId equals reservation.Id
-            where handoff.ResidentId == userId && handoff.SpotId == spot.Id
+            where handoff.SpotId == spot.Id
                 && handoff.Status == ResidentSpotHandoffStatus.Accepted
                 && reservation.SpotId == spot.Id
                 && (reservation.Status == ReservationStatus.Reserved || reservation.Status == ReservationStatus.CheckedIn)
-                && reservation.EndUtc > now
-            select new { reservation.StartUtc, reservation.EndUtc })
+                && reservation.EndUtc > now && reservation.StartUtc < horizonEndUtc
+            select new { reservation.Id, handoff.ResidentId })
             .ToListAsync(cancellationToken);
-        foreach (var window in directWindows)
+
+        var directByReservation = directHandoffs
+            .GroupBy(row => row.Id)
+            .ToDictionary(group => group.Key, group => group.First().ResidentId);
+        var userIds = assignedUsers.Values
+            .Concat(releases.Select(r => r.OwnerId))
+            .Concat(bookings.Select(r => r.UserId))
+            .Distinct()
+            .ToList();
+        var users = await dbContext.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new ParkingUserLabelDto(u.Id, u.DisplayName, u.Email))
+            .ToDictionaryAsync(u => u.UserId, cancellationToken);
+
+        ParkingUserLabelDto Label(Guid id) => users.GetValueOrDefault(id)
+            ?? new ParkingUserLabelDto(id, null, null);
+
+        var days = new List<ResidentSpotDayDto>(scheduleEnd.DayNumber - today.DayNumber + 1);
+        for (var date = today; date <= scheduleEnd; date = date.AddDays(1))
         {
-            var first = SiteTime.Today(window.StartUtc > now ? window.StartUtc : now, timeZone);
-            var last = SiteTime.Today(window.EndUtc.AddTicks(-1), timeZone);
-            for (var date = first; date <= last; date = date.AddDays(1))
+            var (dayStart, dayEnd) = SiteTime.Day(date, timeZone);
+            assignedUsers.TryGetValue(date, out var assignedUserId);
+            var release = releases.FirstOrDefault(r => r.Date == date);
+            var dayBookings = bookings
+                .Where(b => b.StartUtc < dayEnd && b.EndUtc > dayStart)
+                .OrderBy(b => b.StartUtc)
+                .Select(b => new ResidentSpotBookingDto(
+                    b.Id, Label(b.UserId), b.StartUtc, b.EndUtc, directByReservation.ContainsKey(b.Id)))
+                .ToList();
+            var externallyBooked = dayBookings.Any(b => b.User.UserId != assignedUserId);
+            var directResidentId = bookings
+                .Where(b => b.StartUtc < dayEnd && b.EndUtc > dayStart)
+                .Select(b => directByReservation.GetValueOrDefault(b.Id))
+                .FirstOrDefault(id => id != Guid.Empty);
+            var releasedById = release?.OwnerId ?? (directResidentId == Guid.Empty ? null : directResidentId);
+
+            var releasedCapacity = release is not null || directResidentId != Guid.Empty || externallyBooked;
+            var allocationState = releasedCapacity
+                ? ResidentAllocationState.Released
+                : assignedUserId == userId
+                    ? ResidentAllocationState.AssignedToCurrentUser
+                    : assignedUserId != Guid.Empty
+                        ? ResidentAllocationState.AssignedToOtherResident
+                        : ResidentAllocationState.Unknown;
+            var bookingState = dayBookings.Count switch
             {
-                if (date < today || upcoming.Any(day => day.Date == date))
-                {
-                    continue;
-                }
-                upcoming.Add(new ReleasedDayDto(date, TakenByGuest: true, DirectHandoff: true));
+                0 => ResidentBookingState.None,
+                > 1 => ResidentBookingState.MultipleReservations,
+                _ when dayBookings[0].User.UserId == userId => ResidentBookingState.ReservedByCurrentUser,
+                _ => ResidentBookingState.ReservedByOtherUser,
+            };
+            var state = allocationState switch
+            {
+                ResidentAllocationState.Released when bookingState != ResidentBookingState.None =>
+                    OwnedSpotDayState.SharedTaken,
+                ResidentAllocationState.Released => OwnedSpotDayState.SharedFree,
+                ResidentAllocationState.AssignedToCurrentUser => OwnedSpotDayState.Held,
+                ResidentAllocationState.AssignedToOtherResident => OwnedSpotDayState.NotAssigned,
+                _ => OwnedSpotDayState.Unknown,
+            };
+
+            days.Add(new ResidentSpotDayDto(
+                date,
+                state,
+                allocationState,
+                bookingState,
+                assignedUserId == Guid.Empty ? null : Label(assignedUserId),
+                releasedById is { } ownerId ? Label(ownerId) : null,
+                dayBookings,
+                assignedUserId == userId,
+                releasedById == userId));
+        }
+
+        // Keep the compact compatibility view used by release controls and existing clients. It is
+        // now derived from the richer schedule so both representations always agree.
+        var upcoming = new List<ReleasedDayDto>();
+        foreach (var day in days.Where(day => day.CanReclaim))
+        {
+            var directOnly = releases.All(release => release.Date != day.Date)
+                && day.Bookings.Any(booking => booking.DirectHandoff);
+            if (day.State is OwnedSpotDayState.SharedFree or OwnedSpotDayState.SharedTaken)
+            {
+                upcoming.Add(new ReleasedDayDto(
+                    day.Date,
+                    day.Bookings.Any(booking => booking.User.UserId != userId),
+                    directOnly));
             }
         }
-        upcoming.Sort((left, right) => left.Date.CompareTo(right.Date));
 
-        return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, state, releasedToday, upcoming,
+        var todayDay = days.First();
+
+        return new OwnedSpotDto(spot.Id, spot.Code, spot.Type, todayDay.State,
+            releases.Any(r => r.Date == today), upcoming,
             resident.Membership?.PlannedUseDays ?? spot.PlannedUseDays,
             resident.Membership?.AutoReleaseUnplannedDays ?? spot.AutoReleaseUnplannedDays,
-            horizonEnd.DayNumber - today.DayNumber, assignedDates.Order().ToList());
+            planHorizonEnd.DayNumber - today.DayNumber, assignedDates.Order().ToList(), days);
     }
 
     public Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default) =>

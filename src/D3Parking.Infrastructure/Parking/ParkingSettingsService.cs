@@ -92,7 +92,40 @@ public sealed class ParkingSettingsService(
             s.HolidayCalendarRegion, s.PublicHolidayReservationsAllowed);
     }
 
-    public async Task<ParkingResult> UpdateAsync(ParkingSettingsDto dto, Guid actingUserId, CancellationToken cancellationToken = default)
+    public Task<ParkingResult> UpdateAsync(
+        ParkingSettingsDto dto,
+        Guid actingUserId,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(dto, actingUserId, false, cancellationToken);
+
+    public async Task<ParkingCalendarChangeImpactDto> GetCalendarChangeImpactAsync(
+        ParkingSettingsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (ParkingSettingsValidator.Validate(dto) is not null)
+        {
+            return ParkingCalendarChangeImpactDto.None;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await GetOrCreateAsync(dbContext, cancellationToken);
+        if (!BookingRulesChanged(settings, dto))
+        {
+            return ParkingCalendarChangeImpactDto.None;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var impact = await FindCalendarImpactAsync(
+            dbContext, ProposedCalendarPolicy(settings, dto), now, timeZone, cancellationToken);
+        return impact.ToDto();
+    }
+
+    public async Task<ParkingResult> UpdateAsync(
+        ParkingSettingsDto dto,
+        Guid actingUserId,
+        bool confirmCalendarInvalidation,
+        CancellationToken cancellationToken = default)
     {
         if (ParkingSettingsValidator.Validate(dto) is { } validationError)
         {
@@ -101,12 +134,24 @@ public sealed class ParkingSettingsService(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var settings = await GetOrCreateAsync(dbContext, cancellationToken);
-        var calendarChanged = settings.ReservationHorizonDays != dto.ReservationHorizonDays
-            || settings.SameDayReservationsAllowed != dto.SameDayReservationsAllowed
-            || settings.AllowedReservationWeekdays != dto.AllowedReservationWeekdays.Sanitize()
-            || settings.HolidayCalendarRegion != dto.HolidayCalendarRegion
-            || settings.PublicHolidayReservationsAllowed != dto.PublicHolidayReservationsAllowed
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, cancellationToken);
+        var bookingRulesChanged = BookingRulesChanged(settings, dto);
+        var calendarChanged = bookingRulesChanged
             || settings.ResidentPlanHorizonDays != dto.ResidentPlanHorizonDays;
+        var now = timeProvider.GetUtcNow();
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        CalendarImpact? impact = null;
+        if (bookingRulesChanged)
+        {
+            impact = await FindCalendarImpactAsync(
+                dbContext, ProposedCalendarPolicy(settings, dto), now, timeZone, cancellationToken);
+            if (impact.ToDto().RequiresConfirmation && !confirmCalendarInvalidation)
+            {
+                return ParkingResult.Failure("Parking_Settings_CalendarChangeConfirmationRequired");
+            }
+        }
+
         settings.Update(
             dto.ReleasePoints, dto.OffPeakBonusPoints, dto.NoShowPenaltyPoints,
             dto.ReleaseCutoff, dto.NoShowGracePeriod, dto.ReminderLeadTime,
@@ -142,6 +187,11 @@ public sealed class ParkingSettingsService(
             dto.ResidentAlternativeBookingPolicy,
             dto.HolidayCalendarRegion, dto.PublicHolidayReservationsAllowed);
 
+        if (impact is not null && impact.ToDto().RequiresConfirmation)
+        {
+            await ReconcileCalendarImpactAsync(dbContext, impact, now, cancellationToken);
+        }
+
         if (calendarChanged)
         {
             foreach (var spot in await dbContext.ParkingSpots
@@ -172,9 +222,10 @@ public sealed class ParkingSettingsService(
             $"residentReclaim={settings.ResidentReclaimPolicy} deadline={settings.ResidentProtectionDeadlineMode} " +
             $"alternative={settings.ResidentAlternativeBookingPolicy} " +
             $"fallback={settings.ResidentNoReplacementAction}",
-            timeProvider.GetUtcNow()));
+            now));
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         cache.Remove(PolicyCacheKey);
 
         logger.LogInformation("Parking settings changed by {AdminId}.", actingUserId);
@@ -335,6 +386,189 @@ public sealed class ParkingSettingsService(
         }
 
         return changed;
+    }
+
+    private static bool BookingRulesChanged(ParkingSettings settings, ParkingSettingsDto dto) =>
+        settings.ReservationTimeMode != dto.ReservationTimeMode
+        || settings.ReservationHorizonDays != dto.ReservationHorizonDays
+        || settings.SameDayReservationsAllowed != dto.SameDayReservationsAllowed
+        || settings.AllowedReservationWeekdays != dto.AllowedReservationWeekdays.Sanitize()
+        || settings.HolidayCalendarRegion != dto.HolidayCalendarRegion
+        || settings.PublicHolidayReservationsAllowed != dto.PublicHolidayReservationsAllowed;
+
+    private static IncentivePolicy ProposedCalendarPolicy(ParkingSettings settings, ParkingSettingsDto dto) =>
+        settings.ToPolicy() with
+        {
+            ReservationTimeMode = dto.ReservationTimeMode,
+            ReservationHorizonDays = dto.ReservationHorizonDays,
+            SameDayReservationsAllowed = dto.SameDayReservationsAllowed,
+            AllowedReservationWeekdays = dto.AllowedReservationWeekdays.Sanitize(),
+            HolidayCalendarRegion = dto.HolidayCalendarRegion,
+            PublicHolidayReservationsAllowed = dto.PublicHolidayReservationsAllowed,
+        };
+
+    private static async Task<CalendarImpact> FindCalendarImpactAsync(
+        D3ParkingDbContext dbContext,
+        IncentivePolicy proposedPolicy,
+        DateTimeOffset now,
+        TimeZoneInfo timeZone,
+        CancellationToken cancellationToken)
+    {
+        var today = SiteTime.Today(now, timeZone);
+        var reservations = (await dbContext.Reservations
+                .Where(r => r.Status == ReservationStatus.Reserved && r.EndUtc > now)
+                .ToListAsync(cancellationToken))
+            .Where(r => WindowIsInvalid(r.StartUtc, r.EndUtc, proposedPolicy, now, timeZone))
+            .ToList();
+        var queueEntries = (await dbContext.QueueEntries
+                .Where(q => (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
+                    && q.EndUtc > now)
+                .ToListAsync(cancellationToken))
+            .Where(q => WindowIsInvalid(q.StartUtc, q.EndUtc, proposedPolicy, now, timeZone))
+            .ToList();
+        var handoffs = (await dbContext.ResidentSpotHandoffs
+                .Where(h => (h.Status == ResidentSpotHandoffStatus.PendingResident
+                             || h.Status == ResidentSpotHandoffStatus.Offered)
+                    && h.EndUtc > now)
+                .ToListAsync(cancellationToken))
+            .Where(h => WindowIsInvalid(h.StartUtc, h.EndUtc, proposedPolicy, now, timeZone))
+            .ToList();
+        var visitorBookings = (await dbContext.VisitorBookings
+                .Where(v => v.Status == VisitorBookingStatus.Booked && v.EndUtc > now)
+                .ToListAsync(cancellationToken))
+            .Where(v => CoveredDates(v.StartUtc, v.EndUtc, timeZone)
+                .Any(date => proposedPolicy.GetReservationDateAvailability(date, today)
+                    != ReservationDateAvailability.Allowed))
+            .ToList();
+        var spotReleases = (await dbContext.SpotReleases
+                .Where(r => r.Date >= today)
+                .ToListAsync(cancellationToken))
+            .Where(r => proposedPolicy.GetReservationDateAvailability(r.Date, today)
+                != ReservationDateAvailability.Allowed)
+            .ToList();
+
+        return new CalendarImpact(reservations, queueEntries, handoffs, visitorBookings, spotReleases);
+    }
+
+    private static bool WindowIsInvalid(
+        DateTimeOffset startUtc,
+        DateTimeOffset endUtc,
+        IncentivePolicy policy,
+        DateTimeOffset now,
+        TimeZoneInfo timeZone) =>
+        !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone)
+        || policy.GetReservationDateAvailability(startUtc, now, timeZone)
+            != ReservationDateAvailability.Allowed;
+
+    private static IEnumerable<DateOnly> CoveredDates(
+        DateTimeOffset startUtc,
+        DateTimeOffset endUtc,
+        TimeZoneInfo timeZone)
+    {
+        var first = SiteTime.Today(startUtc, timeZone);
+        var last = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
+        for (var date = first; date <= last; date = date.AddDays(1))
+        {
+            yield return date;
+        }
+    }
+
+    private static async Task ReconcileCalendarImpactAsync(
+        D3ParkingDbContext dbContext,
+        CalendarImpact impact,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        foreach (var reservation in impact.Reservations)
+        {
+            reservation.Cancel(now);
+            if (reservation.CreditsCharged > 0)
+            {
+                var score = await GetOrCreateScoreAsync(dbContext, reservation.UserId, cancellationToken);
+                score.RefundCredits(reservation.CreditsCharged, now);
+                dbContext.PointsLedgerEntries.Add(new PointsLedgerEntry(
+                    reservation.UserId,
+                    IncentiveReason.ReservationRefund,
+                    reservation.CreditsCharged,
+                    reservation.Id,
+                    now,
+                    "calendar configuration change"));
+            }
+
+            await RestoreVoucherAsync(dbContext, reservation.Id, now, cancellationToken);
+        }
+
+        foreach (var entry in impact.QueueEntries)
+        {
+            entry.Cancel();
+        }
+
+        foreach (var handoff in impact.Handoffs)
+        {
+            handoff.Cancel(now);
+        }
+
+        foreach (var booking in impact.VisitorBookings)
+        {
+            booking.Cancel();
+        }
+
+        dbContext.SpotReleases.RemoveRange(impact.SpotReleases);
+    }
+
+    private static async Task<ParkerScore> GetOrCreateScoreAsync(
+        D3ParkingDbContext dbContext,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var score = await dbContext.ParkerScores.FindAsync([userId], cancellationToken);
+        if (score is not null)
+        {
+            return score;
+        }
+
+        score = new ParkerScore(userId);
+        dbContext.ParkerScores.Add(score);
+        return score;
+    }
+
+    private static async Task RestoreVoucherAsync(
+        D3ParkingDbContext dbContext,
+        Guid reservationId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var voucher = await dbContext.ApologyVouchers
+            .FirstOrDefaultAsync(v => v.RedeemedReservationId == reservationId, cancellationToken);
+        if (voucher is null)
+        {
+            return;
+        }
+
+        var holdsAnotherUsable = await dbContext.ApologyVouchers.AnyAsync(v =>
+            v.UserId == voucher.UserId && v.Id != voucher.Id
+            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
+            && (v.Status == ApologyVoucherStatus.PendingApproval || v.Status == ApologyVoucherStatus.Approved),
+            cancellationToken);
+        if (!holdsAnotherUsable)
+        {
+            voucher.Restore();
+        }
+    }
+
+    private sealed record CalendarImpact(
+        IReadOnlyList<Reservation> Reservations,
+        IReadOnlyList<QueueEntry> QueueEntries,
+        IReadOnlyList<ResidentSpotHandoff> Handoffs,
+        IReadOnlyList<VisitorBooking> VisitorBookings,
+        IReadOnlyList<SpotRelease> SpotReleases)
+    {
+        public ParkingCalendarChangeImpactDto ToDto() => new(
+            Reservations.Count,
+            QueueEntries.Count,
+            Handoffs.Count,
+            VisitorBookings.Count,
+            SpotReleases.Count);
     }
 
     private static async Task<ParkingSettings> GetOrCreateAsync(D3ParkingDbContext dbContext, CancellationToken cancellationToken)

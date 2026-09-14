@@ -30,10 +30,10 @@ public class DeploymentCommandTests
         Directory.CreateDirectory(Path.Combine(root, "config"));
         Directory.CreateDirectory(Path.Combine(root, "secrets"));
         var backups = Directory.CreateDirectory(Path.Combine(root, "backups")).FullName;
-        File.WriteAllText(Path.Combine(root, "secrets", "deployment.json"), JsonSerializer.Serialize(new
+        File.WriteAllText(Path.Combine(root, "secrets", "deployment.json"), "// Připojení pro správce nasazení, vytvořené průvodcem.\n" + JsonSerializer.Serialize(new
         { ConnectionStrings = new { SqlServer = connection } }));
         void Policy(string directory) => File.WriteAllText(Path.Combine(root, "config", "deployment.json"),
-            JsonSerializer.Serialize(new { SqlBackupDirectory = directory, ApprovedMigrations = Array.Empty<string>() }));
+            "// Složka záloh leží na SQL serveru.\n" + JsonSerializer.Serialize(new { SqlBackupDirectory = directory, ApprovedMigrations = Array.Empty<string>() }));
 
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();

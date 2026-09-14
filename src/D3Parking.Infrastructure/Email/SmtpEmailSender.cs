@@ -21,6 +21,7 @@ public sealed class SmtpEmailSender(
         var charset = await siteSettings.GetEmailCharsetAsync(cancellationToken);
 
         var mime = new MimeMessage();
+        if (message.MessageId is not null) mime.MessageId = message.MessageId;
         mime.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
         mime.To.Add(new MailboxAddress(message.ToName ?? message.To, message.To));
         mime.Subject = message.Subject;
@@ -66,7 +67,7 @@ public sealed class SmtpEmailSender(
         {
             await client.DisconnectAsync(quit: true, cancellationToken);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
             logger.LogWarning(ex, "SMTP accepted email to {Recipient}, but disconnect failed.", message.To);
         }

@@ -8,52 +8,76 @@ Windows x64 se službou `D3Parking` (název lze změnit při inicializaci), Powe
 
 1. Získejte zdroje běžným Gitem z firemního repozitáře. Hostitel Gitu není předepsaný.
 2. Nainstalujte SDK přesně z `global.json`. Proveďte testy dle TECHNICAL.md, včetně SQL testů. Commitněte prověřené změny včetně lock souborů.
-3. V kořeni repozitáře otevřete PowerShell 7:
+3. V kořeni repozitáře otevřete **PowerShell 7.4+**. Builder nevyžaduje spuštění jako správce. Bez parametrů se zeptá na novou verzi:
 
    ```powershell
-   .\build-release.ps1 -Version 1.2.3
+   .\build-release.ps1
    ```
 
-4. Výstup je `artifacts/releases/D3Parking-1.2.3-win-x64.zip` a stejnojmenný `.zip.sha256`. Log publish je v oznámeném `artifacts/release-build-<id>/publish.log`.
-5. Předejte ZIP, checksum a tento návod správci. Checksum doručte důvěryhodným kanálem; součet sám není digitální podpis vydavatele. Verzi nikdy nepřepisujte.
+   Nebo ji zadejte přímo: `.\build-release.ps1 -Version 1.2.3`. Použijte dosud nevydanou verzi.
+
+4. Výstup je `artifacts/releases/D3Parking-1.2.3-win-x64.zip`, stejnojmenný `.zip.sha256`, samostatný `D3Parking-1.2.3.ps1` a jeho `.sha256`. Každý běh vypíše trvalý protokol `artifacts/build-release-<čas>-<id>.log`; pokud adresář není zapisovatelný, zkusí `%TEMP%\D3Parking-build-logs`. Podrobný publish log je v oznámeném `artifacts/release-build-<id>/publish.log`.
+5. Předejte jeden provozní skript, ZIP, kontrolní součty a tento návod správci. Checksum doručte důvěryhodným kanálem; součet sám není digitální podpis vydavatele. Verzi nikdy nepřepisujte.
 
 `-AllowDirty` slouží pouze k místnímu ověření rozpracované změny: metadata označí `.dirty` a `dirty=true`; deployment do Staging/Production jej odmítne. Skript neprovádí commit ani neoznačuje testy za splněné. Před ostrým vydáním je nutný čistý Git commit.
 
-Balíček obsahuje `app/`, `deployment/`, provozní `docs/`, `database/migrations.sql`, LICENSE a `release.json`. Manifest má verzi, commit, runtime, seznam migrací, cílové schéma a SHA-256 každého souboru. `/version` čte identitu ze sestavené assembly, ne z volně editovatelné runtime konfigurace.
+### Když se okno builderu rychle zavře
+
+Volba „Spustit pomocí PowerShellu“ ve Windows může otevřít starý Windows PowerShell **5.1**. V něm se samotný build neprovádí: nový vstup skriptu vypíše český důvod, uloží jej do protokolu a při interaktivním spuštění čeká na Enter. Skutečné sestavení stále vyžaduje PowerShell 7.4+, Git a přesné **SDK** z global.json; pouze .NET runtime nestačí.
+
+Spuštění z již otevřeného terminálu s ponecháním okna:
+
+```powershell
+pwsh -NoProfile -NoExit -File .\build-release.ps1
+```
+
+Pokud `pwsh` není rozpoznán, není PowerShell 7 dostupný v PATH; jeho instalaci zajistí IT. Pokud spuštění blokuje firemní execution policy, řešte ji s IT. Skript nemůže zachytit chybu, kterou PowerShell odmítne ještě před spuštěním jeho kódu; parametr `-NoExit` ji pomůže ponechat viditelnou. Neměňte kvůli tomu globálně bezpečnostní politiku.
+
+Bez build kroku lze ověřit dostupnost SDK, Git, verzi a cílovou složku:
+
+```powershell
+.\build-release.ps1 -Version 1.2.3 -CheckOnly
+```
+
+Tato kontrola nesestavuje ZIP a neprokazuje dostupnost NuGet sítě ani úspěch kompilace. Pro automatizaci použijte `-NoPause` a vždy zadejte `-Version`; chyba vrací exit code 1. V interaktivním terminálu builder standardně čeká na Enter po úspěchu i chybě, aby výsledek nezmizel. V přesměrovaném/neinteraktivním běhu a CI nečeká.
+
+Balíček obsahuje `D3Parking.ps1`, `app/`, provozní `docs/`, `database/migrations.sql`, LICENSE a `release.json`. Manifest má verzi, commit, runtime, seznam migrací, cílové schéma a SHA-256 každého souboru. `/version` čte identitu ze sestavené assembly, ne z volně editovatelné runtime konfigurace.
+
+`appsettings` a sdílená konfigurace zapisovaná průvodcem obsahují české komentáře `//`. Aplikace a PowerShell je podporují. Manifest, žurnály a reporty zůstávají striktní JSON. Komentáře ve sdíleném nastavení vzniknou při instalaci nebo příštím uložení konfigurace; samotný update release existující shared soubory nepřepisuje. Podrobnosti čtení a priority hodnot jsou v CONFIGURATION.md.
 
 SDK a NuGet závislosti jsou připnuté; publish používá locked restore, deterministické CI sestavení a oddělený pracovní adresář. ZIP má stabilní pořadí a čas položek z Git commitu; `buildTimestamp` je úmyslně čas zdrojového commitu, nikoli čas zabalení. Byte-for-byte reprodukovatelnost mezi různými stroji je nutné ověřit porovnáním výsledných SHA; metadata ji sama nedokazují. Lokální config, PFX, klíče, logy a zdrojové soubory do balíčku nepatří; builder při nálezu takového publish obsahu selže.
 
 ## Aktualizace
 
 ```powershell
-cd C:\D3Parking\Deployment
-.\deploy.ps1 -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip -InstallPath C:\D3Parking -CheckOnly
-.\deploy.ps1 -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip -InstallPath C:\D3Parking
+cd C:\Releases
+.\D3Parking.ps1 -Action Update -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip -InstallPath C:\D3Parking -CheckOnly
+.\D3Parking.ps1 -Action Update -ReleasePath C:\Releases\D3Parking-1.2.3-win-x64.zip -InstallPath C:\D3Parking
 ```
 
-`Deployment` v příkladu je rozbalená složka `deployment` z důvěryhodného release, uložená mimo `releases`. První instalaci popisuje ADMIN-GUIDE.md. Jediný nutný parametr běžné aktualizace je ReleasePath; InstallPath má výchozí `C:\D3Parking`.
+Příklad předpokládá samostatný skript z důvěryhodného release přejmenovaný na `D3Parking.ps1`, uložený mimo `releases`. Bez parametrů otevře české menu. První instalaci popisuje ADMIN-GUIDE.md. Jediný nutný parametr běžné aktualizace je ReleasePath; InstallPath má výchozí `C:\D3Parking`.
 
 Před změnou aplikace se kontroluje checksum ZIPu, bezpečné cesty a jednotlivé soubory, metadata, čistý build, Windows služba/identita/cesta/stav, prostředí, disk, ACL, shared JSON, certifikáty, runtime a deployment SQL oprávnění, shoda schématu a SMTP. Archiv se rozbaluje do dočasného adresáře. CheckOnly může vytvořit dočasné soubory a diagnostický log, ale nepřepíná službu, nepíše do DB ani nemění release konfiguraci.
 
 Po úspěšné kontrole se zapíše žurnál, zkopíruje nový verzovaný adresář, zastaví služba, pořídí a ověří SQL backup, aplikují výslovně schválené migrace a změní cesta služby. Po startu se zkontroluje lokální readiness **i veřejné HTTPS** a přesná verze/commit/environment. Teprve pak se nastaví automatický start, atomicky uloží aktivní/předchozí verze a smaže žurnál. Symlinky ani přepis jediné kopie DLL se nepoužívají.
 
-Krátká odstávka je záměrná. Nejde o rolling deployment a není podporovaný souběh více produkčních instancí. Dlouhá migrace/backup odstávku prodlouží.
+Krátká odstávka je záměrná. Nejde o rolling deployment a není podporovaný souběh více produkčních instancí. Dlouhá migrace/backup odstávku prodlouží. Po dobu údržby je služba v ručním režimu startu; automatický start se obnoví po ověřeném nasazení nebo bezpečném návratu původní aplikace. Restart serveru během migrace tak automaticky nespustí nekompatibilní starší vydání.
 
 ## Migrace a obnova
 
 Historie obsahuje nevratné datové změny: například `RemoveLotMapEditorModel` maže tabulky a `ConvertReservationsToPlanner` mění uložené stavy a pravidla. EF Down není všeobecná obnova dat.
 
-Preflight vypíše počet pending migrací. Raw SQL, změny/mazání sloupců a ostatní nečistě přidávající operace označí k revizi. Správce s DBA prohlédne `database/migrations.sql`; schválené **konkrétní identifikátory** vloží do pole ApprovedMigrations v config/deployment.json. Bez nich upgrade existující DB nepokračuje. U skutečně prázdné DB je dovoleno vytvořit celý historický řetězec; DB s tabulkami bez migrační historie se odmítne.
+Preflight vypíše počet pending migrací. Raw SQL, změny/mazání sloupců a ostatní nečistě přidávající operace označí k revizi. Správce s DBA prohlédne `database/migrations.sql`; schválené **konkrétní identifikátory** zadá v průvodci, který je uloží do ApprovedMigrations v config/deployment.json. Bez nich upgrade existující DB nepokračuje. U skutečně prázdné DB je dovoleno vytvořit celý historický řetězec; DB s tabulkami bez migrační historie se odmítne.
 
 Backup se provádí před každým upgrade/rollbackem, i když schema není změněné (start synchronizuje built-in oprávnění). SQL používá COPY_ONLY a CHECKSUM plus RESTORE VERIFYONLY. Nasazení nikdy automaticky nevytváří chybějící DB ani nespouští Down. Neúspěšný backup zastaví další postup, stará aplikace se může vrátit, pokud migrace ještě nezačala.
 
 ```powershell
-.\deploy.ps1 -Rollback -InstallPath C:\D3Parking
+.\D3Parking.ps1 -Action Rollback -InstallPath C:\D3Parking
 ```
 
 Rollback volí zaznamenanou předchozí verzi, kontroluje její soubory a vyžaduje **přesnou shodu skutečné migrační historie**. Při změně schématu se zastaví před přepnutím. Není zde přepínač „ignoruj schéma“.
 
-Selže-li start nového vydání beze změny schématu, nástroj zkusí vrátit původní službu a zkontroluje její readiness. Pokud migrace mohla změnit DB nebo proces skončil bez výsledného reportu, nechá aplikaci zastavenou a zachová žurnál. Postup DBA obnovy a `recover.ps1` je v ADMIN-GUIDE.md.
+Selže-li start nového vydání beze změny schématu, nástroj zkusí vrátit původní službu a zkontroluje její readiness. Pokud migrace mohla změnit DB nebo proces skončil bez výsledného reportu, nechá aplikaci zastavenou a zachová žurnál. Postup DBA obnovy a `D3Parking.ps1 -Action Recover` je v ADMIN-GUIDE.md.
 
 ## Provozní hranice ověření
 
