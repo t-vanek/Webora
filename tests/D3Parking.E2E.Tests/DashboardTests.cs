@@ -19,6 +19,18 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
+    public async Task Achievement_or_credit_metric_keeps_space_between_number_and_label()
+    {
+        await Page.GotoAsync("/");
+
+        var metric = Page.Locator(".today-card--wallet .today-card__value--metric");
+        await Expect(metric).ToBeVisibleAsync();
+        await Expect(metric.Locator(":scope > span")).ToHaveCountAsync(2);
+        var gap = await metric.EvaluateAsync<string>("element => getComputedStyle(element).columnGap");
+        Assert.That(gap, Is.Not.EqualTo("0px").And.Not.EqualTo("normal"));
+    }
+
+    [Test]
     public async Task A_quick_action_tile_navigates_to_its_page()
     {
         await Page.GotoAsync("/");
@@ -119,13 +131,27 @@ public class DashboardTests : AdminTest
     }
 
     [Test]
-    public async Task Today_section_shows_personal_achievements_when_credits_are_disabled()
+    public async Task Today_section_shows_the_configured_achievement_or_credit_metric()
     {
-        // The wallet card is the one "today" card every parking user has (a score row always
-        // exists for the seeded admin); the reservation/queue/resident cards are data-dependent.
+        // The summary card is the one "today" card every parking user has. Depending on the
+        // incentive configuration it shows either credits or achievements.
         await Page.GotoAsync("/");
         var wallet = Page.Locator(".today-card--wallet");
         await Expect(wallet).ToBeVisibleAsync();
-        await Expect(wallet).ToContainTextAsync("Moje ocenění");
+        await Expect(wallet).ToHaveAttributeAsync("href", "parking/achievements");
+        await Expect(wallet.Locator(".today-card__label")).Not.ToBeEmptyAsync();
+        await Expect(wallet.Locator(".today-card__value--metric > span")).ToHaveCountAsync(2);
+    }
+
+    [Test]
+    public async Task My_reservations_live_on_home_instead_of_the_booking_page()
+    {
+        await Page.GotoAsync("/");
+        var reservations = Page.Locator(".reservations-panel");
+        await Expect(reservations).ToBeVisibleAsync();
+        await Expect(reservations.GetByText("Moje rezervace", new() { Exact = true })).ToBeVisibleAsync();
+
+        await Pages.GotoInteractiveAsync(Page, "/parking");
+        await Expect(Page.Locator(".reservations-panel")).ToHaveCountAsync(0);
     }
 }

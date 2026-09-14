@@ -95,6 +95,11 @@ public sealed class ResidentSpotHandoffService(
         }
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (await FindResidentSpotAsync(dbContext, requesterId, cancellationToken) is not null)
+        {
+            return [];
+        }
+
         var activeMemberships =
             from membership in dbContext.ParkingSpotResidents.AsNoTracking()
             join user in dbContext.Users.AsNoTracking() on membership.UserId equals user.Id
@@ -182,6 +187,12 @@ public sealed class ResidentSpotHandoffService(
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         await ExpireDueAsync(dbContext, now, cancellationToken);
+        if (kind == ResidentSpotHandoffKind.UserRequest
+            && await FindResidentSpotAsync(dbContext, recipientId, cancellationToken) is not null)
+        {
+            return ParkingResult.Failure("Parking_Handoff_Error_ResidentCannotRequest");
+        }
+
         var residentSpot = await FindResidentSpotAsync(dbContext, residentId, cancellationToken);
         if (residentSpot is null || !residentSpot.IsActive)
         {
@@ -363,13 +374,7 @@ public sealed class ResidentSpotHandoffService(
     {
         if (!ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
             return "Parking_Error_ReservationTimeModeChanged";
-        if (!policy.IsWithinReservationHorizon(startUtc, now, timeZone))
-            return "Parking_Error_ReservationHorizon";
-        if (!policy.IsReservationWeekdayAllowed(startUtc, timeZone))
-            return "Parking_Error_ReservationWeekdayNotAllowed";
-        if (!policy.IsPublicHolidayReservationAllowed(startUtc, timeZone))
-            return "Parking_Error_PublicHolidayNotAllowed";
-        return null;
+        return policy.GetReservationDateAvailability(startUtc, now, timeZone).ToParkingErrorKey();
     }
 
     private static IQueryable<Guid> EligibleParkerIds(D3ParkingDbContext dbContext) =>

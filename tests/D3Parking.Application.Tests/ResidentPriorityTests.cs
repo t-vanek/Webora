@@ -5,6 +5,7 @@ using D3Parking.Domain.Common;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure;
+using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
 using NUnit.Framework;
@@ -107,6 +108,30 @@ public class ResidentPriorityTests
             policy: RewardPolicy with { ResidentReclaimPolicy = ResidentReclaimPolicy.ConfirmedBookingProtected });
         Guid reservationId;
 
+        await using (var users = new D3ParkingDbContext(_options))
+        {
+            users.Users.AddRange(
+                new ApplicationUser
+                {
+                    Id = owner,
+                    UserName = "jan.novak@example.test",
+                    NormalizedUserName = "JAN.NOVAK@EXAMPLE.TEST",
+                    Email = "jan.novak@example.test",
+                    NormalizedEmail = "JAN.NOVAK@EXAMPLE.TEST",
+                    DisplayName = "Jan Novák",
+                },
+                new ApplicationUser
+                {
+                    Id = guest,
+                    UserName = "petra.svobodova@example.test",
+                    NormalizedUserName = "PETRA.SVOBODOVA@EXAMPLE.TEST",
+                    Email = "petra.svobodova@example.test",
+                    NormalizedEmail = "PETRA.SVOBODOVA@EXAMPLE.TEST",
+                    DisplayName = "Petra Svobodová",
+                });
+            await users.SaveChangesAsync();
+        }
+
         Assert.That((await residents.ReleaseAsync(owner, Tomorrow, Tomorrow)).Succeeded, Is.True);
         await using (var dbContext = new D3ParkingDbContext(_options))
         {
@@ -122,7 +147,18 @@ public class ResidentPriorityTests
         }
 
         var before = await residents.GetMyOwnedSpotAsync(owner);
-        Assert.That(before!.UpcomingReleases, Is.EqualTo(new[] { new ReleasedDayDto(Tomorrow, true) }));
+        var namedDay = before!.DaySchedule.Single(day => day.Date == Tomorrow);
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.UpcomingReleases, Is.EqualTo(new[] { new ReleasedDayDto(Tomorrow, true) }));
+            Assert.That(namedDay.State, Is.EqualTo(OwnedSpotDayState.SharedTaken));
+            Assert.That(namedDay.AllocationState, Is.EqualTo(ResidentAllocationState.Released));
+            Assert.That(namedDay.BookingState, Is.EqualTo(ResidentBookingState.ReservedByOtherUser));
+            Assert.That(namedDay.AssignedResident?.Name, Is.EqualTo("Jan Novák"));
+            Assert.That(namedDay.Bookings.Single().User.Name, Is.EqualTo("Petra Svobodová"));
+            Assert.That(namedDay.Bookings.Single().ReservationId, Is.EqualTo(reservationId));
+            Assert.That(namedDay.CanReclaim, Is.True);
+        });
 
         var result = await residents.ReclaimAsync(owner, Tomorrow, Tomorrow);
         Assert.That(result.Succeeded, Is.False);
