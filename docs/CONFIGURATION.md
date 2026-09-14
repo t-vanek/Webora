@@ -1,5 +1,7 @@
 # Konfigurace
 
+Běžné nastavení SQL, SMTP, veřejné adresy, prvního správce a HTTPS provádí samostatný `D3Parking.ps1` volbou Instalace/Nastavení/HTTPS certifikát. Průvodce ověřuje pracovní kopii, zálohuje původní soubory a zachovává ostatní klíče. Následující přehled je reference pro pokročilou správu a obnovu; ruční editace JSON není podmínkou instalace. Změny se načtou při příštím startu služby.
+
 Podporovaný profil: jedna Windows x64 služba, Kestrel HTTPS, externí SQL Server. Bez IIS. Kořen určuje `-InstallPath`; příklady používají `C:\D3Parking`.
 
 ```text

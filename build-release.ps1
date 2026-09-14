@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (-not $IsWindows -or [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne 'X64') { throw 'Build this win-x64 release on Windows x64.' }
-. (Join-Path $PSScriptRoot 'deployment/Common.ps1')
+. (Join-Path $PSScriptRoot 'deployment/D3Parking.ps1') -Version $Version
 Push-Location $PSScriptRoot
 $work = Join-Path $PSScriptRoot "artifacts/release-build-$([Guid]::NewGuid().ToString('N'))"
 try {
@@ -22,7 +22,8 @@ try {
     $output = [IO.Path]::GetFullPath($OutputPath)
     $null = New-Item -ItemType Directory -Force -Path $output, $work
     $archive = Join-Path $output "D3Parking-$Version-win-x64.zip"
-    if ((Test-Path -LiteralPath $archive) -or (Test-Path -LiteralPath "$archive.sha256")) { throw 'This release version already exists. Use a new version.' }
+    $wizard = Join-Path $output "D3Parking-$Version.ps1"
+    if ((Test-Path -LiteralPath $archive) -or (Test-Path -LiteralPath "$archive.sha256") -or (Test-Path -LiteralPath $wizard) -or (Test-Path -LiteralPath "$wizard.sha256")) { throw 'This release version already exists. Use a new version.' }
     $package = Join-Path $work 'package'
     $app = Join-Path $package 'app'
     $database = Join-Path $package 'database'
@@ -38,7 +39,7 @@ try {
     & (Join-Path $app 'D3Parking.Web.exe') --contentRoot $app --deployment-command manifest --deployment-report $metadataFile --deployment-sql (Join-Path $database 'migrations.sql')
     if ($LASTEXITCODE -ne 0) { throw 'Published executable cannot produce release metadata.' }
     $metadata = Read-Json $metadataFile
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment') -Destination $package -Recurse
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment/D3Parking.ps1') -Destination (Join-Path $package 'D3Parking.ps1')
     $null = New-Item -ItemType Directory -Path (Join-Path $package 'docs')
     foreach ($name in @('ADMIN-GUIDE.md', 'DEPLOYMENT.md', 'CONFIGURATION.md', 'AUDIT.md')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "docs/$name") -Destination (Join-Path $package "docs/$name")
@@ -68,7 +69,10 @@ try {
     Move-Item -LiteralPath $temporaryArchive -Destination $archive
     $hash = (Get-FileHash -LiteralPath $archive).Hash
     Set-Content -LiteralPath "$archive.sha256" -Value $hash -Encoding ascii
+    Copy-Item -LiteralPath (Join-Path $package 'D3Parking.ps1') -Destination $wizard
+    Set-Content -LiteralPath "$wizard.sha256" -Value (Get-FileHash -LiteralPath $wizard).Hash -Encoding ascii
     Write-Host "[OK] $archive"
+    Write-Host "[OK] Standalone wizard: $wizard"
     Write-Host "SHA256: $hash"
     if ($dirty) { Write-Host 'Local validation artifact: dirty=true. Production deployment refuses it.' }
 } finally { Pop-Location }

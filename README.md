@@ -27,6 +27,6 @@ Současný plánovač nevyžaduje potvrzování příjezdu ani odjezdu. Voliteln
 
 3. Otevřete adresu vypsanou aplikací. Vývojové údaje: `admin@d3parking.local` / `Admin123$`, pouze v `Development`. Toto prostředí automaticky aplikuje migrace.
 
-Produkce dostává hotový `D3Parking-<verze>-win-x64.zip`; nepotřebuje Git ani .NET SDK. Podporovaný postup je jedna Windows služba s HTTPS a externím SQL Serverem. Kontejnery ani GitHub nejsou součástí release/deployment procesu.
+Produkce dostává hotový `D3Parking-<verze>-win-x64.zip` a jeden samostatný [PowerShell průvodce](deployment/D3Parking.ps1). Po spuštění nabídne instalaci, konfiguraci SQL/SMTP/HTTPS, aktualizaci, stav, restart a obnovu. Správce nepotřebuje ručně editovat JSON, Git ani .NET SDK. Podporovaný postup je jedna Windows služba s HTTPS a externím SQL Serverem; předpoklady a omezení popisuje návod pro správce.
 
 Licence: [MIT](LICENSE).
