@@ -73,7 +73,11 @@ DbContextFactory poskytuje kontext pro každou operaci, Identity používá scop
 
 `ParkingMaintenanceService` spouští připomínky, plán rezidentů, rozpočet, frontu, historický collusion scan, kapacitní kampaně a dohled; selhání kroku nevyřadí následující. `NotificationDeliveryWorker` doručuje SQL outbox s lease/backoff a maže dokončené záznamy po 30 dnech. `EntraSchemeSynchronizer` obnovuje nastavení po 30 sekundách.
 
-Účtové e-maily zůstávají ve Wolverine **paměťové** frontě: restart ztratí čekající zprávy. Notifikační e-maily mají vlastní SQL outbox. Samotné `UseEntityFrameworkCoreTransactions` nevytváří durable Wolverine storage. Přibalený Roslyn vytváří interní handlery bez nainstalovaného SDK; neprobíhá build zdrojového projektu na serveru.
+`IEmailSender` nyní potvrzuje až uložení šifrované zprávy do SQL `EmailDeliveries`. Platí to pro účtové e-maily i párovací kódy vozidel. `EmailDeliveryWorker` je doručuje nezávisle na notifikačních preferencích; existující `NotificationEmailDeliveries` má vlastní dispatcher. Wolverine už e-maily nepřenáší. Přibalený Roslyn obsluhuje zbývající messaging bez nainstalovaného SDK; neprobíhá build zdrojového projektu na serveru.
+
+Fronta používá atomický SQL claim s jedinečným lease ID, pětiminutovou dobou pronájmu a dvouminutovým limitem SMTP operace. Pozdní dokončení starého pracovníka nepřepíše stav nového. Po chybách čeká 1/5/30/120 minut, nejvýše pět pokusů včetně přerušených. Neodeslané zprávy expirují po 24 hodinách; platnost odkazu/kódu se neprodlužuje a může být kratší. Stabilní Message-ID se zachovává při opakování, ale SMTP neposkytuje záruku právě jednoho doručení: pád po přijetí SMTP před zápisem výsledku může způsobit duplicitu.
+
+Payload včetně adresy a tokenů chrání Data Protection (`D3Parking.EmailOutbox.v1`); záloha DB vyžaduje také klíčenku a ochranný certifikát. Obsah se odstraní při Sent/Failed/expiraci, provozní metadata po 30 dnech od dokončení. Chybový záznam obsahuje jen typ chyby. Nedostupnost SQL při enqueue se vrací volajícímu, zpráva se nepotvrzuje pouze v paměti. Uložení business změny a zprávy nejsou obecně jedna společná transakce; tato úprava zajišťuje přežití již potvrzeného enqueue, nikoli atomické dokončení všech účtových workflow.
 
 Nominatim geokóduje adresy. Haversine počítá vzdálenost offline; volitelný OSRM má fallback. HTTP timeouty jsou 15 s. SMTP používá MailKit s nastavitelným timeoutem. HTTPS, SQL a SMTP prochází deployment kontrolou; Entra, push a geokódování vyžadují i funkční test na skutečné síti.
 

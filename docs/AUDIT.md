@@ -109,14 +109,14 @@ Každý záznam uvádí ID, Severity, Category, Location, Problem, Evidence, Imp
 - **Impact:** Správce i uživatelé dostávali nesprávné očekávání a neúplný instalační postup.
 - **Recommendation:** README rozcestník a oddělené technické/provozní dokumenty; implementováno.
 
-### MAIL-001 — zbývá
+### MAIL-001 — opraveno
 
-- **Severity:** Medium; **Category:** Durability; **Priority:** P1.
-- **Location:** QueuedEmailSender.cs, Program.UseWolverine, NotificationDeliveryDispatcher.cs.
-- **Problem:** Účtové e-maily mají paměťovou frontu, zatímco oznámení mají durable SQL outbox.
-- **Evidence:** Lokální Wolverine queues bez persistence, vlastní NotificationEmailDeliveries jen pro notifikace.
-- **Impact:** Při restartu mohou zaniknout čekající potvrzení/reset hesla; uživatel musí požádat znovu.
-- **Recommendation:** Sjednotit účetní/bezpečnostní e-maily pod durable outbox s integračními testy. Nyní zdokumentováno; změna doručovacího modelu nebyla smíchána s deploymentem.
+- **Severity:** Medium; **Category:** Durability; **Priority:** P1; **Status:** opraveno v navazující změně.
+- **Location:** DurableEmailSender.cs, EmailDeliveryDispatcher.cs, EmailDeliveryWorker.cs, migrace AddDurableEmailOutbox.
+- **Problem:** Účtové e-maily původně používaly paměťovou Wolverine frontu, zatímco oznámení měla SQL outbox.
+- **Evidence:** Původní QueuedEmailSender/EmailHandler odstraněny; IEmailSender nyní potvrzuje SQL commit do EmailDeliveries. Obsah chrání Data Protection.
+- **Impact:** Již potvrzená zpráva přežije restart; zpracování obnoví expirovaný lease. Selhání SQL při enqueue se vrací volajícímu.
+- **Recommendation / řešení:** Pět pokusů s backoffem, atomické lease s ochranou proti pozdnímu zápisu, stabilní Message-ID, expirace 24 hodin a odstranění citlivého payloadu po dokončení. SQL testy pokrývají nový kontext/klíčenku, retry, souběh, přerušení, opožděný worker, expiraci a bezpečný upgrade. SMTP může po pádu mezi přijetím a zápisem výsledku doručit duplicitu; platnost tokenů se neprodlužuje. Business změna a enqueue nejsou univerzálně jedna transakce.
 
 ### SCALE-001 — zbývá
 
@@ -148,7 +148,11 @@ Každý záznam uvádí ID, Severity, Category, Location, Problem, Evidence, Imp
 
 Staré screenshoty/output mapy jsou ponechané jako soubory, nový README je nepoužívá jako důkaz aktuálního produktu. Agentní `.codex/.claude` helpery jsou vývojové; nevstupují do produkčního artefaktu.
 
-## Ověření a provozní přejímka
+## Ověření navazující opravy MAIL-001
+
+Po implementaci prošlo 365/365 aplikačních testů s SQL (bez přeskočených; samostatný PublishedReleaseTests se spouští až nad sestaveným ZIPem) a 52/52 Chromium E2E. Výsledky: `mail-full.trx` a `mail-e2e.trx` v TestResults příslušných projektů. Deset nových testů DurableEmailTests pokrývá trvalé šifrované uložení, retry/Message-ID, souběh, restart, pozdní dokončení, vyčerpaný lease, expiraci, retenci a selhání enqueue. Další test provádí skutečný upgrade předchozího schématu a ověřuje zachování dat. Migrační řetězec má nyní 44 položek.
+
+## Ověření prvního auditu a provozní přejímka
 
 Ověřeno na Windows x64, SDK 10.0.401, runtime 10.0.12 a nativní LocalDB 15.x:
 
@@ -165,4 +169,4 @@ Logy sestavení a zkoušek jsou v artifacts/audit-build. Testovaný release vzni
 
 Tento účet nemá administrátorský token Windows, proto nelze pravdivě označit za ověřené vytvoření/start/přepnutí skutečné Windows služby, ACL pod jejím tokenem nebo produkční HTTPS/SMTP/SQL backup na cílové infrastruktuře. Skripty nesmějí tato oprávnění obcházet. Před ostrým nasazením je nutný průchod initialize → deploy → update → rollback → řízené selhání → recover na Staging s reálnými certifikáty a účty. Také Entra/SCIM, SMTP doručení, push a geokódování se ověřují proti skutečným integracím.
 
-Nejhodnotnější další krok: provést tuto staging přejímku a obnovu SQL backupu; potom doplnit durable outbox účtových e-mailů. Automatický SQL restore není úmyslně součástí nástroje, protože může přepsat novější data.
+Nejhodnotnější další krok: provést staging přejímku, obnovu SQL backupu a cílový test doručení účtového e-mailu po restartu. Durable outbox účtových e-mailů je doplněn; jeho chování a provozní hranice popisuje MAIL-001 a TECHNICAL.md. Automatický SQL restore není úmyslně součástí nástroje, protože může přepsat novější data.

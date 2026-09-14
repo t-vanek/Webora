@@ -56,7 +56,7 @@ public sealed class NotificationDeliveryDispatcher(
             var reason = messages["Email_Chrome_Reason"].Value;
             // This outbox already owns persistence, retries and delivery state. Send through the
             // transport directly so "Sent" means the SMTP server actually accepted the message,
-            // rather than merely accepting it into the volatile in-process queue.
+            // rather than merely accepting it into another outbox.
             await emailTransport.SendAsync(new EmailMessage
             {
                 To = recipient.Email,

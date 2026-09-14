@@ -58,4 +58,6 @@ Initializer omezí ACL na administrátory a SYSTEM. `NT SERVICE\<ServiceName>` �
 
 Data Protection má stálý application name `D3Parking`, klíče mimo release a RSA ochranu. Převod staré instalace vyžaduje zachovat její klíčenku, discriminator i šifrování, nebo znovu zadat Entra tajemství a přihlásit uživatele. Samotná DB nestačí. Rotace ochranného PFX musí zachovat dešifrování starých klíčů; prostá výměna souboru není bezpečná.
 
+Stejná klíčenka chrání čekající účtové e-maily v tabulce EmailDeliveries. Po obnově DB jsou pro jejich dešifrování nutné odpovídající keys/PFX. Fronta má pevně pět pokusů, odstupy 1/5/30/120 minut a expiraci 24 hodin; konfigurace SMTP zůstává stejná. Dokončený obsah se odstraňuje, metadata mají retenci 30 dní. Stav Failed vyžaduje opravu příčiny a novou žádost uživatele o zprávu, nikoli ruční obnovení starého tokenu.
+
 Log aplikace rotuje po dnech/20 MB, nejvýše 30 souborů. Deployment logy, reporty a SQL backupy se automaticky nemažou; nastavte archivaci a sledujte disk. Logy obsahují provozní údaje a mohou obsahovat e-mailové adresy. SQL zálohy a secrets/keys ukládejte také mimo tento server do chráněného úložiště.

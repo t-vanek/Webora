@@ -117,6 +117,21 @@ Přečtěte `[FAILED]` a cestu za `Details:`. Pokud selhal preflight, aplikace a
 
 Při neúplném selhání samotného initialize (ještě žádný release/DB změna) ponechte službu zastavenou a po kontrole s IT odstraňte pouze nově vytvořenou prázdnou instalaci a její placeholder službu; nikdy existující ostrou instalaci. Pak proveďte inicializaci znovu.
 
+## Účtové e-maily po aktualizaci MAIL-001
+
+Migrace `20260914112604_AddDurableEmailOutbox` přidává pouze tabulku EmailDeliveries a indexy; stávající uživatele ani notifikační zprávy nemění. Proběhne standardním deploymentem se zálohou. Binární rollback před tuto migraci vyžaduje obvyklou DBA obnovu odpovídajícího schématu.
+
+Požadavek na e-mail nyní potvrdí jeho uložení do SQL. Worker se probouzí nejpozději po 15 sekundách a při chybě opakuje odeslání. Sledujte v application logu `Email delivery ... permanently failed` a `Email outbox dispatch failed`. DBA může bez čtení citlivého obsahu zjistit stav:
+
+```sql
+SELECT Status, COUNT(*) AS Messages, MIN(CreatedAtUtc) AS OldestCreatedUtc
+FROM dbo.EmailDeliveries GROUP BY Status;
+SELECT TOP (50) Id, Status, Attempts, CreatedAtUtc, NextAttemptUtc, LastError
+FROM dbo.EmailDeliveries WHERE Status <> 'Sent' ORDER BY CreatedAtUtc;
+```
+
+Při Failed opravte SMTP/SQL/klíčenku a požádejte o nový potvrzovací nebo obnovovací e-mail. Staré zprávy se nejpozději po 24 hodinách uzavřou; jejich token mohl vypršet dříve. Po restartu může při nejistém potvrzení SMTP přijít stejná zpráva dvakrát. Obnova fronty vyžaduje vedle DB také odpovídající Data Protection keys a PFX. Stará paměťová fronta z předchozí verze se zpětně rekonstruovat nedá.
+
 ## Co ručně neměnit
 
 Needitujte binárky, release.json, soubory ve verzovaném release ani stav installation.json. Nepřepisujte klíčenku nebo ochranný PFX, nemažte aktuální/předchozí release, nespouštějte vývojové helpery/SQL skripty na produkci. Starší nepoužívané release a backupy archivujte podle dohodnuté retence až po ověření možností obnovy.

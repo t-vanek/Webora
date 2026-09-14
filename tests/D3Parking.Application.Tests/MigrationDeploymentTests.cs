@@ -6,6 +6,8 @@ using D3Parking.Web.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -14,6 +16,35 @@ namespace D3Parking.Application.Tests;
 [TestFixture, NonParallelizable]
 public class MigrationDeploymentTests
 {
+    [Test]
+    public async Task Email_outbox_upgrade_preserves_existing_business_and_notification_data()
+    {
+        var configured = Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer");
+        if (string.IsNullOrWhiteSpace(configured)) Assert.Ignore("Requires SQL Server; creates a unique temporary database.");
+        var connection = new SqlConnectionStringBuilder(configured)
+        { InitialCatalog = $"D3Parking_EmailUpgrade_{Guid.NewGuid():N}" }.ConnectionString;
+        await using var db = new D3ParkingDbContext(new DbContextOptionsBuilder<D3ParkingDbContext>().UseSqlServer(connection).Options);
+        try
+        {
+            var migrator = db.GetService<IMigrator>();
+            await migrator.MigrateAsync("20260821131243_AddResidentSpotHandoffs");
+            var spot = new D3Parking.Domain.Parking.ParkingSpot("MAIL-UPGRADE", D3Parking.Domain.Parking.ParkingSpotType.Standard);
+            var notification = new D3Parking.Domain.Notifications.NotificationEmailDelivery(Guid.NewGuid(), "Existing", "Keep me", null, null, null, DateTimeOffset.UtcNow);
+            db.ParkingSpots.Add(spot);
+            db.NotificationEmailDeliveries.Add(notification);
+            await db.SaveChangesAsync();
+            var before = await DeploymentDatabase.InspectAsync(db, CancellationToken.None);
+            Assert.That(before.Pending, Has.Length.EqualTo(1));
+            Assert.That(before.Risky, Is.Empty);
+            await db.Database.MigrateAsync();
+            Assert.That(await db.ParkingSpots.AnyAsync(s => s.Id == spot.Id), Is.True);
+            Assert.That(await db.NotificationEmailDeliveries.AnyAsync(d => d.Id == notification.Id && d.Message == "Keep me"), Is.True);
+            Assert.That(await db.EmailDeliveries.CountAsync(), Is.Zero);
+            Assert.That(db.Database.HasPendingModelChanges(), Is.False);
+        }
+        finally { await db.Database.EnsureDeletedAsync(); }
+    }
+
     [Test]
     public async Task Full_migration_chain_and_repeatable_seed_preserve_a_disabled_bootstrap_account()
     {

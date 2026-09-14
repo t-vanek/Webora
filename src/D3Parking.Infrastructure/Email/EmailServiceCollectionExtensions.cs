@@ -29,10 +29,10 @@ public static class EmailServiceCollectionExtensions
         services.AddHttpClient(ClientCredentialsTokenProvider.HttpClientName);
         services.AddSingleton<ISmtpAccessTokenProvider, ClientCredentialsTokenProvider>();
 
-        // Callers send through IEmailSender, which only enqueues; the Wolverine handler is the
-        // single place that touches the SMTP transport.
+        // Request paths commit an encrypted SQL envelope; workers own SMTP and retries.
         services.AddScoped<IEmailTransport, SmtpEmailSender>();
-        services.AddScoped<IEmailSender, QueuedEmailSender>();
+        services.AddScoped<IEmailSender, DurableEmailSender>();
+        services.AddScoped<EmailDeliveryDispatcher>();
 
         return services;
     }
