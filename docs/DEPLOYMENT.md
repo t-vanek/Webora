@@ -21,6 +21,8 @@ Windows x64 se službou `D3Parking` (název lze změnit při inicializaci), Powe
 
 Balíček obsahuje `D3Parking.ps1`, `app/`, provozní `docs/`, `database/migrations.sql`, LICENSE a `release.json`. Manifest má verzi, commit, runtime, seznam migrací, cílové schéma a SHA-256 každého souboru. `/version` čte identitu ze sestavené assembly, ne z volně editovatelné runtime konfigurace.
 
+`appsettings` a sdílená konfigurace zapisovaná průvodcem obsahují české komentáře `//`. Aplikace a PowerShell je podporují. Manifest, žurnály a reporty zůstávají striktní JSON. Komentáře ve sdíleném nastavení vzniknou při instalaci nebo příštím uložení konfigurace; samotný update release existující shared soubory nepřepisuje. Podrobnosti čtení a priority hodnot jsou v CONFIGURATION.md.
+
 SDK a NuGet závislosti jsou připnuté; publish používá locked restore, deterministické CI sestavení a oddělený pracovní adresář. ZIP má stabilní pořadí a čas položek z Git commitu; `buildTimestamp` je úmyslně čas zdrojového commitu, nikoli čas zabalení. Byte-for-byte reprodukovatelnost mezi různými stroji je nutné ověřit porovnáním výsledných SHA; metadata ji sama nedokazují. Lokální config, PFX, klíče, logy a zdrojové soubory do balíčku nepatří; builder při nálezu takového publish obsahu selže.
 
 ## Aktualizace

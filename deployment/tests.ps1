@@ -65,6 +65,34 @@ try {
     Write-JsonAtomic @{ current='1.2.4'; previous='1.2.3' } $json
     if ((Read-Json $json).previous -ne '1.2.3') { throw 'Atomic state replacement failed.' }
     $passed++; Write-Host '[OK] Atomic state replacement'
+    $commentFixture = [ordered]@{
+        Account=@{BaseUrl='https://parking.example.test:8443'}
+        Smtp=@{Host='smtp.example.test';Port=587;Security='StartTls';OAuth2=@{ClientSecret='fixture;"//not-comment/*value*/'}}
+        Extension=@{Empty=@(); Nested=@(@{Name='quoted"key';Enabled=$false},@{Name='second';Enabled=$true}); Nullable=$null; Number=1.25}
+    }
+    $originalJson = ConvertTo-Json -InputObject $commentFixture -Depth 30 -Compress
+    foreach ($kind in @('Default','Development','Client','Shared','Secrets','Policy','Maintenance')) {
+        $commented = Add-ConfigurationComments ($commentFixture | ConvertTo-Json -Depth 30) $kind
+        $decoded = ConvertTo-Json -InputObject ($commented | ConvertFrom-Json -AsHashtable) -Depth 30 -Compress
+        Assert-Test ($decoded -ceq $originalJson -and $commented.StartsWith('// D3Parking:')) "Documented $kind JSON preserves strings, arrays, numbers, booleans and null"
+    }
+    $commentFolder=Join-Path $testRoot 'commented/config'
+    $null=New-Item -ItemType Directory -Force -Path $commentFolder
+    $commentFile=Join-Path $commentFolder 'appsettings.json'
+    Write-JsonAtomic $commentFixture $commentFile
+    Write-JsonAtomic (Read-Map $commentFile) $commentFile
+    $savedComments=Get-Content -LiteralPath $commentFile -Raw
+    Assert-Test ($savedComments.Contains('// Adresa, kterou lidé') -and $savedComments.Contains('// Číslo vstupu') -and $savedComments.Contains('"Port": 587,')) 'Wizard rewrites retain built-in help and ordinary comma placement'
+    $strictOptions=[Text.Json.JsonDocumentOptions]::new()
+    $strictOptions.CommentHandling=[Text.Json.JsonCommentHandling]::Disallow
+    $strictDocument=[Text.Json.JsonDocument]::Parse((Get-Content -LiteralPath (Join-Path $package 'release.json') -Raw),$strictOptions)
+    $strictDocument.Dispose()
+    Assert-Test (-not (Get-Content -LiteralPath $json -Raw).Contains('// D3Parking:')) 'Release manifests and operation state remain strict JSON without comments'
+    foreach ($relative in @('src/D3Parking.Web/appsettings.json','src/D3Parking.Web/appsettings.Development.json','src/D3Parking.Web.Client/wwwroot/appsettings.json','src/D3Parking.Web.Client/wwwroot/appsettings.Development.json')) {
+        $settingsText=Get-Content -LiteralPath (Join-Path (Split-Path $PSScriptRoot) $relative) -Raw
+        $null=$settingsText | ConvertFrom-Json
+        Assert-Test ($settingsText.Contains('// D3Parking:')) "Application configuration includes parseable Czech help: $relative"
+    }
     $password = 'fixture;"quoted'' password'
     $connection = Read-SqlConnection (New-SqlConnection 'sql.example.test,1433' parking runtime $password)
     Assert-Test ($connection.Password -ceq $password -and $connection.Server -eq 'sql.example.test,1433' -and $connection.User -eq 'runtime') 'SQL credentials survive quoting and round trip'

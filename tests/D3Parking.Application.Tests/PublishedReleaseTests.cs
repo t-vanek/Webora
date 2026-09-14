@@ -30,7 +30,7 @@ public class PublishedReleaseTests
             .CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
         var pfx = Path.Combine(root, "secrets", "test.pfx");
         File.WriteAllBytes(pfx, certificate.Export(X509ContentType.Pfx, "audit-only"));
-        File.WriteAllText(Path.Combine(root, "secrets", "secrets.json"), "{}");
+        File.WriteAllText(Path.Combine(root, "secrets", "secrets.json"), "// Komentované soubory vytváří instalační průvodce.\n{}");
         await using var db = new D3ParkingDbContext(new DbContextOptionsBuilder<D3ParkingDbContext>().UseSqlServer(connection).Options);
         string[]? originalKeys = null;
         try
@@ -41,7 +41,7 @@ public class PublishedReleaseTests
                 port.Start();
                 var url = $"http://127.0.0.1:{((IPEndPoint)port.LocalEndpoint).Port}";
                 port.Stop();
-                File.WriteAllText(Path.Combine(root, "config", "appsettings.json"), JsonSerializer.Serialize(new
+                File.WriteAllText(Path.Combine(root, "config", "appsettings.json"), "// Sdílené nastavení s českými vysvětlivkami musí jít načíst i po restartu.\n" + JsonSerializer.Serialize(new
                 {
                     ConnectionStrings = new { SqlServer = connection }, Account = new { BaseUrl = url },
                     IdentitySeed = new { AdminEmail = "release@test.local", AdminPassword = "Audit-Password-938!" },

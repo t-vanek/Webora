@@ -26,6 +26,23 @@ Pro jinou instalaci použijte `.\D3Parking.ps1 -InstallPath D:\Apps\Parking`. Ce
 
 Skript nevytváří SQL server ani databázi, neinstaluje certifikační autoritu, neotevírá firewall a nemění DNS. Tyto kroky závisejí na firemní infrastruktuře; jejich požadavky průvodce vypíše.
 
+### Co přesně si vyžádat od IT
+
+Následující příklad je zadání pro IT, ne hotové údaje vaší firmy. Hesla si nechte předat chráněným kanálem a do této tabulky je nezapisujte.
+
+| Údaj | Příklad a vysvětlení | Kdo jej dodá |
+|---|---|---|
+| Veřejná adresa | `https://parking.firma.cz:8443`; stejnou adresu použijete v prohlížeči. | Správce DNS/sítě |
+| HTTPS PFX a jeho heslo | Certifikát pro `parking.firma.cz` s privátním klíčem; SAN je seznam jmen webů, pro které platí. | Správce certifikátů |
+| SQL server a DB | `sql01.firma.cz,1433` a `D3Parking`; nezadávejte sem URL s `https://`. | DBA = správce databází |
+| Dva SQL účty | Např. `parking_app` pro aplikaci a `parking_deploy` pro zálohy/migrace; každý má vlastní heslo a odlišná práva. | DBA |
+| SQL zálohovací složka | Např. `D:\SqlBackups\D3Parking` **na SQL serveru**. Oprávnění zápisu potřebuje služba SQL Serveru. | DBA |
+| SMTP | Např. `smtp.firma.cz`, port 587, StartTls, Basic; správce musí potvrdit skutečnou kombinaci a povolit odesílatele. | Správce pošty |
+| Odesílatel a přihlášení SMTP | Např. `parking@firma.cz`; adresa odesílatele a přihlašovací jméno nemusí být stejné. | Správce pošty |
+| Síťová dostupnost | Veřejný HTTPS port k aplikaci; odchozí SQL a SMTP, případně OAuth2 a kontrola certifikátů. | Správce sítě |
+
+Před spuštěním průvodce si také zvolte instalační cestu, prostředí Production/Staging a vlastní e-mail/heslo prvního správce. PFX pro **Data Protection** nemusíte shánět: ten vytvoří průvodce. Podrobný slovník hodnot a ukázku propojení adres najdete v [CONFIGURATION.md](CONFIGURATION.md).
+
 ## První instalace krok za krokem
 
 1. Zvolte **1 — Instalace**, vyberte ZIP a potvrďte SHA-256. Součet nabídne ze souboru `.zip.sha256`; lze jej zadat ručně. Kontrolují se i všechny soubory uvnitř balíčku.
@@ -38,6 +55,22 @@ Skript nevytváří SQL server ani databázi, neinstaluje certifikační autorit
 Zrušení po přípravě adresářů ponechá zastavenou službu a její konfiguraci. Pokud příprava úspěšně vytvořila všechny soubory, volba Instalace na stejné cestě nabídne dokončení. Při selhání samotné přípravy ještě před jejich vytvořením zachovejte zastavený stav a nechte IT posoudit neúplný adresář/službu; průvodce je automaticky nemaže.
 
 Při přechodu ze starší instalace s existující DB nejdříve řešte zachování klíčenky podle CONFIGURATION.md a revizi migrací podle DEPLOYMENT.md.
+
+## Kde jsou vysvětlivky a jak změnit nastavení
+
+Na nainstalovaném serveru otevřete jako správce `C:\D3Parking\config\appsettings.json` (nebo svou instalační cestu). Nad položkami jsou české řádky `//`: co položka dělá, jakou hodnotu očekává a odkud ji získat. Neveřejné údaje jsou popsané v `secrets\secrets.json`; tento soubor nikomu neposílejte. Stejnou nápovědu mají oba soubory `deployment.json`.
+
+Soubory ve `src` jsou určeny vývojáři. Soubory uvnitř `releases` jsou součástí ověřeného balíčku a neupravují se. Při nejasnosti nejprve použijte tabulku „Který soubor otevřít“ v CONFIGURATION.md.
+
+Pro běžnou změnu postupujte takto:
+
+1. Spusťte aktuální skript se správným `-InstallPath` a zvolte **3 — Nastavení**, pro samotný HTTPS PFX volbu **7**.
+2. Zkontrolujte nabízené hodnoty a odpovězte na otázky. Prázdné zadání ponechá nabízenou hodnotu; u existujících hesel je ponechání označeno v otázce. Nepoužívejte příklady z návodu místo skutečných údajů od IT.
+3. Vyčkejte na kontrolu SQL, SMTP a certifikátů. Při chybě původní soubory zůstávají zachované. Opravte příčinu uvedenou ve zprávě; nezkoušejte obcházet kontrolu TLS.
+4. Přečtěte souhrn a uložení potvrďte `ANO`. Průvodce pořídí chráněnou zálohu a zapíše hodnoty i vestavěné komentáře. Po neúplném zápisu použijte volbu **10 — Obnova zápisu nastavení**.
+5. Zvolte **6 — Řízený restart** a potvrďte krátkou odstávku. Teprve restart načte nové hodnoty. Potom ověřte veřejnou stránku, přihlášení a podle změny skutečný e-mail.
+
+Existující instalace získá nové vestavěné komentáře při uložení nastavení novým průvodcem. Samotná výměna skriptu soubory instalace nepřepisuje. Vlastní ruční komentáře se při uložení nepřenášejí; provozní poznámky udržujte zvlášť. Úpravy mimo nabídku průvodce (např. podrobnost logování) jsou pokročilá správa: přečtěte komentáře, chraňte zálohu souboru a před restartem použijte **5 — Diagnostika**. Diagnostika nemusí odhalit chybu každé volitelné integrace.
 
 ## Další správa ze stejného menu
 

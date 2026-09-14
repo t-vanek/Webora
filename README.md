@@ -29,4 +29,6 @@ Současný plánovač nevyžaduje potvrzování příjezdu ani odjezdu. Voliteln
 
 Produkce dostává hotový `D3Parking-<verze>-win-x64.zip` a jeden samostatný [PowerShell průvodce](deployment/D3Parking.ps1). Po spuštění nabídne instalaci, konfiguraci SQL/SMTP/HTTPS, aktualizaci, stav, restart a obnovu. Správce nepotřebuje ručně editovat JSON, Git ani .NET SDK. Podporovaný postup je jedna Windows služba s HTTPS a externím SQL Serverem; předpoklady a omezení popisuje návod pro správce.
 
+Konfigurační soubory obsahují jednoduché české komentáře: význam položek, příklady hodnot a požadavky na SQL, poštu či certifikáty. Průvodce je doplňuje také do nastavení vytvořeného na serveru. [Přehled konfigurace](docs/CONFIGURATION.md) vysvětluje, který soubor upravovat, co dodat od IT a jak změnu ověřit.
+
 Licence: [MIT](LICENSE).

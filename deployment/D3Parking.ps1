@@ -39,9 +39,182 @@ function Assert-NoReparsePoint([string]$Path) {
 
 function Write-JsonAtomic([object]$Value, [string]$Path) {
     $temp = "$Path.$([Guid]::NewGuid().ToString('N')).tmp"
-    $Value | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $temp -Encoding utf8NoBOM
+    $json = $Value | ConvertTo-Json -Depth 30
+    $kind = switch -Regex ($Path) {
+        '[\\/]config[\\/]appsettings\.json$' { 'Shared' }
+        '[\\/]config[\\/]deployment\.json$' { 'Policy' }
+        '[\\/]secrets[\\/]secrets\.json$' { 'Secrets' }
+        '[\\/]secrets[\\/]deployment\.json$' { 'Maintenance' }
+    }
+    if ($kind) { $json = Add-ConfigurationComments $json $kind }
+    Set-Content -LiteralPath $temp -Value $json -Encoding utf8NoBOM
     if (Test-Path -LiteralPath $Path) { Set-Acl -LiteralPath $temp -AclObject (Get-Acl -LiteralPath $Path) }
     [IO.File]::Move($temp, $Path, $true)
+}
+
+function Get-ConfigurationComments([string]$Kind) {
+    $comments = @{
+        Deployment = 'Prostředí této instalace. Nastavuje průvodce společně s Windows službou.'
+        'Deployment:Environment' = 'Production = ostrý provoz; Staging = zkušební server. Musí být stejné v config/deployment.json. Development patří jen vývojáři.'
+        ConnectionStrings = 'Údaje, podle kterých aplikace najde databázi. Na serveru patří do secrets, protože obsahují heslo.'
+        'ConnectionStrings:SqlServer' = @('Připojení aplikace k SQL. Server = adresa SQL; Database = název existující databáze; User ID a Password = účet od správce DB.', 'Pro ostrý provoz: samostatný účet se SELECT/INSERT/UPDATE/DELETE, Encrypt=True a TrustServerCertificate=False. SQL musí mít důvěryhodný certifikát. Hodnotu bezpečně sestaví průvodce.')
+        Account = 'Adresy používané například v potvrzovacích a obnovovacích e-mailech.'
+        'Account:BaseUrl' = 'Adresa, kterou lidé otevřou v prohlížeči, např. https://parking.firma.cz:8443. Potřebuje DNS a HTTPS certifikát. Bez /login, dalších cest nebo parametrů.'
+        AllowedHosts = 'Povolená jména serveru, např. parking.firma.cz;127.0.0.1. Bez https://, portu a cesty; oddělujte středníkem. Hvězdička povoluje vše a v produkci je odmítnuta.'
+        Kestrel = 'Vestavěný webový server aplikace. IIS není pro tento způsob instalace potřeba.'
+        'Kestrel:Endpoints' = 'Dvě místa, kde aplikace čeká na spojení: Public pro lidi a Health pro místní kontrolu.'
+        'Kestrel:Endpoints:Public' = 'Veřejný vstup do aplikace. IT musí povolit jeho TCP port v síti a firewallu.'
+        'Kestrel:Endpoints:Public:Url' = 'Např. https://0.0.0.0:8443: 0.0.0.0 znamená všechny místní IPv4 adresy, 8443 je port. Není to adresa do prohlížeče. Port musí odpovídat Account:BaseUrl.'
+        'Kestrel:Endpoints:Public:Certificate' = 'HTTPS certifikát: umožňuje šifrované spojení a prokazuje jméno tohoto webu.'
+        'Kestrel:Endpoints:Public:Certificate:Path' = 'Úplná cesta k souboru PFX s privátním klíčem. Dodejte jej od IT; musí platit, obsahovat doménu v SAN a mít důvěryhodný řetězec. Průvodce nastaví právo služby ke čtení.'
+        'Kestrel:Endpoints:Public:Certificate:Password' = 'Heslo k HTTPS PFX od IT. Není to heslo do aplikace. Patří jen do secrets.json; pokud PFX heslo nemá, zůstává prázdné.'
+        'Kestrel:Endpoints:Health' = 'Místní kontrola, zda proces běží a databáze je připravená. Není určena uživatelům.'
+        'Kestrel:Endpoints:Health:Url' = 'Např. http://127.0.0.1:5081. 127.0.0.1 znamená pouze tento počítač. Port musí být volný, jiný než veřejný a stejný jako HealthUrl v deployment.json. Do sítě jej neotevírejte.'
+        DataProtection = 'Ochrana přihlašovacích údajů aplikace, uložených integračních tajemství a čekajících e-mailů. Není to HTTPS.'
+        'DataProtection:Certificate' = 'Ochranný certifikát šifruje klíčenku data/keys. Společně s databází potřebujete zálohovat klíčenku, tento PFX i jeho heslo.'
+        'DataProtection:Certificate:Path' = 'Úplná cesta k protection.pfx. Průvodce vytvoří RSA certifikát na 5 let. Při aktualizaci ho zachovejte; pro výměnu musí IT zajistit čtení starých klíčů.'
+        'DataProtection:Certificate:Password' = 'Náhodné heslo vytvořené průvodcem k ochrannému PFX. Nepřepisujte ho heslem HTTPS certifikátu. Bez správného hesla a PFX nelze přečíst chráněná data.'
+        IdentitySeed = 'Jednorázové založení prvního správce. Změnou těchto hodnot neměníte heslo již existujícího účtu.'
+        'IdentitySeed:AdminEmail' = 'Vlastní e-mail prvního správce. Po úspěšném přihlášení odstraňte v průvodci e-mail i heslo; účet zůstane v DB.'
+        'IdentitySeed:AdminPassword' = 'Vlastní jedinečné heslo: v produkci nejméně 12 znaků, velké i malé písmeno, číslice a jiný znak. Uložte jen do secrets.json, nikdy do veřejné konfigurace.'
+        'IdentitySeed:AdminDisplayName' = 'Jméno zobrazené u nově zakládaného správce, např. Správce parkování. Není to přihlašovací jméno.'
+        Smtp = 'Odesílání e-mailů přes poštovní server. Údaje dá správce pošty. Bez dostupného SMTP zprávy zůstávají ve frontě a mohou později selhat.'
+        'Smtp:Host' = 'Jméno SMTP serveru, např. smtp.firma.cz, bez https:// a bez portu. localhost znamená poštu na stejném počítači; sama se tím žádná poštovní služba nevytvoří.'
+        'Smtp:Port' = 'Číslo vstupu do SMTP serveru (1 až 65535). Často 587 pro StartTls, 465 pro SslOnConnect nebo 25 pro firemní relay. Správnou dvojici port + Security určí správce pošty.'
+        'Smtp:TimeoutSeconds' = 'Jak dlouho čekat na jednu SMTP síťovou operaci, v sekundách. Povoleno 5 až 300; 30 je běžná výchozí hodnota. Není to interval opakování zpráv.'
+        'Smtp:Security' = @('StartTls = spojení se povinně přepne na šifrované; SslOnConnect = šifruje se od začátku; None = bez šifrování.', 'Auto vybírá režim podle serveru/portu a nezaručuje povinné TLS. Produkce s Basic nebo OAuth2 vyžaduje StartTls či SslOnConnect; průvodce Auto nenabízí.')
+        'Smtp:Authentication' = 'None = relay nevyžaduje přihlášení (musí povolit tento server); Basic = UserName + Password; OAuth2 = token získaný pomocí nastavení OAuth2 a schránka UserName.'
+        'Smtp:UserName' = 'Pro Basic přihlašovací jméno; pro OAuth2 schránka, za kterou se odesílá. Dodá správce pošty. Patří do secrets.json.'
+        'Smtp:Password' = 'Heslo SMTP účtu pro Basic. Pro OAuth2 se používá ClientSecret, nikoli toto heslo. Zadávejte skrytě v průvodci, ne do příkazové řádky.'
+        'Smtp:SenderEmail' = 'E-mail, který příjemce uvidí jako odesílatele, např. parking@firma.cz. SMTP server musí účtu nebo relay dovolit odesílat právě z této adresy.'
+        'Smtp:SenderName' = 'Čitelný název odesílatele v poště, např. Firemní parkování. Nemění přihlášení ani oprávnění poštovní schránky.'
+        'Smtp:OAuth2' = 'Používá se jen při Authentication = OAuth2. Aplikaci a oprávnění pro automatické odesílání musí předem připravit správce pošty/identity.'
+        'Smtp:OAuth2:TokenEndpoint' = 'HTTPS adresa, kde poskytovatel vydává přístupové tokeny. Dodá správce identity. Nejde o SMTP server ani adresu přihlášení uživatele.'
+        'Smtp:OAuth2:ClientId' = 'Identifikátor registrované aplikace od správce identity. Není to e-mail ani heslo. Registrace musí podporovat client_credentials a mít potřebná oprávnění.'
+        'Smtp:OAuth2:ClientSecret' = 'Tajný klíč registrované aplikace. Skutečnou hodnotu ukládejte pouze do secrets.json. Sledujte jeho platnost; po expiraci se token nezíská.'
+        'Smtp:OAuth2:Scope' = 'Rozsah oprávnění, o který aplikace žádá. Přesný text dodá poskytovatel/správce identity; nevymýšlejte ho. Prázdná hodnota parametr scope neposílá.'
+        Geocoding = 'Vyhledání zeměpisných souřadnic podle adresy. Potřebuje dostupný server této služby.'
+        'Geocoding:NominatimBaseUrl' = 'Základní adresa Nominatim serveru, bez /search. Z tohoto serveru aplikace získává souřadnice. Provozovatel musí použití povolit; pro firemní provoz domluvte vhodnou službu a její limity.'
+        'Geocoding:UserAgent' = 'Představení aplikace geokódovací službě, např. D3Parking/1.0 (kontakt: parking@firma.cz). Použijte skutečný kontakt a formát platné HTTP User-Agent hlavičky.'
+        Distance = 'Jak se počítá vzdálenost mezi dvěma body. Nemění cenu rezervace na dynamickou.'
+        'Distance:Provider' = 'Haversine = vzdálenost vzdušnou čarou, funguje bez internetu. Osrm = vzdálenost po silnici, potřebuje dostupný OSRM server; při chybě použije vzdušnou vzdálenost.'
+        'Distance:OsrmBaseUrl' = 'Základní URL směrovací služby OSRM. Použije se jen pro Provider = Osrm. Veřejná ukázková služba není zárukou dostupnosti pro firmu; provoz domluvte s IT.'
+        ForwardedHeaders = 'Důvěra k serverům stojícím před aplikací (proxy). Při přímém přístupu na Kestrel ponechte výchozí hodnoty.'
+        'ForwardedHeaders:TrustAllProxies' = 'false = nevěřit libovolnému prostředníkovi. Ponechte false; true je v produkci odmítnuté, protože cizí požadavek by mohl tvrdit falešnou adresu nebo protokol.'
+        'ForwardedHeaders:KnownProxies' = 'Seznam konkrétních IP důvěryhodných proxy, např. ["10.20.0.10"]. Nejsou to IP uživatelů. [] nepřidává další proxy k výchozí místní důvěře.'
+        'ForwardedHeaders:KnownNetworks' = 'Sítě důvěryhodných proxy v CIDR zápisu, např. ["10.20.0.0/24"]. Rozsah určí IT; všechny jeho adresy dostanou důvěru. [] nepřidává další sítě.'
+        Serilog = 'Záznamy o chodu serveru. Pomáhají zjistit, proč něco nefunguje. V instalaci se navíc automaticky zapisuje do logs mimo release.'
+        'Serilog:MinimumLevel' = 'Nejnižší závažnost, která se zapíše. Podrobnější úroveň znamená více řádků a větší logy.'
+        'Serilog:MinimumLevel:Default' = 'Information = běžné provozní zprávy; Warning = upozornění a chyby; Error = chyby. Debug/Verbose používejte jen dočasně při hledání problému.'
+        'Serilog:MinimumLevel:Override' = 'Výjimky pro konkrétní části systému; omezují velké množství technických zpráv.'
+        'Serilog:MinimumLevel:Override:Microsoft.AspNetCore' = 'Warning zapisuje upozornění/chyby webového frameworku. Information přidá více zpráv o požadavcích.'
+        'Serilog:MinimumLevel:Override:Microsoft.EntityFrameworkCore' = 'Warning omezuje zprávy databázové knihovny. Information může výrazně zvětšit log kvůli SQL operacím.'
+        'Serilog:WriteTo' = 'Kam log posílat. Tento seznam přidává konzoli; souborový log instalace zapíná také kód aplikace.'
+        'Serilog:WriteTo:0:Name' = 'Console = vypisovat do konzole procesu. U Windows služby není běžné okno vidět; čtěte soubory v logs.'
+        'Serilog:WriteTo:0:Args' = 'Doplňující nastavení tohoto výstupu logu. Běžně není nutné měnit.'
+        'Serilog:WriteTo:0:Args:outputTemplate' = 'Vzhled řádku: Timestamp je čas, Level závažnost, Message zpráva, NewLine nový řádek a Exception chyba. Značky ve složených závorkách ponechte.'
+        'Serilog:Enrich' = 'FromLogContext připojuje kontext operace, pokud jej aplikace poskytne. Ponechte pro snazší hledání souvisejících událostí.'
+        Logging = 'Obecné úrovně .NET logování. Hlavní serverové logování zde řídí Serilog; klient v prohlížeči používá sekci Logging.'
+        'Logging:LogLevel' = 'Filtr zpráv podle závažnosti. Více podrobností může znamenat více provozních údajů v logu.'
+        'Logging:LogLevel:Default' = 'Information = běžné zprávy a chyby; Warning = jen upozornění a chyby; Error = jen chyby. Pro obvyklý provoz ponechte Information.'
+        'Logging:LogLevel:Microsoft.AspNetCore' = 'Warning omezuje technické zprávy webového frameworku. U klienta se filtr uplatní pouze, pokud zprávy s touto kategorií vznikají.'
+        WebPush = 'Volitelné oznámení prohlížeče. Potřebuje vlastní dvojici VAPID klíčů, dostupnou push službu, HTTPS a souhlas uživatele. Bez klíčů je vypnuté.'
+        'WebPush:Subject' = 'Kontakt provozovatele pro push službu, obvykle mailto:parking@firma.cz. Není to adresa příjemce oznámení.'
+        'WebPush:PublicKey' = 'Veřejná část páru VAPID. Smí ji dostat prohlížeč; musí patřit ke stejnému PrivateKey.'
+        'WebPush:PrivateKey' = 'Soukromá část páru VAPID. Produkční hodnotu dejte pouze do serverových secrets, nikdy do wwwroot. Při změně páru může být nutné obnovit odběry oznámení.'
+    }
+    if ($Kind -eq 'Development') {
+        $comments['ConnectionStrings:SqlServer'] = 'Jen vývoj na tomto PC: LocalDB musí být nainstalovaná. Database určuje jméno vývojové DB; Trusted_Connection používá Windows účet. TrustServerCertificate=True přeskočí ověření certifikátu a do produkce nepatří.'
+        $comments['Account:BaseUrl'] = 'Vývojová adresa pro odkazy, např. http://localhost:5163. Musí odpovídat portu, na kterém jste aplikaci spustili. localhost funguje jen na tomto počítači.'
+        $comments['IdentitySeed:AdminEmail'] = 'Známý vývojový přihlašovací účet. Pouze pro místní Development, nikdy pro ostrý server.'
+        $comments['IdentitySeed:AdminPassword'] = 'Veřejně známé testovací heslo z repozitáře, nikoli tajemství. Pouze pro Development. V ostré instalaci zadejte vlastní silné heslo průvodcem.'
+        $comments['WebPush:PrivateKey'] = 'Veřejně známý vývojový VAPID klíč. Hodí se jen k místnímu testu; pro produkci vytvořte vlastní pár a soukromou část dejte do secrets.json.'
+    }
+    if ($Kind -eq 'Policy') {
+        $comments = @{
+            ServiceName = 'Jméno Windows služby vytvořené průvodcem, např. D3Parking. Není to doména. Ruční přejmenování zde nepřejmenuje službu ani její účet.'
+            Environment = 'Production = ostrá instalace; Staging = testovací. Musí se shodovat s aplikací a argumenty služby. Pro každé prostředí použijte vlastní instalaci a DB.'
+            PublicUrl = 'Stejná veřejná HTTPS adresa jako Account:BaseUrl, např. https://parking.firma.cz:8443. Kontrola ji musí otevřít i ze serveru; potřebuje DNS, port a důvěryhodný certifikát.'
+            HealthUrl = 'Stejná adresa jako Kestrel:Endpoints:Health:Url, např. http://127.0.0.1:5081. Jen místní kontrola; neotvírat do sítě.'
+            SqlBackupDirectory = 'Úplná cesta NA SQL SERVERU, např. D:\SqlBackups\D3Parking. DBA vytvoří adresář, dá službě SQL právo zápisu a zajistí místo. Není to složka ZIPu na webovém serveru.'
+            ApprovedMigrations = 'Seznam přesných ID migrací schválených po kontrole SQL s DBA. [] znamená žádné výslovné schválení. Průvodce si vyžádá chybějící ID; nepište sem hvězdičku ani libovolné názvy.'
+        }
+    }
+    if ($Kind -eq 'Maintenance') {
+        $comments['ConnectionStrings'] = 'Pouze pro správce a deployment; běžná aplikace tento soubor nesmí číst.'
+        $comments['ConnectionStrings:SqlServer'] = 'SQL účet pro zálohy a migrace, odlišný od účtu aplikace. Server a Database musí být stejné jako v secrets.json; potřebuje db_owner této DB, Encrypt=True a TrustServerCertificate=False. Účet připraví DBA; nepoužívejte sa.'
+    }
+    return $comments
+}
+
+function Add-ConfigurationComments([string]$Json, [ValidateSet('Default','Development','Client','Shared','Secrets','Policy','Maintenance')][string]$Kind) {
+    $comments = Get-ConfigurationComments $Kind
+    $document = [Text.Json.JsonDocument]::Parse($Json)
+    $stream = [IO.MemoryStream]::new()
+    $options = [Text.Json.JsonWriterOptions]::new()
+    $options.Indented = $true
+    $options.Encoder = [Text.Encodings.Web.JavaScriptEncoder]::UnsafeRelaxedJsonEscaping
+    $writer = [Text.Json.Utf8JsonWriter]::new($stream, $options)
+    function Write-CommentedElement([Text.Json.JsonElement]$Element, [string]$Prefix) {
+        switch ($Element.ValueKind) {
+            'Object' {
+                $writer.WriteStartObject()
+                foreach ($property in $Element.EnumerateObject()) {
+                    $key = if ($Prefix) { "$($Prefix):$($property.Name)" } else { $property.Name }
+                    if ($comments.ContainsKey($key)) { foreach ($comment in $comments[$key]) { $writer.WriteCommentValue([string]$comment) } }
+                    $writer.WritePropertyName($property.Name)
+                    Write-CommentedElement $property.Value $key
+                }
+                $writer.WriteEndObject()
+            }
+            'Array' {
+                $writer.WriteStartArray(); $index=0
+                foreach ($item in $Element.EnumerateArray()) { Write-CommentedElement $item "$($Prefix):$index"; $index++ }
+                $writer.WriteEndArray()
+            }
+            default { $Element.WriteTo($writer) }
+        }
+    }
+    try {
+        $writer.WriteCommentValue('D3Parking: komentáře vysvětlují nastavení a aplikace je ignoruje. Měňte hodnoty za dvojtečkou, ne názvy položek. Podrobný návod: docs/CONFIGURATION.md a docs/ADMIN-GUIDE.md.')
+        switch ($Kind) {
+            'Default' { $writer.WriteCommentValue('Výchozí nastavení serveru v release. V produkci měňte config/appsettings.json a secrets/secrets.json mimo releases; tyto sdílené soubory mají přednost. Výchozí localhost, .local a * nejsou hotové produkční nastavení.') }
+            'Development' { $writer.WriteCommentValue('POUZE MÍSTNÍ VÝVOJ. Načítá se v Development a přepisuje základní nastavení. Známé testovací účty a klíče nepřenášejte na ostrý server. V Development se automaticky aplikují migrace databáze.') }
+            'Client' { $writer.WriteCommentValue('VEŘEJNÝ soubor prohlížeče: každý návštěvník si jej může stáhnout. Patří sem jen klientské nastavení; nikdy SQL, hesla, SMTP tajemství ani privátní klíče. Server se nastavuje v D3Parking.Web nebo ve sdílené konfiguraci instalace.') }
+            'Shared' { $writer.WriteCommentValue('Sdílené nastavení této instalace. Hesla patří do secrets/secrets.json, které má vyšší přednost. Průvodce po uložení znovu doplní vestavěné komentáře; vlastní poznámky si uchovejte zvlášť. Pro změnu hodnot použijte Nastavení, potom Řízený restart.') }
+            { $_ -in @('Secrets','Maintenance') } { $writer.WriteCommentValue('NEVEŘEJNÝ soubor: obsahuje hesla v podobě potřebné aplikací/nasazením. Chrání jej oprávnění Windows, nikoli tyto komentáře. Nepatří do Gitu, e-mailu ani wwwroot. Chraňte také jeho zálohy.') }
+            'Policy' { $writer.WriteCommentValue('Pravidla pro správce nasazení. Používejte stejný instalační profil v průvodci. Soubor musí odpovídat Windows službě a config/appsettings.json.') }
+        }
+        if ($Kind -in @('Default','Shared')) {
+            $writer.WriteCommentValue('Entra ID nastavujte v aplikaci v Nastavení → Entra ID. Sekce EntraId zde záměrně chybí: zadaný konfigurační klíč má přednost před DB a uzamkne odpovídající pole v administraci. Přihlašovací ClientSecret a SCIM BearerToken patří do secrets, pokud je IT musí vynutit konfigurací. Uložená tajemství vyžadují trvalou klíčenku data/keys.')
+        }
+        Write-CommentedElement $document.RootElement ''
+        $writer.Flush()
+        # Utf8JsonWriter places separators after comments. Move them back to the value
+        # and render short // lines, so an administrator sees ordinary, readable JSONC.
+        $lines = [Text.Encoding]::UTF8.GetString($stream.ToArray()).Replace("`r`n", "`n").Split("`n")
+        for ($i=0; $i -lt $lines.Length; $i++) {
+            if ($lines[$i] -match '^\s*/\*.*\*/,$') {
+                $previous = $i-1
+                while ($previous -ge 0 -and $lines[$previous] -match '^\s*/\*') { $previous-- }
+                if ($previous -lt 0) { throw 'Invalid generated configuration comment position.' }
+                $lines[$previous] += ','
+                $lines[$i] = $lines[$i].TrimEnd(',')
+            }
+        }
+        $formatted = [Collections.Generic.List[string]]::new()
+        foreach ($line in $lines) {
+            if ($line -match '^(\s*)/\*(.*)\*/$') {
+                $indent=$Matches[1]; $text=$Matches[2]; $wrapped=''
+                foreach ($word in $text.Split(' ')) {
+                    if ($wrapped -and ($indent.Length+$wrapped.Length+$word.Length+4) -gt 110) { $formatted.Add("$indent// $wrapped"); $wrapped='' }
+                    $wrapped = if ($wrapped) { "$wrapped $word" } else { $word }
+                }
+                $formatted.Add("$indent// $wrapped")
+            } else { $formatted.Add($line) }
+        }
+        return $formatted -join "`n"
+    } finally { $writer.Dispose(); $stream.Dispose(); $document.Dispose() }
 }
 
 function Read-Json([string]$Path) { Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json }
