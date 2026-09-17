@@ -5,6 +5,7 @@
 param(
     [string]$Version,
     [string]$OutputPath,
+    [string]$WorkPath,
     [switch]$AllowDirty,
     [switch]$CheckOnly,
     [switch]$NoPause
@@ -16,6 +17,13 @@ $locationPushed = $false
 $transcriptStarted = $false
 $buildLog = $null
 $work = $null
+function New-BuildWorkDirectory([string]$BasePath) {
+    # Never reuse or clear a caller-owned directory. Keep SDK intermediates out of
+    # the source tree: WebAssembly output paths otherwise exceed Windows limits.
+    $null = New-Item -ItemType Directory -Force -Path $BasePath
+    $candidate = Join-Path $BasePath ('d3b-' + [Guid]::NewGuid().ToString('N').Substring(0, 16))
+    (New-Item -ItemType Directory -Path $candidate).FullName
+}
 $pauseAtEnd = -not $NoPause -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and
     -not ([Environment]::GetCommandLineArgs() -contains '-NonInteractive') -and -not $env:CI
 try {
@@ -62,14 +70,17 @@ try {
     $epoch = [long](& git show -s --format=%ct HEAD)
     $stamp = [DateTimeOffset]::FromUnixTimeSeconds($epoch)
     $output = [IO.Path]::GetFullPath($OutputPath)
+    if (-not $WorkPath) { $WorkPath = [IO.Path]::GetTempPath() }
+    $workBase = [IO.Path]::GetFullPath($WorkPath, $PSScriptRoot)
+    if ((Test-Path -LiteralPath $workBase) -and -not (Test-Path -LiteralPath $workBase -PathType Container)) { throw "Pracovní cesta není adresář: $workBase" }
     $null = New-Item -ItemType Directory -Force -Path $output
     $archive = Join-Path $output "D3Parking-$Version-win-x64.zip"
     $wizard = Join-Path $output "D3Parking-$Version.ps1"
     if ((Test-Path -LiteralPath $archive) -or (Test-Path -LiteralPath "$archive.sha256") -or (Test-Path -LiteralPath $wizard) -or (Test-Path -LiteralPath "$wizard.sha256")) { throw "Vydání $Version už ve výstupní složce existuje. Zvolte novou verzi; původní ZIP se nepřepisuje." }
     Write-Host "Verze: $Version | Commit: $commit | Výstup: $output"
+    Write-Host "Základna pracovních souborů: $workBase"
     if ($CheckOnly) { Write-Host '[OK] Předběžná kontrola dokončena. Build neproběhl; síť pro restore a samotné sestavení se ověří až při build kroku.'; return }
-    $work = Join-Path $PSScriptRoot "artifacts/release-build-$([Guid]::NewGuid().ToString('N'))"
-    $null = New-Item -ItemType Directory -Path $work
+    $work = New-BuildWorkDirectory $workBase
     $package = Join-Path $work 'package'
     $app = Join-Path $package 'app'
     $database = Join-Path $package 'database'
@@ -78,7 +89,7 @@ try {
     Write-Host "Podrobný průběh sestavení: $work/publish.log"
     & dotnet publish src/D3Parking.Web/D3Parking.Web.csproj -c Release --self-contained true -r win-x64 --artifacts-path (Join-Path $work 'build') -o $app `
         "-p:Version=$Version" "-p:SourceRevisionId=$commit" '-p:ContinuousIntegrationBuild=true' '-p:RestoreLockedMode=true' '-p:DebugType=None' '-p:DebugSymbols=false' *> (Join-Path $work 'publish.log')
-    if ($LASTEXITCODE -ne 0) { throw "Sestavení dotnet publish selhalo. Přesná chyba je v $work/publish.log" }
+    if ($LASTEXITCODE -ne 0) { throw "Sestavení dotnet publish selhalo. Přesná chyba je v $work/publish.log. Pokud chyba souvisí s délkou cesty, zvolte kratší zapisovatelnou základnu pomocí -WorkPath (např. C:\BuildWork)." }
     # Publish only application outputs. Development credentials must never enter a release.
     $forbidden = Get-ChildItem -LiteralPath $app -Recurse -File | Where-Object { $_.Name -match '(?i)(^appsettings\.(Development|.*local)\.json(\.(br|gz))?$|^secrets(\..*)?\.json$|\.(pfx|p12|pem|key|log|bak|mdf|ldf|cs|csproj)$)' }
     if ($forbidden) { throw "Výstup obsahuje nepovolené vývojové nebo soukromé soubory: $($forbidden.Name -join ', ')" }

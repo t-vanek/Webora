@@ -18,7 +18,7 @@ Pro jinou instalaci použijte `.\D3Parking.ps1 -InstallPath D:\Apps\Parking`. Ce
 ## Co si připravit pro první instalaci
 
 - Veřejnou HTTPS adresu, funkční DNS a PFX s privátním klíčem, heslem a odpovídající doménou v SAN. IT zajistí důvěru CA/intermediate certifikátů v úložišti počítače a přístup ke kontrole odvolání certifikátu.
-- Existující samostatnou SQL databázi a dva různé SQL účty: aplikace s právy čtení/zápisu a nasazení s `db_owner` této databáze. SQL certifikát musí být důvěryhodný; průvodce používá ověřené šifrované připojení.
+- Existující samostatnou SQL databázi a dva různé SQL účty: aplikace s právy čtení/zápisu a nasazení s `db_owner` této databáze **a `CREATE DATABASE` v `master` pro povinné ověření zálohy**. Toto další právo umožňuje také zakládat databáze; přiděluje je DBA podle [CONFIGURATION.md](CONFIGURATION.md). Průvodce práva nepřiděluje. SQL certifikát musí být důvěryhodný.
 - Zálohovací adresář **na SQL Serveru**, do něhož může zapisovat služba SQL Serveru; připraví a kapacitu ověří DBA.
 - SMTP relay, port, odesílatele a způsob přihlášení (None, Basic nebo OAuth2). U OAuth2 také token endpoint, Client ID, Client secret a případný scope.
 - E-mail a vlastní silné heslo prvního správce.
@@ -35,7 +35,7 @@ Následující příklad je zadání pro IT, ne hotové údaje vaší firmy. Hes
 | Veřejná adresa | `https://parking.firma.cz:8443`; stejnou adresu použijete v prohlížeči. | Správce DNS/sítě |
 | HTTPS PFX a jeho heslo | Certifikát pro `parking.firma.cz` s privátním klíčem; SAN je seznam jmen webů, pro které platí. | Správce certifikátů |
 | SQL server a DB | `sql01.firma.cz,1433` a `D3Parking`; nezadávejte sem URL s `https://`. | DBA = správce databází |
-| Dva SQL účty | Např. `parking_app` pro aplikaci a `parking_deploy` pro zálohy/migrace; každý má vlastní heslo a odlišná práva. | DBA |
+| Dva SQL účty | Např. `parking_app` pro aplikaci a `parking_deploy` pro zálohy/migrace; deployment potřebuje `db_owner` cílové DB a `CREATE DATABASE` v `master` pro `RESTORE VERIFYONLY`. Každý má vlastní heslo. | DBA |
 | SQL zálohovací složka | Např. `D:\SqlBackups\D3Parking` **na SQL serveru**. Oprávnění zápisu potřebuje služba SQL Serveru. | DBA |
 | SMTP | Např. `smtp.firma.cz`, port 587, StartTls, Basic; správce musí potvrdit skutečnou kombinaci a povolit odesílatele. | Správce pošty |
 | Odesílatel a přihlášení SMTP | Např. `parking@firma.cz`; adresa odesílatele a přihlašovací jméno nemusí být stejné. | Správce pošty |
@@ -110,6 +110,8 @@ Migrace vyžadující review se automaticky neschválí. Průvodce ukáže cestu
 Protokoly jsou v `C:\D3Parking\logs`; stav v `state\installation.json`, žurnál deploymentu v `state\in-progress.json`, žurnál nastavení v `state\config-in-progress.json`. Zálohy nastavení v `backups` jsou dostupné administrátorům/SYSTEM a **obsahují tajemství**. Export diagnostiky záměrně obsahuje jen vybrané údaje; aplikační logy ani celé konfigurační zálohy neposílejte bez posouzení jejich obsahu.
 
 Při neúspěšném startu beze změny schématu se nástroj pokusí vrátit původní aplikaci. Pokud se DB mohla změnit nebo není znám výsledek migrace, aplikaci zastaví a zachová žurnál. Starší binárky nad změněným schématem nespustí.
+
+Pokud se první instalace přerušila po dokončení migrací, ale před založením správce, použijte **Obnova nasazení / Recover** se stejnou cílovou verzí. Aktuální aplikace dovolí dokončit bootstrap pouze při úplném odpovídajícím schématu, bez jediného uživatele, s platnými údaji prvního správce a zachovaným žurnálem první instalace bez dokončeného `installation.json`. Obnova znovu nemigruje. Při částečných migracích, chybějícím žurnálu nebo existujícím uživateli je nutný zásah DBA; soubory stavu nemažte kvůli obejití kontroly. Starší vydání bez této opravy bootstrapu tuto možnost nemají.
 
 ### Obnova aplikace / databáze
 

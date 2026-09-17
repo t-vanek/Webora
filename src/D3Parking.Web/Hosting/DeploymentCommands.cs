@@ -59,8 +59,8 @@ public static class DeploymentCommands
             // Open explicitly: never let Migrate create a missing/mistyped production database.
             await db.Database.OpenConnectionAsync(ct);
             var schema = await DeploymentDatabase.InspectAsync(db, ct);
-            await CheckPermissionsAsync(maintenanceConnection, true, ct);
-            await CheckPermissionsAsync(runtimeConnection, false, ct);
+            await DeploymentSqlPermissions.CheckAsync(maintenanceConnection, true, ct);
+            await DeploymentSqlPermissions.CheckAsync(runtimeConnection, false, ct);
             if (schema.Applied.Length > 0)
             {
                 var hasAdmin = await (from user in db.Users
@@ -68,7 +68,10 @@ public static class DeploymentCommands
                     join role in db.Roles on membership.RoleId equals role.Id
                     where user.Status == AccountStatus.Active && role.Name == Roles.Administrator
                     select user.Id).AnyAsync(ct);
-                if (!hasAdmin) throw new InvalidOperationException("No active administrator exists. Recover administrator access before deploying.");
+                if (!hasAdmin && !(command == "preflight"
+                    && builder.Configuration.GetValue<bool>("deployment-recovery")
+                    && await DeploymentBootstrapRecovery.IsEligibleAsync(db, builder.Configuration, root, builder.Environment.EnvironmentName, ct)))
+                    throw new InvalidOperationException("No active administrator exists. Recover administrator access before deploying.");
             }
             else if (string.IsNullOrWhiteSpace(builder.Configuration["IdentitySeed:AdminEmail"]))
                 throw new InvalidOperationException("First installation requires IdentitySeed:AdminEmail and AdminPassword.");
@@ -133,18 +136,6 @@ public static class DeploymentCommands
                 sqlError = (ex as SqlException)?.Number, backup, databaseMayHaveChanged }, reportPath);
             return 1;
         }
-    }
-
-    private static async Task CheckPermissionsAsync(string connectionString, bool maintenance, CancellationToken ct)
-    {
-        await using var sql = new SqlConnection(connectionString);
-        await sql.OpenAsync(ct);
-        await using var command = sql.CreateCommand();
-        command.CommandText = maintenance
-            ? "SELECT CASE WHEN IS_MEMBER('db_owner')=1 THEN 1 ELSE 0 END"
-            : "SELECT CASE WHEN HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'SELECT')=1 AND HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'INSERT')=1 AND HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'UPDATE')=1 AND HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'DELETE')=1 THEN 1 ELSE 0 END";
-        if (Convert.ToInt32(await command.ExecuteScalarAsync(ct)) != 1)
-            throw new InvalidOperationException(maintenance ? "Deployment SQL user needs db_owner on this dedicated database." : "Application SQL user needs SELECT, INSERT, UPDATE and DELETE on this database.");
     }
 
     private static async Task CheckSmtpAsync(IConfiguration config, CancellationToken ct)

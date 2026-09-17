@@ -142,7 +142,7 @@ function Get-ConfigurationComments([string]$Kind) {
     }
     if ($Kind -eq 'Maintenance') {
         $comments['ConnectionStrings'] = 'Pouze pro správce a deployment; běžná aplikace tento soubor nesmí číst.'
-        $comments['ConnectionStrings:SqlServer'] = 'SQL účet pro zálohy a migrace, odlišný od účtu aplikace. Server a Database musí být stejné jako v secrets.json; potřebuje db_owner této DB, Encrypt=True a TrustServerCertificate=False. Účet připraví DBA; nepoužívejte sa.'
+        $comments['ConnectionStrings:SqlServer'] = 'SQL účet pro zálohy a migrace, odlišný od účtu aplikace. Server a Database musí být stejné jako v secrets.json; potřebuje db_owner této DB a CREATE DATABASE v master pro RESTORE VERIFYONLY, Encrypt=True a TrustServerCertificate=False. CREATE DATABASE dovoluje také zakládat databáze; přiděluje DBA, průvodce práva nemění. Nepoužívejte sa.'
     }
     return $comments
 }
@@ -294,7 +294,7 @@ function Test-ReleaseDirectory([string]$Path) {
     $manifest
 }
 
-function Invoke-ReleaseCommand([string]$AppPath, [string]$Root, [string]$Environment, [string]$Command, [string]$ReportPath, [string]$ExpectedSchema = '') {
+function Invoke-ReleaseCommand([string]$AppPath, [string]$Root, [string]$Environment, [string]$Command, [string]$ReportPath, [string]$ExpectedSchema = '', [switch]$BootstrapRecovery) {
     if (Test-Path -LiteralPath $ReportPath) { throw 'Maintenance report already exists; use a new report path.' }
     $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $AppPath 'D3Parking.Web.exe'))
     $start.WorkingDirectory = $AppPath
@@ -304,6 +304,7 @@ function Invoke-ReleaseCommand([string]$AppPath, [string]$Root, [string]$Environ
     $start.RedirectStandardError = $true
     foreach ($value in @('--contentRoot', $AppPath, '--environment', $Environment, '--Deployment:InstallPath', $Root,
         '--deployment-command', $Command, '--deployment-report', $ReportPath, '--deployment-expected-schema', $ExpectedSchema)) { $start.ArgumentList.Add($value) }
+    if ($BootstrapRecovery) { $start.ArgumentList.Add('--deployment-recovery'); $start.ArgumentList.Add('true') }
     $process = [Diagnostics.Process]::Start($start)
     try {
         # Drain both streams concurrently; a full stderr pipe must not deadlock maintenance.
@@ -325,7 +326,11 @@ function Invoke-ReleaseCommand([string]$AppPath, [string]$Root, [string]$Environ
 
 function Get-ServiceCommand([string]$AppPath, [string]$Root, [string]$Environment) {
     foreach ($value in @($AppPath, $Root, $Environment)) { if ($value.Contains('"')) { throw 'Quotes are not allowed in installation paths.' } }
-    '"{0}" --contentRoot "{1}" --Deployment:InstallPath "{2}" --environment "{3}"' -f (Join-Path $AppPath 'D3Parking.Web.exe'), $AppPath, $Root, $Environment
+    # Keep equivalent directory spellings identical when comparing an existing service command.
+    $AppPath = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($AppPath))
+    $Root = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($Root))
+    # A drive root still ends in a backslash. Double trailing backslashes before a closing quote.
+    '"{0}" --contentRoot "{1}" --Deployment:InstallPath "{2}" --environment "{3}"' -f (Join-Path $AppPath 'D3Parking.Web.exe'), ($AppPath -replace '(\\+)$', '$1$1'), ($Root -replace '(\\+)$', '$1$1'), $Environment
 }
 
 function Set-ReleaseService([string]$Name, [string]$BinaryPath) {
@@ -621,7 +626,7 @@ $report = Join-Path $root "logs/recover-$([Guid]::NewGuid().ToString('N')).json"
 try {
     Assert-ConfigurationReady $root
     if ((Get-Service $policy.ServiceName).Status -ne 'Stopped') { throw 'Recovery requires a stopped service. Use Action Rollback for a running installation.' }
-    $check = Invoke-ReleaseCommand (Join-Path $target 'app') $root $policy.Environment preflight $report
+    $check = Invoke-ReleaseCommand (Join-Path $target 'app') $root $policy.Environment preflight $report -BootstrapRecovery
     if (-not $check.success) { throw "Recovery preflight failed: $($check.reason). Podrobnosti: $report" }
     if ($check.schema.pending.Count -ne 0) { throw 'Database schema does not exactly match the selected release. Have the DBA restore the correct recovery point first.' }
     if ($check.release.version -ne $manifest.version -or $check.release.commit -ne $manifest.commit -or $check.schema.target -ne $manifest.schema) { throw 'Release identity mismatch.' }
@@ -630,7 +635,14 @@ try {
     Assert-ConfigurationReady $root
     if ($CheckOnly) { return }
     if (-not (Confirm-Operation 'Spustit zvolený release nad databází ověřenou po obnově?' -Yes:$Yes)) { return }
-    Write-JsonAtomic @{ target = $Version; phase = 'recovery start'; log = $report } (Join-Path $root 'state/in-progress.json')
+    # Preserve first-install provenance across another interruption before identity seeding.
+    $journalPath = Join-Path $root 'state/in-progress.json'
+    $recoveryJournal = @{ target = $Version; phase = 'recovery start'; log = $report }
+    if (Test-Path -LiteralPath $journalPath) {
+        $priorJournal = Read-Map $journalPath
+        if ($priorJournal.Contains('previous')) { $recoveryJournal.previous = $priorJournal.previous }
+    }
+    Write-JsonAtomic $recoveryJournal $journalPath
     & sc.exe config $policy.ServiceName 'start=' 'demand' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Could not suspend automatic service startup.' }
     Set-ReleaseService $policy.ServiceName (Get-ServiceCommand (Join-Path $target 'app') $root $policy.Environment)
@@ -943,7 +955,7 @@ function Invoke-ConfigurationWizard([string]$Root, [string]$AppPath, [switch]$Ce
             $database = Read-Value 'Databáze' $(if ($runtimeSql.Database) { $runtimeSql.Database } else { 'D3Parking' }) { param($v) $v -and $v -notin @('master','model','msdb','tempdb') } 'Použijte samostatnou aplikační DB.'
             $runtimeUser = Read-Value 'SQL účet aplikace (čtení a zápis)' $runtimeSql.User
             $runtimePassword = Read-Secret 'Heslo SQL účtu aplikace' $runtimeSql.Password
-            $deployUser = Read-Value 'SQL účet nasazení (db_owner této DB)' $deploySql.User
+            $deployUser = Read-Value 'SQL účet nasazení (db_owner této DB + CREATE DATABASE v master)' $deploySql.User
             if ($runtimeUser -eq $deployUser) { throw 'D3PARKING: Pro aplikaci a nasazení použijte dva odlišné SQL účty.' }
             $deployPassword = Read-Secret 'Heslo SQL účtu nasazení' $deploySql.Password
             Set-Setting $secret 'ConnectionStrings:SqlServer' (New-SqlConnection $server $database $runtimeUser $runtimePassword)

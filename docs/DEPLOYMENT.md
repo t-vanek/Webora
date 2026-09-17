@@ -16,10 +16,12 @@ Windows x64 se službou `D3Parking` (název lze změnit při inicializaci), Powe
 
    Nebo ji zadejte přímo: `.\build-release.ps1 -Version 1.2.3`. Použijte dosud nevydanou verzi.
 
-4. Výstup je `artifacts/releases/D3Parking-1.2.3-win-x64.zip`, stejnojmenný `.zip.sha256`, samostatný `D3Parking-1.2.3.ps1` a jeho `.sha256`. Každý běh vypíše trvalý protokol `artifacts/build-release-<čas>-<id>.log`; pokud adresář není zapisovatelný, zkusí `%TEMP%\D3Parking-build-logs`. Podrobný publish log je v oznámeném `artifacts/release-build-<id>/publish.log`.
+4. Výstup je `artifacts/releases/D3Parking-1.2.3-win-x64.zip`, stejnojmenný `.zip.sha256`, samostatný `D3Parking-1.2.3.ps1` a jeho `.sha256`. Každý běh vypíše trvalý protokol `artifacts/build-release-<čas>-<id>.log`; pokud adresář není zapisovatelný, zkusí `%TEMP%\D3Parking-build-logs`. Mezivýsledky a podrobný `publish.log` vznikají v krátkém unikátním adresáři `%TEMP%\d3b-<id>`, jehož úplnou cestu builder vypíše. Pracovní adresář ponechá i při chybě pro diagnostiku; po ověření výsledku jej lze smazat.
 5. Předejte jeden provozní skript, ZIP, kontrolní součty a tento návod správci. Checksum doručte důvěryhodným kanálem; součet sám není digitální podpis vydavatele. Verzi nikdy nepřepisujte.
 
 `-AllowDirty` slouží pouze k místnímu ověření rozpracované změny: metadata označí `.dirty` a `dirty=true`; deployment do Staging/Production jej odmítne. Skript neprovádí commit ani neoznačuje testy za splněné. Před ostrým vydáním je nutný čistý Git commit.
+
+`-OutputPath` mění jen umístění hotového vydání. Mezivýsledky jsou mimo klon, aby dlouhá cesta ke zdrojům neprodlužovala cesty generované SDK. Pokud je i váš `%TEMP%` příliš dlouhý nebo nemá dost místa, zadejte krátkou zapisovatelnou základnu, například `.\build-release.ps1 -Version 1.2.3 -WorkPath C:\BuildWork`. Builder v ní vždy vytvoří nový unikátní podadresář; existující pracovní soubory nepřepisuje ani nemaže. Relativní `-WorkPath` se vyhodnocuje vůči kořeni repozitáře. Změna systémového nastavení dlouhých cest ani administrátorská oprávnění nejsou potřeba.
 
 ### Když se okno builderu rychle zavře
 

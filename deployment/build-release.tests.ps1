@@ -14,6 +14,7 @@ function Check-Startup([string]$Executable, [string[]]$Arguments, [int]$ExitCode
     $log = $logLine[0].Substring('Protokol k dohledání chyby: '.Length).Trim()
     if (-not (Test-Path -LiteralPath $log) -or -not (Get-Content -LiteralPath $log -Raw).Contains($ExpectedText)) { throw 'Builder log is missing the failure/check result.' }
     $script:passed++
+    $script:lastStartupOutput = $output
     Write-Host "[OK] $ExpectedText"
 }
 try {
@@ -28,6 +29,31 @@ try {
     Check-Startup $pwsh @('-Version','1.2.3','-OutputPath',$occupied,'-CheckOnly','-AllowDirty') 1 'Vydání 1.2.3 už'
     Check-Startup $pwsh @('-Version','1.2.4','-OutputPath',$testRoot,'-CheckOnly','-AllowDirty') 0 'Předběžná kontrola dokončena'
     if (Test-Path -LiteralPath (Join-Path $testRoot 'D3Parking-1.2.4-win-x64.zip')) { throw 'CheckOnly unexpectedly published a release.' }
+    if (-not $lastStartupOutput.Contains("Základna pracovních souborů: $([IO.Path]::GetFullPath([IO.Path]::GetTempPath()))")) { throw 'Default intermediates are not rooted in the system temporary directory.' }
+    $workBase = Join-Path $testRoot 'pracovní soubory'
+    Check-Startup $pwsh @('-Version','1.2.4','-OutputPath',$testRoot,'-WorkPath',$workBase,'-CheckOnly','-AllowDirty') 0 "Základna pracovních souborů: $workBase"
+    if (Test-Path -LiteralPath $workBase) { throw 'CheckOnly unexpectedly created build intermediates.' }
+    $occupiedWork = Join-Path $testRoot 'work-is-a-file'
+    Set-Content -LiteralPath $occupiedWork -Value 'preserve this file' -NoNewline
+    Check-Startup $pwsh @('-Version','1.2.4','-OutputPath',$testRoot,'-WorkPath',$occupiedWork,'-CheckOnly','-AllowDirty') 1 'Pracovní cesta není adresář'
+    if ((Get-Content -LiteralPath $occupiedWork -Raw) -ne 'preserve this file') { throw 'WorkPath replaced an existing file.' }
+
+    # Load the actual allocator without running the builder's publish entry point.
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($builder, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw "Builder parse error: $parseErrors" }
+    $allocator = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'New-BuildWorkDirectory' }, $false)
+    if (-not $allocator) { throw 'Builder work-directory allocator is missing.' }
+    . ([scriptblock]::Create($allocator.Extent.Text))
+    $firstWork = New-BuildWorkDirectory $workBase
+    $sentinel = Join-Path $firstWork 'publish.log'
+    Set-Content -LiteralPath $sentinel -Value 'previous failed build' -NoNewline
+    $secondWork = New-BuildWorkDirectory $workBase
+    if ($firstWork -eq $secondWork -or -not (Test-Path -LiteralPath $secondWork -PathType Container)) { throw 'Repeated build reused an existing working directory.' }
+    if ((Get-Content -LiteralPath $sentinel -Raw) -ne 'previous failed build') { throw 'Repeated build changed previous diagnostic files.' }
+    if ((Split-Path $firstWork -Parent) -ne $workBase -or (Split-Path $secondWork -Leaf).Length -gt 20) { throw 'Build intermediates do not use a short child of WorkPath.' }
+    $passed++
+    Write-Host '[OK] Krátké unikátní pracovní adresáře zachovávají předchozí mezivýsledky a logy.'
     Write-Host "Builder startup checks passed: $passed"
 } finally {
     $safe = Assert-ChildPath ([IO.Path]::GetTempPath()) $testRoot

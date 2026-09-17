@@ -82,6 +82,24 @@ public class DeploymentCommandTests
             Assert.That(upgraded.GetProperty("databaseMayHaveChanged").GetBoolean(), Is.True);
             Assert.That(new FileInfo(upgraded.GetProperty("backup").GetString()!).Length, Is.GreaterThan(0));
             await DeploymentDatabase.RequireCurrentSchemaAsync(db, CancellationToken.None);
+
+            // Model a crash after migration, before the service creates its first administrator.
+            Assert.That(await db.Users.CountAsync(), Is.Zero);
+            var ordinaryRetry = await Run("preflight", 1);
+            Assert.That(ordinaryRetry.GetProperty("reason").GetString(), Does.Contain("No active administrator"));
+            Directory.CreateDirectory(Path.Combine(root, "state"));
+            File.WriteAllText(Path.Combine(root, "state", "in-progress.json"), JsonSerializer.Serialize(new
+            { previous = (string?)null, target = ReleaseInformation.Read("Development").Version, phase = "starting target" }));
+            builder.Configuration["deployment-recovery"] = "true";
+            await Run("preflight", 0);
+            await Run("preflight", 0);
+            Assert.That(await db.Users.CountAsync(), Is.Zero, "Recovery admission must not create users or start workers.");
+            var upgradeRetry = await Run("upgrade", 1);
+            Assert.That(upgradeRetry.GetProperty("reason").GetString(), Does.Contain("No active administrator"),
+                "Only recovery preflight may allow an unfinished bootstrap, never an upgrade.");
+            File.WriteAllText(Path.Combine(root, "state", "installation.json"), "{}");
+            var completedInstall = await Run("preflight", 1);
+            Assert.That(completedInstall.GetProperty("reason").GetString(), Does.Contain("No active administrator"));
         }
         finally
         {

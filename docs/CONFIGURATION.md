@@ -96,7 +96,7 @@ Kontrola průvodce ověří spojení a přihlášení, **ne skutečné doručen�
 |---|---|
 | Deployment:Environment | Production/Staging, shodně se službou a deployment.json. |
 | ConnectionStrings:SqlServer | V secrets.json: samostatná existující DB, SQL login, Encrypt=True, TrustServerCertificate=False. Produkce odmítá LocalDB, systémové DB a integrované ověření. |
-| secrets/deployment.json → ConnectionStrings:SqlServer | Jiný účet pro backup/migrace, stejný server a DB, db_owner jen této DB. |
+| secrets/deployment.json → ConnectionStrings:SqlServer | Jiný účet pro backup/migrace, stejný server a DB, db_owner cílové DB a CREATE DATABASE v master pro RESTORE VERIFYONLY. |
 | Account:BaseUrl | Veřejný HTTPS origin, např. https://parking.company.cz:8443; též odkazy v e-mailech. Bez podadresáře. |
 | AllowedHosts | Veřejný hostname a 127.0.0.1, oddělené středníkem, bez wildcard. |
 | Kestrel:Endpoints:Public:Url | HTTPS listener, např. https://0.0.0.0:8443. |
@@ -112,7 +112,20 @@ Kontrola průvodce ověří spojení a přihlášení, **ne skutečné doručen�
 
 `config/deployment.json`: ServiceName, Environment, HealthUrl, PublicUrl, SqlBackupDirectory a pole ApprovedMigrations. Adresy a prostředí se musí shodovat s appsettings. **SqlBackupDirectory je cesta na SQL Serveru**, ne na webovém serveru. DBA adresář předem vytvoří a povolí zápis SQL službě. COPY_ONLY backup s CHECKSUM a RESTORE VERIFYONLY neprokazuje skutečně vyzkoušený restore.
 
-Runtime SQL účet potřebuje SELECT/INSERT/UPDATE/DELETE na DB. Deployment účet db_owner jen této DB. Nepoužívejte sa/serverové sysadmin. DB, účty a SQL certifikát připravuje DBA jednorázově. Integrované ověření není automatizovaným profilem podporované: přístup pod správcem by neověřil identitu služby.
+Runtime SQL účet potřebuje SELECT/INSERT/UPDATE/DELETE na DB. Deployment účet potřebuje `db_owner` cílové DB a navíc efektivní `CREATE DATABASE` v `master`: samotné `db_owner` dovolí zálohu, ale nestačí na povinné `RESTORE VERIFYONLY`. Preflight obě oprávnění ověří před odstávkou. Toto další oprávnění umožňuje také zakládat databáze; nejde tedy o účet omezený výhradně na cílovou DB. Nepoužívejte `sa`, `sysadmin` ani zbytečně roli `dbcreator`. Průvodce žádná oprávnění automaticky nepřiděluje.
+
+DBA může pro existující deployment login doplnit následující oprávnění. `parking_deploy` nahraďte skutečným názvem; pokud má login v `master` již uživatele pod jiným jménem, použijte jeho existující mapování a `CREATE USER` vynechte:
+
+```sql
+USE master;
+-- Pouze pokud toto mapování uživatele na login ještě neexistuje:
+CREATE USER [parking_deploy] FOR LOGIN [parking_deploy];
+GRANT CREATE DATABASE TO [parking_deploy];
+```
+
+Tento grant nepatří účtu aplikace. Pokud provozní politika takové oprávnění deployment účtu nepovoluje, současný automatizovaný profil nelze použít bez samostatného DBA řešení ověření záloh; nevypínejte `VERIFYONLY`. Po změně práv zopakujte preflight a ověřte zálohu na Staging. Požadavek popisuje také [Microsoft](https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/security/create-database-permission-logged).
+
+DB, účty a SQL certifikát připravuje DBA jednorázově. Integrované ověření není automatizovaným profilem podporované: přístup pod správcem by neověřil identitu služby.
 
 V průvodci zadáváte SQL server, název DB, jména obou účtů a hesla zvlášť. Celý připojovací řetězec sestaví sám, včetně správného zápisu hesel obsahujících uvozovky nebo středníky. `Encrypt=True` zapíná šifrované spojení a `TrustServerCertificate=False` vyžaduje ověření certifikátu SQL serveru. Chybu certifikátu řešte s DBA/IT; přepsání druhé hodnoty na True by ověření odstranilo a produkční kontrola to odmítne.
 

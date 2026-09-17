@@ -36,6 +36,34 @@ try {
     $passed++; Write-Host '[OK] All deployment scripts parse'
     Expect-Failure { Assert-ChildPath $testRoot (Join-Path $testRoot '../outside') } 'Parent traversal rejected'
     Expect-Failure { Get-ServiceCommand 'C:\bad"path' 'C:\safe' Production } 'Service command quoting rejected'
+    Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class D3ParkingCommandLineTest {
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr CommandLineToArgvW(string command, out int count);
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr LocalFree(IntPtr memory);
+    public static string[] Parse(string command) {
+        int count;
+        IntPtr memory = CommandLineToArgvW(command, out count);
+        if (memory == IntPtr.Zero) throw new System.ComponentModel.Win32Exception();
+        try {
+            var arguments = new string[count];
+            for (int i = 0; i < count; i++) arguments[i] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(memory, i * IntPtr.Size));
+            return arguments;
+        } finally { LocalFree(memory); }
+    }
+}
+'@
+    $serviceApp = 'C:\D3 Parking\Žluťoučký\releases\1.0.0\app'
+    foreach ($serviceRoot in @('C:\D3 Parking\Žluťoučký', 'C:\D3 Parking\Žluťoučký\', 'C:\')) {
+        $command = Get-ServiceCommand ($serviceApp + '\') $serviceRoot Production
+        $actual = [D3ParkingCommandLineTest]::Parse($command)
+        $expected = @((Join-Path $serviceApp 'D3Parking.Web.exe'), '--contentRoot', $serviceApp, '--Deployment:InstallPath', [IO.Path]::TrimEndingDirectorySeparator($serviceRoot), '--environment', 'Production')
+        Assert-Test (($actual -join [char]0) -ceq ($expected -join [char]0)) "Native service argument parsing preserves spaces, Unicode and trailing separators: $serviceRoot"
+    }
+    Assert-Test ((Get-ServiceCommand $serviceApp 'C:\D3 Parking\Žluťoučký\' Production) -ceq (Get-ServiceCommand $serviceApp 'C:\D3 Parking\Žluťoučký' Production)) 'Equivalent installation paths keep the existing service command unchanged'
     $archive = Join-Path $testRoot 'bad.zip'
     New-TestZip $archive @('../escaped.txt')
     Expect-Failure { Expand-VerifiedRelease $archive (Join-Path $testRoot 'stage-a') ('0' * 64) } 'Invalid ZIP checksum rejected before extraction'
@@ -133,7 +161,8 @@ try {
         function Wait-ReleaseHealthy([string]$Url,$Manifest,[string]$Environment) {
             if ($script:scenario -in @('start-fails','schema-changed') -and $Manifest.version -eq '1.1.0') { throw 'Health check failed (fixture)' }
         }
-        function Invoke-ReleaseCommand([string]$AppPath,[string]$Root,[string]$Environment,[string]$Command,[string]$ReportPath,[string]$ExpectedSchema='') {
+        function Invoke-ReleaseCommand([string]$AppPath,[string]$Root,[string]$Environment,[string]$Command,[string]$ReportPath,[string]$ExpectedSchema='', [switch]$BootstrapRecovery) {
+            $script:lastRecoveryFlag = [bool]$BootstrapRecovery
             $manifest = Read-Json (Join-Path (Split-Path $AppPath) 'release.json')
             if ($Command -eq 'upgrade') {
                 if ($script:startupMode -ne 'demand') { throw 'Automatic startup must be disabled before database maintenance.' }
@@ -189,6 +218,27 @@ try {
             } else {
                 Assert-Test ($journalExists -and -not $script:lastBinary.Contains('1.0.0') -and $script:startupMode -eq 'demand') "Older release never started automatically or manually when database changed or result unknown: $failure"
             }
+        }
+        New-DeploymentFixture
+        & {
+            function Get-Service { [CmdletBinding()]param([string]$Name); return [pscustomobject]@{Status='Stopped'} }
+            function Start-Service {
+                [CmdletBinding()]param([string]$Name)
+                $script:startCount++
+                if ($script:startCount -eq 1) { throw 'Injected first recovery startup failure' }
+            }
+            # Only this newly created fixture state is removed to model an unfinished first install.
+            Remove-Item -LiteralPath (Join-Path $script:fixtureRoot 'state/installation.json')
+            Write-JsonAtomic @{previous=$null;target='1.0.0';phase='starting target'} (Join-Path $script:fixtureRoot 'state/in-progress.json')
+            $script:lastRecoveryFlag=$false
+            Invoke-Recovery -Version '1.0.0' -InstallPath ($script:fixtureRoot + '\') -CheckOnly
+            Assert-Test ($script:lastRecoveryFlag -and $script:startCount -eq 0 -and (Read-Json (Join-Path $script:fixtureRoot 'state/in-progress.json')).phase -eq 'starting target') 'Recovery CheckOnly requests bootstrap validation without starting or changing the journal'
+            Expect-Failure { Invoke-Recovery -Version '1.0.0' -InstallPath ($script:fixtureRoot + '\') -Yes } 'Interrupted recovery startup preserves a retryable journal'
+            $retryJournal = Read-Map (Join-Path $script:fixtureRoot 'state/in-progress.json')
+            Assert-Test ($retryJournal.Contains('previous') -and $null -eq $retryJournal.previous -and $retryJournal.phase -eq 'recovery start') 'Repeated recovery retains explicit first-install provenance'
+            Invoke-Recovery -Version '1.0.0' -InstallPath ($script:fixtureRoot + '\') -Yes
+            Assert-Test ($script:startCount -eq 2 -and (Read-Json (Join-Path $script:fixtureRoot 'state/installation.json')).current -eq '1.0.0' -and -not (Test-Path (Join-Path $script:fixtureRoot 'state/in-progress.json'))) 'Recovery completes after a failed attempt and closes its journal'
+            Assert-Test ($script:lastBinary -eq (Get-ServiceCommand (Join-Path $script:fixtureRoot 'releases/1.0.0/app') $script:fixtureRoot Production)) 'Recovery trailing separator does not alter the installed service command'
         }
         New-DeploymentFixture
         Write-JsonAtomic @{phase='interrupted'} (Join-Path $script:fixtureRoot 'state/config-in-progress.json')
