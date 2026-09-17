@@ -29,7 +29,7 @@ public interface ILotDashboardService
     /// released resident days), the blocked-spot reports against it, and its utilization. Null when
     /// the spot does not exist.
     /// </summary>
-    Task<SpotDetailDto?> GetSpotDetailAsync(Guid spotId, DateOnly from, int days, CancellationToken cancellationToken = default);
+    Task<SpotDetailDto?> GetSpotDetailAsync(Guid spotId, DateOnly from, int days, Guid actingUserId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Utilization per spot over [from, to] (busiest first) and the weekday × hour demand map, so the
@@ -42,7 +42,7 @@ public interface ILotDashboardService
     /// Active non-visitor spots free for the whole window of the given reservation, so the manager
     /// can move it somewhere real. Empty when the reservation cannot be moved (or does not exist).
     /// </summary>
-    Task<IReadOnlyList<MoveTargetDto>> GetMoveTargetsAsync(Guid reservationId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MoveTargetDto>> GetMoveTargetsAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The manager calls a booking off on the holder's behalf — the lot disagreed with the system and
@@ -55,7 +55,9 @@ public interface ILotDashboardService
     /// <summary>
     /// Moves a booking to another spot for the same window, keeping its price, status and history —
     /// the booking is re-pointed, not re-made, so nothing moves in the wallet. Fails when the target
-    /// is not free for the window. The holder is notified and the override is audited.
+    /// is not free for the window. A resident target requires explicit confirmation. The holder and
+    /// residents allocated the affected days are notified and the override is audited.
     /// </summary>
-    Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId, CancellationToken cancellationToken = default);
+    Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
+        bool confirmResidentImpact = false, CancellationToken cancellationToken = default);
 }

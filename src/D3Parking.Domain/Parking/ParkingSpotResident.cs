@@ -35,6 +35,8 @@ public sealed class ParkingSpotResident : Entity
     {
         AssignedAtUtc = at;
         RemovedAtUtc = null;
+        // The old membership's horizon says nothing about this new allocation of days.
+        PlanAppliedThrough = null;
     }
 
     public void Remove(DateTimeOffset at) => RemovedAtUtc = at;

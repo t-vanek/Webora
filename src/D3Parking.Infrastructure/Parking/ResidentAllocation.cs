@@ -24,12 +24,9 @@ internal static class ResidentAllocation
         D3ParkingDbContext dbContext, ParkingSpot spot,
         DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken)
     {
-        var residents = await dbContext.ParkingSpotResidents.AsNoTracking()
-            .Where(r => r.SpotId == spot.Id && r.RemovedAtUtc == null)
-            .OrderBy(r => r.AssignedAtUtc)
-            .ThenBy(r => r.Id)
-            .Select(r => new { r.Id, r.UserId })
-            .ToListAsync(cancellationToken);
+        var residents = (await MembersAsync(dbContext, spot.Id, cancellationToken))
+            .Where(r => r.RemovedAtUtc == null)
+            .OrderBy(r => r.AssignedAtUtc).ThenBy(r => r.Id).ToList();
 
         if (residents.Count == 0)
         {
@@ -38,33 +35,44 @@ internal static class ResidentAllocation
                 : new Dictionary<DateOnly, Guid>();
         }
 
-        if (residents.Count == 1)
-        {
-            return AllDates(fromDate, toDate).ToDictionary(date => date, _ => residents[0].UserId);
-        }
-
         var residentById = residents.ToDictionary(r => r.Id, r => r.UserId);
-        var explicitAssignments = await dbContext.SpotDayAssignments.AsNoTracking()
+        await dbContext.SpotDayAssignments
             .Where(a => a.SpotId == spot.Id && a.Date >= fromDate && a.Date <= toDate)
-            .Select(a => new { a.Date, a.ResidentId })
-            .ToListAsync(cancellationToken);
-        var overrides = explicitAssignments
-            .Where(a => residentById.ContainsKey(a.ResidentId))
-            .ToDictionary(a => a.Date, a => residentById[a.ResidentId]);
+            .LoadAsync(cancellationToken);
+        var overrides = dbContext.SpotDayAssignments.Local
+            .Where(a => a.SpotId == spot.Id && a.Date >= fromDate && a.Date <= toDate
+                && dbContext.Entry(a).State != EntityState.Deleted)
+            .ToDictionary(a => a.Date, a => a.ResidentId);
 
         var assigned = new Dictionary<DateOnly, Guid>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            var assignedUser = overrides.GetValueOrDefault(date);
-            if (assignedUser == Guid.Empty)
+            if (overrides.TryGetValue(date, out var residentId))
             {
-                assignedUser = residents[Math.Abs(date.DayNumber % residents.Count)].UserId;
+                // A departed resident's existing booking keeps this physical day blocked. An
+                // inactive membership never grants new booking rights to the departed person,
+                // and the day must not silently rotate to another resident while it is occupied.
+                if (residentById.TryGetValue(residentId, out var pinnedUser))
+                {
+                    assigned[date] = pinnedUser;
+                }
+                continue;
             }
 
-            assigned[date] = assignedUser;
+            assigned[date] = residents[date.DayNumber % residents.Count].UserId;
         }
 
         return assigned;
+    }
+
+    // Read the tracked state as well as persisted rows: membership reconciliation runs before
+    // SaveChanges in its caller's transaction, so additions/removals must take effect immediately.
+    internal static async Task<List<ParkingSpotResident>> MembersAsync(
+        D3ParkingDbContext dbContext, Guid spotId, CancellationToken cancellationToken)
+    {
+        await dbContext.ParkingSpotResidents.Where(r => r.SpotId == spotId).LoadAsync(cancellationToken);
+        return dbContext.ParkingSpotResidents.Local
+            .Where(r => r.SpotId == spotId && dbContext.Entry(r).State != EntityState.Deleted).ToList();
     }
 
     private static HashSet<DateOnly> AllDates(DateOnly fromDate, DateOnly toDate) =>

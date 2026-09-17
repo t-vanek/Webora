@@ -6,11 +6,13 @@ using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
+using D3Parking.Infrastructure.Identity;
 
 namespace D3Parking.Infrastructure.Parking;
 
@@ -319,7 +321,7 @@ public sealed class LotDashboardService(
         return head.Length > 0 && !head.All(char.IsAsciiDigit) ? head.Trim() : string.Empty;
     }
 
-    public async Task<SpotDetailDto?> GetSpotDetailAsync(Guid spotId, DateOnly from, int days, CancellationToken cancellationToken = default)
+    public async Task<SpotDetailDto?> GetSpotDetailAsync(Guid spotId, DateOnly from, int days, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
@@ -327,6 +329,12 @@ public sealed class LotDashboardService(
         var to = from.AddDays(span - 1);
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var permissions = await ActivePermissionsAsync(dbContext, actingUserId, cancellationToken);
+        if (!permissions.Contains(Permissions.Parking.ViewAnalytics))
+        {
+            return null;
+        }
+        var canManageReservations = permissions.Contains(Permissions.Parking.ManageReservations);
         var spot = await dbContext.ParkingSpots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == spotId, cancellationToken);
         if (spot is null)
         {
@@ -376,8 +384,8 @@ public sealed class LotDashboardService(
                 reservation.Status, reservation.CreditsCharged,
                 // Cancelling is only a legal move on a booking nobody has arrived on; once checked in,
                 // moving it is the honest intervention (see the ILotDashboardService docs).
-                CanCancel: reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now,
-                CanMove: live && reservation.EndUtc > now));
+                CanCancel: canManageReservations && reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now,
+                CanMove: canManageReservations && live && reservation.EndUtc > now));
         }
 
         foreach (var visitor in visitorBookings)
@@ -403,7 +411,8 @@ public sealed class LotDashboardService(
                 SpotCalendarKind.ResidentRelease, date, dayStart, dayEnd, null, null, null, 0, false, false));
         }
 
-        var mismatches = await dbContext.OccupancyMismatches.AsNoTracking()
+        var mismatches = permissions.Contains(Permissions.Parking.ReviewMismatches)
+            ? await dbContext.OccupancyMismatches.AsNoTracking()
             .Where(m => m.SpotId == spotId)
             .OrderByDescending(m => m.ReportedAtUtc)
             .Take(20)
@@ -412,7 +421,8 @@ public sealed class LotDashboardService(
                 dbContext.Users.Where(u => u.Id == m.ReporterId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault() ?? string.Empty,
                 m.BlockerPlate,
                 m.RelocatedToSpotId != null))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            : new List<SpotMismatchSummaryDto>();
 
         // Stats look backwards over the signal window; the calendar above looks forwards. Mixing the
         // two would make "utilization" mean "how much of the future is already booked".
@@ -991,10 +1001,14 @@ public sealed class LotDashboardService(
         return Enumerable.Range(0, Math.Max(0, last.DayNumber - first.DayNumber) + 1).Select(first.AddDays);
     }
 
-    public async Task<IReadOnlyList<MoveTargetDto>> GetMoveTargetsAsync(Guid reservationId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MoveTargetDto>> GetMoveTargetsAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (!(await ActivePermissionsAsync(dbContext, actingUserId, cancellationToken)).Contains(Permissions.Parking.ManageReservations))
+        {
+            return [];
+        }
         var reservation = await dbContext.Reservations.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
         if (reservation is null || reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn)
@@ -1003,19 +1017,20 @@ public sealed class LotDashboardService(
             return [];
         }
 
-        return await FreeSpotsForWindowAsync(dbContext, reservation.SpotId, reservation.StartUtc, reservation.EndUtc,
-            now, cancellationToken);
+        return await FreeSpotsForWindowAsync(dbContext, reservation.SpotId, reservation.UserId,
+            reservation.StartUtc, reservation.EndUtc, now, await siteSettings.GetTimeZoneAsync(cancellationToken), cancellationToken);
     }
 
     /// <summary>
     /// Active non-visitor spots with nothing on them for the whole window, excluding the spot the
     /// booking already sits on. Unlike the booking path this ignores residency: the manager is
-    /// resolving a physical conflict and may put a car on a resident spot deliberately — the tile
-    /// tells them whose it is.
+    /// resolving a physical conflict and may put a car on a resident spot deliberately. A target
+    /// names the residents allocated the affected days, and saving requires confirmation.
     /// </summary>
     private static async Task<List<MoveTargetDto>> FreeSpotsForWindowAsync(
-        D3ParkingDbContext dbContext, Guid excludeSpotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        D3ParkingDbContext dbContext, Guid excludeSpotId, Guid reservationUserId,
+        DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset now, TimeZoneInfo timeZone,
+        CancellationToken cancellationToken)
     {
         var taken = dbContext.Reservations
             .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
@@ -1034,13 +1049,44 @@ public sealed class LotDashboardService(
         var free = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.IsActive && s.Id != excludeSpotId && s.Type != ParkingSpotType.Visitor
                 && !taken.Contains(s.Id) && !visitorTaken.Contains(s.Id) && !held.Contains(s.Id))
-            .Select(s => new MoveTargetDto(s.Id, s.Code, s.Type))
             .ToListAsync(cancellationToken);
+
+        var targets = new List<MoveTargetDto>(free.Count);
+        foreach (var spot in free)
+        {
+            var residents = await MoveResidentsAsync(dbContext, spot, reservationUserId, startUtc, endUtc, timeZone, cancellationToken);
+            targets.Add(new MoveTargetDto(spot.Id, spot.Code, spot.Type, residents));
+        }
 
         // Sorted in memory, not in SQL: a database string sort offers D3-10 before D3-2, and the
         // manager picking a target from a dropdown reads codes as numbers like everywhere else.
-        return free.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
+        return targets.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
+
+    private static async Task<IReadOnlyList<MoveTargetResidentDto>> MoveResidentsAsync(
+        D3ParkingDbContext dbContext, ParkingSpot spot, Guid reservationUserId,
+        DateTimeOffset startUtc, DateTimeOffset endUtc, TimeZoneInfo timeZone, CancellationToken cancellationToken)
+    {
+        var assigned = await ResidentAllocation.AssignedUsersAsync(dbContext, spot,
+            SiteTime.Today(startUtc, timeZone), SiteTime.Today(endUtc.AddTicks(-1), timeZone), cancellationToken);
+        var affectedIds = assigned.Values.Where(id => id != reservationUserId).Distinct().ToList();
+        if (affectedIds.Count == 0)
+        {
+            return [];
+        }
+
+        var names = await dbContext.Users.AsNoTracking().Where(u => affectedIds.Contains(u.Id))
+            .Select(u => new { u.Id, Name = u.DisplayName ?? u.Email })
+            .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+        return affectedIds.Select(id => new MoveTargetResidentDto(id, names.GetValueOrDefault(id) ?? id.ToString()))
+            .OrderBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    private static async Task<HashSet<string>> ActivePermissionsAsync(
+        D3ParkingDbContext dbContext, Guid actingUserId, CancellationToken cancellationToken) =>
+        await dbContext.Users.AsNoTracking().AnyAsync(u => u.Id == actingUserId && u.Status == AccountStatus.Active, cancellationToken)
+            ? await EffectivePermissions.ForUserAsync(dbContext, actingUserId, cancellationToken)
+            : [];
 
     public Task<ParkingResult> CancelReservationAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(() => CancelReservationCoreAsync(reservationId, actingUserId, cancellationToken), cancellationToken);
@@ -1053,6 +1099,10 @@ public sealed class LotDashboardService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (!(await ActivePermissionsAsync(dbContext, actingUserId, cancellationToken)).Contains(Permissions.Parking.ManageReservations))
+        {
+            return ParkingResult.Failure("Parking_Error_Forbidden");
+        }
         var reservation = await dbContext.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
         if (reservation is null)
         {
@@ -1104,10 +1154,12 @@ public sealed class LotDashboardService(
         return ParkingResult.Success;
     }
 
-    public Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => MoveReservationCoreAsync(reservationId, targetSpotId, actingUserId, cancellationToken), cancellationToken);
+    public Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
+        bool confirmResidentImpact = false, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => MoveReservationCoreAsync(reservationId, targetSpotId, actingUserId, confirmResidentImpact, cancellationToken), cancellationToken);
 
-    private async Task<ParkingResult> MoveReservationCoreAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId, CancellationToken cancellationToken)
+    private async Task<ParkingResult> MoveReservationCoreAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
+        bool confirmResidentImpact, CancellationToken cancellationToken)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
@@ -1118,6 +1170,11 @@ public sealed class LotDashboardService(
         // check and both cars would end up on one spot.
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        if (!(await ActivePermissionsAsync(dbContext, actingUserId, cancellationToken)).Contains(Permissions.Parking.ManageReservations))
+        {
+            return ParkingResult.Failure("Parking_Error_Forbidden");
+        }
 
         var reservation = await dbContext.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
         if (reservation is null)
@@ -1147,10 +1204,18 @@ public sealed class LotDashboardService(
             return ParkingResult.Failure("Parking_Error_SpotInactive");
         }
 
-        var free = await FreeSpotsForWindowAsync(dbContext, reservation.SpotId, reservation.StartUtc, reservation.EndUtc, now, cancellationToken);
-        if (free.All(s => s.SpotId != targetSpotId))
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var free = await FreeSpotsForWindowAsync(dbContext, reservation.SpotId, reservation.UserId,
+            reservation.StartUtc, reservation.EndUtc, now, timeZone, cancellationToken);
+        var moveTarget = free.FirstOrDefault(s => s.SpotId == targetSpotId);
+        if (moveTarget is null)
         {
             return ParkingResult.Failure("Parking_Error_SpotTaken");
+        }
+
+        if (moveTarget.RequiresResidentConfirmation && !confirmResidentImpact)
+        {
+            return ParkingResult.Failure("Parking_Error_ResidentMoveConfirmationRequired");
         }
 
         var fromCode = await dbContext.ParkingSpots.AsNoTracking()
@@ -1162,7 +1227,7 @@ public sealed class LotDashboardService(
 
         dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
             reservation.UserId, AccountAuditEventType.ReservationOverridden, $"admin:{actingUserId}",
-            $"Moved reservation {reservation.Id} from {fromCode} to {target.Code} ({reservation.StartUtc:u}–{reservation.EndUtc:u}).",
+            $"Moved reservation {reservation.Id} from {fromCode} to {target.Code} ({reservation.StartUtc:u}–{reservation.EndUtc:u}); affected residents: {string.Join(",", moveTarget.Residents.Select(r => r.UserId))}.",
             now));
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -1174,6 +1239,16 @@ public sealed class LotDashboardService(
             messages["Parking_Notify_AdminMoved_Title"],
             messages.ForEconomy(policy, "Parking_Notify_AdminMoved_Body", fromCode, target.Code),
             cancellationToken);
+
+        foreach (var resident in moveTarget.Residents)
+        {
+            await notifications.NotifyAsync(resident.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                messages["Parking_Notify_ResidentMove_Title"],
+                messages["Parking_Notify_ResidentMove_Body", target.Code,
+                    TimeZoneInfo.ConvertTime(reservation.StartUtc, timeZone).ToString("g"),
+                    TimeZoneInfo.ConvertTime(reservation.EndUtc, timeZone).ToString("g")],
+                email: true, cancellationToken);
+        }
 
         return ParkingResult.Success;
     }

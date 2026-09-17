@@ -318,4 +318,11 @@ public sealed record LotAnalyticsDto(
     LotEconomyDto Economy);
 
 /// <summary>A spot a booking could be moved to (free for the same window).</summary>
-public sealed record MoveTargetDto(Guid SpotId, string Code, ParkingSpotType Type);
+public sealed record MoveTargetDto(Guid SpotId, string Code, ParkingSpotType Type,
+    IReadOnlyList<MoveTargetResidentDto> Residents)
+{
+    public bool RequiresResidentConfirmation => Residents.Count > 0;
+}
+
+/// <summary>A resident allocated at least one day affected by the proposed move.</summary>
+public sealed record MoveTargetResidentDto(Guid UserId, string Name);
