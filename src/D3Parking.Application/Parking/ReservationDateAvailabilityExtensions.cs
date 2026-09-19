@@ -1,8 +1,8 @@
 using D3Parking.Domain.Parking.Incentives;
 
-namespace D3Parking.Infrastructure.Parking;
+namespace D3Parking.Application.Parking;
 
-internal static class ReservationDateAvailabilityExtensions
+public static class ReservationDateAvailabilityExtensions
 {
     public static string? ToParkingErrorKey(this ReservationDateAvailability availability) => availability switch
     {

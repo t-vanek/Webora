@@ -369,6 +369,16 @@ public sealed class UserAdminService(
 
     public async Task<AccountResult> DeleteAsync(Guid userId, Guid adminId, CancellationToken cancellationToken = default)
     {
+        // Oprávnění z načtené stránky mohlo být mezitím odebráno. Kontrola i celý
+        // odchod účtu musí pracovat nad stejnou transakcí a aktuálními daty.
+        await using var transaction = await identityDbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(
+                identityDbContext, adminId, Permissions.Users.Delete, cancellationToken))
+        {
+            return AccountResult.Failure(messages["Error_AccessDenied"]);
+        }
+
         if (userId == adminId)
         {
             return AccountResult.Failure(messages["Error_CannotDeleteSelf"]);
@@ -380,23 +390,11 @@ public sealed class UserAdminService(
             return AccountResult.Failure(messages["Error_AccountNotFound"]);
         }
 
-        // Guard and delete in one serializable transaction (see SetRolesAsync for the rationale):
-        // concurrent deletes of the two last administrators must not both slip past the count.
-        await using var transaction = await identityDbContext.Database
-            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-
         if (await userManager.IsInRoleAsync(user, Roles.Administrator)
             && await IsLastAdministratorAsync(identityDbContext, cancellationToken))
         {
             return AccountResult.Failure(messages["Error_LastAdministrator"]);
         }
-
-        // The cascade and the Identity row are one unit. Previously the account was committed first
-        // and parking cleanup happened through another context; a transient failure left ghost
-        // reservations and ownership that no retry could reach from the deleted account screen.
-        await EmployeeLifecycleCleanup.CleanOperationalAsync(
-            identityDbContext, userId, user.Email, adminId, timeProvider.GetUtcNow(),
-            revokeAccess: false, cancellationToken);
 
         // Keep the event sequence and timestamps, but remove free-form values that may contain an
         // old e-mail address, phone number or administrator note. The unresolved user id is the
@@ -406,6 +404,13 @@ public sealed class UserAdminService(
             .ExecuteUpdateAsync(s => s
                 .SetProperty(a => a.Actor, a => a.Actor == "self" ? "deleted" : a.Actor)
                 .SetProperty(a => a.Detail, (string?)null), cancellationToken);
+
+        // Nové události úklidu obsahují pouze identifikátory a intervaly. Vzniknou až
+        // po anonymizaci starých volných textů, aby zůstalo dohledatelné zrušení návštěv.
+        // Úklid a odstranění Identity zůstávají součástí stejné transakce.
+        await EmployeeLifecycleCleanup.CleanOperationalAsync(
+            identityDbContext, userId, user.Email, adminId, timeProvider.GetUtcNow(),
+            revokeAccess: false, cancellationToken);
 
         var deleted = await userManager.DeleteAsync(user);
         if (!deleted.Succeeded)

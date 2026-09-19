@@ -148,3 +148,135 @@ window.d3parkingInfiniteScroll = {
         }
     },
 };
+
+
+// Native modality also covers focusable controls inside Fluent shadow roots. Restore the
+// opener when Blazor removes the conditional dialog, without a server-side Dispose interop.
+let adminDialogTrigger;
+document.addEventListener('click', event => {
+    // Opening can first disable the initiating Fluent button while the server loads data.
+    // Capture its actual shadow control before that render removes keyboard focus.
+    const path = event.composedPath();
+    adminDialogTrigger = path.find(node => node instanceof HTMLElement && node.matches('fluent-button'))
+        ?? path.find(node => node instanceof HTMLElement && node.matches('button, a[href], [role="button"]'));
+}, true);
+window.adminDialog = {
+    open(modal, content) {
+        let opener = document.activeElement;
+        while (opener?.shadowRoot?.activeElement) opener = opener.shadowRoot.activeElement;
+        if (adminDialogTrigger?.isConnected && !modal.contains(adminDialogTrigger)) opener = adminDialogTrigger;
+        modal.addEventListener('cancel', event => event.preventDefault());
+        modal.addEventListener('keydown', event => {
+            if (event.key !== 'Tab') return;
+            const stops = [];
+            const collect = root => {
+                for (const element of root.children) {
+                    if (element.hasAttribute('disabled') || element.hasAttribute('inert')
+                        || element.matches(':disabled') || getComputedStyle(element).visibility === 'hidden') continue;
+                    if (element.tabIndex >= 0 && element.getClientRects().length) stops.push(element);
+                    if (element.shadowRoot) collect(element.shadowRoot);
+                    collect(element);
+                }
+            };
+            collect(content);
+            let active = document.activeElement;
+            while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+            const first = stops[0];
+            const last = stops[stops.length - 1];
+            // Native Tab still permits leaving for browser chrome at the boundaries.
+            if (!first || active === content || (event.shiftKey ? active === first : active === last)) {
+                event.preventDefault();
+                (event.shiftKey ? last : first)?.focus();
+                if (!first) content.focus();
+            }
+        });
+        modal.showModal();
+        content.focus();
+        const observer = new MutationObserver(() => {
+            if (modal.isConnected) return;
+            observer.disconnect();
+            modal.close();
+            if (!opener?.isConnected || document.querySelector('dialog[open]')) return;
+            // Fluent may re-enable its shadow button after the Blazor removal batch.
+            const restoreObserver = new MutationObserver(() => requestAnimationFrame(restore));
+            const expiry = setTimeout(() => restoreObserver.disconnect(), 5000);
+            function restore() {
+                const target = opener.shadowRoot?.querySelector('button, input, [tabindex="0"]') ?? opener;
+                const current = document.activeElement;
+                if (!opener.isConnected || document.querySelector('dialog[open]')
+                    || (current !== document.body && current !== opener && !opener.contains(current))) {
+                    restoreObserver.disconnect();
+                    clearTimeout(expiry);
+                } else if (!opener.hasAttribute('disabled') && !target.disabled) {
+                    restoreObserver.disconnect();
+                    clearTimeout(expiry);
+                    target.focus();
+                }
+            }
+            restoreObserver.observe(opener, { attributes: true, childList: true, subtree: true });
+            if (opener.shadowRoot) restoreObserver.observe(opener.shadowRoot, { attributes: true, childList: true, subtree: true });
+            requestAnimationFrame(restore);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+};
+
+
+// Settings is an InteractiveServer island in an SSR router. NavigationLock handles
+// document unloads but not enhanced-navigation links outside the island.
+window.settingsDraftGuard = {
+    update(root, dirty, busy, message) {
+        if (!root._draftGuard) {
+            const state = { dirty, busy, message };
+            // Protect a keystroke immediately, before its InteractiveServer round trip.
+            const input = event => {
+                if (event.composedPath().some(node => node instanceof HTMLElement
+                    && node.matches('input, textarea, select, fluent-switch, fluent-checkbox, fluent-select')))
+                    state.dirty = true;
+            };
+            const unload = event => {
+                if (root.isConnected && (state.dirty || state.busy)) {
+                    event.preventDefault();
+                    event.returnValue = '';
+                }
+            };
+            root.addEventListener('input', input, true);
+            root.addEventListener('change', input, true);
+            window.addEventListener('beforeunload', unload);
+            const confirm = () => !state.busy && (!state.dirty || window.confirm(state.message));
+            const click = event => {
+                const link = event.composedPath().find(node => node instanceof HTMLAnchorElement);
+                if (!root.isConnected || event.defaultPrevented || event.button !== 0
+                    || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey
+                    || !link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+                const url = new URL(link.href, location.href);
+                if (url.origin !== location.origin || link.closest('[data-enhance-nav="false"]')) return;
+                if (url.origin === location.origin && url.pathname === location.pathname
+                    && url.search === location.search && url.hash) return;
+                if (!confirm()) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }
+            };
+            // Where supported, cancellation happens before enhanced back/forward navigation.
+            const navigate = event => {
+                if (root.isConnected && event.navigationType === 'traverse'
+                    && event.destination.sameDocument && event.cancelable && !confirm()) event.preventDefault();
+            };
+            document.addEventListener('click', click, true);
+            window.navigation?.addEventListener('navigate', navigate);
+            const observer = new MutationObserver(() => {
+                if (root.isConnected) return;
+                document.removeEventListener('click', click, true);
+                root.removeEventListener('input', input, true);
+                root.removeEventListener('change', input, true);
+                window.removeEventListener('beforeunload', unload);
+                window.navigation?.removeEventListener('navigate', navigate);
+                observer.disconnect();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            root._draftGuard = state;
+        }
+        Object.assign(root._draftGuard, { dirty, busy, message });
+    }
+};

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -71,6 +72,8 @@ public class LastAdministratorTests
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         await roleManager.CreateAsync(new ApplicationRole(Roles.Administrator));
         await roleManager.CreateAsync(new ApplicationRole(Roles.Employee));
+        await roleManager.AddClaimAsync((await roleManager.FindByNameAsync(Roles.Administrator))!,
+            new Claim(D3ParkingClaimTypes.Permission, Permissions.Users.Delete));
     }
 
     [TearDown]
@@ -174,10 +177,16 @@ public class LastAdministratorTests
         await using var scope = _provider.CreateAsyncScope();
         var admin = await CreateAdminAsync(scope, "undeletable@example.test");
         var actor = await CreateUserAsync(scope, "deleter@example.test");
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var deleterRole = new ApplicationRole("Account deleter");
+        await roleManager.CreateAsync(deleterRole);
+        await roleManager.AddClaimAsync(deleterRole, new Claim(D3ParkingClaimTypes.Permission, Permissions.Users.Delete));
+        await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().AddToRoleAsync(actor, deleterRole.Name!);
 
         var result = await CreateUserAdminService(scope).DeleteAsync(admin.Id, actor.Id);
 
         Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Errors, Does.Contain("Error_LastAdministrator"));
         Assert.That(await IsAdministratorAsync(scope, admin.Id), Is.True);
     }
 
@@ -246,6 +255,112 @@ public class LastAdministratorTests
             Assert.That(verify.QueueEntries.Single(q => q.UserId == employee.Id).Status, Is.EqualTo(QueueEntryStatus.Cancelled));
             Assert.That(verify.Notifications.Any(n => n.UserId == employee.Id), Is.False);
             Assert.That(verify.AccountAuditEvents.Any(a => a.UserId == employee.Id && a.Type == AccountAuditEventType.Deleted), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Deletion_keeps_per_visitor_cancellation_audit_after_anonymizing_old_account_details()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var actor = await CreateAdminAsync(scope, "visitor-delete-admin@example.test");
+        var employee = await CreateUserAsync(scope, "visitor-departing@example.test");
+        var now = DateTimeOffset.UtcNow;
+        var spot = new ParkingSpot("DELETE-VISITOR", ParkingSpotType.Visitor);
+        var hosted = new VisitorBooking(spot.Id, "Synthetic hosted guest", null, null, employee.Id,
+            now.AddDays(1), now.AddDays(1).AddHours(1), actor.Id, now);
+        var createdForOtherHost = new VisitorBooking(spot.Id, "Synthetic other guest", null, null, actor.Id,
+            now.AddDays(2), now.AddDays(2).AddHours(1), employee.Id, now);
+        var ended = new VisitorBooking(spot.Id, "Synthetic past guest", null, null, employee.Id,
+            now.AddDays(-2), now.AddDays(-2).AddHours(1), employee.Id, now.AddDays(-3));
+        var oldAudit = new AccountAuditEvent(employee.Id, AccountAuditEventType.Activated,
+            "self", "Synthetic personal note", now.AddDays(-3));
+        await using (var seed = new D3ParkingDbContext(_options))
+        {
+            seed.AddRange(spot, hosted, createdForOtherHost, ended, oldAudit);
+            await seed.SaveChangesAsync();
+        }
+
+        var service = CreateUserAdminService(scope);
+        Assert.That((await service.GetDeletionImpactAsync(employee.Id))!.UpcomingVisitorBookings, Is.EqualTo(2));
+        var result = await service.DeleteAsync(employee.Id, actor.Id);
+        Assert.That(result.Succeeded, Is.True, string.Join("; ", result.Errors));
+
+        await using var verify = new D3ParkingDbContext(_options);
+        var bookings = await verify.VisitorBookings.ToDictionaryAsync(v => v.Id);
+        var audit = await verify.AccountAuditEvents.Where(a => a.UserId == employee.Id
+            && a.Type == AccountAuditEventType.ReservationOverridden).ToListAsync();
+        var anonymized = await verify.AccountAuditEvents.SingleAsync(a => a.Id == oldAudit.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(verify.Users.Any(u => u.Id == employee.Id), Is.False);
+            Assert.That(bookings[hosted.Id].Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
+            Assert.That(bookings[createdForOtherHost.Id].Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
+            Assert.That(bookings[ended.Id].Status, Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That(bookings[ended.Id].HostUserId, Is.EqualTo(employee.Id));
+            Assert.That(audit, Has.Count.EqualTo(2));
+            Assert.That(audit.All(a => a.Actor == $"admin:{actor.Id}"), Is.True);
+            Assert.That(audit.Any(a => a.Detail!.Contains(hosted.Id.ToString())), Is.True);
+            Assert.That(audit.Any(a => a.Detail!.Contains(createdForOtherHost.Id.ToString())), Is.True);
+            Assert.That(audit.All(a => a.Detail is not null && !a.Detail.Contains("Synthetic")), Is.True);
+            Assert.That(anonymized.Detail, Is.Null);
+            Assert.That(anonymized.Actor, Is.EqualTo("deleted"));
+        });
+    }
+
+    [TestCase(AccountStatus.Active, false)]
+    [TestCase(AccountStatus.Blocked, true)]
+    [TestCase(AccountStatus.Deactivated, true)]
+    [TestCase(AccountStatus.Suspended, true)]
+    [TestCase(AccountStatus.PendingActivation, true)]
+    public async Task Direct_deletion_requires_an_active_actor_with_current_delete_permission(
+        AccountStatus actorStatus, bool grantDelete)
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var actor = await CreateUserAsync(scope, "unauthorized-deleter@example.test", actorStatus);
+        if (grantDelete)
+            await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+                .AddToRoleAsync(actor, Roles.Administrator);
+        var target = await CreateUserAsync(scope, "protected-target@example.test");
+        var now = DateTimeOffset.UtcNow;
+        var booking = new VisitorBooking(Guid.NewGuid(), "Synthetic protected guest", null, null, target.Id,
+            now.AddDays(1), now.AddDays(1).AddHours(1), target.Id, now);
+        await using (var seed = new D3ParkingDbContext(_options))
+        {
+            seed.VisitorBookings.Add(booking);
+            await seed.SaveChangesAsync();
+        }
+
+        var service = CreateUserAdminService(scope);
+        Assert.That((await service.DeleteAsync(target.Id, actor.Id)).Errors, Does.Contain("Error_AccessDenied"));
+        Assert.That((await service.DeleteAsync(Guid.NewGuid(), actor.Id)).Errors, Does.Contain("Error_AccessDenied"));
+
+        await using var verify = new D3ParkingDbContext(_options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(verify.Users.Any(u => u.Id == target.Id), Is.True);
+            Assert.That(verify.VisitorBookings.Single(v => v.Id == booking.Id).Status, Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That(verify.AccountAuditEvents.Any(a => a.UserId == target.Id), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Deletion_rechecks_permission_revoked_after_loading_its_impact()
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var actor = await CreateAdminAsync(scope, "revoked-deleter@example.test");
+        var target = await CreateUserAsync(scope, "revoked-target@example.test");
+        var service = CreateUserAdminService(scope);
+        Assert.That(await service.GetDeletionImpactAsync(target.Id), Is.Not.Null);
+        await using (var revoke = new D3ParkingDbContext(_options))
+            await revoke.UserRoles.Where(r => r.UserId == actor.Id).ExecuteDeleteAsync();
+
+        Assert.That((await service.DeleteAsync(target.Id, actor.Id)).Errors, Does.Contain("Error_AccessDenied"));
+        Assert.That((await service.DeleteAsync(target.Id, Guid.NewGuid())).Errors, Does.Contain("Error_AccessDenied"));
+        await using var verify = new D3ParkingDbContext(_options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(verify.Users.Any(u => u.Id == target.Id), Is.True);
+            Assert.That(verify.AccountAuditEvents.Any(a => a.UserId == target.Id), Is.False);
         });
     }
 

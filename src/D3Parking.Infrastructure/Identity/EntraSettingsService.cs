@@ -127,7 +127,7 @@ public sealed class EntraSettingsService(
             input.Enabled, input.TenantId, input.ClientId, input.Authority,
             input.CallbackPath, input.SignedOutCallbackPath, input.DisplayName,
             input.LinkByVerifiedEmail, input.AllowJustInTimeProvisioning, input.DefaultRoles);
-        candidate.UpdateScim(input.ScimEnabled, input.ScimBlockOnDeprovision);
+        candidate.UpdateScim(input.ScimEnabled, blockOnDeprovision: true);
 
         var clientSecret = Resolve(update.ClientSecret, settings.ClientSecretProtected, EntraFields.ClientSecret);
         var scimToken = Resolve(update.ScimBearerToken, settings.ScimBearerTokenProtected, EntraFields.ScimBearerToken);
@@ -142,7 +142,9 @@ public sealed class EntraSettingsService(
             input.Enabled, input.TenantId, input.ClientId, input.Authority,
             input.CallbackPath, input.SignedOutCallbackPath, input.DisplayName,
             input.LinkByVerifiedEmail, input.AllowJustInTimeProvisioning, input.DefaultRoles);
-        settings.UpdateScim(input.ScimEnabled, input.ScimBlockOnDeprovision);
+        // Odchod vždy zablokuje účet a uvolní jeho parkování. Starší klient může
+        // kompatibilní pole stále poslat, ale nesmí tím vypnout povinný úklid.
+        settings.UpdateScim(input.ScimEnabled, blockOnDeprovision: true);
 
         ApplySecret(update.ClientSecret, plain => settings.SetClientSecret(Protect(plain)));
         ApplySecret(update.ScimBearerToken, plain => settings.SetScimBearerToken(Protect(plain)));
@@ -194,7 +196,9 @@ public sealed class EntraSettingsService(
             {
                 Enabled = Flag(section, EntraFields.ScimEnabled) ?? stored.ScimEnabled,
                 BearerToken = Text(section, EntraFields.ScimBearerToken) ?? storedScimToken,
-                BlockOnDeprovision = Flag(section, EntraFields.ScimBlockOnDeprovision) ?? stored.ScimBlockOnDeprovision,
+                // Pole zůstává kvůli kompatibilitě konfigurace a uložených dat.
+                // Odchod nelze vypnout ani historickou hodnotou false.
+                BlockOnDeprovision = true,
             },
         };
     }
@@ -208,9 +212,10 @@ public sealed class EntraSettingsService(
         {
             var isSet = field switch
             {
+                EntraFields.ScimBlockOnDeprovision => true,
                 EntraFields.DefaultRoles => List(section, field) is not null,
                 EntraFields.Enabled or EntraFields.LinkByVerifiedEmail or EntraFields.AllowJustInTimeProvisioning
-                    or EntraFields.ScimEnabled or EntraFields.ScimBlockOnDeprovision => Flag(section, field) is not null,
+                    or EntraFields.ScimEnabled => Flag(section, field) is not null,
                 _ => Text(section, field) is not null,
             };
 

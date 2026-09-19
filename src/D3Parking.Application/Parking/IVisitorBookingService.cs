@@ -15,7 +15,19 @@ public interface IVisitorBookingService
     Task<ParkingResult> BookAsync(Guid createdById, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
         string visitorName, string? company, string? licensePlate, Guid? hostUserId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Legacy signature retained for source compatibility. A cancellation without an authenticated
+    /// actor cannot be authorized and always returns AccessDenied; use CancelCheckedAsync.
+    /// </summary>
     Task<ParkingResult> CancelAsync(Guid bookingId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancels a current booking after checking the authenticated actor's current ManageVisitors
+    /// permission and account status. The actor id must come from the authenticated principal.
+    /// Existing implementations that do not implement this checked command safely decline it.
+    /// </summary>
+    Task<ParkingResult> CancelCheckedAsync(Guid bookingId, Guid actingUserId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Failure("Parking_Error_AccessDenied"));
 }
 
 /// <summary>One visitor booking for the reception agenda.</summary>

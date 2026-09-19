@@ -27,10 +27,6 @@ public sealed class ReservationService(
     // reporting window only; planned reservations never require arrival confirmation.
     private static readonly TimeSpan EarlyBlockedReportWindow = TimeSpan.FromMinutes(15);
 
-    // Serializes queue matching triggered from the timer and release/cancel hooks. In-process
-    // locking suffices because the app is single-instance by design.
-    private static readonly SemaphoreSlim MaintenanceGate = new(1, 1);
-
     // Daily cap on "I can't park" reports per user — see ReportBlockedSpotAsync.
     private const int MaxBlockedReportsPerDay = 2;
 
@@ -1408,23 +1404,29 @@ public sealed class ReservationService(
 
     public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)
     {
-        await MaintenanceGate.WaitAsync(cancellationToken);
-        try
-        {
-            return await ProcessQueueCoreAsync(cancellationToken);
-        }
-        finally
-        {
-            MaintenanceGate.Release();
-        }
+        var matched = await OptimisticConcurrency.RetryAsync(
+            () => ProcessQueueCoreAsync(cancellationToken), cancellationToken);
+
+        // Delivery happens after the matching transaction and outside its retry boundary. A
+        // notification failure must never re-run an already committed matching decision.
+        await NotifyQueueMatchesAsync(matched, cancellationToken);
+        return matched.Offers.Count;
     }
 
-    private async Task<int> ProcessQueueCoreAsync(CancellationToken cancellationToken)
+    private async Task<QueueMatchResult> ProcessQueueCoreAsync(CancellationToken cancellationToken)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var offerHold = TimeSpan.FromMinutes(policy.QueueOfferMinutes);
+
+        // Queue rowversions alone cannot protect the availability snapshot: a booking or another
+        // matcher can change a different row after it was read. Keep reservations, resident
+        // releases, active spots and queue offers in the same SQL Server serializable decision,
+        // just like ReserveCoreAsync. This also coordinates independent application processes.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         var active = await dbContext.QueueEntries
             .Where(q => q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)
@@ -1433,7 +1435,7 @@ public sealed class ReservationService(
 
         if (active.Count == 0)
         {
-            return 0;
+            return new QueueMatchResult(policy.QueueOfferMinutes, now + offerHold, timeZone, [], []);
         }
 
         // Expire passed windows; lapse stale offers back to waiting so the spot can move on.
@@ -1461,11 +1463,11 @@ public sealed class ReservationService(
             }
         }
 
-        // Spots still under a valid offer remain held for their entry and are not re-offered.
-        var heldSpotIds = active
+        // A hold protects its requested interval, not every date on the same physical spot.
+        // Keep the entries so adjacent/non-overlapping windows can be offered independently.
+        var heldEntries = active
             .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferedSpotId is not null)
-            .Select(q => q.OfferedSpotId!.Value)
-            .ToHashSet();
+            .ToList();
 
         // Achievements never affect access. The queue remains first-come, first-served.
         int Priority(QueueEntry q) => (int)(now - q.CreatedAtUtc).TotalMinutes;
@@ -1475,10 +1477,8 @@ public sealed class ReservationService(
             .OrderByDescending(Priority)
             .ThenBy(q => q.CreatedAtUtc)
             .ToList();
-        // The matching decision is a snapshot: loading the reservations, releases and spots once
-        // keeps a busy queue from turning into two database round-trips per waiter. The entries are
-        // still saved with rowversions below, so a concurrent claim/cancel is rejected rather than
-        // producing a stale offer.
+        // Load one consistent snapshot inside the transaction, avoiding two database round-trips
+        // per waiter while retaining its locks until all offers have been saved.
         var earliestStart = waiting.Count == 0 ? now : waiting.Min(q => q.StartUtc);
         var latestEnd = waiting.Count == 0 ? now : waiting.Max(q => q.EndUtc);
         var queuedReservations = await dbContext.Reservations.AsNoTracking()
@@ -1524,7 +1524,6 @@ public sealed class ReservationService(
             return candidates;
         }
 
-        var offerHold = TimeSpan.FromMinutes(policy.QueueOfferMinutes);
         var offers = new List<(QueueEntry Entry, Guid SpotId)>();
         foreach (var entry in waiting)
         {
@@ -1538,42 +1537,52 @@ public sealed class ReservationService(
             }
 
             var candidates = CandidatesFor(entry);
-            var spotId = candidates.FirstOrDefault(id => !heldSpotIds.Contains(id));
+            var spotId = candidates.FirstOrDefault(id => !heldEntries.Any(held =>
+                held.OfferedSpotId == id && held.Overlaps(entry.StartUtc, entry.EndUtc)));
             if (spotId == Guid.Empty)
             {
                 continue;
             }
 
             entry.Offer(spotId, now + offerHold);
-            heldSpotIds.Add(spotId);
+            heldEntries.Add(entry);
             offers.Add((entry, spotId));
         }
 
-        // An entry the user cancelled or claimed mid-run trips its rowversion and is detached by
-        // the save; its offer/demotion never took effect and must not be counted or notified. The
-        // freed spot simply waits for the next matcher tick.
-        await OptimisticConcurrency.SaveSkippingConflictsAsync(dbContext, cancellationToken);
-        offers.RemoveAll(o => dbContext.Entry(o.Entry).State == EntityState.Detached);
-        lapsedOffers.RemoveAll(l => dbContext.Entry(l.Entry).State == EntityState.Detached);
+        // A lost race must retry the entire decision; dropping only the conflicting queue row
+        // would leave other offers based on its stale reservation/hold snapshot.
+        await dbContext.SaveChangesAsync(cancellationToken);
 
+        var codes = new Dictionary<Guid, string>();
         if (offers.Count > 0 || lapsedOffers.Count > 0)
         {
             var spotIdsToName = offers.Select(o => o.SpotId).Concat(lapsedOffers.Select(l => l.SpotId)).Distinct().ToList();
-            var codes = await dbContext.ParkingSpots.AsNoTracking()
+            codes = await dbContext.ParkingSpots.AsNoTracking()
                 .Where(s => spotIdsToName.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
+        }
 
+        await transaction.CommitAsync(cancellationToken);
+        return new QueueMatchResult(policy.QueueOfferMinutes, now + offerHold, timeZone,
+            offers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty))).ToList(),
+            lapsedOffers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty))).ToList());
+    }
+
+    private async Task NotifyQueueMatchesAsync(QueueMatchResult matched, CancellationToken cancellationToken)
+    {
+        if (matched.Offers.Count > 0 || matched.LapsedOffers.Count > 0)
+        {
             // The claim window is short, so the email carries a CTA deep link and an explicit
             // local-time deadline. Without a configured canonical URL (dev) the button is omitted.
-            var baseUrl = await siteSettings.GetCanonicalBaseUrlAsync();
+            var baseUrl = await siteSettings.GetCanonicalBaseUrlAsync(cancellationToken);
             var claimUrl = baseUrl is null ? null : $"{baseUrl.TrimEnd('/')}/parking";
-            var deadlineLocal = SiteTime.TimeOfDay(now + offerHold, timeZone).ToString("HH\\:mm");
+            var deadlineLocal = SiteTime.TimeOfDay(matched.ExpiresAtUtc, matched.TimeZone).ToString("HH\\:mm");
 
-            foreach (var (offerEntry, spotId) in offers)
+            foreach (var offer in matched.Offers)
             {
-                await notifications.NotifyAsync(offerEntry.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                await notifications.NotifyAsync(offer.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
                     messages["Parking_Notify_QueueOffer_Title"],
-                    messages["Parking_Notify_QueueOffer_Body", codes.GetValueOrDefault(spotId, string.Empty), policy.QueueOfferMinutes],
+                    messages["Parking_Notify_QueueOffer_Body", offer.SpotCode, matched.OfferMinutes],
                     email: true,
                     new NotificationEmailOptions(
                         ActionText: claimUrl is null ? null : messages["Email_QueueOffer_Action"].Value,
@@ -1583,17 +1592,20 @@ public sealed class ReservationService(
             }
 
             // The demoted waiter learns why the spot is gone — bell/push only, no email needed.
-            foreach (var (lapsedEntry, spotId) in lapsedOffers)
+            foreach (var lapsed in matched.LapsedOffers)
             {
-                await notifications.NotifyAsync(lapsedEntry.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
+                await notifications.NotifyAsync(lapsed.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
                     messages["Parking_Notify_OfferLapsed_Title"],
-                    messages["Parking_Notify_OfferLapsed_Body", codes.GetValueOrDefault(spotId, string.Empty)],
+                    messages["Parking_Notify_OfferLapsed_Body", lapsed.SpotCode],
                     cancellationToken);
             }
         }
-
-        return offers.Count;
     }
+
+    private sealed record QueueMatchNotification(Guid UserId, string SpotCode);
+
+    private sealed record QueueMatchResult(int OfferMinutes, DateTimeOffset ExpiresAtUtc, TimeZoneInfo TimeZone,
+        IReadOnlyList<QueueMatchNotification> Offers, IReadOnlyList<QueueMatchNotification> LapsedOffers);
 
     // Returns a redeemed voucher to its holder when the booking it paid for was given up early
     // enough to re-let the spot — the same terms under which credits are refunded. The restore

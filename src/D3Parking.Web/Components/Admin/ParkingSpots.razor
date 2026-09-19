@@ -1,11 +1,10 @@
 @page "/admin/parking/spots"
 @attribute [HasPermission(Permissions.Parking.ManageSpots)]
 @rendermode InteractiveServer
-@implements IDisposable
 @inject IParkingSpotService Spots
-@inject IStringLocalizer<SharedResource> L
-@inject ILogger<ParkingSpots> Logger
 @inject UserManager<ApplicationUser> UserManager
+@inject ILogger<ParkingSpots> Logger
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Parking_Admin_Title"]</PageTitle>
 
@@ -23,8 +22,8 @@
         </div>
         <FluentButton Appearance="Appearance.Accent" Class="spots-create-action"
                       IconStart="@(new Icons.Regular.Size20.Add())"
-                      Disabled="@_createOpen"
-                      OnClick="OpenCreate">
+                      Disabled="@(_createOpen || _busy)"
+                      OnClick="() => _createOpen = true">
             @L["Parking_Admin_AddSpots"]
         </FluentButton>
     </div>
@@ -40,9 +39,13 @@
         </section>
     }
 
-    @if (!DialogOpen)
+    @if (_error is not null)
     {
-        @Feedback()
+        <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" AllowDismiss="true">@L[_error]</FluentMessageBar>
+    }
+    @if (_info is not null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
     }
 
     @if (_createOpen)
@@ -52,27 +55,31 @@
                  Size="wide"
                  Class="spots-create-dialog"
                  BackdropClass="spots-create-backdrop"
-                 Busy="@_busy"
-                 OnClose="CloseCreate">
-        @Feedback()
-        <fieldset class="spot-form-fields" disabled="@_busy">
+                 Busy="@_busy" OnClose="CloseCreate">
+        @if (_error is not null)
+        {
+            <FluentMessageBar Intent="MessageIntent.Error">@L[_error]</FluentMessageBar>
+        }
+        @if (_info is not null)
+        {
+            <FluentMessageBar Intent="MessageIntent.Success">@_info</FluentMessageBar>
+        }
         <FluentTabs @bind-ActiveTabId="_activeAddTab">
             <FluentTab Id="tab-single" Label="@L["Parking_Admin_Tab_Single"]">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding-top:12px">
                     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
                         @* Immediate: bind on (composed) input events — the change event of the underlying
                            web component does not cross the shadow boundary reliably. *@
-                        <FluentTextField Id="single-code" Immediate="true" @bind-Value="_newCode" Required="true" Maxlength="32" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" aria-describedby="spot-code-hint" />
+                        <FluentTextField Id="single-code" Immediate="true" @bind-Value="_newCode" Label="@L["Parking_Admin_Code"]" Placeholder="A-12" autofocus />
                         <FluentSelect TOption="ParkingSpotType"
                                       Items="@_spotTypes"
                                       OptionValue="@(t => t.ToString())"
                                       OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_newType"
                                       Label="@L["Parking_Admin_Type"]" />
-                        <FluentTextField Immediate="true" @bind-Value="_newNotes" Maxlength="512" Label="@L["Parking_Admin_Notes"]" />
+                        <FluentTextField @bind-Value="_newNotes" Label="@L["Parking_Admin_Notes"]" />
                         <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="CreateAsync">@L["Parking_Admin_Add"]</FluentButton>
                     </FluentStack>
-                    <p id="spot-code-hint" class="spot-form-hint">@L["Parking_Admin_CodeHint"]</p>
                 </FluentStack>
             </FluentTab>
 
@@ -101,7 +108,7 @@
                                       OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_serType"
                                       Label="@L["Parking_Admin_Type"]" />
-                        <FluentTextField Immediate="true" @bind-Value="_serNotes" Maxlength="512" Label="@L["Parking_Admin_Notes"]" />
+                        <FluentTextField @bind-Value="_serNotes" Label="@L["Parking_Admin_Notes"]" />
                     </FluentStack>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral" Style="font-size:12px">@L["Parking_Admin_PadWidthHint"]</FluentLabel>
                     @BatchPreview(_serError, _serPlan)
@@ -124,7 +131,7 @@
                                       OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
                                       @bind-SelectedOption="_listType"
                                       Label="@L["Parking_Admin_Type"]" />
-                        <FluentTextField Immediate="true" @bind-Value="_listNotes" Maxlength="512" Label="@L["Parking_Admin_Notes"]" />
+                        <FluentTextField @bind-Value="_listNotes" Label="@L["Parking_Admin_Notes"]" />
                     </FluentStack>
                     @BatchPreview(null, _listPlan)
                     <FluentButton Id="list-create" Appearance="Appearance.Accent"
@@ -133,9 +140,8 @@
                 </FluentStack>
             </FluentTab>
         </FluentTabs>
-        </fieldset>
         <div class="admin-dialog__actions">
-            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="CloseCreate">@L["Common_Close"]</FluentButton>
+            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="CloseCreate">@L["Common_Cancel"]</FluentButton>
         </div>
     </AdminDialog>
     }
@@ -157,20 +163,30 @@
     </div>
 
     <div class="spots-results-head">
-        <span>@L["Parking_Admin_Results", _total]</span>
+        @if (!_loading && !_loadFailed && _spots is not null)
+        {
+            <span>@L["Parking_Admin_Results", _total]</span>
+        }
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ReviewMismatches)" Context="mismatchLink">
             <FluentAnchor Href="/admin/parking/oversight/occupancy" Appearance="Appearance.Hypertext">@L["Parking_Mismatch_Link"]</FluentAnchor>
         </AuthorizeView>
     </div>
 
-    @if (_spots is null)
+    @if (_loadFailed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+        <FluentButton OnClick="ReloadAsync">@L["Parking_Admin_Retry"]</FluentButton>
+    }
+    else if (_loading || _spots is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
     else if (_spots.Count == 0)
     {
         <FluentLabel Typo="Typography.Body">
-            @L[HasFilters ? "Parking_Admin_NoMatch" : "Parking_Admin_NoSpots"]
+            @L[string.IsNullOrWhiteSpace(_search) && _stateFilter == ParkingSpotStateFilter.All
+                && string.IsNullOrEmpty(_typeFilter) && _ownershipFilter == ParkingSpotOwnershipFilter.All
+                ? "Parking_Admin_NoSpots" : "Parking_Admin_NoMatch"]
         </FluentLabel>
     }
     else
@@ -179,8 +195,18 @@
             <FluentDataGrid Items="@_spots.AsQueryable()" TGridItem="ParkingSpotDto"
                             GridTemplateColumns="minmax(90px, .8fr) minmax(150px, 1.1fr) minmax(140px, 1.1fr) minmax(100px, .8fr) minmax(240px, 1.7fr) minmax(230px, auto)">
                 <PropertyColumn Property="@(s => s.Code)" Title="@L["Parking_Admin_Code"]" />
+                @* The colour-dot pill wraps an inline select, so the type is recognisable at a
+                   glance and editable in place — same idiom as the resident column. *@
                 <TemplateColumn Title="@L["Parking_Admin_Type"]">
-                    <span class="type-pill type-pill--@context.Type">@L[$"Parking_SpotType_{context.Type}"]</span>
+                    <span class="type-pill type-pill--@context.Type" style="width:100%">
+                        <FluentSelect TOption="ParkingSpotType"
+                                      Items="@_spotTypes"
+                                      OptionValue="@(t => t.ToString())"
+                                      OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
+                                      Disabled="@_busy" Value="@context.Type.ToString()"
+                                      ValueChanged="@(v => ChangeTypeAsync(context, v))"
+                                      Style="width:100%; min-width:140px" />
+                    </span>
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Parking_Admin_Notes"]">
                     @(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)
@@ -221,16 +247,15 @@
                 </TemplateColumn>
                 <TemplateColumn Title="@L["Common_Actions"]" Align="Align.End">
                     <div class="spot-row-actions">
-                        <FluentButton Disabled="@_busy" OnClick="() => OpenEdit(context)" Appearance="Appearance.Stealth">@L["Parking_Admin_Edit"]</FluentButton>
-                        <FluentButton OnClick="() => OpenResidentEditor(context.Id)"
+                        <FluentButton Disabled="@_busy" OnClick="() => OpenResidentEditor(context.Id)"
                                       Appearance="Appearance.Stealth">@L["Parking_Admin_ManageResidents"]</FluentButton>
                         @if (context.IsActive)
                         {
-                            <FluentButton Disabled="@_busy" OnClick="() => SetActiveAsync(context.Id, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
+                            <FluentButton Disabled="@_busy" OnClick="() => RequestActiveChangeAsync(context, false)" Appearance="Appearance.Stealth">@L["Parking_Admin_Deactivate"]</FluentButton>
                         }
                         else
                         {
-                            <FluentButton Disabled="@_busy" OnClick="() => SetActiveAsync(context.Id, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
+                            <FluentButton Disabled="@_busy" OnClick="() => RequestActiveChangeAsync(context, true)" Appearance="Appearance.Outline">@L["Parking_Admin_Activate"]</FluentButton>
                         }
                     </div>
                 </TemplateColumn>
@@ -255,10 +280,9 @@
                         <small>@spot.Notes</small>
                     }
                     <div class="spots-mobile-row__actions">
-                        <FluentButton Disabled="@_busy" OnClick="() => OpenEdit(spot)" Appearance="Appearance.Stealth">@L["Parking_Admin_Edit"]</FluentButton>
-                        <FluentButton OnClick="() => OpenResidentEditor(spot.Id)"
+                        <FluentButton Disabled="@_busy" OnClick="() => OpenResidentEditor(spot.Id)"
                                       Appearance="Appearance.Stealth">@L["Parking_Admin_ManageResidents"]</FluentButton>
-                        <FluentButton Disabled="@_busy" OnClick="() => SetActiveAsync(spot.Id, !spot.IsActive)" Appearance="Appearance.Stealth">
+                        <FluentButton Disabled="@_busy" OnClick="() => RequestActiveChangeAsync(spot, !spot.IsActive)" Appearance="Appearance.Stealth">
                             @L[spot.IsActive ? "Parking_Admin_Deactivate" : "Parking_Admin_Activate"]
                         </FluentButton>
                     </div>
@@ -288,51 +312,32 @@
                  Size="medium"
                  Class="resident-assignment-dialog"
                  BackdropClass="resident-dialog-backdrop"
-                 Busy="@_busy"
-                 OnClose="CloseResidentEditor">
-        @Feedback()
+                 Busy="@_busy" OnClose="CloseResidentEditor">
         @ResidentEditor(residentSpot)
     </AdminDialog>
 }
 
-@if (_editingSpot is { } editingSpot)
+@if (_deactivateSpot is { } deactivating)
 {
-    <AdminDialog Title="@L["Parking_Admin_EditSpot", editingSpot.Code]" Class="spot-edit-dialog"
-                 Busy="@_busy" OnClose="CloseEdit">
-        @Feedback()
-        <fieldset class="spot-form-fields" disabled="@_busy">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <FluentTextField Id="edit-code" Immediate="true" @bind-Value="_editCode" Required="true" Maxlength="32"
-                                 Label="@L["Parking_Admin_Code"]" aria-describedby="edit-code-hint" />
-                <p id="edit-code-hint" class="spot-form-hint">@L["Parking_Admin_CodeHint"]</p>
-                <FluentSelect Id="edit-type" TOption="ParkingSpotType" Items="@_spotTypes"
-                              OptionValue="@(t => t.ToString())" OptionText="@(t => L[$"Parking_SpotType_{t}"].Value)"
-                              @bind-SelectedOption="_editType" Label="@L["Parking_Admin_Type"]" />
-                <FluentTextArea Id="edit-notes" Immediate="true" @bind-Value="_editNotes" Maxlength="512" Rows="3"
-                                Label="@L["Parking_Admin_Notes"]" />
-            </FluentStack>
-        </fieldset>
+    <AdminDialog Title="@L["Parking_Admin_DeactivateTitle", deactivating.Code]" Busy="@_busy"
+                 Class="spot-deactivate-dialog" OnClose="() => _deactivateSpot = null">
+        <p>@L["Parking_Admin_DeactivateImpact"]</p>
         <div class="admin-dialog__actions">
-            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="CloseEdit">@L["Common_Close"]</FluentButton>
-            <FluentButton Id="spot-save" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="SaveEditAsync">@L["Admin_Save"]</FluentButton>
+            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="() => _deactivateSpot = null">@L["Common_Cancel"]</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmDeactivateAsync">@L["Parking_Admin_Deactivate"]</FluentButton>
         </div>
     </AdminDialog>
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
-    private Guid _actingUserId;
+    private Guid _userId;
     private bool _busy;
-    private bool _disposed;
-    private bool DialogOpen => _createOpen || _editingSpot is not null || _residentSpot is not null;
-    private bool HasFilters => !string.IsNullOrWhiteSpace(_search) || _stateFilter != ParkingSpotStateFilter.All
-        || _ownershipFilter != ParkingSpotOwnershipFilter.All || !string.IsNullOrEmpty(_typeFilter);
-    private ParkingSpotDto? _editingSpot;
-    private string? _editCode;
-    private string? _editNotes;
-    private ParkingSpotType _editType;
-    private ParkingSpotDto? _residentSpot;
-    private string _residentCapacity = "1";
+    private bool _loading;
+    private bool _loadFailed;
+    private int _loadSequence;
+    private ParkingSpotDto? _deactivateSpot;
+    private int _residentCapacityDraft;
     private IReadOnlyList<ParkingSpotDto>? _spots;
     private ParkingSpotDirectorySummary? _summary;
     private readonly ParkingSpotType[] _spotTypes = Enum.GetValues<ParkingSpotType>();
@@ -352,7 +357,11 @@
     private string _typeFilter = string.Empty;
     private bool _createOpen;
     private Guid? _residentEditorSpotId;
-    private ParkingSpotDto? SelectedResidentSpot => _residentSpot;
+    private bool _candidatesLoadFailed;
+
+    private ParkingSpotDto? SelectedResidentSpot => _residentEditorSpotId is { } spotId
+        ? _spots?.FirstOrDefault(spot => spot.Id == spotId)
+        : null;
 
     /// <summary>Set for one reload after a create, so the page lands where the new code sorted.</summary>
     private string? _jumpToCode;
@@ -384,29 +393,6 @@
 
     private string? _error;
     private string? _info;
-
-    private RenderFragment Feedback() => __builder =>
-    {
-        <div class="spot-feedback" aria-live="polite" aria-atomic="true">
-            @if (_error is not null)
-            {
-                <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
-                @if (_error == "Parking_Error_DeactivationBooked")
-                {
-                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewAnalytics)">
-                        <FluentAnchor Href="/admin/parking/dashboard">@L["Parking_Admin_OpenDashboard"]</FluentAnchor>
-                    </AuthorizeView>
-                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageVisitors)">
-                        <FluentAnchor Href="/admin/parking/visitors">@L["Parking_Admin_OpenVisitors"]</FluentAnchor>
-                    </AuthorizeView>
-                }
-            }
-            @if (_info is not null)
-            {
-                <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar">@_info</FluentMessageBar>
-            }
-        </div>
-    };
 
     private RenderFragment SpotMetric(string label, int value, string tone, Func<Task> action) => __builder =>
     {
@@ -450,20 +436,13 @@
             : string.Join(", ", codes.Take(8)) + " … " + codes[^1];
 
     private IReadOnlyList<ResidentCandidateDto> _residentCandidates = [];
-    private string _residentSearch = string.Empty;
-    private CancellationTokenSource? _residentSearchCancellation;
-    private int _residentSearchVersion;
-    private bool _residentSearchLoading;
-    private int _reloadVersion;
-    private int _seriesPreviewVersion;
-    private int _listPreviewVersion;
+    private readonly Dictionary<Guid, string> _residentSearch = [];
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
-        var user = await UserManager.GetUserAsync(state.User);
-        _actingUserId = user?.Id ?? Guid.Empty;
-        await ReloadAsync();
+        _userId = (await UserManager.GetUserAsync(state.User))?.Id ?? Guid.Empty;
+        await Task.WhenAll(ReloadResidentCandidatesAsync(), ReloadAsync());
     }
 
     private string StateFilterLabel(ParkingSpotStateFilter value) => value switch
@@ -521,17 +500,26 @@
                         <div class="resident-editor__member">
                             <span>@resident.Name</span>
                             <FluentButton Appearance="Appearance.Stealth"
-                                          OnClick="() => RemoveResidentAsync(spot.Id, resident.UserId)">@L["Common_Remove"]</FluentButton>
+                                          Disabled="@_busy" OnClick="() => RemoveResidentAsync(spot.Id, resident.UserId)">@L["Common_Remove"]</FluentButton>
                         </div>
                     }
                 }
             </div>
             <label class="resident-editor__capacity">
                 <span>@L["Parking_Admin_ResidentCapacity"]</span>
-                <input type="number" min="1" max="20" value="@spot.ResidentCapacity"
-                       aria-label="@L["Parking_Admin_ResidentCapacity"]"
-                       @oninput="args => ChangeResidentCapacityAsync(spot.Id, args)" />
+                <input id="resident-capacity" type="number" min="1" max="20" @bind="_residentCapacityDraft" disabled="@_busy"
+                       aria-label="@L["Parking_Admin_ResidentCapacity"]" />
             </label>
+            <FluentButton Id="resident-capacity-save" Appearance="Appearance.Outline" Disabled="@(_busy || _residentCapacityDraft == spot.ResidentCapacity)"
+                          OnClick="() => SaveResidentCapacityAsync(spot)">@L["Admin_Save"]</FluentButton>
+            @if (_error is not null)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@L[_error]</FluentMessageBar>
+            }
+            @if (_info is not null)
+            {
+                <FluentMessageBar Intent="MessageIntent.Success">@_info</FluentMessageBar>
+            }
             @if (spot.Type == ParkingSpotType.Visitor)
             {
                 <span class="resident-editor__empty">@L["Parking_Admin_ResidentVisitorUnavailable"]</span>
@@ -539,6 +527,11 @@
             else if (spot.ResidentCount >= spot.ResidentCapacity)
             {
                 <span class="resident-editor__empty">@L["Parking_Admin_ResidentCapacityFull"]</span>
+            }
+            else if (_candidatesLoadFailed)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_CandidatesLoadFailed"]</FluentMessageBar>
+                <FluentButton Disabled="@_busy" OnClick="ReloadResidentCandidatesAsync">@L["Parking_Admin_Retry"]</FluentButton>
             }
             else
             {
@@ -553,7 +546,7 @@
                     @foreach (var candidate in ResidentOptions(spot.Id))
                     {
                         <button type="button" role="option" class="resident-picker__option"
-                                disabled="@_residentAssignmentsInProgress.Contains(candidate.UserId)"
+                                disabled="@_busy"
                                 @onclick="() => AddResidentAsync(spot.Id, candidate.UserId)">
                             <strong>@candidate.Name</strong>
                             @if (!string.Equals(candidate.Name, candidate.Email, StringComparison.OrdinalIgnoreCase))
@@ -571,7 +564,12 @@
         </div>
     };
 
-    private void OpenResidentEditor(Guid spotId) => _residentEditorSpotId = spotId;
+    private void OpenResidentEditor(Guid spotId)
+    {
+        _residentEditorSpotId = spotId;
+        _residentCapacityDraft = SelectedResidentSpot?.ResidentCapacity ?? 1;
+        _error = _info = null;
+    }
 
     private void CloseResidentEditor()
     {
@@ -602,39 +600,33 @@
             .ToList();
     }
 
-    private async Task AddResidentAsync(Guid spotId, Guid residentId)
+    private Task AddResidentAsync(Guid spotId, Guid residentId) => RunMutationAsync(async () =>
     {
-        if (!_residentAssignmentsInProgress.Add(residentId))
+        var result = await Spots.AddResidentAsync(spotId, residentId);
+        if (result.Succeeded)
         {
-            return;
+            _residentSearch.Remove(spotId);
         }
+        await ReloadResidentCandidatesAsync();
+        return result;
+    });
 
-        _error = _info = null;
+    private async Task ReloadResidentCandidatesAsync()
+    {
         try
         {
-            var result = await Spots.AddResidentAsync(spotId, residentId);
-            if (!result.Succeeded)
-            {
-                _error = result.Errors.FirstOrDefault();
-            }
-
-            if (result.Succeeded)
-            {
-                _residentSearch.Remove(spotId);
-            }
-
-            await Task.WhenAll(ReloadAsync(), ReloadResidentCandidatesAsync());
+            _residentCandidates = await Spots.ListResidentCandidatesAsync();
+            _candidatesLoadFailed = false;
         }
-        finally
+        catch (Exception)
         {
-            _residentAssignmentsInProgress.Remove(residentId);
+            _candidatesLoadFailed = true;
+            _residentCandidates = [];
+            Logger.LogWarning("Loading resident candidates failed.");
         }
     }
 
-    private async Task ReloadResidentCandidatesAsync() =>
-        _residentCandidates = await Spots.ListResidentCandidatesAsync();
-
-    private async Task CreateAsync()
+    private Task CreateAsync() => RunBusyAsync(async () =>
     {
         _error = _info = null;
         var code = _newCode ?? string.Empty;
@@ -644,13 +636,14 @@
             _newCode = _newNotes = null;
             _newType = ParkingSpotType.Standard;
             JumpTo(code);
+            _info = L["Parking_Admin_Created", code];
             await ReloadAsync();
         }
         else
         {
             _error = result.Errors.FirstOrDefault();
         }
-    }
+    });
 
     private async Task RefreshSeriesPlanAsync()
     {
@@ -670,7 +663,7 @@
     private IReadOnlyList<string> ParseListCodes() =>
         (_listCodes ?? string.Empty).Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-    private async Task GenerateSeriesAsync()
+    private Task GenerateSeriesAsync() => RunBusyAsync(async () =>
     {
         _error = _info = null;
         var expansion = SpotCodeSeries.Expand(_serSections, _serSeparator, _serFrom, _serTo, _serPad);
@@ -682,15 +675,15 @@
 
         await ApplyBatchAsync(expansion.Codes, await Spots.CreateBatchAsync(expansion.Codes, _serType, _serNotes));
         await RefreshSeriesPlanAsync();
-    }
+    });
 
-    private async Task CreateListAsync()
+    private Task CreateListAsync() => RunBusyAsync(async () =>
     {
         var codes = ParseListCodes();
         _error = _info = null;
         await ApplyBatchAsync(codes, await Spots.CreateBatchAsync(codes, _listType, _listNotes));
         await RefreshListPlanAsync();
-    }
+    });
 
     private async Task ApplyBatchAsync(IReadOnlyList<string> requested, SpotBatchResult result)
     {
@@ -711,48 +704,100 @@
         await ReloadAsync();
     }
 
-    private async Task ChangeTypeAsync(ParkingSpotDto spot, string? typeValue)
+    private Task ChangeTypeAsync(ParkingSpotDto spot, string? typeValue)
     {
         if (!Enum.TryParse<ParkingSpotType>(typeValue, out var type) || type == spot.Type)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        _error = _info = null;
-        var result = await Spots.UpdateAsync(spot.Id, spot.Code, type, spot.Notes);
-        if (!result.Succeeded)
-        {
-            _error = result.Errors.FirstOrDefault();
-        }
-
-        await ReloadAsync();
+        return RunMutationAsync(() => Spots.UpdateDetailsAsync(spot.Id, spot.Code, type, spot.Notes,
+            spot.ResidentCapacity, spot.Version, _userId));
     }
 
-    private async Task SetActiveAsync(Guid id, bool active)
+    private Task RequestActiveChangeAsync(ParkingSpotDto spot, bool active)
     {
-        _error = _info = null;
-        var result = await Spots.SetActiveAsync(id, active);
-        if (!result.Succeeded)
+        if (!active)
         {
-            _error = result.Errors.FirstOrDefault();
+            _deactivateSpot = spot;
+            return Task.CompletedTask;
         }
 
-        await ReloadAsync();
+        return SetActiveAsync(spot, true);
     }
+
+    private async Task ConfirmDeactivateAsync()
+    {
+        if (_deactivateSpot is not { } spot) return;
+        await SetActiveAsync(spot, false);
+        _deactivateSpot = null;
+    }
+
+    private Task SetActiveAsync(ParkingSpotDto spot, bool active) => RunMutationAsync(
+        () => Spots.SetActiveCheckedAsync(spot.Id, active, spot.Version, _userId));
 
     private async Task ReloadAsync()
     {
-        _summary = await Spots.GetAdminSummaryAsync();
+        var sequence = ++_loadSequence;
+        _loading = true;
+        _loadFailed = false;
         ParkingSpotType? type = Enum.TryParse<ParkingSpotType>(_typeFilter, out var parsedType) ? parsedType : null;
-        var page = await Spots.ListAdminPageAsync(
-            new ParkingSpotListQuery(_search, _stateFilter, type, _ownershipFilter),
-            _pageIndex, SpotPageSize, _jumpToCode);
-        _spots = page.Items;
-        _total = page.TotalCount;
-        // Taken back from the result, not assumed: the service walks the index back when the page
-        // asked for no longer exists, and forward when a jump was requested.
-        _pageIndex = page.PageIndex;
-        _jumpToCode = null;
+        var query = new ParkingSpotListQuery(_search, _stateFilter, type, _ownershipFilter);
+        var pageIndex = _pageIndex;
+        var jumpToCode = _jumpToCode;
+        try
+        {
+            var summary = await Spots.GetAdminSummaryAsync();
+            var page = await Spots.ListAdminPageAsync(query, pageIndex, SpotPageSize, jumpToCode);
+            if (sequence != _loadSequence) return;
+            _summary = summary;
+            _spots = page.Items;
+            _total = page.TotalCount;
+            _pageIndex = page.PageIndex;
+            _jumpToCode = null;
+            if (SelectedResidentSpot is { } spot) _residentCapacityDraft = spot.ResidentCapacity;
+        }
+        catch (Exception)
+        {
+            if (sequence != _loadSequence) return;
+            _loadFailed = true;
+            _spots = null;
+            _summary = null;
+            Logger.LogWarning("Loading parking spots failed.");
+        }
+        finally
+        {
+            if (sequence == _loadSequence) _loading = false;
+        }
+    }
+
+    private Task RunMutationAsync(Func<Task<ParkingResult>> action) => RunBusyAsync(async () =>
+    {
+        _error = _info = null;
+        var result = await action();
+        _error = result.Succeeded ? null : result.Errors.FirstOrDefault() ?? "Parking_Error_InvalidState";
+        if (result.Succeeded) _info = L["Parking_Admin_Saved"];
+        await ReloadAsync();
+    });
+
+    private async Task RunBusyAsync(Func<Task> action)
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception)
+        {
+            _error = "Parking_Admin_OperationUncertain";
+            Logger.LogWarning("A parking spot operation failed; its result needs reloading.");
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     /// <summary>
@@ -769,6 +814,9 @@
 
         _jumpToCode = code;
         _search = null;
+        _stateFilter = ParkingSpotStateFilter.All;
+        _typeFilter = string.Empty;
+        _ownershipFilter = ParkingSpotOwnershipFilter.All;
     }
 
     private async Task SearchAsync()
@@ -778,35 +826,16 @@
         await ReloadAsync();
     }
 
-    private async Task RemoveResidentAsync(Guid spotId, Guid userId)
+    private Task RemoveResidentAsync(Guid spotId, Guid userId) => RunMutationAsync(async () =>
     {
-        _error = _info = null;
         var result = await Spots.RemoveResidentAsync(spotId, userId);
-        if (!result.Succeeded)
-        {
-            _error = result.Errors.FirstOrDefault();
-        }
-        await Task.WhenAll(ReloadAsync(), ReloadResidentCandidatesAsync());
-    }
+        await ReloadResidentCandidatesAsync();
+        return result;
+    });
 
-    private async Task SetResidentCapacityAsync(Guid spotId, int capacity)
-    {
-        _error = _info = null;
-        var result = await Spots.SetResidentCapacityAsync(spotId, capacity);
-        if (!result.Succeeded)
-        {
-            _error = result.Errors.FirstOrDefault();
-        }
-        await ReloadAsync();
-    }
-
-    private async Task ChangeResidentCapacityAsync(Guid spotId, ChangeEventArgs args)
-    {
-        if (int.TryParse(args.Value?.ToString(), out var capacity))
-        {
-            await SetResidentCapacityAsync(spotId, capacity);
-        }
-    }
+    private Task SaveResidentCapacityAsync(ParkingSpotDto spot) => RunMutationAsync(
+        () => Spots.UpdateDetailsAsync(spot.Id, spot.Code, spot.Type, spot.Notes,
+            _residentCapacityDraft, spot.Version, _userId));
 
     private async Task FilterAsync()
     {

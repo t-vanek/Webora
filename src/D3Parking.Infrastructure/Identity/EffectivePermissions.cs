@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
 using D3Parking.Infrastructure.Persistence;
 
@@ -15,6 +16,24 @@ namespace D3Parking.Infrastructure.Identity;
 /// </remarks>
 internal static class EffectivePermissions
 {
+    /// <summary>
+    /// Checks a protected command against the current account and role assignments, including
+    /// changes made after a Blazor circuit received its principal. The actor id must come from
+    /// that authenticated principal, never from an editable request field.
+    /// </summary>
+    public static Task<bool> HasActiveUserPermissionAsync(
+        D3ParkingDbContext dbContext,
+        Guid userId,
+        string permission,
+        CancellationToken cancellationToken = default) =>
+        (from user in dbContext.Users
+         join userRole in dbContext.UserRoles on user.Id equals userRole.UserId
+         join claim in dbContext.RoleClaims on userRole.RoleId equals claim.RoleId
+         where user.Id == userId && user.Status == AccountStatus.Active
+             && claim.ClaimType == D3ParkingClaimTypes.Permission
+             && claim.ClaimValue == permission
+         select user.Id).AnyAsync(cancellationToken);
+
     /// <summary>Every permission granted to <paramref name="userId"/> through their roles.</summary>
     public static async Task<HashSet<string>> ForUserAsync(
         D3ParkingDbContext dbContext,

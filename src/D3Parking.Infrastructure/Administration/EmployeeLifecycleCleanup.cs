@@ -1,5 +1,7 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using D3Parking.Application.Administration;
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Oversight;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
@@ -28,6 +30,7 @@ internal static class EmployeeLifecycleCleanup
         }
         var pairedVehicles = await dbContext.CompanyVehicles.CountAsync(v => v.PairedUserId == userId, cancellationToken);
         var activeReservations = await dbContext.Reservations.CountAsync(r => r.UserId == userId
+            && r.EndUtc > now
             && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn), cancellationToken);
         var activeQueue = await dbContext.QueueEntries.CountAsync(q => q.UserId == userId
             && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered), cancellationToken);
@@ -63,7 +66,8 @@ internal static class EmployeeLifecycleCleanup
 
     /// <summary>
     /// Closes live work and removes personal delivery data. Safe to retry: every transition is
-    /// selected by its live state and every delete/update is idempotent.
+    /// selected by its live state and every delete/update is idempotent. Callers changing the
+    /// identity use the same serializable transaction; standalone cleanup owns its transaction.
     /// </summary>
     public static async Task CleanOperationalAsync(
         D3ParkingDbContext dbContext,
@@ -74,6 +78,9 @@ internal static class EmployeeLifecycleCleanup
         bool revokeAccess,
         CancellationToken cancellationToken)
     {
+        await using var transaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
+            : null;
         var todayUtc = DateOnly.FromDateTime(now.UtcDateTime.Date);
 
         var memberships = await dbContext.ParkingSpotResidents
@@ -124,8 +131,10 @@ internal static class EmployeeLifecycleCleanup
                 .ExecuteUpdateAsync(s => s.SetProperty(v => v.DriverEmail, (string?)null), cancellationToken);
         }
 
+        // Planned reservations remain Reserved after their window ends. Status alone therefore
+        // cannot identify live work: departure must not cancel history or refund consumed parking.
         var reservations = await dbContext.Reservations
-            .Where(r => r.UserId == userId
+            .Where(r => r.UserId == userId && r.EndUtc > now
                 && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
             .ToListAsync(cancellationToken);
 
@@ -178,12 +187,30 @@ internal static class EmployeeLifecycleCleanup
                 .SetProperty(h => h.Status, ResidentSpotHandoffStatus.Cancelled)
                 .SetProperty(h => h.RespondedAtUtc, now), cancellationToken);
 
-        await dbContext.VisitorBookings
+        // Departure also cancels visits this account created for other hosts. Read and transition
+        // under the same serializable transaction so concurrent cancellation cannot duplicate the
+        // audit and a failed audit cannot leave a silently cancelled visit.
+        var liveVisitors = dbContext.VisitorBookings
             .Where(v => v.Status == VisitorBookingStatus.Booked && v.EndUtc > now
-                && (v.HostUserId == userId || v.CreatedById == userId))
-            .ExecuteUpdateAsync(s => s
+                && (v.HostUserId == userId || v.CreatedById == userId));
+        var visitors = await liveVisitors
+            .Select(v => new { v.Id, v.SpotId, v.StartUtc, v.EndUtc })
+            .ToListAsync(cancellationToken);
+        if (visitors.Count > 0)
+        {
+            await liveVisitors.ExecuteUpdateAsync(s => s
                 .SetProperty(v => v.Status, VisitorBookingStatus.Cancelled)
                 .SetProperty(v => v.HostUserId, (Guid?)null), cancellationToken);
+            foreach (var visitor in visitors)
+            {
+                dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+                    userId, AccountAuditEventType.ReservationOverridden,
+                    actingUserId is { } actor ? $"admin:{actor}" : "system",
+                    $"Visitor booking {visitor.Id}: cancelled; spot={visitor.SpotId}; start={visitor.StartUtc:O}; " +
+                    $"end={visitor.EndUtc:O}; reason=employee departure.", now));
+            }
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         await dbContext.ApologyVouchers
             .Where(v => v.UserId == userId
@@ -211,6 +238,11 @@ internal static class EmployeeLifecycleCleanup
         {
             await dbContext.ExternalRoleAssignments.Where(a => a.UserId == userId).ExecuteDeleteAsync(cancellationToken);
             await dbContext.UserRoles.Where(r => r.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
         }
     }
 }

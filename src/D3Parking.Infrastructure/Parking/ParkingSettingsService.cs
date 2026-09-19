@@ -45,6 +45,14 @@ public sealed class ParkingSettingsService(
         return (await GetOrCreateAsync(dbContext, cancellationToken)).SweepInterval;
     }
 
+    public async Task<IncentivePolicy> GetCurrentPolicyAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var settings = await dbContext.ParkingSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == ParkingSettings.SingletonId, cancellationToken);
+        return (settings ?? ParkingSettings.CreateDefault()).ToPolicy();
+    }
+
     public async Task<GeoPoint?> GetLotLocationAsync(CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -189,7 +197,7 @@ public sealed class ParkingSettingsService(
 
         if (impact is not null && impact.ToDto().RequiresConfirmation)
         {
-            await ReconcileCalendarImpactAsync(dbContext, impact, now, cancellationToken);
+            await ReconcileCalendarImpactAsync(dbContext, impact, actingUserId, now, cancellationToken);
         }
 
         if (calendarChanged)
@@ -476,6 +484,7 @@ public sealed class ParkingSettingsService(
     private static async Task ReconcileCalendarImpactAsync(
         D3ParkingDbContext dbContext,
         CalendarImpact impact,
+        Guid actingUserId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -511,6 +520,10 @@ public sealed class ParkingSettingsService(
         foreach (var booking in impact.VisitorBookings)
         {
             booking.Cancel();
+            dbContext.AccountAuditEvents.Add(new AccountAuditEvent(
+                actingUserId, AccountAuditEventType.ReservationOverridden, $"admin:{actingUserId}",
+                $"Visitor booking {booking.Id}: cancelled; spot={booking.SpotId}; start={booking.StartUtc:O}; " +
+                $"end={booking.EndUtc:O}; reason=calendar configuration change.", now));
         }
 
         dbContext.SpotReleases.RemoveRange(impact.SpotReleases);

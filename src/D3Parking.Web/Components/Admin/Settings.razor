@@ -9,10 +9,15 @@
 @inject IRoleAdminService RoleAdmin
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject ILogger<Settings> Logger
 @inject IStringLocalizer<SharedResource> L
+
+<NavigationLock ConfirmExternalNavigation="@HasUnsavedChanges" OnBeforeInternalNavigation="ConfirmNavigationAsync" />
 
 <PageTitle>@L["Settings_Title"]</PageTitle>
 
+<div @ref="_settingsRoot" inert="@(_saving || !_guardReady)" aria-busy="@(_saving || !_guardReady)">
 <FluentStack Class="page-shell settings-page site-settings-page" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head">
         <div class="admin-head__titles">
@@ -56,7 +61,7 @@
                                 <label for="settings-canonical-host">@L["Settings_CanonicalHost"]</label>
                                 @SettingsTooltip("settings-canonical-host-help", L["Settings_CanonicalHostHelp"].Value)
                             </div>
-                            <FluentTextField Id="settings-canonical-host" Name="SiteSettings.CanonicalHost" AutoComplete="off"
+                            <FluentTextField Immediate="true" Id="settings-canonical-host" Name="SiteSettings.CanonicalHost" AutoComplete="off"
                                              @bind-Value="_form.CanonicalHost" AriaLabel="@L["Settings_CanonicalHost"]"
                                              Placeholder="www.example.com" Style="width:100%" />
                         </div>
@@ -152,7 +157,7 @@
                             <label for="settings-aliases">@L["Settings_Aliases"]</label>
                             @SettingsTooltip("settings-aliases-help", L["Settings_AliasesHelp"].Value)
                         </div>
-                        <FluentTextArea Id="settings-aliases" @bind-Value="_form.AliasesText" AriaLabel="@L["Settings_Aliases"]"
+                        <FluentTextArea Immediate="true" Id="settings-aliases" @bind-Value="_form.AliasesText" AriaLabel="@L["Settings_Aliases"]"
                                         Rows="3" Placeholder="example.com&#10;example.net" Style="width:100%" />
                     </div>
 
@@ -325,7 +330,7 @@
                                 <label for="entra-tenant-id">@L["Settings_EntraTenantId"]</label>
                                 @SettingsTooltip("entra-tenant-id-help", L["Settings_EntraTenantIdTooltip"].Value)
                             </div>
-                            <FluentTextField Id="entra-tenant-id" @bind-Value="_entraForm.TenantId" AriaLabel="@L["Settings_EntraTenantId"]"
+                            <FluentTextField Immediate="true" Id="entra-tenant-id" @bind-Value="_entraForm.TenantId" AriaLabel="@L["Settings_EntraTenantId"]"
                                              Placeholder="00000000-0000-0000-0000-000000000000"
                                              Disabled="@Locked(EntraFields.TenantId)" Style="width:100%" />
                         </div>
@@ -335,7 +340,7 @@
                                 <label for="entra-client-id">@L["Settings_EntraClientId"]</label>
                                 @SettingsTooltip("entra-client-id-help", L["Settings_EntraClientIdTooltip"].Value)
                             </div>
-                            <FluentTextField Id="entra-client-id" @bind-Value="_entraForm.ClientId" AriaLabel="@L["Settings_EntraClientId"]"
+                            <FluentTextField Immediate="true" Id="entra-client-id" @bind-Value="_entraForm.ClientId" AriaLabel="@L["Settings_EntraClientId"]"
                                              Placeholder="00000000-0000-0000-0000-000000000000"
                                              Disabled="@Locked(EntraFields.ClientId)" Style="width:100%" />
                         </div>
@@ -348,7 +353,7 @@
                             @SettingsTooltip("entra-client-secret-help", L["Settings_EntraClientSecretTooltip"].Value)
                         </div>
                         <div class="site-setting-row__control">
-                            <FluentTextField Id="entra-client-secret" @bind-Value="_entraForm.ClientSecret" TextFieldType="TextFieldType.Password"
+                            <FluentTextField Immediate="true" Id="entra-client-secret" @bind-Value="_entraForm.ClientSecret" TextFieldType="TextFieldType.Password"
                                              AriaLabel="@L["Settings_EntraClientSecret"]" Placeholder="@L["Settings_EntraSecretKeep"]"
                                              Required="@(_entraForm.Enabled && !_entra.ClientSecretSet)"
                                              Disabled="@Locked(EntraFields.ClientSecret)" Style="width:100%" />
@@ -372,7 +377,7 @@
                                 <label for="entra-display-name">@L["Settings_EntraDisplayName"]</label>
                                 @SettingsTooltip("entra-display-name-help", L["Settings_EntraDisplayNameHelp"].Value)
                             </div>
-                            <FluentTextField Id="entra-display-name" @bind-Value="_entraForm.DisplayName"
+                            <FluentTextField Immediate="true" Id="entra-display-name" @bind-Value="_entraForm.DisplayName"
                                              AriaLabel="@L["Settings_EntraDisplayName"]" Maxlength="64"
                                              Disabled="@Locked(EntraFields.DisplayName)" Style="width:100%" />
                         </div>
@@ -382,7 +387,7 @@
                                 <label for="entra-authority">@L["Settings_EntraAuthority"]</label>
                                 @SettingsTooltip("entra-authority-help", L["Settings_EntraAuthorityTooltip"].Value)
                             </div>
-                            <FluentTextField Id="entra-authority" @bind-Value="_entraForm.Authority" AriaLabel="@L["Settings_EntraAuthority"]"
+                            <FluentTextField Immediate="true" Id="entra-authority" @bind-Value="_entraForm.Authority" AriaLabel="@L["Settings_EntraAuthority"]"
                                              Placeholder="@_authorityPlaceholder"
                                              Disabled="@Locked(EntraFields.Authority)" Style="width:100%" />
                         </div>
@@ -395,7 +400,7 @@
                                 <label for="entra-callback-path">@L["Settings_EntraCallbackPath"]</label>
                                 @SettingsTooltip("entra-callback-path-help", L["Settings_EntraCallbackPathTooltip"].Value)
                             </div>
-                            <FluentTextField Id="entra-callback-path" @bind-Value="_entraForm.CallbackPath" AriaLabel="@L["Settings_EntraCallbackPath"]"
+                            <FluentTextField Immediate="true" Id="entra-callback-path" @bind-Value="_entraForm.CallbackPath" AriaLabel="@L["Settings_EntraCallbackPath"]"
                                              Disabled="@Locked(EntraFields.CallbackPath)" Style="width:100%" />
                         </div>
                         @LockNote(EntraFields.CallbackPath)
@@ -404,7 +409,7 @@
                                 <label for="entra-signed-out-path">@L["Settings_EntraSignedOutPath"]</label>
                                 @SettingsTooltip("entra-signed-out-path-help", L["Settings_EntraSignedOutPathTooltip"].Value)
                             </div>
-                            <FluentTextField Id="entra-signed-out-path" @bind-Value="_entraForm.SignedOutCallbackPath" AriaLabel="@L["Settings_EntraSignedOutPath"]"
+                            <FluentTextField Immediate="true" Id="entra-signed-out-path" @bind-Value="_entraForm.SignedOutCallbackPath" AriaLabel="@L["Settings_EntraSignedOutPath"]"
                                              Disabled="@Locked(EntraFields.SignedOutCallbackPath)" Style="width:100%" />
                         </div>
                         @LockNote(EntraFields.SignedOutCallbackPath)
@@ -496,7 +501,7 @@
                             @SettingsTooltip("entra-scim-token-help", L["Settings_EntraScimTokenTooltip"].Value)
                         </div>
                         <div class="site-setting-row__control">
-                            <FluentTextField Id="entra-scim-token" @bind-Value="_entraForm.ScimBearerToken" TextFieldType="TextFieldType.Password"
+                            <FluentTextField Immediate="true" Id="entra-scim-token" @bind-Value="_entraForm.ScimBearerToken" TextFieldType="TextFieldType.Password"
                                              AriaLabel="@L["Settings_EntraScimToken"]" Placeholder="@L["Settings_EntraSecretKeep"]"
                                              Disabled="@Locked(EntraFields.ScimBearerToken)" Style="width:100%" />
                             <FluentLabel Typo="Typography.Body" Color="Color.Neutral">
@@ -511,18 +516,7 @@
                         </div>
                     </div>
 
-                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
-                        <div class="planner-setting-row">
-                            <div class="planner-setting-row__label">
-                                <span>@L["Settings_EntraScimBlock"]</span>
-                                @SettingsTooltip("entra-scim-block-help", L["Settings_EntraScimBlockTooltip"].Value)
-                            </div>
-                        <FluentSwitch @bind-Value="_entraForm.ScimBlockOnDeprovision"
-                                      Disabled="@Locked(EntraFields.ScimBlockOnDeprovision)"
-                                      AriaLabel="@L["Settings_EntraScimBlock"]" />
-                        </div>
-                        @LockNote(EntraFields.ScimBlockOnDeprovision)
-                    </FluentStack>
+                    <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Settings_EntraScimBlockHelp"]</FluentLabel>
 
                     <FluentAnchor Href="/admin/directory" Appearance="Appearance.Hypertext">@L["Settings_EntraRoleMappingLink"]</FluentAnchor>
 
@@ -550,7 +544,7 @@
                                 <label for="settings-site-name">@L["Settings_SiteName"]</label>
                                 @SettingsTooltip("settings-site-name-help", L["Settings_SiteNameHelp"].Value)
                             </div>
-                            <FluentTextField Id="settings-site-name" @bind-Value="_general.SiteName"
+                            <FluentTextField Immediate="true" Id="settings-site-name" @bind-Value="_general.SiteName"
                                              AriaLabel="@L["Settings_SiteName"]" Placeholder="D3Parking"
                                              Maxlength="128" Style="width:100%" />
                         </div>
@@ -559,7 +553,7 @@
                                 <label for="settings-site-description">@L["Settings_SiteDescription"]</label>
                                 @SettingsTooltip("settings-site-description-help", L["Settings_SiteDescriptionHelp"].Value)
                             </div>
-                            <FluentTextField Id="settings-site-description" @bind-Value="_general.SiteDescription"
+                            <FluentTextField Immediate="true" Id="settings-site-description" @bind-Value="_general.SiteDescription"
                                              AriaLabel="@L["Settings_SiteDescription"]" Maxlength="512" Style="width:100%" />
                         </div>
                     </div>
@@ -601,6 +595,7 @@
         </FluentTabs>
     }
 </FluentStack>
+</div>
 
 @code {
     private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
@@ -667,71 +662,89 @@
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(string? tab = null)
     {
         var dto = await SiteSettings.GetAsync();
         _baseUrl = dto.CanonicalBaseUrl;
-        var d = dto.Domain;
-        _form = new DomainForm
+        if (tab is null or "domain")
         {
-            CanonicalHost = d.CanonicalHost,
-            Scheme = d.Scheme,
-            Port = d.Port,
-            ForceHttps = d.ForceHttps,
-            HstsEnabled = d.HstsEnabled,
-            HstsMaxAgeDays = d.HstsMaxAgeDays,
-            HstsIncludeSubDomains = d.HstsIncludeSubDomains,
-            HstsPreload = d.HstsPreload,
-            WwwPreference = d.WwwPreference,
-            AliasesText = string.Join('\n', d.Aliases),
-        };
-        _regional = new RegionalForm
+            var d = dto.Domain;
+            _form = new DomainForm
+            {
+                CanonicalHost = d.CanonicalHost,
+                Scheme = d.Scheme,
+                Port = d.Port,
+                ForceHttps = d.ForceHttps,
+                HstsEnabled = d.HstsEnabled,
+                HstsMaxAgeDays = d.HstsMaxAgeDays,
+                HstsIncludeSubDomains = d.HstsIncludeSubDomains,
+                HstsPreload = d.HstsPreload,
+                WwwPreference = d.WwwPreference,
+                AliasesText = string.Join('\n', d.Aliases),
+            };
+        }
+        if (tab is null or "regional")
         {
-            DefaultLanguage = dto.Regional.DefaultLanguage ?? string.Empty,
-            DefaultTimeZoneId = dto.Regional.DefaultTimeZoneId ?? string.Empty,
-        };
-        _encoding = new EncodingForm
+            _regional = new RegionalForm
+            {
+                DefaultLanguage = dto.Regional.DefaultLanguage ?? string.Empty,
+                DefaultTimeZoneId = dto.Regional.DefaultTimeZoneId ?? string.Empty,
+            };
+        }
+        if (tab is null or "encoding")
         {
-            PageCharset = dto.Encoding.PageCharset ?? "utf-8",
-            EmailCharset = dto.Encoding.EmailCharset ?? "utf-8",
-        };
-        _accounts = new AccountsForm
+            _encoding = new EncodingForm
+            {
+                PageCharset = dto.Encoding.PageCharset ?? "utf-8",
+                EmailCharset = dto.Encoding.EmailCharset ?? "utf-8",
+            };
+        }
+        if (tab is null or "accounts")
         {
-            DefaultRole = dto.Accounts.DefaultRole ?? string.Empty,
-        };
-        _general = new GeneralForm
+            _accounts = new AccountsForm
+            {
+                DefaultRole = dto.Accounts.DefaultRole ?? string.Empty,
+            };
+        }
+        if (tab is null or "general")
         {
-            SiteName = dto.General.SiteName,
-            SiteDescription = dto.General.SiteDescription,
-            LowercaseUrls = dto.General.LowercaseUrls,
-            TrailingSlash = dto.General.TrailingSlash,
-        };
+            _general = new GeneralForm
+            {
+                SiteName = dto.General.SiteName,
+                SiteDescription = dto.General.SiteDescription,
+                LowercaseUrls = dto.General.LowercaseUrls,
+                TrailingSlash = dto.General.TrailingSlash,
+            };
+        }
+        if (tab is null or "entra")
+        {
+            _entra = await EntraSettings.GetForAdminAsync();
+            var e = _entra.Settings;
+            _entraForm = new EntraForm
+            {
+                Enabled = e.Enabled,
+                TenantId = e.TenantId,
+                ClientId = e.ClientId,
+                Authority = e.Authority,
+                CallbackPath = e.CallbackPath,
+                SignedOutCallbackPath = e.SignedOutCallbackPath,
+                DisplayName = e.DisplayName,
+                LinkByVerifiedEmail = e.LinkByVerifiedEmail,
+                AllowJustInTimeProvisioning = e.AllowJustInTimeProvisioning,
+                DefaultRoles = new HashSet<string>(e.DefaultRoles, StringComparer.OrdinalIgnoreCase),
+                ScimEnabled = e.ScimEnabled,
+            };
 
-        _entra = await EntraSettings.GetForAdminAsync();
-        var e = _entra.Settings;
-        _entraForm = new EntraForm
-        {
-            Enabled = e.Enabled,
-            TenantId = e.TenantId,
-            ClientId = e.ClientId,
-            Authority = e.Authority,
-            CallbackPath = e.CallbackPath,
-            SignedOutCallbackPath = e.SignedOutCallbackPath,
-            DisplayName = e.DisplayName,
-            LinkByVerifiedEmail = e.LinkByVerifiedEmail,
-            AllowJustInTimeProvisioning = e.AllowJustInTimeProvisioning,
-            DefaultRoles = new HashSet<string>(e.DefaultRoles, StringComparer.OrdinalIgnoreCase),
-            ScimEnabled = e.ScimEnabled,
-            ScimBlockOnDeprovision = e.ScimBlockOnDeprovision,
-        };
+            // Typed secrets are never carried across a reload; a stale value in a password box would be
+            // saved again on the next unrelated edit.
+            _clearClientSecret = _clearScimToken = false;
+            _entraForm.ClientSecret = _entraForm.ScimBearerToken = null;
 
-        // Typed secrets are never carried across a reload; a stale value in a password box would be
-        // saved again on the next unrelated edit.
-        _clearClientSecret = _clearScimToken = false;
-        _entraForm.ClientSecret = _entraForm.ScimBearerToken = null;
-
-        _authorityPlaceholder = $"https://login.microsoftonline.com/{(string.IsNullOrWhiteSpace(e.TenantId) ? "{tenant}" : e.TenantId)}/v2.0";
-        _redirectUri = new Uri(new Uri(Nav.BaseUri), e.CallbackPath.TrimStart('/')).ToString();
+            _authorityPlaceholder = $"https://login.microsoftonline.com/{(string.IsNullOrWhiteSpace(e.TenantId) ? "{tenant}" : e.TenantId)}/v2.0";
+            _redirectUri = new Uri(new Uri(Nav.BaseUri), e.CallbackPath.TrimStart('/')).ToString();
+        }
+        foreach (var key in SettingsTabs.Where(key => tab is null || key == tab))
+            _savedForms[key] = Fingerprint(key);
     }
 
     private async Task SaveDomainAsync()
@@ -745,24 +758,24 @@
             _form.HstsEnabled, _form.HstsMaxAgeDays, _form.HstsIncludeSubDomains,
             _form.HstsPreload, _form.WwwPreference, aliases);
 
-        await ApplyAsync(() => SiteSettings.UpdateDomainAsync(dto, _adminId));
+        await ApplyAsync("domain", () => SiteSettings.UpdateDomainAsync(dto, _adminId));
     }
 
     private Task SaveRegionalAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId), _adminId));
+        ApplyAsync("regional", () => SiteSettings.UpdateRegionalAsync(new RegionalSettingsDto(_regional.DefaultLanguage, _regional.DefaultTimeZoneId), _adminId));
 
     private Task SaveEncodingAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset), _adminId));
+        ApplyAsync("encoding", () => SiteSettings.UpdateEncodingAsync(new EncodingSettingsDto(_encoding.PageCharset, _encoding.EmailCharset), _adminId));
 
     private Task SaveAccountsAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateAccountsAsync(new AccountsSettingsDto(_accounts.DefaultRole), _adminId));
+        ApplyAsync("accounts", () => SiteSettings.UpdateAccountsAsync(new AccountsSettingsDto(_accounts.DefaultRole), _adminId));
 
     private Task SaveGeneralAsync() =>
-        ApplyAsync(() => SiteSettings.UpdateGeneralAsync(
+        ApplyAsync("general", () => SiteSettings.UpdateGeneralAsync(
             new GeneralSettingsDto(_general.SiteName, _general.SiteDescription, _general.LowercaseUrls, _general.TrailingSlash), _adminId));
 
     private Task SaveEntraAsync() =>
-        ApplyAsync(() => EntraSettings.UpdateAsync(
+        ApplyAsync("entra", () => EntraSettings.UpdateAsync(
             new EntraSettingsUpdate(
                 new EntraSettingsDto(
                     _entraForm.Enabled,
@@ -776,7 +789,7 @@
                     _entraForm.AllowJustInTimeProvisioning,
                     [.. _entraForm.DefaultRoles],
                     _entraForm.ScimEnabled,
-                    _entraForm.ScimBlockOnDeprovision),
+                    ScimBlockOnDeprovision: true),
                 Secret(_entraForm.ClientSecret, _clearClientSecret),
                 Secret(_entraForm.ScimBearerToken, _clearScimToken)),
             _adminId));
@@ -822,19 +835,78 @@
         return @<span class="settings-lock">@L["Settings_EntraFieldLocked"]</span>;
     }
 
-    private async Task ApplyAsync(Func<Task<AccountResult>> action)
+    private ElementReference _settingsRoot;
+    private bool _guardReady;
+    private bool? _guardDirty;
+    private bool? _guardBusy;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        var dirty = HasUnsavedChanges;
+        if (_guardDirty != dirty || _guardBusy != _saving)
+        {
+            await JS.InvokeVoidAsync("settingsDraftGuard.update", _settingsRoot, dirty, _saving,
+                L["Settings_UnsavedLeave"].Value);
+            _guardDirty = dirty;
+            _guardBusy = _saving;
+            if (!_guardReady)
+            {
+                _guardReady = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private bool _saving;
+    private static readonly string[] SettingsTabs = ["domain", "regional", "encoding", "accounts", "general", "entra"];
+    private readonly Dictionary<string, string> _savedForms = [];
+    private bool HasUnsavedChanges => _saving || _savedForms.Any(pair => pair.Value != Fingerprint(pair.Key));
+
+    // Keep only a digest of the loaded values, never another copy of typed secrets.
+    private string Fingerprint(string tab)
+    {
+        object value = tab switch
+        {
+            "domain" => _form!, "regional" => _regional, "encoding" => _encoding,
+            "accounts" => _accounts, "general" => _general,
+            "entra" => new { Form = _entraForm, _clearClientSecret, _clearScimToken },
+            _ => throw new ArgumentOutOfRangeException(nameof(tab))
+        };
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value)));
+    }
+
+    private async Task ConfirmNavigationAsync(LocationChangingContext context)
+    {
+        if (_saving || (HasUnsavedChanges && !await JS.InvokeAsync<bool>("confirm", L["Settings_UnsavedLeave"].Value)))
+            context.PreventNavigation();
+    }
+
+    private async Task ApplyAsync(string tab, Func<Task<AccountResult>> action)
+    {
+        if (_saving) return;
+        _saving = true;
         _message = _error = null;
-        var result = await action();
-        if (result.Succeeded)
+        var saved = false;
+        try
         {
-            _message = L["Settings_Saved"];
-            await LoadAsync();
+            var result = await action();
+            if (result.Succeeded)
+            {
+                saved = true;
+                await LoadAsync(tab);
+                _message = L["Settings_Saved"];
+            }
+            else
+                _error = string.Join(" ", result.Errors);
         }
-        else
+        catch (Exception exception)
         {
-            _error = string.Join(" ", result.Errors);
+            // Do not log submitted configuration or secrets.
+            Logger.LogWarning("Settings operation failed for tab {Tab} ({ExceptionType})", tab, exception.GetType().Name);
+            _error = L[saved ? "Settings_ReloadFailed" : "Settings_SaveFailed"];
         }
+        finally { _saving = false; }
     }
 
     private static string CultureLabel(string culture)
@@ -927,8 +999,6 @@
 
         /// <summary>Write-only, as <see cref="ClientSecret"/>.</summary>
         public string? ScimBearerToken { get; set; }
-
-        public bool ScimBlockOnDeprovision { get; set; } = true;
     }
 
     private sealed class GeneralForm

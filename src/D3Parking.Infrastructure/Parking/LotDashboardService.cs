@@ -1,4 +1,5 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
@@ -11,8 +12,8 @@ using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
-using D3Parking.Infrastructure.Persistence;
 using D3Parking.Infrastructure.Identity;
+using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Parking;
 
@@ -358,6 +359,7 @@ public sealed class LotDashboardService(
                 r.StartUtc,
                 r.EndUtc,
                 r.CreditsCharged,
+                Version = EF.Property<byte[]>(r, "Version"),
                 HolderName = dbContext.Users.Where(u => u.Id == r.UserId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
@@ -385,7 +387,7 @@ public sealed class LotDashboardService(
                 // Cancelling is only a legal move on a booking nobody has arrived on; once checked in,
                 // moving it is the honest intervention (see the ILotDashboardService docs).
                 CanCancel: canManageReservations && reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now,
-                CanMove: canManageReservations && live && reservation.EndUtc > now));
+                CanMove: canManageReservations && live && reservation.EndUtc > now) { Version = reservation.Version });
         }
 
         foreach (var visitor in visitorBookings)
@@ -456,7 +458,10 @@ public sealed class LotDashboardService(
 
         return new SpotDetailDto(spot.Id, spot.Code, spot.Type, spot.IsActive, spot.Notes, spot.OwnerId, ownerName,
             spot.PlannedUseDays, spot.AutoReleaseUnplannedDays, state,
-            calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats, trend);
+            calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats, trend)
+        {
+            Version = dbContext.Entry(spot).Property<byte[]>("Version").CurrentValue ?? [],
+        };
     }
 
     public async Task<LotAnalyticsDto> GetAnalyticsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
@@ -1089,24 +1094,41 @@ public sealed class LotDashboardService(
             : [];
 
     public Task<ParkingResult> CancelReservationAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => CancelReservationCoreAsync(reservationId, actingUserId, cancellationToken), cancellationToken);
+        RunOverrideAsync(() => CancelReservationCoreAsync(reservationId, actingUserId, null, cancellationToken), cancellationToken);
+
+    public Task<ParkingResult> CancelReservationCheckedAsync(Guid reservationId, byte[] expectedVersion, Guid actingUserId,
+        CancellationToken cancellationToken = default)
+    {
+        // Capture the shown version once: a retry must not turn stale consent into consent to the
+        // winner's newer booking. A missing token fails closed; only the legacy API omits it.
+        var version = expectedVersion?.ToArray() ?? [];
+        return RunOverrideAsync(() => CancelReservationCoreAsync(reservationId, actingUserId, version, cancellationToken), cancellationToken);
+    }
 
     // No explicit transaction, for the same reason as the holder's own cancel: one SaveChanges is
     // atomic and the reservation's rowversion turns a concurrent cancel/sweep into a retry that
     // lands on the InvalidState guard rather than refunding twice.
-    private async Task<ParkingResult> CancelReservationCoreAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken)
+    private async Task<ParkingResult> CancelReservationCoreAsync(Guid reservationId, Guid actingUserId,
+        byte[]? expectedVersion, CancellationToken cancellationToken)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, actingUserId, Permissions.Parking.ManageReservations, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_AccessDenied");
+        }
+
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        if (!(await ActivePermissionsAsync(dbContext, actingUserId, cancellationToken)).Contains(Permissions.Parking.ManageReservations))
-        {
-            return ParkingResult.Failure("Parking_Error_Forbidden");
-        }
         var reservation = await dbContext.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
         if (reservation is null)
         {
             return ParkingResult.Failure("Parking_Error_ReservationNotFound");
+        }
+
+        if (!MatchesShownVersion(dbContext, reservation, expectedVersion))
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
         }
 
         if (reservation.Status != ReservationStatus.Reserved)
@@ -1156,14 +1178,29 @@ public sealed class LotDashboardService(
 
     public Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
         bool confirmResidentImpact = false, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => MoveReservationCoreAsync(reservationId, targetSpotId, actingUserId, confirmResidentImpact, cancellationToken), cancellationToken);
+        RunOverrideAsync(() => MoveReservationCoreAsync(reservationId, targetSpotId, actingUserId, null,
+            confirmResidentImpact, cancellationToken), cancellationToken);
+
+    public Task<ParkingResult> MoveReservationCheckedAsync(Guid reservationId, Guid targetSpotId, byte[] expectedVersion,
+        Guid actingUserId, bool confirmResidentImpact = false, CancellationToken cancellationToken = default)
+    {
+        var version = expectedVersion?.ToArray() ?? [];
+        return RunOverrideAsync(() => MoveReservationCoreAsync(reservationId, targetSpotId, actingUserId, version,
+            confirmResidentImpact, cancellationToken), cancellationToken);
+    }
 
     private async Task<ParkingResult> MoveReservationCoreAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
-        bool confirmResidentImpact, CancellationToken cancellationToken)
+        byte[]? expectedVersion, bool confirmResidentImpact, CancellationToken cancellationToken)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, actingUserId, Permissions.Parking.ManageReservations, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_AccessDenied");
+        }
+
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // The "is the target free" check and the re-point must be one atomic step, exactly as when a
         // booking is created: at read-committed a concurrent booking of the target would pass its own
@@ -1180,6 +1217,11 @@ public sealed class LotDashboardService(
         if (reservation is null)
         {
             return ParkingResult.Failure("Parking_Error_ReservationNotFound");
+        }
+
+        if (!MatchesShownVersion(dbContext, reservation, expectedVersion))
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
         }
 
         if (reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
@@ -1251,6 +1293,25 @@ public sealed class LotDashboardService(
         }
 
         return ParkingResult.Success;
+    }
+
+    private static bool MatchesShownVersion(D3ParkingDbContext dbContext, Reservation reservation, byte[]? expectedVersion) =>
+        expectedVersion is null
+        || (expectedVersion.Length > 0 && expectedVersion.SequenceEqual(
+            dbContext.Entry(reservation).Property<byte[]>("Version").CurrentValue ?? []));
+
+    private static async Task<ParkingResult> RunOverrideAsync(Func<Task<ParkingResult>> action, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await OptimisticConcurrency.RetryAsync(action, cancellationToken);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+            && (ex is DbUpdateConcurrencyException || OptimisticConcurrency.IsUniqueViolation(ex)
+                || ex.GetBaseException() is SqlException { Number: 1205 }))
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
     }
 
     // Mirrors ReservationService.RestoreVoucherAsync, including its cap check: an override must not

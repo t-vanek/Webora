@@ -172,4 +172,8 @@
   <data name="Parking_Notify_HandoffCancelled_Body" xml:space="preserve"><value>The sender withdrew the pending offer or request.</value></data>
   <data name="Email_Handoff_Action" xml:space="preserve"><value>Open named handoff</value></data>
   <data name="Email_Handoff_Deadline" xml:space="preserve"><value>Respond by {0}.</value></data>
+  <data name="Parking_Notify_VisitorCancelled_Title" xml:space="preserve"><value>Your visitor booking was cancelled</value></data>
+  <data name="Parking_Notify_VisitorCancelled_Body" xml:space="preserve"><value>The booking of visitor spot {1} for your guest {0} was cancelled.</value></data>
+  <data name="Parking_Notify_VisitorCancelled_BodyWithoutSpot" xml:space="preserve"><value>The booking for your guest {0} was cancelled.</value></data>
+  <data name="Parking_Visitor_Error_HostUnavailable" xml:space="preserve"><value>The selected host no longer has an active account. Choose another host or create the booking without one.</value></data>
 </root>

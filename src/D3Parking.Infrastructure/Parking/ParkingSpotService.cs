@@ -1,3 +1,5 @@
+using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using D3Parking.Application;
@@ -5,11 +7,13 @@ using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
 using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Common;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure.Persistence;
+using D3Parking.Infrastructure.Identity;
 
 namespace D3Parking.Infrastructure.Parking;
 
@@ -37,7 +41,7 @@ public sealed class ParkingSpotService(
                 s.OwnerId == null
                     ? null
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.ResidentCapacity))
+                s.ResidentCapacity) { Version = EF.Property<byte[]>(s, "Version") })
             .ToListAsync(cancellationToken);
         spots = await DecorateResidentsAsync(dbContext, spots, cancellationToken);
         return spots.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
@@ -149,7 +153,7 @@ public sealed class ParkingSpotService(
                 s.OwnerId == null
                     ? null
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.ResidentCapacity))
+                s.ResidentCapacity) { Version = EF.Property<byte[]>(s, "Version") })
             .ToListAsync(cancellationToken);
         items = await DecorateResidentsAsync(dbContext, items, cancellationToken);
 
@@ -183,7 +187,7 @@ public sealed class ParkingSpotService(
                 s.OwnerId == null
                     ? null
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
-                s.ResidentCapacity))
+                s.ResidentCapacity) { Version = EF.Property<byte[]>(s, "Version") })
             .FirstOrDefaultAsync(cancellationToken);
         if (spot is null)
         {
@@ -317,7 +321,15 @@ public sealed class ParkingSpotService(
         return new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task<ParkingResult> UpdateAsync(Guid id, string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default)
+    public Task<ParkingResult> UpdateAsync(Guid id, string code, ParkingSpotType type, string? notes, CancellationToken cancellationToken = default) =>
+        UpdateDetailsCoreAsync(id, code, type, notes, null, null, null, cancellationToken);
+
+    public Task<ParkingResult> UpdateDetailsAsync(Guid id, string code, ParkingSpotType type, string? notes,
+        int residentCapacity, byte[] expectedVersion, Guid actingUserId, CancellationToken cancellationToken = default) =>
+        UpdateDetailsCoreAsync(id, code, type, notes, residentCapacity, expectedVersion, actingUserId, cancellationToken);
+
+    private async Task<ParkingResult> UpdateDetailsCoreAsync(Guid id, string code, ParkingSpotType type, string? notes,
+        int? residentCapacity, byte[]? expectedVersion, Guid? actingUserId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -325,68 +337,141 @@ public sealed class ParkingSpotService(
         }
 
         code = code.Trim();
+        if (code.Length > MaxCodeLength || notes?.Length > 512 || !Enum.IsDefined(type))
+        {
+            return ParkingResult.Failure("Parking_Error_InvalidSpotDetails");
+        }
+        if (residentCapacity is < 1 or > 20)
+        {
+            return ParkingResult.Failure("Parking_Error_ResidentCapacityRange");
+        }
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
-        if (spot is null)
+        if (actingUserId is { } actor && !await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, actor, Permissions.Parking.ManageSpots, cancellationToken))
         {
-            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+            return ParkingResult.Failure("Parking_Error_AccessDenied");
         }
 
-        if (await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.Code.ToLower() == code.ToLower(), cancellationToken))
-        {
-            return ParkingResult.Failure("Parking_Error_DuplicateCode");
-        }
-
-        // The employee pool and the visitor agenda are separate booking systems that never see
-        // each other's conflicts. Crossing the boundary with live bookings would double-let the
-        // spot: a visitor spot with a future visit re-typed to Standard immediately reappears in
-        // the employee pool, whose conflict check only reads Reservations (and vice versa).
-        if (type != spot.Type && (type == ParkingSpotType.Visitor) != (spot.Type == ParkingSpotType.Visitor))
-        {
-            var now = timeProvider.GetUtcNow();
-            var hasLiveBookings = spot.Type == ParkingSpotType.Visitor
-                ? await dbContext.VisitorBookings.AnyAsync(b => b.SpotId == id
-                    && b.Status == VisitorBookingStatus.Booked && b.EndUtc > now, cancellationToken)
-                : await dbContext.Reservations.AnyAsync(r => r.SpotId == id
-                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-                    && r.EndUtc > now, cancellationToken);
-            if (hasLiveBookings)
-            {
-                return ParkingResult.Failure("Parking_Error_TypeChangeBooked");
-            }
-
-            // Visitor spots never belong to a resident (AssignOwnerAsync refuses them too).
-            if (type == ParkingSpotType.Visitor && spot.OwnerId is not null)
-            {
-                return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
-            }
-        }
-
-        spot.Rename(code);
-        spot.ChangeType(type);
-        spot.UpdateNotes(notes);
-
+        // Retyping and resident capacity must be protected against bookings/memberships created
+        // after validation. Use the same database isolation as reservation creation.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         try
         {
+            var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+            if (spot is null)
+            {
+                return ParkingResult.Failure("Parking_Error_SpotNotFound");
+            }
+
+            if (actingUserId is not null && !MatchesVersion(dbContext, spot, expectedVersion))
+            {
+                return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+            }
+
+            if (residentCapacity is { } capacity)
+            {
+                var active = await dbContext.ParkingSpotResidents.CountAsync(
+                    r => r.SpotId == id && r.RemovedAtUtc == null, cancellationToken);
+                active = Math.Max(active, spot.OwnerId is null ? 0 : 1);
+                if (active > capacity)
+                {
+                    return ParkingResult.Failure("Parking_Error_ResidentCapacityBelowCount");
+                }
+                spot.SetResidentCapacity(capacity);
+            }
+
+            if (await dbContext.ParkingSpots.AnyAsync(s => s.Id != id && s.Code.ToLower() == code.ToLower(), cancellationToken))
+            {
+                return ParkingResult.Failure("Parking_Error_DuplicateCode");
+            }
+
+            // The employee pool and the visitor agenda are separate booking systems that never see
+            // each other's conflicts. Crossing the boundary with live bookings would double-let the
+            // spot: a visitor spot with a future visit re-typed to Standard immediately reappears in
+            // the employee pool, whose conflict check only reads Reservations (and vice versa).
+            if (type != spot.Type && (type == ParkingSpotType.Visitor) != (spot.Type == ParkingSpotType.Visitor))
+            {
+                var now = timeProvider.GetUtcNow();
+                var hasLiveBookings = await dbContext.VisitorBookings.AnyAsync(v => v.SpotId == id
+                        && v.Status == VisitorBookingStatus.Booked && v.EndUtc > now, cancellationToken)
+                    || await dbContext.Reservations.AnyAsync(r => r.SpotId == id
+                        && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                        && r.EndUtc > now, cancellationToken)
+                    || await dbContext.QueueEntries.AnyAsync(q => q.OfferedSpotId == id
+                        && q.Status == QueueEntryStatus.Offered && q.OfferExpiresAtUtc > now && q.EndUtc > now,
+                        cancellationToken);
+                if (hasLiveBookings)
+                {
+                    return ParkingResult.Failure("Parking_Error_TypeChangeBooked");
+                }
+
+                // Visitor spots never belong to a resident (AssignOwnerAsync refuses them too).
+                if (type == ParkingSpotType.Visitor && (spot.OwnerId is not null
+                    || await dbContext.ParkingSpotResidents.AnyAsync(r => r.SpotId == id && r.RemovedAtUtc == null, cancellationToken)))
+                {
+                    return ParkingResult.Failure("Parking_Error_VisitorSpotNoOwner");
+                }
+            }
+
+            spot.Rename(code);
+            spot.ChangeType(type);
+            spot.UpdateNotes(notes);
+
+            if (actingUserId is { } auditedActor)
+            {
+                dbContext.AccountAuditEvents.Add(new AccountAuditEvent(auditedActor,
+                    AccountAuditEventType.SettingsChanged, $"admin:{auditedActor}",
+                    $"Parking spot {id}: details updated; type={type}; resident capacity={spot.ResidentCapacity}.",
+                    timeProvider.GetUtcNow()));
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ParkingResult.Success;
         }
-        catch (DbUpdateException)
+        catch (DbUpdateConcurrencyException)
         {
-            // A concurrent rename landed the same code between the check and the save; the unique
-            // index on Code is the last line of defence. Safe to just retry.
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
+        catch (Exception ex) when (ex.GetBaseException() is SqlException { Number: 1205 })
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
+        catch (DbUpdateException ex) when (OptimisticConcurrency.IsUniqueViolation(ex))
+        {
             return ParkingResult.Failure("Parking_Error_DuplicateCode");
         }
-
-        return ParkingResult.Success;
     }
 
-    public async Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default)
+    public Task<ParkingResult> SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken = default) =>
+        SetActiveCoreAsync(id, active, null, null, cancellationToken);
+
+    public Task<ParkingResult> SetActiveCheckedAsync(Guid id, bool active, byte[] expectedVersion, Guid actingUserId,
+        CancellationToken cancellationToken = default) =>
+        SetActiveCoreAsync(id, active, expectedVersion, actingUserId, cancellationToken);
+
+    private async Task<ParkingResult> SetActiveCoreAsync(Guid id, bool active, byte[]? expectedVersion,
+        Guid? actingUserId, CancellationToken cancellationToken)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        if (actingUserId is { } actor && !await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, actor, Permissions.Parking.ManageSpots, cancellationToken))
+        {
+            return ParkingResult.Failure("Parking_Error_AccessDenied");
+        }
         var spot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (spot is null)
         {
             return ParkingResult.Failure("Parking_Error_SpotNotFound");
+        }
+
+        if (actingUserId is not null && !MatchesVersion(dbContext, spot, expectedVersion))
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
+        if (spot.IsActive == active)
+        {
+            return ParkingResult.Success;
         }
 
         if (active)
@@ -398,7 +483,20 @@ public sealed class ParkingSpotService(
             spot.Deactivate();
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        if (actingUserId is { } auditedActor)
+        {
+            dbContext.AccountAuditEvents.Add(new AccountAuditEvent(auditedActor,
+                AccountAuditEventType.SettingsChanged, $"admin:{auditedActor}",
+                $"Parking spot {id}: active={active}; existing bookings retained.", timeProvider.GetUtcNow()));
+        }
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
 
         // Deactivating a spot leaves its upcoming reservations stranded, so warn the holders to re-book.
         if (!active)
@@ -421,6 +519,10 @@ public sealed class ParkingSpotService(
 
         return ParkingResult.Success;
     }
+
+    private static bool MatchesVersion(D3ParkingDbContext dbContext, ParkingSpot spot, byte[]? expectedVersion) =>
+        expectedVersion is { Length: > 0 }
+        && expectedVersion.SequenceEqual(dbContext.Entry(spot).Property<byte[]>("Version").CurrentValue ?? []);
 
     public async Task<ParkingResult> AssignOwnerAsync(Guid id, Guid? ownerId, CancellationToken cancellationToken = default)
     {

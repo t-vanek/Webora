@@ -113,4 +113,5 @@
   <data name="Error_ExternalRoleRequired" xml:space="preserve"><value>A directory role name is required.</value></data>
   <data name="Error_ExternalRoleMapped" xml:space="preserve"><value>The role “{0}” is already mapped.</value></data>
   <data name="Error_ExternalRoleMappingNotFound" xml:space="preserve"><value>The role mapping was not found.</value></data>
+  <data name="Error_AccessDenied" xml:space="preserve"><value>You do not have permission for this operation or your account is no longer active.</value></data>
 </root>

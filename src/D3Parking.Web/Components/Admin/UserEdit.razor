@@ -219,6 +219,7 @@
                                                 @DeleteImpactFact(L["Admin_UserEdit_DeleteMessages"], impact.PersonalMessages)
                                                 @DeleteImpactFact(L["Admin_UserEdit_DeleteCases"], impact.AssignedOversightCases)
                                             </div>
+                                            <p class="danger-zone__note" data-testid="departure-visitors-impact">@L["Admin_UserEdit_DeleteVisitorsImpact"]</p>
                                             <div class="user-delete-history">
                                                 <FluentIcon Value="@(new Icons.Regular.Size20.ShieldCheckmark())" />
                                                 <span>@L["Admin_UserEdit_DeleteHistory", impact.HistoricalRecords]</span>

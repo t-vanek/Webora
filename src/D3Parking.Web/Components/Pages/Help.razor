@@ -180,12 +180,34 @@
             <FluentLabel Typo="Typography.Subject" Style="margin-top:12px">@L["Help_AdminSection"]</FluentLabel>
         }
 
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ViewAnalytics)">
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_ParkingOperations_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_ParkingOperations_A"]</p>
+                    <FluentAnchor Href="/admin/parking/dashboard">@L["Lot_Title"]</FluentAnchor>
+                </div>
+            </details>
+        </AuthorizeView>
+        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)">
+            <details class="help-item">
+                <summary class="help-item__q">@L["Help_ParkingSpots_Q"]</summary>
+                <div class="help-item__a">
+                    <p>@L["Help_ParkingSpots_A"]</p>
+                    <p>@L["Parking_Admin_DeactivateImpact"]</p>
+                    <FluentAnchor Href="/admin/parking/spots">@L["Parking_Admin_Title"]</FluentAnchor>
+                </div>
+            </details>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageVisitors)">
             <details class="help-item">
                 <summary class="help-item__q">@L["Help_Visitors_Q"]</summary>
                 <div class="help-item__a">
                     <p>@L["Help_Visitors_A1"]</p>
                     <p>@L["Help_Visitors_A2"]</p>
+                    <p>@L["Help_Visitors_A3"]</p>
+                    <p>@L["Help_Visitors_A4"]</p>
                     @if (!_hasVisitorSpots)
                     {
                         @* Bez míst typu Návštěvnické je agenda prázdná — ať správce ví proč. *@
@@ -291,7 +313,9 @@
         {
             var state = await AuthState;
             bool Can(string permission) => state.User.HasClaim(D3ParkingClaimTypes.Permission, permission);
-            _showAdminHelp = Can(Permissions.Parking.ManageVisitors)
+            _showAdminHelp = Can(Permissions.Parking.ManageSpots)
+                || Can(Permissions.Parking.ViewAnalytics)
+                || Can(Permissions.Parking.ManageVisitors)
                 || Can(Permissions.Parking.ManageFleet)
                 || Can(Permissions.Parking.ReviewMismatches)
                 || Can(Permissions.Parking.ManageIncentives);

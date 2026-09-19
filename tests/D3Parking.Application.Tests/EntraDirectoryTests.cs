@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using D3Parking.Application.Identity;
 using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Authorization;
+using D3Parking.Domain.Parking;
 using D3Parking.Infrastructure;
 using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
@@ -28,6 +30,7 @@ public class EntraDirectoryTests
     private ServiceProvider _provider = null!;
     private DbContextOptions<D3ParkingDbContext> _options = null!;
     private EntraIdOptions _entra = null!;
+    private FailAfterVisitorAuditSave _failure = null!;
 
     private Guid _employeeRoleId;
     private Guid _lotManagerRoleId;
@@ -57,8 +60,9 @@ public class EntraDirectoryTests
         }
 
         var services = new ServiceCollection();
+        _failure = new FailAfterVisitorAuditSave();
         services.AddLogging();
-        services.AddDbContext<D3ParkingDbContext>(o => o.UseSqlServer(builder.ConnectionString));
+        services.AddDbContext<D3ParkingDbContext>(o => o.UseSqlServer(builder.ConnectionString).AddInterceptors(_failure));
         services.AddDataProtection();
         services.AddIdentityCore<ApplicationUser>(o =>
             {
@@ -411,6 +415,162 @@ public class EntraDirectoryTests
     }
 
     [Test]
+    public async Task Deprovisioning_rejects_an_outer_read_committed_transaction_before_changing_the_account_or_visits()
+    {
+        Guid userId;
+        Guid hostedId;
+        Guid createdId;
+        string? stampBefore;
+        int auditCountBefore;
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            var service = CreateService(scope);
+            var created = await service.SyncAsync(Identity("oid-weaker-transaction", "weaker-transaction@example.test",
+                roles: ["Parking.Employee"]));
+            Assert.That(created.Succeeded, Is.True);
+            userId = created.UserId;
+            var db = scope.ServiceProvider.GetRequiredService<D3ParkingDbContext>();
+            stampBefore = (await db.Users.SingleAsync(u => u.Id == userId)).SecurityStamp;
+            var now = DateTimeOffset.UtcNow;
+            var otherHost = Guid.NewGuid();
+            var hosted = new VisitorBooking(Guid.NewGuid(), "Synthetic hosted visitor", null, null, userId,
+                now.AddDays(1), now.AddDays(1).AddHours(1), otherHost, now);
+            var createdForOtherHost = new VisitorBooking(Guid.NewGuid(), "Synthetic created visitor", null, null, otherHost,
+                now.AddDays(2), now.AddDays(2).AddHours(1), userId, now);
+            hostedId = hosted.Id;
+            createdId = createdForOtherHost.Id;
+            db.VisitorBookings.AddRange(hosted, createdForOtherHost);
+            await db.SaveChangesAsync();
+            auditCountBefore = await db.AccountAuditEvents.CountAsync(a => a.UserId == userId);
+
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await service.SetActiveAsync(ExternalProviders.EntraId, "oid-weaker-transaction", active: false));
+            Assert.That(exception!.Message, Is.EqualTo("Directory status changes require a serializable transaction."));
+            Assert.That(db.ChangeTracker.HasChanges(), Is.False);
+            // Commit volajícího prokáže, že nulové změny nejsou jen důsledkem rollbacku testu.
+            await transaction.CommitAsync();
+        }
+
+        await using var verify = new D3ParkingDbContext(_options);
+        var user = await verify.Users.SingleAsync(u => u.Id == userId);
+        var bookings = await verify.VisitorBookings.ToDictionaryAsync(v => v.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(user.Status, Is.EqualTo(AccountStatus.Active));
+            Assert.That(user.SecurityStamp, Is.EqualTo(stampBefore));
+            Assert.That(bookings[hostedId].Status, Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That(bookings[hostedId].HostUserId, Is.EqualTo(userId));
+            Assert.That(bookings[createdId].Status, Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That(bookings[createdId].HostUserId, Is.Not.Null);
+            Assert.That(verify.UserRoles.Any(r => r.UserId == userId && r.RoleId == _employeeRoleId), Is.True);
+            Assert.That(verify.ExternalRoleAssignments.Any(a => a.UserId == userId), Is.True);
+            Assert.That(verify.AccountAuditEvents.Count(a => a.UserId == userId), Is.EqualTo(auditCountBefore));
+        });
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Deprovisioning_cancels_hosted_and_created_visits_once_including_an_inactive_retry(bool alreadyBlocked)
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var service = CreateService(scope);
+        var created = await service.SyncAsync(Identity("oid-visitor-leaver", "visitor-leaver@example.test"));
+        if (alreadyBlocked)
+            Assert.That((await service.SetActiveAsync(ExternalProviders.EntraId, "oid-visitor-leaver", false)).Succeeded, Is.True);
+
+        var now = DateTimeOffset.UtcNow;
+        var otherAccount = Guid.NewGuid();
+        var hosted = new VisitorBooking(Guid.NewGuid(), "Synthetic hosted visitor", null, null, created.UserId,
+            now.AddDays(1), now.AddDays(1).AddHours(1), otherAccount, now);
+        var createdForOtherHost = new VisitorBooking(Guid.NewGuid(), "Synthetic other host", null, null, otherAccount,
+            now.AddDays(2), now.AddDays(2).AddHours(1), created.UserId, now);
+        var ended = new VisitorBooking(Guid.NewGuid(), "Synthetic ended visitor", null, null, created.UserId,
+            now.AddDays(-2), now.AddDays(-2).AddHours(1), created.UserId, now.AddDays(-3));
+        await using (var seed = new D3ParkingDbContext(_options))
+        {
+            seed.AddRange(hosted, createdForOtherHost, ended);
+            await seed.SaveChangesAsync();
+        }
+
+        Assert.That((await service.SetActiveAsync(ExternalProviders.EntraId, "oid-visitor-leaver", false)).Succeeded, Is.True);
+        Assert.That((await service.SetActiveAsync(ExternalProviders.EntraId, "oid-visitor-leaver", false)).Succeeded, Is.True);
+
+        await using var verify = new D3ParkingDbContext(_options);
+        var bookings = await verify.VisitorBookings.ToDictionaryAsync(v => v.Id);
+        var audits = await verify.AccountAuditEvents.Where(a => a.UserId == created.UserId
+            && a.Type == AccountAuditEventType.ReservationOverridden).ToListAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(verify.Users.Single(u => u.Id == created.UserId).Status, Is.EqualTo(AccountStatus.Blocked));
+            Assert.That(bookings[hosted.Id].Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
+            Assert.That(bookings[createdForOtherHost.Id].Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
+            Assert.That(bookings[ended.Id].Status, Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That(bookings[ended.Id].HostUserId, Is.EqualTo(created.UserId));
+            Assert.That(audits, Has.Count.EqualTo(2));
+            Assert.That(audits.All(a => a.Actor == "system"), Is.True);
+            Assert.That(audits.Any(a => a.Detail!.Contains(hosted.Id.ToString())), Is.True);
+            Assert.That(audits.Any(a => a.Detail!.Contains(createdForOtherHost.Id.ToString())), Is.True);
+            Assert.That(audits.All(a => a.Detail is not null && !a.Detail.Contains("Synthetic")), Is.True);
+            Assert.That(verify.AccountAuditEvents.Count(a => a.UserId == created.UserId
+                && a.Type == AccountAuditEventType.Blocked), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task A_failure_after_visitor_cancellation_rolls_back_directory_status_sessions_roles_and_audit()
+    {
+        Guid userId;
+        Guid bookingId;
+        string? stampBefore;
+        await using (var scope = _provider.CreateAsyncScope())
+        {
+            var service = CreateService(scope);
+            var created = await service.SyncAsync(Identity("oid-atomic-leaver", "atomic-leaver@example.test", roles: ["Parking.Employee"]));
+            userId = created.UserId;
+            var db = scope.ServiceProvider.GetRequiredService<D3ParkingDbContext>();
+            stampBefore = (await db.Users.SingleAsync(u => u.Id == userId)).SecurityStamp;
+            var now = DateTimeOffset.UtcNow;
+            var booking = new VisitorBooking(Guid.NewGuid(), "Synthetic rollback visitor", null, null, userId,
+                now.AddDays(1), now.AddDays(1).AddHours(1), userId, now);
+            bookingId = booking.Id;
+            db.VisitorBookings.Add(booking);
+            await db.SaveChangesAsync();
+
+            _failure.Armed = true;
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await service.SetActiveAsync(ExternalProviders.EntraId, "oid-atomic-leaver", false));
+            Assert.That(exception!.Message, Is.EqualTo("Synthetic failure after visitor audit save."));
+        }
+
+        await using (var verify = new D3ParkingDbContext(_options))
+        {
+            var user = await verify.Users.SingleAsync(u => u.Id == userId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(user.Status, Is.EqualTo(AccountStatus.Active));
+                Assert.That(user.SecurityStamp, Is.EqualTo(stampBefore));
+                Assert.That(verify.UserRoles.Any(r => r.UserId == userId && r.RoleId == _employeeRoleId), Is.True);
+                Assert.That(verify.ExternalRoleAssignments.Any(a => a.UserId == userId), Is.True);
+                Assert.That(verify.VisitorBookings.Single(v => v.Id == bookingId).Status, Is.EqualTo(VisitorBookingStatus.Booked));
+                Assert.That(verify.AccountAuditEvents.Any(a => a.UserId == userId
+                    && (a.Type == AccountAuditEventType.ReservationOverridden || a.Type == AccountAuditEventType.Blocked)), Is.False);
+            });
+        }
+
+        await using var retryScope = _provider.CreateAsyncScope();
+        Assert.That((await CreateService(retryScope).SetActiveAsync(ExternalProviders.EntraId, "oid-atomic-leaver", false)).Succeeded, Is.True);
+        await using var final = new D3ParkingDbContext(_options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(final.Users.Single(u => u.Id == userId).Status, Is.EqualTo(AccountStatus.Blocked));
+            Assert.That(final.VisitorBookings.Single(v => v.Id == bookingId).Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
+            Assert.That(final.AccountAuditEvents.Count(a => a.UserId == userId
+                && a.Type == AccountAuditEventType.ReservationOverridden), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task Deprovisioning_the_last_administrator_is_refused()
     {
         await using var scope = _provider.CreateAsyncScope();
@@ -505,6 +665,24 @@ public class EntraDirectoryTests
         new PassthroughLocalizer<AccountMessages>(),
         TimeProvider.System,
         NullLogger<EntraDirectoryService>.Instance);
+
+    private sealed class FailAfterVisitorAuditSave : SaveChangesInterceptor
+    {
+        public bool Armed { get; set; }
+
+        public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result,
+            CancellationToken cancellationToken = default)
+        {
+            if (Armed && eventData.Context!.ChangeTracker.Entries<AccountAuditEvent>()
+                .Any(e => e.Entity.Type == AccountAuditEventType.ReservationOverridden
+                    && e.Entity.Detail != null && e.Entity.Detail.Contains("employee departure")))
+            {
+                Armed = false;
+                throw new InvalidOperationException("Synthetic failure after visitor audit save.");
+            }
+            return ValueTask.FromResult(result);
+        }
+    }
 
     /// <summary>Serves the fixture's options as the effective settings; nothing here writes.</summary>
     private sealed class FixedEntraSettings(Func<EntraIdOptions> current) : IEntraSettingsService

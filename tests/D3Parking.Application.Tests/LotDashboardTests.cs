@@ -1,10 +1,14 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using D3Parking.Application.Parking;
+using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Infrastructure;
+using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
 using NUnit.Framework;
@@ -22,6 +26,7 @@ namespace D3Parking.Application.Tests;
 public class LotDashboardTests
 {
     private DbContextOptions<D3ParkingDbContext> _options = null!;
+    private Guid _reservationManager;
 
     // 2026-09-15 is a Tuesday; the shared FakeSiteSettings pins the site zone to UTC.
     private static readonly DateOnly Today = new(2026, 9, 15);
@@ -65,6 +70,8 @@ public class LotDashboardTests
         dbContext.ParkerScores.RemoveRange(dbContext.ParkerScores);
         dbContext.ParkingSpots.RemoveRange(dbContext.ParkingSpots);
         await dbContext.SaveChangesAsync();
+        _reservationManager = await CreateActorAsync(Permissions.Parking.ManageReservations,
+            additionalPermission: Permissions.Parking.ViewAnalytics);
     }
 
     [OneTimeTearDown]
@@ -250,7 +257,7 @@ public class LotDashboardTests
     {
         var spot = await CreateSpotAsync("F-1");
         var holder = Guid.NewGuid();
-        var admin = Guid.NewGuid();
+        var admin = _reservationManager;
         // Starting in ten minutes: a holder cancelling this late would forfeit the charge.
         var reservationId = await BookAsync(spot, holder, startUtc: Noon.AddMinutes(10), credits: 25);
 
@@ -276,12 +283,12 @@ public class LotDashboardTests
         var reservationId = await BookAsync(from, holder, checkedIn: true, credits: 15);
         var dashboard = CreateDashboard();
 
-        var cancel = await dashboard.CancelReservationAsync(reservationId, Guid.NewGuid());
+        var cancel = await dashboard.CancelReservationAsync(reservationId, _reservationManager);
         Assert.That(cancel.Succeeded, Is.False,
             "Cancelling a booking someone already arrived on is not a legal lifecycle move.");
         Assert.That(cancel.Errors, Is.EqualTo(new[] { "Parking_Error_InvalidState" }));
 
-        Assert.That((await dashboard.MoveReservationAsync(reservationId, to, Guid.NewGuid())).Succeeded, Is.True);
+        Assert.That((await dashboard.MoveReservationAsync(reservationId, to, _reservationManager)).Succeeded, Is.True);
 
         await using var dbContext = new D3ParkingDbContext(_options);
         var moved = await dbContext.Reservations.FindAsync(reservationId);
@@ -305,14 +312,14 @@ public class LotDashboardTests
         await BookAsync(taken, Guid.NewGuid());
         var dashboard = CreateDashboard();
 
-        Assert.That((await dashboard.MoveReservationAsync(reservationId, taken, Guid.NewGuid())).Errors,
+        Assert.That((await dashboard.MoveReservationAsync(reservationId, taken, _reservationManager)).Errors,
             Is.EqualTo(new[] { "Parking_Error_SpotTaken" }));
-        Assert.That((await dashboard.MoveReservationAsync(reservationId, closed, Guid.NewGuid())).Errors,
+        Assert.That((await dashboard.MoveReservationAsync(reservationId, closed, _reservationManager)).Errors,
             Is.EqualTo(new[] { "Parking_Error_SpotInactive" }));
-        Assert.That((await dashboard.MoveReservationAsync(reservationId, from, Guid.NewGuid())).Errors,
+        Assert.That((await dashboard.MoveReservationAsync(reservationId, from, _reservationManager)).Errors,
             Is.EqualTo(new[] { "Parking_Error_SameSpot" }));
 
-        var targets = await dashboard.GetMoveTargetsAsync(reservationId);
+        var targets = await dashboard.GetMoveTargetsAsync(reservationId, _reservationManager);
         Assert.That(targets, Is.Empty, "Neither a taken nor a closed spot is offered as a target.");
     }
 
@@ -324,7 +331,7 @@ public class LotDashboardTests
         await CreateSpotAsync("J-2");
         var reservationId = await BookAsync(from, Guid.NewGuid());
 
-        var targets = await CreateDashboard().GetMoveTargetsAsync(reservationId);
+        var targets = await CreateDashboard().GetMoveTargetsAsync(reservationId, _reservationManager);
 
         Assert.That(targets.Select(t => t.Code), Is.EqualTo(new[] { "J-2", "J-10" }),
             "A database string sort would offer J-10 first; the manager reads codes as numbers.");
@@ -344,7 +351,7 @@ public class LotDashboardTests
             await dbContext.SaveChangesAsync();
         }
 
-        var detail = await CreateDashboard().GetSpotDetailAsync(spot, Today, 7);
+        var detail = await CreateDashboard().GetSpotDetailAsync(spot, Today, 7, _reservationManager);
 
         Assert.That(detail, Is.Not.Null);
         Assert.That(detail!.Calendar.Count(e => e.Kind == SpotCalendarKind.Reservation), Is.EqualTo(1));
@@ -378,7 +385,7 @@ public class LotDashboardTests
         // A visitor spot is never a move target: it lives outside the employee pool entirely.
         var elsewhere = await CreateSpotAsync("V-9");
         var reservationId = await BookAsync(elsewhere, Guid.NewGuid(), day: Today.AddDays(1));
-        Assert.That((await CreateDashboard().GetMoveTargetsAsync(reservationId)).Select(t => t.Code),
+        Assert.That((await CreateDashboard().GetMoveTargetsAsync(reservationId, _reservationManager)).Select(t => t.Code),
             Does.Not.Contain("V-1"));
     }
 
@@ -410,7 +417,7 @@ public class LotDashboardTests
         var spot = await CreateSpotAsync("L-1");
         await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-1), status: ReservationStatus.Completed);
 
-        var detail = await CreateDashboard().GetSpotDetailAsync(spot, Today, 7);
+        var detail = await CreateDashboard().GetSpotDetailAsync(spot, Today, 7, _reservationManager);
 
         Assert.That(detail!.Trend, Has.Count.EqualTo(30), "A 30-day strip needs 30 columns.");
         Assert.That(detail.Trend[^1].Date, Is.EqualTo(Today), "Oldest first, so the last point is today.");
@@ -421,7 +428,7 @@ public class LotDashboardTests
     [Test]
     public async Task A_missing_spot_has_no_detail()
     {
-        Assert.That(await CreateDashboard().GetSpotDetailAsync(Guid.NewGuid(), Today, 7), Is.Null);
+        Assert.That(await CreateDashboard().GetSpotDetailAsync(Guid.NewGuid(), Today, 7, _reservationManager), Is.Null);
     }
 
     [Test]
@@ -677,6 +684,154 @@ public class LotDashboardTests
         Assert.That(economy.CreditsCharged, Is.EqualTo(12),
             "A cancelled booking was handed back; counting it as a charge would book the money twice.");
         Assert.That(economy.CreditsRefunded, Is.EqualTo(8));
+    }
+
+    [Test]
+    public async Task A_stale_calendar_entry_cannot_overwrite_or_cancel_a_newer_move()
+    {
+        var original = await CreateSpotAsync("STALE-1");
+        var firstTarget = await CreateSpotAsync("STALE-2");
+        var staleTarget = await CreateSpotAsync("STALE-3");
+        var owner = Guid.NewGuid();
+        var reservationId = await BookAsync(original, owner, credits: 25);
+        var dashboard = CreateDashboard();
+        var shown = (await dashboard.GetSpotDetailAsync(original, Today, 1, _reservationManager))!.Calendar
+            .Single(entry => entry.ReservationId == reservationId);
+        Assert.That(shown.Version, Has.Length.EqualTo(8), "The UI must carry SQL Server's persisted rowversion.");
+
+        var moved = await dashboard.MoveReservationCheckedAsync(reservationId, firstTarget, shown.Version, _reservationManager);
+        Assert.That(moved.Succeeded, Is.True, string.Join("; ", moved.Errors));
+
+        var staleMove = await dashboard.MoveReservationCheckedAsync(reservationId, staleTarget, shown.Version, _reservationManager);
+        var staleCancel = await dashboard.CancelReservationCheckedAsync(reservationId, shown.Version, _reservationManager);
+        var withoutToken = await dashboard.CancelReservationCheckedAsync(reservationId, [], _reservationManager);
+
+        await using var check = new D3ParkingDbContext(_options);
+        var current = await check.Reservations.FindAsync(reservationId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(staleMove.Errors, Is.EqualTo(new[] { "Parking_Error_ConcurrentChange" }));
+            Assert.That(staleCancel.Errors, Is.EqualTo(staleMove.Errors));
+            Assert.That(withoutToken.Errors, Is.EqualTo(staleMove.Errors));
+            Assert.That(current!.SpotId, Is.EqualTo(firstTarget));
+            Assert.That(current.Status, Is.EqualTo(ReservationStatus.Reserved));
+            Assert.That(current.CreditsCharged, Is.EqualTo(25));
+        });
+        Assert.That(await check.AccountAuditEvents.CountAsync(e => e.UserId == owner), Is.EqualTo(1));
+        Assert.That(await check.PointsLedgerEntries.AnyAsync(p => p.UserId == owner), Is.False);
+
+        var fresh = (await dashboard.GetSpotDetailAsync(firstTarget, Today, 1, _reservationManager))!.Calendar
+            .Single(entry => entry.ReservationId == reservationId);
+        Assert.That(fresh.Version, Is.Not.EqualTo(shown.Version));
+        var cancelled = await dashboard.CancelReservationCheckedAsync(reservationId, fresh.Version, _reservationManager);
+        Assert.That(cancelled.Succeeded, Is.True, string.Join("; ", cancelled.Errors));
+    }
+
+    [Test]
+    public async Task Simultaneous_checked_moves_accept_only_one_shown_version()
+    {
+        var original = await CreateSpotAsync("RACE-1");
+        var left = await CreateSpotAsync("RACE-2");
+        var right = await CreateSpotAsync("RACE-3");
+        var owner = Guid.NewGuid();
+        var reservationId = await BookAsync(original, owner, credits: 25);
+        var shown = (await CreateDashboard().GetSpotDetailAsync(original, Today, 1, _reservationManager))!.Calendar
+            .Single(entry => entry.ReservationId == reservationId);
+
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<ParkingResult> MoveAsync(Guid target)
+        {
+            await gate.Task;
+            return await CreateDashboard().MoveReservationCheckedAsync(reservationId, target, shown.Version, _reservationManager);
+        }
+
+        var attempts = new[] { MoveAsync(left), MoveAsync(right) };
+        gate.SetResult();
+        var results = await Task.WhenAll(attempts);
+        Assert.That(results.Count(r => r.Succeeded), Is.EqualTo(1));
+        Assert.That(results.Single(r => !r.Succeeded).Errors, Is.EqualTo(new[] { "Parking_Error_ConcurrentChange" }));
+
+        await using var check = new D3ParkingDbContext(_options);
+        var current = await check.Reservations.FindAsync(reservationId);
+        Assert.That(current!.SpotId, Is.EqualTo(left).Or.EqualTo(right));
+        Assert.That(current.Status, Is.EqualTo(ReservationStatus.Reserved));
+        Assert.That(await check.AccountAuditEvents.CountAsync(e => e.UserId == owner), Is.EqualTo(1));
+        Assert.That(await check.PointsLedgerEntries.AnyAsync(p => p.UserId == owner), Is.False);
+    }
+
+    [TestCase("analyst")]
+    [TestCase("spot-manager")]
+    [TestCase("blocked")]
+    [TestCase("deleted")]
+    [TestCase("revoked")]
+    public async Task Unauthorised_override_keeps_the_booking_wallet_and_audit_unchanged(string actorKind)
+    {
+        var from = await CreateSpotAsync("AUTH-1");
+        var target = await CreateSpotAsync("AUTH-2");
+        var owner = Guid.NewGuid();
+        var reservationId = await BookAsync(from, owner, credits: 25);
+        var dashboard = CreateDashboard();
+        var actor = actorKind switch
+        {
+            "analyst" => await CreateActorAsync(Permissions.Parking.ViewAnalytics),
+            "spot-manager" => await CreateActorAsync(Permissions.Parking.ManageSpots),
+            "blocked" => await CreateActorAsync(Permissions.Parking.ManageReservations, AccountStatus.Blocked),
+            "deleted" => Guid.NewGuid(),
+            _ => _reservationManager,
+        };
+
+        if (actorKind == "revoked")
+        {
+            // The service already exists: a circuit's original claims must not outlive a role revoke.
+            await using var revoke = new D3ParkingDbContext(_options);
+            await revoke.UserRoles.Where(r => r.UserId == actor).ExecuteDeleteAsync();
+        }
+
+        var move = await dashboard.MoveReservationAsync(reservationId, target, actor);
+        var cancel = await dashboard.CancelReservationAsync(reservationId, actor);
+        var unknown = await dashboard.CancelReservationAsync(Guid.NewGuid(), actor);
+
+        await using var check = new D3ParkingDbContext(_options);
+        var booking = await check.Reservations.FindAsync(reservationId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(move.Errors, Is.EqualTo(new[] { "Parking_Error_AccessDenied" }));
+            Assert.That(cancel.Errors, Is.EqualTo(new[] { "Parking_Error_AccessDenied" }));
+            Assert.That(unknown.Errors, Is.EqualTo(cancel.Errors), "Permission is checked before looking up the id.");
+            Assert.That(booking!.SpotId, Is.EqualTo(from));
+            Assert.That(booking.Status, Is.EqualTo(ReservationStatus.Reserved));
+        });
+        Assert.That(await check.ParkerScores.AnyAsync(s => s.UserId == owner), Is.False);
+        Assert.That(await check.PointsLedgerEntries.AnyAsync(p => p.UserId == owner), Is.False);
+        Assert.That(await check.AccountAuditEvents.AnyAsync(e => e.UserId == owner), Is.False);
+    }
+
+    private async Task<Guid> CreateActorAsync(string permission, AccountStatus status = AccountStatus.Active,
+        string? additionalPermission = null)
+    {
+        await using var dbContext = new D3ParkingDbContext(_options);
+        var user = new ApplicationUser { Status = status };
+        var role = new ApplicationRole($"test-{Guid.NewGuid():N}");
+        dbContext.Users.Add(user);
+        dbContext.Roles.Add(role);
+        dbContext.UserRoles.Add(new IdentityUserRole<Guid> { UserId = user.Id, RoleId = role.Id });
+        dbContext.RoleClaims.Add(new IdentityRoleClaim<Guid>
+        {
+            RoleId = role.Id,
+            ClaimType = D3ParkingClaimTypes.Permission,
+            ClaimValue = permission,
+        });
+        if (additionalPermission is not null)
+        {
+            dbContext.RoleClaims.Add(new IdentityRoleClaim<Guid>
+            {
+                RoleId = role.Id,
+                ClaimType = D3ParkingClaimTypes.Permission,
+                ClaimValue = additionalPermission,
+            });
+        }
+        await dbContext.SaveChangesAsync();
+        return user.Id;
     }
 
     // A fresh cache per instance, so one test's cached aggregate can never answer another's question.

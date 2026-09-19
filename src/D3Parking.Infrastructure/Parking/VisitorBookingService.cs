@@ -1,13 +1,16 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using D3Parking.Application.Notifications;
 using D3Parking.Application.Parking;
 using D3Parking.Application.Settings;
-using D3Parking.Domain.Common;
+using D3Parking.Domain.Accounts;
+using D3Parking.Domain.Authorization;
 using D3Parking.Domain.Notifications;
 using D3Parking.Domain.Parking;
-using D3Parking.Domain.Parking.Incentives;
+using D3Parking.Infrastructure.Identity;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Infrastructure.Parking;
@@ -18,7 +21,8 @@ public sealed class VisitorBookingService(
     ISiteSettingsService siteSettings,
     INotificationService notifications,
     IStringLocalizer<ParkingMessages> messages,
-    TimeProvider timeProvider) : IVisitorBookingService
+    TimeProvider timeProvider,
+    ILogger<VisitorBookingService>? logger = null) : IVisitorBookingService
 {
     public async Task<IReadOnlyList<VisitorBookingDto>> ListUpcomingAsync(CancellationToken cancellationToken = default)
     {
@@ -43,7 +47,9 @@ public sealed class VisitorBookingService(
 
     public async Task<IReadOnlyList<ParkingSpotDto>> GetFreeSpotsAsync(DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default)
     {
-        if (endUtc <= startUtc || await CalendarErrorAsync(startUtc, endUtc, cancellationToken) is not null)
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        if (VisitorBookingWindowRules.Validate(startUtc, endUtc, policy, timeProvider.GetUtcNow(), timeZone) is not null)
         {
             return [];
         }
@@ -64,44 +70,94 @@ public sealed class VisitorBookingService(
     public async Task<ParkingResult> BookAsync(Guid createdById, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
         string visitorName, string? company, string? licensePlate, Guid? hostUserId, CancellationToken cancellationToken = default)
     {
-        var now = timeProvider.GetUtcNow();
-        if (endUtc <= startUtc)
+        BookingOutcome outcome;
+        try
         {
-            return ParkingResult.Failure("Parking_Error_InvalidWindow");
+            outcome = await OptimisticConcurrency.RetryAsync(
+                () => BookCoreAsync(createdById, spotId, startUtc, endUtc, visitorName, company, licensePlate,
+                    hostUserId, cancellationToken), cancellationToken);
+        }
+        catch (Exception ex) when (ex.GetBaseException() is SqlException { Number: 1205 })
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
         }
 
-        if (endUtc <= now)
+        // Notification delivery is outside the transaction and retry boundary. A delivery failure
+        // must never turn a committed booking into an apparent failure that invites another booking.
+        if (outcome.Booking is { HostUserId: { } host } booking)
         {
-            return ParkingResult.Failure("Parking_Error_PastWindow");
+            try
+            {
+                await notifications.NotifyAsync(host, NotificationCategory.SelfService, NotificationLevel.Info,
+                    messages["Parking_Notify_VisitorBooked_Title"],
+                    messages["Parking_Notify_VisitorBooked_Body", booking.VisitorName, outcome.SpotCode!], cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Exception messages can contain the visitor name or address. Log only the booking id.
+                logger?.LogWarning("Host notification failed for visitor booking {BookingId}; booking remains saved.", booking.Id);
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(visitorName))
-        {
-            return ParkingResult.Failure("Parking_Visitor_Error_NameRequired");
-        }
+        return outcome.Result;
+    }
 
-        if (await CalendarErrorAsync(startUtc, endUtc, cancellationToken) is { } calendarError)
-        {
-            return ParkingResult.Failure(calendarError);
-        }
-
+    private async Task<BookingOutcome> BookCoreAsync(Guid createdById, Guid spotId,
+        DateTimeOffset startUtc, DateTimeOffset endUtc, string visitorName, string? company,
+        string? licensePlate, Guid? hostUserId, CancellationToken cancellationToken)
+    {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        // Same rationale as ReserveCoreAsync: the conflict check and the insert must be one atomic
-        // step, or two receptionists could book the last visitor spot for the same window.
+        // The settings read, authorization, overlap check and insert are protected together. SQL
+        // Server's key-range locks coordinate independent application processes, including a
+        // concurrent calendar-settings change; the optional policy cache is never used for writes.
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, createdById, Permissions.Parking.ManageVisitors, cancellationToken))
+        {
+            return BookingOutcome.Failure("Parking_Error_AccessDenied");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (string.IsNullOrWhiteSpace(visitorName))
+        {
+            return BookingOutcome.Failure("Parking_Visitor_Error_NameRequired");
+        }
+        visitorName = visitorName.Trim();
+        company = string.IsNullOrWhiteSpace(company) ? null : company.Trim();
+        licensePlate = string.IsNullOrWhiteSpace(licensePlate) ? null : licensePlate.Trim().ToUpperInvariant();
+        if (visitorName.Length > 128 || company?.Length > 128 || licensePlate?.Length > 16)
+        {
+            return BookingOutcome.Failure("Parking_Visitor_Error_DetailsTooLong");
+        }
+
+        // The host may have departed after the form loaded. Keep this read in the booking
+        // transaction so departure either prevents the booking or cleans it up after it commits.
+        if (hostUserId is { } host && !await dbContext.Users.AsNoTracking()
+                .AnyAsync(u => u.Id == host && u.Status == AccountStatus.Active, cancellationToken))
+        {
+            return BookingOutcome.Failure("Parking_Visitor_Error_HostUnavailable");
+        }
+
+        var settings = await dbContext.ParkingSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == ParkingSettings.SingletonId, cancellationToken);
+        var policy = (settings ?? ParkingSettings.CreateDefault()).ToPolicy();
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        if (VisitorBookingWindowRules.Validate(startUtc, endUtc, policy, now, timeZone) is { } calendarError)
+        {
+            return BookingOutcome.Failure(calendarError);
+        }
 
         var spot = await dbContext.ParkingSpots.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == spotId, cancellationToken);
         if (spot is null || !spot.IsActive)
         {
-            return ParkingResult.Failure("Parking_Error_SpotNotFound");
+            return BookingOutcome.Failure("Parking_Error_SpotNotFound");
         }
 
         if (spot.Type != ParkingSpotType.Visitor)
         {
-            return ParkingResult.Failure("Parking_Visitor_Error_NotVisitorSpot");
+            return BookingOutcome.Failure("Parking_Visitor_Error_NotVisitorSpot");
         }
 
         var taken = await dbContext.VisitorBookings.AnyAsync(b => b.SpotId == spotId
@@ -109,62 +165,103 @@ public sealed class VisitorBookingService(
             && b.StartUtc < endUtc && b.EndUtc > startUtc, cancellationToken);
         if (taken)
         {
-            return ParkingResult.Failure("Parking_Error_SpotConflict");
+            return BookingOutcome.Failure("Parking_Error_SpotConflict");
         }
 
         var booking = new VisitorBooking(
             spotId,
-            visitorName.Trim(),
-            string.IsNullOrWhiteSpace(company) ? null : company.Trim(),
-            string.IsNullOrWhiteSpace(licensePlate) ? null : licensePlate.Trim().ToUpperInvariant(),
+            visitorName, company, licensePlate,
             hostUserId,
             startUtc, endUtc, createdById, now);
         dbContext.VisitorBookings.Add(booking);
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(createdById,
+            AccountAuditEventType.ReservationOverridden, $"admin:{createdById}",
+            $"Visitor booking {booking.Id}: created; spot={spotId}; start={startUtc:O}; end={endUtc:O}.", now));
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-
-        // The visited employee learns where their guest parks without asking the reception.
-        if (hostUserId is { } host)
-        {
-            await notifications.NotifyAsync(host, NotificationCategory.SelfService, NotificationLevel.Info,
-                messages["Parking_Notify_VisitorBooked_Title"],
-                messages["Parking_Notify_VisitorBooked_Body", booking.VisitorName, spot.Code], cancellationToken);
-        }
-
-        return ParkingResult.Success;
+        return new BookingOutcome(ParkingResult.Success, booking, spot.Code);
     }
 
-    private async Task<string?> CalendarErrorAsync(DateTimeOffset startUtc, DateTimeOffset endUtc,
-        CancellationToken cancellationToken)
+    private sealed record BookingOutcome(ParkingResult Result, VisitorBooking? Booking = null, string? SpotCode = null)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
-        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
-        var today = SiteTime.Today(timeProvider.GetUtcNow(), timeZone);
-        var first = SiteTime.Today(startUtc, timeZone);
-        var last = SiteTime.Today(endUtc.AddTicks(-1), timeZone);
+        public static BookingOutcome Failure(string error) => new(ParkingResult.Failure(error));
+    }
 
-        for (var date = first; date <= last; date = date.AddDays(1))
+    public Task<ParkingResult> CancelAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ParkingResult.Failure("Parking_Error_AccessDenied"));
+
+    public async Task<ParkingResult> CancelCheckedAsync(Guid bookingId, Guid actingUserId,
+        CancellationToken cancellationToken = default)
+    {
+        BookingOutcome outcome;
+        try
         {
-            if (policy.GetReservationDateAvailability(date, today).ToParkingErrorKey() is { } error)
+            outcome = await OptimisticConcurrency.RetryAsync(
+                () => CancelCoreAsync(bookingId, actingUserId, cancellationToken), cancellationToken);
+        }
+        catch (Exception ex) when (ex.GetBaseException() is SqlException { Number: 1205 })
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
+
+        if (outcome.Booking is { HostUserId: { } host } booking)
+        {
+            try
             {
-                return error;
+                await notifications.NotifyAsync(host, NotificationCategory.SelfService, NotificationLevel.Info,
+                    messages["Parking_Notify_VisitorCancelled_Title"],
+                    outcome.SpotCode is { } spotCode
+                        ? messages["Parking_Notify_VisitorCancelled_Body", booking.VisitorName, spotCode]
+                        : messages["Parking_Notify_VisitorCancelled_BodyWithoutSpot", booking.VisitorName], cancellationToken);
+            }
+            catch (Exception)
+            {
+                logger?.LogWarning("Host notification failed for cancelled visitor booking {BookingId}; cancellation remains saved.", booking.Id);
             }
         }
 
-        return null;
+        return outcome.Result;
     }
 
-    public async Task<ParkingResult> CancelAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    private async Task<BookingOutcome> CancelCoreAsync(Guid bookingId, Guid actingUserId,
+        CancellationToken cancellationToken)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var booking = await dbContext.VisitorBookings.FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
-        if (booking is null || booking.Status != VisitorBookingStatus.Booked)
+        // Visitor bookings currently have no edit/reschedule operation. The only state transition,
+        // Booked -> Cancelled, is read and written under a SQL Server transaction so concurrent
+        // callers cannot both succeed or produce duplicate audit/notification events.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(
+                dbContext, actingUserId, Permissions.Parking.ManageVisitors, cancellationToken))
         {
-            return ParkingResult.Failure("Parking_Error_ReservationNotFound");
+            return BookingOutcome.Failure("Parking_Error_AccessDenied");
         }
 
+        var booking = await dbContext.VisitorBookings.FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+        if (booking is null)
+        {
+            return BookingOutcome.Failure("Parking_Error_ReservationNotFound");
+        }
+        if (booking.Status != VisitorBookingStatus.Booked)
+        {
+            return BookingOutcome.Failure("Parking_Visitor_Error_AlreadyCancelled");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        if (booking.EndUtc <= now)
+        {
+            return BookingOutcome.Failure("Parking_Visitor_Error_Ended");
+        }
+
+        var spotCode = await dbContext.ParkingSpots.Where(s => s.Id == booking.SpotId)
+            .Select(s => s.Code).SingleOrDefaultAsync(cancellationToken);
         booking.Cancel();
+        dbContext.AccountAuditEvents.Add(new AccountAuditEvent(actingUserId,
+            AccountAuditEventType.ReservationOverridden, $"admin:{actingUserId}",
+            $"Visitor booking {booking.Id}: cancelled; spot={booking.SpotId}; start={booking.StartUtc:O}; end={booking.EndUtc:O}.", now));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return ParkingResult.Success;
+        await transaction.CommitAsync(cancellationToken);
+        return new BookingOutcome(ParkingResult.Success, booking, spotCode);
     }
 }

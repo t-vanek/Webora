@@ -1,3 +1,4 @@
+using D3Parking.Domain.Accounts;
 using D3Parking.Domain.Parking;
 using D3Parking.Domain.Parking.Incentives;
 using D3Parking.Domain.Common;
@@ -5,6 +6,7 @@ using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -37,10 +39,6 @@ public sealed class ParkingSettingsCalendarChangeTests
             .UseSqlServer(builder.ConnectionString)
             .Options;
 
-        await using var db = new D3ParkingDbContext(_options);
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.EnsureCreatedAsync();
-
         _cache = new MemoryCache(new MemoryCacheOptions());
         _service = new ParkingSettingsService(
             new TestDbContextFactory(_options),
@@ -48,6 +46,15 @@ public sealed class ParkingSettingsCalendarChangeTests
             new FakeSiteSettings(),
             new FixedTimeProvider(Now),
             NullLogger<ParkingSettingsService>.Instance);
+    }
+
+    [SetUp]
+    public async Task ResetDatabaseAsync()
+    {
+        await using var db = new D3ParkingDbContext(_options);
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.EnsureCreatedAsync();
+        _cache.Clear();
     }
 
     [OneTimeTearDown]
@@ -76,7 +83,7 @@ public sealed class ParkingSettingsCalendarChangeTests
         var handoff = ResidentSpotHandoff.CreateOffer(
             spot.Id, residentId, userId, start, end, Now, Now.AddDays(1));
         var visitor = new VisitorBooking(
-            spot.Id, "Visitor", null, null, userId, start, end, residentId, Now);
+            spot.Id, "Synthetic visitor", "Synthetic company", "SYN0001", userId, start, end, residentId, Now);
         var release = new SpotRelease(spot.Id, residentId, saturday, Now, 0);
 
         await using (var db = new D3ParkingDbContext(_options))
@@ -107,16 +114,23 @@ public sealed class ParkingSettingsCalendarChangeTests
             Assert.That(impact.SpotReleases, Is.EqualTo(1));
         });
 
-        var refused = await _service.UpdateAsync(changed, Guid.NewGuid());
+        var actingUserId = Guid.NewGuid();
+        var refused = await _service.UpdateAsync(changed, actingUserId);
         Assert.That(refused.Succeeded, Is.False);
 
         await using (var db = new D3ParkingDbContext(_options))
         {
             Assert.That((await db.Reservations.FindAsync(reservation.Id))!.Status,
                 Is.EqualTo(ReservationStatus.Reserved));
+            Assert.That((await db.VisitorBookings.FindAsync(visitor.Id))!.Status,
+                Is.EqualTo(VisitorBookingStatus.Booked));
+            Assert.That((await db.ParkingSettings.SingleAsync()).AllowedReservationWeekdays,
+                Is.EqualTo(current.AllowedReservationWeekdays));
+            Assert.That(await db.AccountAuditEvents.CountAsync(), Is.Zero,
+                "An unconfirmed change must not leave a settings or cancellation audit.");
         }
 
-        var confirmed = await _service.UpdateAsync(changed, Guid.NewGuid(), true);
+        var confirmed = await _service.UpdateAsync(changed, actingUserId, true);
         Assert.That(confirmed.Succeeded, Is.True);
 
         await using (var db = new D3ParkingDbContext(_options))
@@ -129,6 +143,12 @@ public sealed class ParkingSettingsCalendarChangeTests
             var savedScore = await db.ParkerScores.FindAsync(userId);
             var refundCount = await db.PointsLedgerEntries.CountAsync(e =>
                 e.ReservationId == reservation.Id && e.Reason == IncentiveReason.ReservationRefund);
+            var visitorAudits = await db.AccountAuditEvents
+                .Where(e => e.Type == AccountAuditEventType.ReservationOverridden)
+                .ToListAsync();
+            var settingsAudits = await db.AccountAuditEvents
+                .Where(e => e.Type == AccountAuditEventType.SettingsChanged)
+                .ToListAsync();
             Assert.Multiple(() =>
             {
                 Assert.That(savedReservation!.Status, Is.EqualTo(ReservationStatus.Cancelled));
@@ -138,7 +158,67 @@ public sealed class ParkingSettingsCalendarChangeTests
                 Assert.That(savedRelease, Is.Null);
                 Assert.That(savedScore!.Credits, Is.EqualTo(7));
                 Assert.That(refundCount, Is.EqualTo(1));
+                Assert.That(visitorAudits, Has.Count.EqualTo(1));
+                Assert.That(settingsAudits, Has.Count.EqualTo(1));
+            });
+
+            var audit = visitorAudits.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(audit.UserId, Is.EqualTo(actingUserId));
+                Assert.That(audit.Actor, Is.EqualTo($"admin:{actingUserId}"));
+                Assert.That(audit.OccurredAtUtc, Is.EqualTo(Now));
+                Assert.That(audit.Detail, Is.EqualTo(
+                    $"Visitor booking {visitor.Id}: cancelled; spot={spot.Id}; start={start:O}; end={end:O}; reason=calendar configuration change."));
+                Assert.That(audit.Detail, Does.Not.Contain(visitor.VisitorName));
+                Assert.That(audit.Detail, Does.Not.Contain(visitor.Company));
+                Assert.That(audit.Detail, Does.Not.Contain(visitor.LicensePlate));
+                Assert.That(settingsAudits.Single().Actor, Is.EqualTo($"admin:{actingUserId}"));
             });
         }
+    }
+
+    [Test]
+    public async Task Failure_after_saving_before_commit_rolls_back_settings_visitor_and_audits()
+    {
+        var current = await _service.GetAsync();
+        var saturday = new DateOnly(2026, 8, 29);
+        var start = SiteTime.At(saturday, TimeOnly.MinValue, TimeZoneInfo.Utc);
+        var end = SiteTime.At(saturday.AddDays(1), TimeOnly.MinValue, TimeZoneInfo.Utc);
+        var actorId = Guid.NewGuid();
+        var spot = new ParkingSpot("CFG-ROLLBACK", ParkingSpotType.Visitor);
+        var visitor = new VisitorBooking(
+            spot.Id, "Synthetic visitor", null, null, null, start, end, actorId, Now);
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            db.ParkingSpots.Add(spot);
+            db.VisitorBookings.Add(visitor);
+            await db.SaveChangesAsync();
+        }
+
+        var failingOptions = new DbContextOptionsBuilder<D3ParkingDbContext>(_options)
+            .AddInterceptors(new FailAfterSave())
+            .Options;
+        var failingService = new ParkingSettingsService(
+            new TestDbContextFactory(failingOptions), _cache, new FakeSiteSettings(),
+            new FixedTimeProvider(Now), NullLogger<ParkingSettingsService>.Instance);
+        var changed = current with { AllowedReservationWeekdays = Weekday.Workdays };
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await failingService.UpdateAsync(changed, actorId, true));
+
+        await using var check = new D3ParkingDbContext(_options);
+        Assert.That((await check.VisitorBookings.FindAsync(visitor.Id))!.Status,
+            Is.EqualTo(VisitorBookingStatus.Booked));
+        Assert.That((await check.ParkingSettings.SingleAsync()).AllowedReservationWeekdays,
+            Is.EqualTo(current.AllowedReservationWeekdays));
+        Assert.That(await check.AccountAuditEvents.CountAsync(), Is.Zero,
+            "Neither audit may survive a rolled back configuration change.");
+    }
+
+    private sealed class FailAfterSave : SaveChangesInterceptor
+    {
+        public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Synthetic failure after saving before commit.");
     }
 }

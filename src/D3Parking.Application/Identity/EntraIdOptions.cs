@@ -82,8 +82,10 @@ public sealed class ScimOptions
     public string? BearerToken { get; set; }
 
     /// <summary>
-    /// What happens to an account the directory deactivates or deletes: block it (reversible, keeps
-    /// history) or leave it alone. Deletion is never performed from a provisioning request.
+    /// Legacy compatibility field. An account departure always blocks the account and releases
+    /// its unfinished parking, including hosted or created visitor bookings. Effective settings
+    /// normalize this value to true; a configured false value cannot disable offboarding.
+    /// Provisioning never deletes the account or its historical bookings.
     /// </summary>
     public bool BlockOnDeprovision { get; set; } = true;
 

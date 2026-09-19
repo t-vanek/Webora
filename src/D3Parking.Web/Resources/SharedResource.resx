@@ -210,7 +210,8 @@
   <data name="Admin_UserEdit_DeleteVehicles" xml:space="preserve"><value>Odpárovaná vozidla</value></data>
   <data name="Admin_UserEdit_DeleteReservations" xml:space="preserve"><value>Zrušené rezervace</value></data>
   <data name="Admin_UserEdit_DeleteQueue" xml:space="preserve"><value>Opuštěné fronty</value></data>
-  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Zrušené návštěvy</value></data>
+  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Návštěvy ke zrušení</value></data>
+  <data name="Admin_UserEdit_DeleteVisitorsImpact" xml:space="preserve"><value>Zruší se budoucí i právě probíhající návštěvy, které tento účet hostí nebo založil, včetně návštěv jiných hostitelů. Skončené návštěvy zůstanou beze změny. Zrušené záznamy zůstanou zachované a každé zrušení se zapíše do auditu.</value></data>
   <data name="Admin_UserEdit_DeleteMessages" xml:space="preserve"><value>Osobní zprávy a zařízení</value></data>
   <data name="Admin_UserEdit_DeleteCases" xml:space="preserve"><value>Předané případy</value></data>
   <data name="Admin_UserEdit_DeleteHistory" xml:space="preserve"><value>{0} historických záznamů zůstane anonymně zachováno pro audit a analytiku.</value></data>
@@ -416,8 +417,8 @@
   <data name="Settings_EntraScimUrl" xml:space="preserve"><value>Tenant URL:</value></data>
   <data name="Settings_EntraScimToken" xml:space="preserve"><value>Bearer token pro SCIM</value></data>
   <data name="Settings_EntraScimTokenHelp" xml:space="preserve"><value>Jediná ochrana těch endpointů — vygenerujte dlouhý náhodný řetězec a rotujte ho, když odejde někdo s přístupem k tenantovi.</value></data>
-  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Odebraný účet zablokovat</value></data>
-  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>Účet, který adresář deaktivuje nebo smaže, se zablokuje (vratné, historie zůstane). Vypnuto = nechá se být. Smazání se z provisioningu neprovádí nikdy.</value></data>
+  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Odchod účtu</value></data>
+  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>Odchod přes Entra vždy zablokuje účet a zruší jeho budoucí i probíhající návštěvy, které hostí nebo založil, včetně návštěv jiných hostitelů. Skončené návštěvy zůstanou zachované. Posledního správce nelze deaktivovat. Účet se z provisioningu nemaže.</value></data>
   <data name="Settings_EntraRoleMappingLink" xml:space="preserve"><value>Mapování rolí z adresáře →</value></data>
   <data name="Settings_EntraSignInTooltip" xml:space="preserve"><value>Zapnutí přidá serverové přihlášení přes OpenID Connect. Povinné jsou Tenant ID, Client ID a client secret aplikace.</value></data>
   <data name="Settings_EntraTenantIdTooltip" xml:space="preserve"><value>ID adresáře, ze kterého se uživatelé přihlašují. Najdete ho v Entra ID → Přehled → ID tenanta.</value></data>
@@ -433,7 +434,7 @@
   <data name="Settings_EntraScimTooltip" xml:space="preserve"><value>SCIM je nezávislý na přihlašování. Synchronizuje účty z Enterprise Application a používá vlastní bearer token.</value></data>
   <data name="Settings_EntraScimUrlTooltip" xml:space="preserve"><value>Zkopírujte tuto adresu do Enterprise Application → Provisioning → Tenant URL.</value></data>
   <data name="Settings_EntraScimTokenTooltip" xml:space="preserve"><value>Vygenerujte dlouhý náhodný token a stejnou hodnotu vložte v Entra jako Secret Token. Není to client secret registrace aplikace.</value></data>
-  <data name="Settings_EntraScimBlockTooltip" xml:space="preserve"><value>Když Entra účet deaktivuje nebo odebere z provisioningu, D3Parking ho zablokuje. Data ani historie se nesmažou.</value></data>
+  <data name="Settings_EntraScimBlockTooltip" xml:space="preserve"><value>Blokování účtu a zrušení jeho dosud neukončených návštěv při odchodu je povinné. Historie zůstane zachovaná.</value></data>
   <data name="Settings_SaveEntra" xml:space="preserve"><value>Uložit Entra ID</value></data>
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>Žádná</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>Obecné</value></data>
@@ -678,6 +679,7 @@
   <data name="Parking_Visitors_Booked" xml:space="preserve"><value>Návštěva má rezervované místo.</value></data>
   <data name="Parking_Visitors_Cancelled" xml:space="preserve"><value>Rezervace návštěvy byla zrušena.</value></data>
   <data name="Parking_Visitor_Error_NameRequired" xml:space="preserve"><value>Vyplňte jméno návštěvy.</value></data>
+  <data name="Parking_Visitor_Error_HostUnavailable" xml:space="preserve"><value>Vybraný hostitel již nemá aktivní účet. Vyberte jiného hostitele nebo vytvořte rezervaci bez něj.</value></data>
   <data name="Parking_Visitor_Error_NotVisitorSpot" xml:space="preserve"><value>Toto místo je vyhrazené návštěvám a spravuje ho recepce.</value></data>
   <data name="Parking_Mismatch_PlateVisitor" xml:space="preserve"><value>návštěva</value></data>
   <data name="Nav_Help" xml:space="preserve"><value>Nápověda</value></data>
@@ -750,7 +752,7 @@
   <data name="Help_Profile_Li3" xml:space="preserve"><value>Tým nebo oddělení — zapojí vás do týmového žebříčku.</value></data>
   <data name="Help_AdminSection" xml:space="preserve"><value>Pro správce</value></data>
   <data name="Help_Visitors_Q" xml:space="preserve"><value>Jak zarezervovat místo pro návštěvu</value></data>
-  <data name="Help_Visitors_A1" xml:space="preserve"><value>V sekci Návštěvy vyberte termín, volné návštěvnické místo a vyplňte jméno hosta (firmu a SPZ doporučujeme). Host nepotřebuje účet ani kredity.</value></data>
+  <data name="Help_Visitors_A1" xml:space="preserve"><value>V sekci Návštěvy otevřete Nová rezervace pro návštěvu. Podle nastavení parkování vyberte pouze datum (celý místní den), nebo datum a čas od–do. Platí povolené dny, svátky i předstih z konfigurace. Vyberte nabízené místo a vyplňte jméno hosta; firma, SPZ a hostitel jsou volitelní. Host nepotřebuje účet ani kredity. Po uložení se zobrazí nadcházející návštěvy. Při konfliktu se nabídka obnoví a údaje zůstanou vyplněné; zvolte jiné místo nebo termín.</value></data>
   <data name="Help_Visitors_A2" xml:space="preserve"><value>Když vyberete hostitele, přijde mu upozornění, kde jeho návštěva parkuje. Návštěvnická místa jsou vyčleněná z běžného fondu, takže je zaměstnanci nemohou zabrat — spravují se jen tady.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>Zatím nemáte žádné aktivní místo typu „Pro návštěvy" — dokud ho nezaložíte ve Správě parkovacích míst, agenda návštěv nebude co nabídnout.</value></data>
   <data name="Help_MyReports_Q" xml:space="preserve"><value>Moje hlášení — co se s nimi děje a jak nahlásit závadu</value></data>
@@ -1591,7 +1593,7 @@
   <data name="Lot_Intro" xml:space="preserve"><value>Denní provozní přehled kapacity, rezervací a událostí na jednotlivých místech.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Správa míst</value></data>
   <data name="Lot_Overview_Label" xml:space="preserve"><value>Souhrn provozu parkoviště</value></data>
-  <data name="Lot_Overview_Available" xml:space="preserve"><value>Dostupná kapacita</value></data>
+  <data name="Lot_Overview_Available" xml:space="preserve"><value>Bez rezervace v přehledu</value></data>
   <data name="Lot_Overview_OfActive" xml:space="preserve"><value>z {0} aktivních míst</value></data>
   <data name="Lot_Overview_Utilization" xml:space="preserve"><value>Využití nabízené kapacity</value></data>
   <data name="Lot_Overview_OccupancyAria" xml:space="preserve"><value>Využití kapacity {0} procent</value></data>
@@ -1621,7 +1623,7 @@
   <data name="Lot_Close" xml:space="preserve"><value>Zavřít</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Volné</value></data>
   <data name="Lot_State_Booked" xml:space="preserve"><value>Naplánováno</value></data>
-  <data name="Lot_State_Occupied" xml:space="preserve"><value>Obsazeno (vozidlo na místě)</value></data>
+  <data name="Lot_State_Occupied" xml:space="preserve"><value>Dříve potvrzený příjezd</value></data>
   <data name="Lot_State_ResidentHeld" xml:space="preserve"><value>Rezervováno rezidentovi</value></data>
   <data name="Lot_State_ResidentShared" xml:space="preserve"><value>Rezidentní, uvolněno do fondu</value></data>
   <data name="Lot_State_VisitorBooked" xml:space="preserve"><value>Rezervováno návštěvě</value></data>
@@ -2625,4 +2627,44 @@
   <data name="Parking_Planner_Detail_SourceSchedule" xml:space="preserve"><value>Plán parkování</value></data>
   <data name="Parking_Planner_Detail_PastText" xml:space="preserve"><value>Tento den už uplynul. Detail slouží pouze pro přehled.</value></data>
   <data name="Parking_Planner_Detail_NoReservationText" xml:space="preserve"><value>Pro tento den zatím nemáte rezervaci.</value></data>
+  <data name="Parking_Admin_LoadFailed" xml:space="preserve"><value>Údaje se nepodařilo načíst. Dostupnost ani výsledky nelze ověřit. Zkuste načtení znovu.</value></data>
+  <data name="Parking_Admin_Loading" xml:space="preserve"><value>Načítání údajů parkoviště</value></data>
+  <data name="Parking_Admin_Retry" xml:space="preserve"><value>Načíst znovu</value></data>
+  <data name="Parking_Admin_DetailLoadFailed" xml:space="preserve"><value>Detail místa se nepodařilo načíst. Otevřete místo znovu.</value></data>
+  <data name="Parking_Admin_CandidatesLoadFailed" xml:space="preserve"><value>Seznam dostupných rezidentů se nepodařilo načíst. Obnovte stránku.</value></data>
+  <data name="Parking_Admin_OperationUncertain" xml:space="preserve"><value>Výsledek změny se nepodařilo ověřit. Před opakováním zkontrolujte znovu načtená data; pokud načtení selhalo, obnovte stránku.</value></data>
+  <data name="Parking_Admin_DeactivateTitle" xml:space="preserve"><value>Vyřadit místo {0} z provozu?</value></data>
+  <data name="Parking_Admin_DeactivateImpact" xml:space="preserve"><value>Místo nebude možné nově rezervovat. Existující rezervace a jejich historie zůstanou zachovány; automaticky se nezruší ani nevrátí kredit. Držitelé dotčených uživatelských rezervací dostanou oznámení. Případné návštěvy vyřešte s recepcí.</value></data>
+  <data name="Parking_Admin_Saved" xml:space="preserve"><value>Změna byla uložena.</value></data>
+  <data name="Parking_Admin_Created" xml:space="preserve"><value>Místo {0} bylo vytvořeno.</value></data>
+  <data name="Parking_Error_ConcurrentChange" xml:space="preserve"><value>Záznam mezitím změnil jiný požadavek. Vaše změna se neuložila. Zkontrolujte znovu načtené údaje a případně změnu proveďte znovu.</value></data>
+  <data name="Parking_Error_AccessDenied" xml:space="preserve"><value>K této operaci nemáte oprávnění.</value></data>
+  <data name="Parking_Error_InvalidSpotDetails" xml:space="preserve"><value>Zkontrolujte kód místa (nejvýše 32 znaků), typ, poznámku (nejvýše 512 znaků) a kapacitu rezidentů.</value></data>
+  <data name="Lot_PlanningNotice" xml:space="preserve"><value>Přehled vychází z rezervací a přidělení pro vybraný den. Fyzickou přítomnost vozidel aplikace neověřuje. Volné místo je nutné ověřit pro konkrétní termín v plánovači.</value></data>
+  <data name="Lot_CancelImpact" xml:space="preserve"><value>Rezervace se zruší, místo se uvolní pro její termín, kredit se vrátí a držitel dostane oznámení. Historie rezervace zůstane zachována.</value></data>
+  <data name="Help_ParkingOperations_Q" xml:space="preserve"><value>Jak zjistit stav místa a upravit rezervaci?</value></data>
+  <data name="Help_ParkingOperations_A" xml:space="preserve"><value>V přehledu parkoviště vyberte den, případně filtr stavu, a otevřete místo. Kalendář ukáže držitele a termíny. Přehled popisuje plány, nikoli ověřenou přítomnost vozidel. S oprávněním ke správě rezervací můžete vybrat přesun do nabídnutého místa nebo potvrdit zrušení s vrácením kreditu. Po úspěchu se údaje obnoví. Při konfliktu zkontrolujte načtený aktuální stav a změnu zopakujte jen pokud stále odpovídá vašemu záměru.</value></data>
+  <data name="Help_ParkingSpots_Q" xml:space="preserve"><value>Jak změnit kapacitu rezidentů nebo vyřadit místo?</value></data>
+  <data name="Help_ParkingSpots_A" xml:space="preserve"><value>Ve správě parkovacích míst vyhledejte kód a zvolte Spravovat rezidenty. Změňte kapacitu a stiskněte Uložit; samotné psaní hodnoty nic neukládá. Při souběžné změně se novější údaje nepřepíší: aplikace zobrazí konflikt a načte aktuální hodnotu. Deaktivovat otevře potvrzení s dopady; Zrušit ponechá místo beze změny. Úspěch poznáte podle zprávy a aktualizovaného stavu v seznamu.</value></data>
+  <data name="Parking_Visitors_ModeAllDay" xml:space="preserve"><value>Nastavení parkování: celý den. Vyberte datum; místo se rezervuje od půlnoci do následující půlnoci v časové zóně {0}.</value></data>
+  <data name="Parking_Visitors_ModeTimeWindow" xml:space="preserve"><value>Nastavení parkování: přesný čas. Vyberte datum a čas od–do v časové zóně {0}. Hodnota 00:00 v poli Do znamená konec vybraného dne.</value></data>
+  <data name="Parking_Visitors_AvailabilityFor" xml:space="preserve"><value>Dostupnost pro: {0}</value></data>
+  <data name="Parking_Visitor_Error_NonexistentTime" xml:space="preserve"><value>Zvolený čas v tento den neexistuje kvůli změně letního času. Vyberte jiný čas.</value></data>
+  <data name="Parking_Visitor_Error_DetailsTooLong" xml:space="preserve"><value>Jméno a firma mohou mít nejvýše 128 znaků, SPZ nejvýše 16 znaků.</value></data>
+  <data name="Parking_Visitors_SaveUncertain" xml:space="preserve"><value>Výsledek operace se nepodařilo ověřit. Zavřete formulář a zkontrolujte nadcházející návštěvy, než rezervaci zadáte znovu.</value></data>
+  <data name="Parking_Visitors_ChooseSpot" xml:space="preserve"><value>Vyberte místo</value></data>
+  <data name="Parking_Visitors_NoHost" xml:space="preserve"><value>Bez hostitele (volitelné)</value></data>
+  <data name="Parking_Visitor_Error_AlreadyCancelled" xml:space="preserve"><value>Tato rezervace návštěvy už byla zrušena.</value></data>
+  <data name="Parking_Visitor_Error_Ended" xml:space="preserve"><value>Tato návštěva už skončila. Historickou rezervaci nelze zrušit.</value></data>
+  <data name="Parking_Visitors_CancelLabel" xml:space="preserve"><value>Zrušit rezervaci návštěvy {0}</value></data>
+  <data name="Parking_Visitors_CancelTitle" xml:space="preserve"><value>Zrušit rezervaci návštěvy?</value></data>
+  <data name="Parking_Visitors_KeepBooking" xml:space="preserve"><value>Ponechat rezervaci</value></data>
+  <data name="Parking_Visitors_CancelImpact" xml:space="preserve"><value>Zrušení uvolní tento rezervovaný termín pro další návštěvy, pokud je místo aktivní a rezervaci dovolují aktuální pravidla. Záznam zůstane zachován a zrušení se zapíše do auditu.</value></data>
+  <data name="Parking_Visitors_CancelHostNotice" xml:space="preserve"><value>Hostiteli odešleme upozornění.</value></data>
+  <data name="Parking_Visitors_CancelUncertain" xml:space="preserve"><value>Výsledek zrušení se nepodařilo ověřit. Zavřete dialog a zkontrolujte přehled před dalším pokusem.</value></data>
+  <data name="Help_Visitors_A3" xml:space="preserve"><value>V přehledu návštěv vyberte u konkrétní rezervace Zrušit rezervaci. Dialog ukáže hosta, místo a termín. Ponechat rezervaci nebo Zavřít nic nezmění; Zrušit rezervaci změnu provede a zapíše do auditu. Po úspěchu záznam zmizí z aktivního přehledu, v databázi zůstane zachovaný. Pokud rezervaci mezitím zrušil jiný správce nebo návštěva skončila, zobrazí se vysvětlení a přehled se načte znovu. Již skončené návštěvy nelze dodatečně rušit.</value></data>
+  <data name="Help_Visitors_A4" xml:space="preserve"><value>Při odchodu účtu (smazání nebo deaktivaci přes Entra) se zruší budoucí i právě probíhající návštěvy, které účet hostí nebo založil, i pro jiné hostitele. Skončené návštěvy se nemění. V Uživatelé → detail účtu → Přístupy před smazáním zkontrolujte počet návštěv ke zrušení; každé zrušení se uloží do auditu. Pro novou návštěvu lze vybrat jen aktivního hostitele. Pokud mezitím odešel, vyberte jiného nebo rezervaci znovu potvrďte bez hostitele; rozepsané údaje zůstanou.</value></data>
+  <data name="Settings_UnsavedLeave" xml:space="preserve"><value>Máte neuložené změny nastavení. Opravdu chcete odejít a zahodit je?</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>Výsledek uložení se nepodařilo ověřit. Rozpracované hodnoty zůstaly ve formuláři. Před opakováním ověřte uložené nastavení v nové kartě.</value></data>
+  <data name="Settings_ReloadFailed" xml:space="preserve"><value>Změna byla uložena, ale načtení aktuálních hodnot selhalo. Před další změnou ověřte nastavení v nové kartě.</value></data>
 </root>

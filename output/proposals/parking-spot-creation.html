@@ -1,0 +1,161 @@
+<div id="d3-spot-proposal" lang="cs" aria-label="Jednoduché zakládání parkovacích míst">
+  <style>
+    #d3-spot-proposal { --d3-surface:light-dark(#ffffff,#292929); --d3-soft:light-dark(#f7f6fa,#343238); --d3-text:light-dark(#242424,#f4f4f4); --d3-muted:light-dark(#64616b,#c4c0cb); --d3-border:light-dark(#dedbe4,#55515c); --d3-purple:light-dark(#7142bc,#c8a8ff); --d3-on-purple:light-dark(#ffffff,#251439); --d3-error:light-dark(#9f3b00,#ffbd8a); --d3-success:light-dark(#236d35,#a4dcb1); font:14px/1.5 "Segoe UI",Arial,sans-serif; color:var(--d3-text); }
+    #d3-spot-proposal * { box-sizing:border-box; }
+    #d3-spot-proposal [hidden] { display:none!important; }
+    #d3-spot-proposal .d3-window { background:var(--d3-surface); border:1px solid var(--d3-border); border-radius:12px; overflow:hidden; }
+    #d3-spot-proposal header { padding:22px 26px 18px; border-bottom:1px solid var(--d3-border); }
+    #d3-spot-proposal .d3-eyebrow { font-size:11px; letter-spacing:.09em; color:var(--d3-muted); font-weight:600; }
+    #d3-spot-proposal h2 { margin:4px 0 0; font-size:23px; line-height:1.3; font-weight:600; }
+    #d3-spot-proposal .d3-content { padding:22px 26px; }
+    #d3-spot-proposal .d3-methods { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+    #d3-spot-proposal button { font:inherit; cursor:pointer; min-height:38px; padding:7px 14px; border-radius:6px; border:1px solid var(--d3-border); color:var(--d3-text); background:var(--d3-surface); }
+    #d3-spot-proposal button:disabled { cursor:default; opacity:.5; }
+    #d3-spot-proposal .d3-methods button { border-color:transparent; padding:6px 11px; }
+    #d3-spot-proposal .d3-methods button[aria-pressed="true"] { color:var(--d3-purple); border-color:var(--d3-purple); background:var(--d3-soft); }
+    #d3-spot-proposal .d3-entry { display:grid; grid-template-columns:minmax(0,1fr) 115px; gap:16px; }
+    #d3-spot-proposal label { display:flex; flex-direction:column; gap:6px; font-weight:500; }
+    #d3-spot-proposal input,#d3-spot-proposal select,#d3-spot-proposal textarea { width:100%; min-width:0; border:1px solid var(--d3-border); border-bottom-color:var(--d3-muted); border-radius:5px; background:var(--d3-surface); color:var(--d3-text); font:inherit; padding:8px 10px; }
+    #d3-spot-proposal input[aria-invalid="true"],#d3-spot-proposal textarea[aria-invalid="true"] { border-color:var(--d3-error); }
+    #d3-spot-proposal textarea { min-height:120px; resize:vertical; }
+    #d3-spot-proposal .d3-help { display:block; color:var(--d3-muted); font-size:12px; font-weight:400; margin-top:5px; }
+    #d3-spot-proposal .d3-type { margin-top:18px; }
+    #d3-spot-proposal details { margin-top:14px; }
+    #d3-spot-proposal summary { cursor:pointer; color:var(--d3-purple); padding:5px 0; }
+    #d3-spot-proposal details label { margin-top:8px; }
+    #d3-spot-proposal .d3-preview { margin-top:22px; padding:16px; border-radius:8px; background:var(--d3-soft); }
+    #d3-spot-proposal .d3-preview-title { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-weight:600; }
+    #d3-spot-proposal .d3-codes { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+    #d3-spot-proposal .d3-code { display:inline-block; border:1px solid var(--d3-border); border-radius:5px; background:var(--d3-surface); padding:4px 8px; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+    #d3-spot-proposal .d3-code[data-existing="true"] { color:var(--d3-muted); }
+    #d3-spot-proposal .d3-codes[data-layout="rows"] { display:grid; grid-template-columns:1fr; }
+    #d3-spot-proposal .d3-codes[data-layout="rows"] .d3-code { display:flex; justify-content:space-between; gap:8px; }
+    #d3-spot-proposal .d3-warning { color:var(--d3-error); margin:10px 0 0; font-size:12px; }
+    #d3-spot-proposal .d3-error { color:var(--d3-error); margin:8px 0 0; font-size:13px; }
+    #d3-spot-proposal .d3-impact { color:var(--d3-muted); margin:14px 0 0; font-size:12px; }
+    #d3-spot-proposal .d3-footer { padding:16px 26px; border-top:1px solid var(--d3-border); display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+    #d3-spot-proposal .d3-primary { color:var(--d3-on-purple); background:var(--d3-purple); border-color:var(--d3-purple); font-weight:600; }
+    #d3-spot-proposal .d3-success { color:var(--d3-success); margin:0 0 16px; }
+    #d3-spot-proposal .d3-table { width:100%; border-collapse:collapse; margin-bottom:18px; }
+    #d3-spot-proposal th,#d3-spot-proposal td { text-align:left; padding:9px 7px; border-bottom:1px solid var(--d3-border); overflow-wrap:anywhere; }
+    #d3-spot-proposal th { color:var(--d3-muted); font-size:12px; font-weight:500; }
+    #d3-spot-proposal .d3-result-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    @media(max-width:440px) { #d3-spot-proposal header,#d3-spot-proposal .d3-content { padding:18px; } #d3-spot-proposal .d3-footer { padding:14px 18px; } #d3-spot-proposal .d3-entry { grid-template-columns:minmax(0,1fr) 95px; gap:10px; } #d3-spot-proposal input,#d3-spot-proposal select,#d3-spot-proposal textarea { font-size:16px; } #d3-spot-proposal button { min-height:44px; } }
+  </style>
+  <section class="d3-window">
+    <header><div class="d3-eyebrow">PARKOVACÍ MÍSTA</div><h2 id="d3-heading">Nová parkovací místa</h2></header>
+    <div id="d3-editor">
+      <div class="d3-content">
+        <div class="d3-methods" aria-label="Způsob zadání">
+          <button type="button" data-method="number" aria-pressed="true">Zadat označení</button>
+          <button type="button" data-method="list" aria-pressed="false">Vložit vlastní seznam</button>
+        </div>
+        <div id="d3-number-panel">
+          <div class="d3-entry">
+            <label><span id="d3-name-label">Označení místa</span><input id="d3-first" value="A-01" maxlength="32" autocomplete="off" aria-describedby="d3-name-help d3-validation"></label>
+            <label>Počet míst<input id="d3-count" type="number" min="1" max="500" step="1" value="1" aria-describedby="d3-validation"></label>
+          </div>
+          <span class="d3-help" id="d3-name-help">Například A-01, P2-08 nebo U výtahu.</span>
+        </div>
+        <div id="d3-list-panel" hidden>
+          <label>Označení míst<textarea id="d3-list" placeholder="A-01&#10;A-02&#10;U výtahu" aria-describedby="d3-list-help d3-validation"></textarea></label>
+          <span id="d3-list-help" class="d3-help">Vložte jeden sloupec z tabulky. Každé označení na vlastní řádek.</span>
+        </div>
+        <div id="d3-validation" class="d3-error" role="alert" hidden></div>
+        <label class="d3-type">Typ místa<select id="d3-type"><option>Standardní</option><option>Pro držitele ZTP</option><option>S nabíječkou</option><option>Pro návštěvy</option><option>Pro motocykly</option></select></label>
+        <details><summary>Přidat poznámku</summary><label>Poznámka pro všechna vytvářená místa<textarea id="d3-notes" maxlength="512" rows="2" placeholder="Například: Podzemní podlaží −1"></textarea></label></details>
+        <div class="d3-preview" aria-live="polite" aria-atomic="true">
+          <div class="d3-preview-title" id="d3-preview-title">Vytvoří se 1 místo</div>
+          <div id="d3-codes" class="d3-codes"></div>
+          <p id="d3-collisions" class="d3-warning" hidden></p>
+          <span id="d3-repeated" class="d3-help" hidden></span>
+        </div>
+        <p id="d3-impact" class="d3-impact">Po vytvoření bude místo aktivní, bez přiřazeného rezidenta.</p>
+      </div>
+      <div class="d3-footer"><button id="d3-create" type="button" class="d3-primary">Vytvořit 1 místo</button></div>
+    </div>
+    <div id="d3-result" class="d3-content" hidden aria-live="polite">
+      <p id="d3-result-message" class="d3-success"></p>
+      <table class="d3-table"><thead><tr><th>Označení</th><th>Typ</th><th>Stav</th></tr></thead><tbody id="d3-created-rows"></tbody></table>
+      <span id="d3-result-rest" class="d3-help" hidden></span>
+      <div class="d3-result-actions"><button id="d3-again" type="button" class="d3-primary">Přidat další místa</button></div>
+    </div>
+  </section>
+  <script>
+    (() => {
+      const root = document.getElementById('d3-spot-proposal');
+      const el = id => root.querySelector('#' + id);
+      const existing = new Set(['a-03', 'a-04']);
+      const state = { method:'number', preview:'chips', fresh:[], codes:[] };
+      const amount = n => n + ' ' + (n === 1 ? 'místo' : n < 5 && n > 0 ? 'místa' : 'míst');
+      const showText = (id, text) => { el(id).textContent = text; el(id).hidden = !text; };
+      function update() {
+        let codes = [], error = '', repeated = 0;
+        const count = Number(el('d3-count').value);
+        const first = el('d3-first').value.trim();
+        el('d3-name-label').textContent = count > 1 ? 'První označení' : 'Označení místa';
+        el('d3-number-panel').hidden = state.method !== 'number';
+        el('d3-list-panel').hidden = state.method !== 'list';
+        if (state.method === 'number') {
+          if (!first) error = 'Zadejte označení místa.';
+          else if (!Number.isInteger(count) || count < 1 || count > 500) error = 'Zadejte počet od 1 do 500.';
+          else if (count === 1) codes = [first];
+          else {
+            const match = first.match(/^(.*?)(\d+)$/);
+            if (!match) error = 'Pro číselnou řadu použijte například A-01. Pro jiná označení vložte vlastní seznam.';
+            else if (Number(match[2]) + count - 1 > 99999 || match[2].length > 5) error = 'Číselná řada může končit nejvýše číslem 99999 a mít nejvýše 5 číslic.';
+            else codes = Array.from({length:count}, (_,i) => match[1] + String(Number(match[2])+i).padStart(match[2].length, '0'));
+          }
+        } else {
+          const rows = el('d3-list').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+          const seen = new Set();
+          for (const code of rows) { const key = code.toLocaleLowerCase('cs'); if (seen.has(key)) repeated++; else { seen.add(key); codes.push(code); } }
+          if (!codes.length) error = 'Vložte alespoň jedno označení.';
+          else if (codes.length > 500) error = 'Najednou můžete zadat nejvýše 500 různých označení.';
+        }
+        if (codes.some(x => x.length > 32)) error = 'Označení může mít nejvýše 32 znaků. Upravte dlouhé položky v seznamu.';
+        showText('d3-validation', error);
+        el('d3-first').setAttribute('aria-invalid', String(Boolean(error) && state.method === 'number'));
+        el('d3-count').setAttribute('aria-invalid', String(state.method === 'number' && (!Number.isInteger(count) || count < 1 || count > 500)));
+        el('d3-list').setAttribute('aria-invalid', String(Boolean(error) && state.method === 'list'));
+        state.codes = error ? [] : codes;
+        const collisions = state.codes.filter(x => existing.has(x.toLocaleLowerCase('cs')));
+        state.fresh = state.codes.filter(x => !existing.has(x.toLocaleLowerCase('cs')));
+        el('d3-preview-title').textContent = error ? 'Nejprve opravte zadání' : state.fresh.length ? 'Vytvoří se ' + amount(state.fresh.length) : 'Tato místa už existují';
+        const preview = el('d3-codes'); preview.replaceChildren(); preview.dataset.layout = state.preview;
+        const visible = state.codes.length <= 10 ? state.codes : [...state.codes.slice(0,8), null, state.codes.at(-1)];
+        for (const code of visible) {
+          const span = document.createElement('span'); span.className = 'd3-code';
+          const duplicate = code !== null && existing.has(code.toLocaleLowerCase('cs'));
+          span.dataset.existing = String(duplicate); span.textContent = code === null ? '…' : code + (duplicate ? ' · existuje' : '');
+          preview.append(span);
+        }
+        showText('d3-collisions', collisions.length ? 'Přeskočí se ' + amount(collisions.length) + '. Existující nastavení zůstane beze změny.' : '');
+        showText('d3-repeated', repeated ? 'Opakované řádky v zadání: ' + repeated + '. Každé označení se vytvoří jen jednou.' : '');
+        el('d3-create').disabled = Boolean(error) || !state.fresh.length;
+        el('d3-create').textContent = state.fresh.length ? 'Vytvořit ' + amount(state.fresh.length) : 'Vytvořit místa';
+        el('d3-impact').textContent = (state.fresh.length === 1 ? 'Po vytvoření bude místo aktivní, bez přiřazeného rezidenta.' : 'Po vytvoření budou místa aktivní, bez přiřazených rezidentů.') + (el('d3-type').value === 'Pro návštěvy' ? ' Návštěvnická místa patří do agendy Návštěvy.' : '');
+      }
+      root.querySelectorAll('[data-method]').forEach(button => button.addEventListener('click', () => {
+        state.method = button.dataset.method;
+        root.querySelectorAll('[data-method]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+        update();
+      }));
+      ['d3-first','d3-count','d3-list','d3-type'].forEach(id => el(id).addEventListener('input', update));
+      el('d3-create').addEventListener('click', () => {
+        update(); if (!state.fresh.length || el('d3-create').disabled) return;
+        const created = [...state.fresh]; created.forEach(code => existing.add(code.toLocaleLowerCase('cs')));
+        el('d3-editor').hidden = true; el('d3-result').hidden = false; el('d3-heading').textContent = 'Vytvořená místa';
+        el('d3-result-message').textContent = '✓ Úspěšně vytvořeno: ' + amount(created.length) + '.';
+        const body = el('d3-created-rows'); body.replaceChildren();
+        created.slice(0,8).forEach(code => { const row = document.createElement('tr'); [code,el('d3-type').value,'Aktivní'].forEach(text => { const cell=document.createElement('td'); cell.textContent=text; row.append(cell); }); body.append(row); });
+        showText('d3-result-rest', created.length > 8 ? 'Zobrazeno prvních 8 z ' + created.length + ' vytvořených míst.' : '');
+        el('d3-again').focus();
+      });
+      el('d3-again').addEventListener('click', () => { el('d3-editor').hidden=false; el('d3-result').hidden=true; el('d3-heading').textContent='Nová parkovací místa'; el('d3-first').value=''; el('d3-list').value=''; el('d3-count').value='1'; update(); el(state.method === 'number' ? 'd3-first' : 'd3-list').focus(); });
+      el('d3-first').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); el('d3-create').click(); } });
+      update();
+      if (globalThis.Tweak) { const tweak = new Tweak({container:root,onChange:update}); tweak.addSelect(state,'preview',{label:'Podoba náhledu',options:[{label:'Označení vedle sebe',value:'chips'},{label:'Označení pod sebou',value:'rows'}]}); }
+    })();
+  </script>
+</div>

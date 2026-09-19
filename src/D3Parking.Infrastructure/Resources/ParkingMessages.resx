@@ -172,4 +172,8 @@
   <data name="Parking_Notify_HandoffCancelled_Body" xml:space="preserve"><value>Odesílatel stáhl nevyřízenou nabídku nebo žádost.</value></data>
   <data name="Email_Handoff_Action" xml:space="preserve"><value>Otevřít jmenovité předání</value></data>
   <data name="Email_Handoff_Deadline" xml:space="preserve"><value>Vyřiďte nejpozději do {0}.</value></data>
+  <data name="Parking_Notify_VisitorCancelled_Title" xml:space="preserve"><value>Rezervace vaší návštěvy byla zrušena</value></data>
+  <data name="Parking_Notify_VisitorCancelled_Body" xml:space="preserve"><value>Rezervace návštěvnického místa {1} pro návštěvu {0} byla zrušena.</value></data>
+  <data name="Parking_Notify_VisitorCancelled_BodyWithoutSpot" xml:space="preserve"><value>Rezervace pro návštěvu {0} byla zrušena.</value></data>
+  <data name="Parking_Visitor_Error_HostUnavailable" xml:space="preserve"><value>Vybraný hostitel již nemá aktivní účet. Vyberte jiného hostitele nebo vytvořte rezervaci bez něj.</value></data>
 </root>

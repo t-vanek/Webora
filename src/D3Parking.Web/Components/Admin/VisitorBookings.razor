@@ -1,6 +1,7 @@
 @page "/admin/parking/visitors"
 @attribute [HasPermission(Permissions.Parking.ManageVisitors)]
 @rendermode InteractiveServer
+@inject ILogger<VisitorBookings> Logger
 @inject IVisitorBookingService Visitors
 @inject IParkingSettingsService ParkingSettings
 @inject IParkingSpotService Spots
@@ -27,7 +28,7 @@
             <p class="admin-head__intro">@L["Parking_Visitors_Intro"]</p>
         </div>
         <FluentButton Id="visitors-open-create" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size20.Add())"
-                      Disabled="@_createOpen" OnClick="() => _createOpen = true">
+                      Disabled="@(_createOpen || _cancelBooking is not null || _actionBusy || !_ready)" OnClick="OpenCreateAsync">
             @L["Parking_Visitors_NewBooking"]
         </FluentButton>
     </div>
@@ -35,11 +36,12 @@
     @if (_bookings is not null)
     {
         <section class="visitors-overview" aria-label="@L["Parking_Visitors_Overview"]">
-            @VisitorMetric(L["Parking_Visitors_Today"], TodayBookings.Count, "today", () => _view = TodayView)
-            @VisitorMetric(L["Parking_Visitors_Upcoming"], _bookings.Count, "upcoming", () => _view = UpcomingView)
-            @VisitorMetric(L["Parking_Visitors_FreeNow"], _freeSpots.Count, "free", () => _createOpen = true)
-            @VisitorMetric(L["Parking_Visitors_SpotCapacity"], _visitorSpotCount, "capacity", () => _createOpen = true)
+            @VisitorMetric(L["Parking_Visitors_Today"], TodayBookings.Count.ToString(), "today", () => SetViewAsync(TodayView))
+            @VisitorMetric(L["Parking_Visitors_Upcoming"], _bookings.Count.ToString(), "upcoming", () => SetViewAsync(UpcomingView))
+            @VisitorMetric(L["Parking_Visitors_FreeNow"], AvailabilityCount, "free", OpenCreateAsync)
+            @VisitorMetric(L["Parking_Visitors_SpotCapacity"], _visitorSpotCount.ToString(), "capacity", OpenCreateAsync)
         </section>
+        <small>@L["Parking_Visitors_AvailabilityFor", SelectedWindowLabel]</small>
     }
 
     @if (_error is not null && !_createOpen)
@@ -51,32 +53,41 @@
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@L[_info]</FluentMessageBar>
     }
 
+    @if (_setupFailed || _bookingsLoadFailed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+        <FluentButton OnClick="ReloadPageAsync">@L["Parking_Admin_Retry"]</FluentButton>
+    }
+
     <div class="visitors-commandbar">
         <FluentSearch @bind-Value="_search" Immediate="true" ImmediateDelay="200"
                       Placeholder="@L["Parking_Visitors_Search"]" Class="visitors-search" />
         <div class="visitors-view-switch" role="group" aria-label="@L["Parking_Visitors_View"]">
             <button type="button" class="@(_view == TodayView ? "is-active" : null)" @onclick="() => _view = TodayView">
-                @L["Parking_Visitors_Today"] <span>@TodayBookings.Count</span>
+                @L["Parking_Visitors_Today"] <span>@(_bookings is null ? "—" : TodayBookings.Count.ToString())</span>
             </button>
             <button type="button" class="@(_view == UpcomingView ? "is-active" : null)" @onclick="() => _view = UpcomingView">
-                @L["Parking_Visitors_Upcoming"] <span>@(_bookings?.Count ?? 0)</span>
+                @L["Parking_Visitors_Upcoming"] <span>@(_bookings?.Count.ToString() ?? "—")</span>
             </button>
         </div>
     </div>
 
     <div class="visitors-results-head">
         <strong>@L[_view == TodayView ? "Parking_Visitors_TodayAgenda" : "Parking_Visitors_Upcoming"]</strong>
-        <span>@L["Parking_Visitors_Results", VisibleBookings.Count]</span>
+        @if (_bookings is not null)
+        {
+            <span>@L["Parking_Visitors_Results", VisibleBookings.Count]</span>
+        }
     </div>
-    @if (_bookings is null)
+    @if (!_setupFailed && !_bookingsLoadFailed && _bookings is null)
     {
         <div class="loading"><FluentProgressRing /></div>
     }
-    else if (VisibleBookings.Count == 0)
+    else if (_bookings is not null && VisibleBookings.Count == 0)
     {
         <div class="empty-state">@L["Parking_Visitors_Empty"]</div>
     }
-    else
+    else if (_bookings is not null)
     {
         <div class="admin-panel visitors-desktop-list">
             <table class="visitors-table">
@@ -88,12 +99,16 @@
                     @foreach (var booking in VisibleBookings)
                     {
                         <tr>
-                            <td><strong>@Local(booking.StartUtc, "d")</strong><small>@Local(booking.StartUtc, "t")–@Local(booking.EndUtc, "t")</small></td>
+                            <td><strong>@Local(booking.StartUtc, "d")</strong><small>@BookingTimeLabel(booking)</small></td>
                             <td><strong>@booking.VisitorName</strong><small>@(booking.Company ?? "—")</small></td>
                             <td><span class="visitors-spot">@booking.SpotCode</span></td>
                             <td>@(booking.LicensePlate ?? "—")</td><td>@(booking.HostName ?? "—")</td><td>@booking.CreatedByName</td>
-                            <td><FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" IconStart="@(new Icons.Regular.Size16.Delete())"
-                                              Title="@L["Parking_Cancel"]" OnClick="() => CancelAsync(booking.Id)" /></td>
+                            <td><FluentButton Id="@($"visitors-cancel-{booking.Id}")" Appearance="Appearance.Stealth"
+                                              Disabled="@(_actionBusy || _cancelBooking is not null || _createOpen)"
+                                              IconStart="@(new Icons.Regular.Size16.Delete())"
+                                              Title="@L["Parking_Visitors_CancelLabel", booking.VisitorName]"
+                                              aria-label="@L["Parking_Visitors_CancelLabel", booking.VisitorName]"
+                                              OnClick="() => RequestCancellation(booking)" /></td>
                         </tr>
                     }
                 </tbody>
@@ -104,9 +119,10 @@
             {
                 <article class="visitors-mobile-row">
                     <div class="visitors-mobile-row__head"><strong>@booking.VisitorName</strong><span class="visitors-spot">@booking.SpotCode</span></div>
-                    <span>@Local(booking.StartUtc, "g")–@Local(booking.EndUtc, "t")</span>
+                    <span>@Local(booking.StartUtc, "d") · @BookingTimeLabel(booking)</span>
                     <small>@(booking.Company ?? booking.LicensePlate ?? L["Parking_Visitors_NoExtraInfo"])</small>
-                    <div class="visitors-mobile-row__foot"><span>@(booking.HostName ?? "—")</span><FluentButton Appearance="Appearance.Stealth" Disabled="@_actionBusy" OnClick="() => CancelAsync(booking.Id)">@L["Parking_Cancel"]</FluentButton></div>
+                    <div class="visitors-mobile-row__foot"><span>@(booking.HostName ?? "—")</span><FluentButton Appearance="Appearance.Stealth" Disabled="@(_actionBusy || _cancelBooking is not null || _createOpen)"
+                        OnClick="() => RequestCancellation(booking)">@L["Parking_Cancel"]</FluentButton></div>
                 </article>
             }
         </div>
@@ -123,47 +139,95 @@
             {
                 <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar">@L[_error]</FluentMessageBar>
             }
-            <div class="visitors-dialog-grid visitors-dialog-grid--schedule">
+            <p role="status">@L[AllDay ? "Parking_Visitors_ModeAllDay" : "Parking_Visitors_ModeTimeWindow", _tz.Id]</p>
+            <div class="visitors-dialog-grid @(AllDay ? null : "visitors-dialog-grid--schedule")">
                 <label class="visitors-dialog-field">
                     <span>@L["Parking_Visitors_Date"]</span>
-                    <input type="date" autofocus @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
+                    <input id="visitors-date" type="date" autofocus disabled="@_actionBusy" @bind="_day" @bind:after="ReloadFreeSpotsAsync" class="parking-input"
                            min="@FirstBookableDay.ToString("yyyy-MM-dd")" max="@LastBookableDay.ToString("yyyy-MM-dd")" />
                 </label>
-                <label class="visitors-dialog-field">
-                    <span>@L["Parking_Visitors_From"]</span>
-                    <input type="time" @bind="_from" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
-                </label>
-                <label class="visitors-dialog-field">
-                    <span>@L["Parking_Visitors_To"]</span>
-                    <input type="time" @bind="_to" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
-                </label>
-                <FluentSelect TOption="ParkingSpotDto" Items="_freeSpots"
-                              OptionText="@(s => s.Code)" OptionValue="@(s => s.Id.ToString())"
-                              @bind-SelectedOption="_selectedSpot" Label="@L["Parking_Spot"]" />
+                @if (!AllDay)
+                {
+                    <label class="visitors-dialog-field">
+                        <span>@L["Parking_Visitors_From"]</span>
+                        <input id="visitors-from" type="time" disabled="@_actionBusy" @bind="_from" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                    </label>
+                    <label class="visitors-dialog-field">
+                        <span>@L["Parking_Visitors_To"]</span>
+                        <input id="visitors-to" type="time" disabled="@_actionBusy" @bind="_to" @bind:after="ReloadFreeSpotsAsync" class="parking-input" />
+                    </label>
+                }
+                <div class="visitors-dialog-field">
+                <FluentSelect Id="visitors-spot" TOption="VisitorOption" Items="SpotOptions" Disabled="@(_actionBusy || _availabilityLoading || _availabilityFailed)"
+                              OptionText="@(option => option.Text)" OptionValue="@(option => option.Value)"
+                              @bind-Value="_selectedSpotId" Label="@L["Parking_Spot"]" />
+                </div>
             </div>
-            @if (SelectedCalendarErrorKey is { } calendarError)
+            @if (SelectedWindowErrorKey is { } calendarError)
             {
                 <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L[calendarError]</FluentMessageBar>
             }
-            @if (_freeSpots.Count == 0)
+            @if (_availabilityLoading)
+            {
+                <div role="status">@L["Admin_Loading"]</div>
+            }
+            else if (_availabilityFailed)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+                <FluentButton OnClick="ReloadFreeSpotsAsync">@L["Parking_Admin_Retry"]</FluentButton>
+            }
+            else if (SelectedWindowErrorKey is null && _freeSpots.Count == 0)
             {
                 <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Visitors_NoFreeSpots"]</FluentLabel>
             }
             <div class="visitors-dialog-grid">
-                <FluentTextField @bind-Value="_visitorName" Label="@L["Parking_Visitors_Name"]" Maxlength="128" />
-                <FluentTextField @bind-Value="_company" Label="@L["Parking_Visitors_Company"]" Maxlength="128" />
-                <FluentTextField @bind-Value="_plate" Label="@L["Parking_Visitors_Plate"]" Maxlength="16" />
-                <FluentSelect TOption="UserSummary" Items="_users"
-                              OptionText="@(u => u.DisplayName ?? u.Email)" OptionValue="@(u => u.Id.ToString())"
-                              @bind-SelectedOption="_selectedHost" Label="@L["Parking_Visitors_Host"]" />
+                <div class="visitors-dialog-field">
+                <FluentTextField Id="visitors-name" Disabled="@_actionBusy" @bind-Value="_visitorName" Label="@L["Parking_Visitors_Name"]" Maxlength="128" />
+                </div>
+                <div class="visitors-dialog-field">
+                <FluentTextField Disabled="@_actionBusy" @bind-Value="_company" Label="@L["Parking_Visitors_Company"]" Maxlength="128" />
+                </div>
+                <div class="visitors-dialog-field">
+                <FluentTextField Disabled="@_actionBusy" @bind-Value="_plate" Label="@L["Parking_Visitors_Plate"]" Maxlength="16" />
+                </div>
+                <div class="visitors-dialog-field">
+                <FluentSelect Id="visitors-host" TOption="VisitorOption" Items="HostOptions" Disabled="@_actionBusy"
+                              OptionText="@(option => option.Text)" OptionValue="@(option => option.Value)"
+                              @bind-Value="_selectedHostId" Label="@L["Parking_Visitors_Host"]" />
+                </div>
             </div>
             <div class="admin-dialog__actions">
                 <FluentButton Appearance="Appearance.Outline" Disabled="@_actionBusy" OnClick="CloseCreate">@L["Common_Cancel"]</FluentButton>
                 <FluentButton Id="visitors-book" Appearance="Appearance.Accent" OnClick="BookAsync"
-                              Disabled="@(_actionBusy || _selectedSpot is null || SelectedCalendarErrorKey is not null)">
+                              Disabled="@(_actionBusy || _saveUncertain || _availabilityLoading || _availabilityFailed || SelectedSpot is null || SelectedWindowErrorKey is not null)">
                     @L["Parking_Visitors_Book"]
                 </FluentButton>
             </div>
+        </div>
+    </AdminDialog>
+}
+
+@if (_cancelBooking is { } cancelling)
+{
+    <AdminDialog Title="@L["Parking_Visitors_CancelTitle"]" Eyebrow="@L["Parking_Visitors_Title"]"
+                 Class="visitors-cancel-dialog" Busy="@_actionBusy" OnClose="CloseCancellation">
+        @if (_cancelError is not null)
+        {
+            <FluentMessageBar Intent="MessageIntent.Error">@L[_cancelError]</FluentMessageBar>
+        }
+        <p><strong>@cancelling.VisitorName</strong><br />
+            @cancelling.SpotCode · @Local(cancelling.StartUtc, "d") · @BookingTimeLabel(cancelling)
+        </p>
+        <p>@L["Parking_Visitors_CancelImpact"]</p>
+        @if (cancelling.HostName is not null)
+        {
+            <p>@L["Parking_Visitors_CancelHostNotice"]</p>
+        }
+        <div class="admin-dialog__actions">
+            <FluentButton Id="visitors-keep-booking" Appearance="Appearance.Outline" Disabled="@_actionBusy"
+                          OnClick="CloseCancellation">@L[_cancelUncertain ? "Common_Close" : "Parking_Visitors_KeepBooking"]</FluentButton>
+            <FluentButton Id="visitors-confirm-cancel" Appearance="Appearance.Accent" Disabled="@(_actionBusy || _cancelUncertain)"
+                          OnClick="ConfirmCancellationAsync">@L["Parking_Cancel"]</FluentButton>
         </div>
     </AdminDialog>
 }
@@ -180,12 +244,17 @@
     private TimeOnly _to = new(17, 0);
 
     private IReadOnlyList<ParkingSpotDto> _freeSpots = [];
-    private ParkingSpotDto? _selectedSpot;
+    private string? _selectedSpotId = string.Empty;
+    private ParkingSpotDto? SelectedSpot => _freeSpots.FirstOrDefault(s => s.Id.ToString() == _selectedSpotId);
     private IReadOnlyList<UserSummary> _users = [];
-    private UserSummary? _selectedHost;
+    private string? _selectedHostId = string.Empty;
+    private UserSummary? SelectedHost => _users.FirstOrDefault(u => u.Id.ToString() == _selectedHostId);
     private IReadOnlyList<VisitorBookingDto>? _bookings;
     private int _visitorSpotCount;
     private bool _createOpen;
+    private VisitorBookingDto? _cancelBooking;
+    private string? _cancelError;
+    private bool _cancelUncertain;
     private string? _search;
     private string _view = TodayView;
 
@@ -198,24 +267,34 @@
     private string? _error;
     private string? _info;
 
-    private DateTimeOffset Start => SiteTime.At(_day, _from, _tz);
-    private DateTimeOffset End => SiteTime.At(_day, _to, _tz);
+    private bool _ready;
+    private bool _setupFailed;
+    private bool _bookingsLoadFailed;
+    private bool _availabilityLoading;
+    private bool _availabilityFailed;
+    private long _availabilitySequence;
+    private bool AllDay => _policy?.ReservationTimeMode == ReservationTimeMode.AllDay;
+    private DateTimeOffset Start => AllDay ? SiteTime.Day(_day, _tz).Start : SiteTime.At(_day, _from, _tz);
+    // In a time window, 00:00 denotes the end of the selected day.
+    private DateTimeOffset End => AllDay || _to == TimeOnly.MinValue
+        ? SiteTime.Day(_day, _tz).End : SiteTime.At(_day, _to, _tz);
     private DateOnly Today => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
     private DateOnly FirstBookableDay => _policy?.FirstBookableDate(Today) ?? Today;
     private DateOnly LastBookableDay => Today.AddDays(_policy?.ReservationHorizonDays ?? 14);
-    private string? SelectedCalendarErrorKey => _policy switch
-    {
-        null => null,
-        _ when _day < Today || _day > LastBookableDay => "Parking_Error_ReservationHorizon",
-        { SameDayReservationsAllowed: false } when _day == Today => "Parking_Error_SameDayReservationsNotAllowed",
-        { } policy when !policy.AllowedReservationWeekdays.Sanitize().Includes(_day) => "Parking_Error_ReservationWeekdayNotAllowed",
-        { PublicHolidayReservationsAllowed: false } policy
-            when HolidayCalendar.IsPublicHoliday(_day, policy.HolidayCalendarRegion) => "Parking_Error_PublicHolidayNotAllowed",
-        _ => null,
-    };
+    private string? SelectedWindowErrorKey => _policy is null ? null
+        : _policy.GetReservationDateAvailability(_day, Today).ToParkingErrorKey() is { } dateError ? dateError
+        : !AllDay && (_tz.IsInvalidTime(_day.ToDateTime(_from))
+            || _tz.IsInvalidTime(_day.ToDateTime(_to)))
+            ? "Parking_Visitor_Error_NonexistentTime"
+            : VisitorBookingWindowRules.Validate(Start, End, _policy, DateTimeOffset.UtcNow, _tz);
+    private string AvailabilityCount => _availabilityLoading || _availabilityFailed || SelectedWindowErrorKey is not null
+        ? "—" : _freeSpots.Count.ToString();
+    private string SelectedWindowLabel => AllDay ? $"{_day:d} · {L["Parking_AllDay"]}"
+        : $"{_day:d} · {_from:HH:mm}–{(_to == TimeOnly.MinValue ? "24:00" : _to.ToString("HH:mm"))}";
 
     private IReadOnlyList<VisitorBookingDto> TodayBookings => (_bookings ?? [])
-        .Where(booking => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(booking.StartUtc, _tz).DateTime) == Today)
+        .Where(booking => booking.StartUtc < SiteTime.Day(Today, _tz).End
+            && booking.EndUtc > SiteTime.Day(Today, _tz).Start)
         .ToList();
 
     private IReadOnlyList<VisitorBookingDto> VisibleBookings
@@ -236,47 +315,112 @@
         }
     }
 
-    private RenderFragment VisitorMetric(string label, int value, string tone, Action action) => __builder =>
+    private RenderFragment VisitorMetric(string label, string value, string tone, Func<Task> action) => __builder =>
     {
         <button type="button" class="visitors-metric visitors-metric--@tone" @onclick="action">
             <span>@label</span><strong>@value</strong>
         </button>
     };
 
-    protected override async Task OnInitializedAsync()
+    private Task SetViewAsync(string view)
     {
-        var state = await AuthState!;
-        var user = await UserManager.GetUserAsync(state.User);
-        _userId = user?.Id ?? Guid.Empty;
-        _tz = await SiteSettings.GetTimeZoneAsync();
-        _policy = await ParkingSettings.GetPolicyAsync();
-        _day = _policy.FirstBookableDate(SiteTime.Today(DateTimeOffset.UtcNow, _tz));
-        _users = await UserAdmin.ListAsync(null);
-        _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);
+        _view = view;
+        return Task.CompletedTask;
+    }
+
+    protected override Task OnInitializedAsync() => ReloadPageAsync();
+
+    private async Task ReloadPageAsync()
+    {
+        _setupFailed = false;
+        _ready = false;
+        try
+        {
+            var state = await AuthState!;
+            var user = await UserManager.GetUserAsync(state.User);
+            _userId = user?.Id ?? Guid.Empty;
+            _tz = await SiteSettings.GetTimeZoneAsync();
+            _policy = await ParkingSettings.GetCurrentPolicyAsync();
+            _day = _policy.FirstBookableDate(Today);
+            _users = await UserAdmin.ListAsync(null);
+            _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);
+            _ready = true;
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
+        }
+        catch (Exception)
+        {
+            _setupFailed = true;
+            Logger.LogWarning("Loading visitor booking setup failed.");
+        }
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        if (_actionBusy || !_ready || _cancelBooking is not null || _createOpen) return;
+        _error = _info = null;
+        _saveUncertain = false;
+        _createOpen = true;
         await ReloadFreeSpotsAsync();
-        await ReloadBookingsAsync();
     }
 
     private async Task ReloadFreeSpotsAsync()
     {
-        _freeSpots = End <= Start ? [] : await Visitors.GetFreeSpotsAsync(Start, End);
-        if (_selectedSpot is { } selected && _freeSpots.All(s => s.Id != selected.Id))
+        var sequence = ++_availabilitySequence;
+        var selectedId = SelectedSpot?.Id;
+        _selectedSpotId = string.Empty;
+        _freeSpots = [];
+        _availabilityLoading = true;
+        _availabilityFailed = false;
+        try
         {
-            _selectedSpot = null;
+            var policy = await ParkingSettings.GetCurrentPolicyAsync();
+            var timeZone = await SiteSettings.GetTimeZoneAsync();
+            if (sequence != _availabilitySequence) return;
+            _policy = policy;
+            _tz = timeZone;
+            if (SelectedWindowErrorKey is not null) return;
+            var free = await Visitors.GetFreeSpotsAsync(Start, End);
+            if (sequence != _availabilitySequence) return;
+            _freeSpots = free;
+            _selectedSpotId = free.FirstOrDefault(s => s.Id == selectedId)?.Id.ToString() ?? string.Empty;
+        }
+        catch (Exception)
+        {
+            if (sequence == _availabilitySequence) _availabilityFailed = true;
+            Logger.LogWarning("Loading visitor parking availability failed.");
+        }
+        finally
+        {
+            if (sequence == _availabilitySequence) _availabilityLoading = false;
         }
     }
 
-    private async Task ReloadBookingsAsync() => _bookings = await Visitors.ListUpcomingAsync();
+    private async Task ReloadBookingsAsync()
+    {
+        _bookingsLoadFailed = false;
+        try
+        {
+            _bookings = await Visitors.ListUpcomingAsync();
+        }
+        catch (Exception)
+        {
+            _bookings = null;
+            _bookingsLoadFailed = true;
+            Logger.LogWarning("Loading visitor bookings failed.");
+        }
+    }
 
     // Single-flight for the booking actions: a double-clicked Book must not fire twice against
     // the same window (the second would clear the success message and show a conflict error).
     private bool _actionBusy;
+    private bool _saveUncertain;
 
     private void CloseCreate() => _createOpen = false;
 
     private async Task BookAsync()
     {
-        if (_actionBusy)
+        if (_actionBusy || _saveUncertain || _availabilityLoading || _availabilityFailed || SelectedWindowErrorKey is not null)
         {
             return;
         }
@@ -285,18 +429,20 @@
         try
         {
             _error = _info = null;
-            if (_selectedSpot is not { } spot)
+            if (SelectedSpot is not { } spot)
             {
                 return;
             }
 
             var result = await Visitors.BookAsync(_userId, spot.Id, Start, End,
-                _visitorName ?? string.Empty, _company, _plate, _selectedHost?.Id);
+                _visitorName ?? string.Empty, _company, _plate, SelectedHost?.Id);
             if (result.Succeeded)
             {
                 _info = "Parking_Visitors_Booked";
                 _visitorName = _company = _plate = null;
-                _selectedHost = null;
+                _selectedHostId = string.Empty;
+                _view = UpcomingView;
+                _search = null;
                 await ReloadFreeSpotsAsync();
                 await ReloadBookingsAsync();
                 _createOpen = false;
@@ -304,7 +450,24 @@
             else
             {
                 _error = result.Errors.FirstOrDefault();
+                if (_error == "Parking_Error_AccessDenied") return;
+                if (_error == "Parking_Visitor_Error_HostUnavailable")
+                {
+                    // The chosen account may have departed since this form was opened. Keep the
+                    // draft but remove that stale choice; booking without a host remains explicit.
+                    _users = _users.Where(u => u.Id.ToString() != _selectedHostId).ToArray();
+                    _selectedHostId = string.Empty;
+                }
+                await ReloadFreeSpotsAsync();
             }
+        }
+        catch (Exception)
+        {
+            _saveUncertain = true;
+            _error = "Parking_Visitors_SaveUncertain";
+            Logger.LogWarning("A visitor booking operation failed; its result needs reloading.");
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
         }
         finally
         {
@@ -312,33 +475,72 @@
         }
     }
 
-    private async Task CancelAsync(Guid id)
+    private void RequestCancellation(VisitorBookingDto booking)
     {
-        if (_actionBusy)
-        {
-            return;
-        }
+        if (_actionBusy || _createOpen || _cancelBooking is not null) return;
+        _error = _info = _cancelError = null;
+        _cancelUncertain = false;
+        _cancelBooking = booking;
+    }
+
+    private void CloseCancellation()
+    {
+        if (_actionBusy) return;
+        _cancelBooking = null;
+        _cancelError = null;
+    }
+
+    private async Task ConfirmCancellationAsync()
+    {
+        if (_actionBusy || _cancelUncertain || _cancelBooking is not { } booking) return;
 
         _actionBusy = true;
         try
         {
-            _error = _info = null;
-            var result = await Visitors.CancelAsync(id);
+            _error = _info = _cancelError = null;
+            var result = await Visitors.CancelCheckedAsync(booking.Id, _userId);
+            _cancelBooking = null;
             if (result.Succeeded)
             {
                 _info = "Parking_Visitors_Cancelled";
-                await ReloadFreeSpotsAsync();
-                await ReloadBookingsAsync();
             }
             else
             {
                 _error = result.Errors.FirstOrDefault();
+                // Revoked write permissions must not trigger another read of the whole agenda.
+                if (_error == "Parking_Error_AccessDenied") return;
             }
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
+        }
+        catch (Exception)
+        {
+            _cancelUncertain = true;
+            _cancelError = "Parking_Visitors_CancelUncertain";
+            Logger.LogWarning("Cancelling a visitor booking failed; its result needs reloading.");
+            await ReloadFreeSpotsAsync();
+            await ReloadBookingsAsync();
         }
         finally
         {
             _actionBusy = false;
         }
+    }
+
+    // Explicit empty options keep the visible selection consistent with the value sent to the server.
+    private sealed record VisitorOption(string Value, string Text);
+    private IEnumerable<VisitorOption> SpotOptions => new[] { new VisitorOption(string.Empty, L["Parking_Visitors_ChooseSpot"]) }
+        .Concat(_freeSpots.Select(s => new VisitorOption(s.Id.ToString(), s.Code)));
+    private IEnumerable<VisitorOption> HostOptions => new[] { new VisitorOption(string.Empty, L["Parking_Visitors_NoHost"]) }
+        .Concat(_users.Where(u => u.Status == AccountStatus.Active)
+            .Select(u => new VisitorOption(u.Id.ToString(), u.DisplayName ?? u.Email)));
+
+    private string BookingTimeLabel(VisitorBookingDto booking)
+    {
+        if (ReservationWindowRules.IsFullLocalDay(booking.StartUtc, booking.EndUtc, _tz))
+            return L["Parking_AllDay"];
+        var endFormat = SiteTime.Today(booking.StartUtc, _tz) == SiteTime.Today(booking.EndUtc, _tz) ? "t" : "g";
+        return $"{Local(booking.StartUtc, "t")}–{Local(booking.EndUtc, endFormat)}";
     }
 
     private string Local(DateTimeOffset utc, string format) =>

@@ -127,7 +127,11 @@ public sealed record SpotCalendarEntryDto(
     /// <summary>Whether an admin may still cancel this booking (only a not-yet-arrived reservation).</summary>
     bool CanCancel,
     /// <summary>Whether an admin may still move this booking to another spot.</summary>
-    bool CanMove);
+    bool CanMove)
+{
+    /// <summary>SQL rowversion of this reservation when the calendar entry was read.</summary>
+    public byte[] Version { get; init; } = [];
+}
 
 /// <summary>A blocked-spot report on the spot, for the manager's follow-up.</summary>
 public sealed record SpotMismatchSummaryDto(
@@ -169,7 +173,10 @@ public sealed record SpotDetailDto(
     IReadOnlyList<SpotMismatchSummaryDto> Mismatches,
     SpotUtilizationDto Stats,
     /// <summary>This spot's recent days, oldest first — its own load over time, not the lot's.</summary>
-    IReadOnlyList<SpotDayDto> Trend);
+    IReadOnlyList<SpotDayDto> Trend)
+{
+    public byte[] Version { get; init; } = [];
+}
 
 /// <summary>One cell of the weekday × hour demand heatmap: how many bookings covered that hour.</summary>
 public sealed record DemandCellDto(DayOfWeek DayOfWeek, int Hour, int Count);

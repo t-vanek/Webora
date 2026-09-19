@@ -296,6 +296,15 @@
 
     private void OnTabChanged(FluentTab tab)
     {
+        // FluentTabs can report its selection while enhanced navigation is removing this
+        // catalog. A late callback must not send a newly opened role/group detail back here.
+        var currentPath = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/');
+        if (!string.Equals(currentPath, "admin/roles", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(currentPath, "admin/permission-groups", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         // Navigating rather than just flipping a field is the point: the address bar keeps naming
         // what is on screen, so a tab can be linked to, reloaded and bookmarked. The search goes
         // with it — typing does not touch the URL (that would be a history entry per keystroke),

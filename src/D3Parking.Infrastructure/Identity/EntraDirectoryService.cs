@@ -1,5 +1,7 @@
+using System.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -102,6 +104,18 @@ public sealed class EntraDirectoryService(
         bool active,
         CancellationToken cancellationToken = default)
     {
+        // Stav účtu, kontrola posledního správce a uvolnění parkování patří do jedné
+        // transakce. SCIM může vlastnit vnější transakci, která zahrnuje také změnu profilu;
+        // v takovém případě rozhoduje o commitu až volající podle výsledku celé operace.
+        if (dbContext.Database.CurrentTransaction is { } current
+            && current.GetDbTransaction().IsolationLevel != IsolationLevel.Serializable)
+        {
+            throw new InvalidOperationException("Directory status changes require a serializable transaction.");
+        }
+        await using var transaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
+            : null;
+
         var user = await dbContext.Users
             .FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalObjectId == externalObjectId, cancellationToken);
         if (user is null)
@@ -109,17 +123,21 @@ public sealed class EntraDirectoryService(
             return AccountResult.Failure(messages["Error_AccountNotFound"]);
         }
 
+        // SCIM endpoint mohl účet načíst ještě před transakcí do stejného scope.
+        await dbContext.Entry(user).ReloadAsync(cancellationToken);
+
         var target = active ? AccountStatus.Active : AccountStatus.Blocked;
         if (user.Status == target)
         {
-            // SCIM retries are expected. A previous request may have blocked the identity and then
-            // failed halfway through the operational cascade, so an inactive retry finishes it.
+            // Starší verze mohla dokončit blokaci před úklidem. Opakovaný požadavek
+            // bezpečně dokončí zbývající živé záznamy, aniž by znovu auditoval hotové změny.
             if (!active)
             {
                 await EmployeeLifecycleCleanup.CleanOperationalAsync(
                     dbContext, user.Id, user.Email, actingUserId: null, timeProvider.GetUtcNow(),
                     revokeAccess: true, cancellationToken);
             }
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             return AccountResult.Success;
         }
 
@@ -144,7 +162,11 @@ public sealed class EntraDirectoryService(
         }
 
         // Blocking has to end live sessions, not just close the front door.
-        await userManager.UpdateSecurityStampAsync(user);
+        var stampUpdated = await userManager.UpdateSecurityStampAsync(user);
+        if (!stampUpdated.Succeeded)
+        {
+            return AccountResult.Failure(stampUpdated.Errors.Select(e => e.Description).ToArray());
+        }
 
         if (!active)
         {
@@ -155,7 +177,11 @@ public sealed class EntraDirectoryService(
 
         await AuditAsync(user.Id, active ? AccountAuditEventType.Unblocked : AccountAuditEventType.Blocked,
             $"{(active ? "reactivated" : "deprovisioned")} by {provider}", cancellationToken);
-        logger.LogInformation("{Provider} set {UserId} to {Status}", provider, user.Id, target);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            logger.LogInformation("{Provider} set {UserId} to {Status}", provider, user.Id, target);
+        }
         return AccountResult.Success;
     }
 

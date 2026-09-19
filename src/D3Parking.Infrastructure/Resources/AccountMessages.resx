@@ -113,4 +113,5 @@
   <data name="Error_ExternalRoleRequired" xml:space="preserve"><value>Název role z adresáře je povinný.</value></data>
   <data name="Error_ExternalRoleMapped" xml:space="preserve"><value>Role „{0}" už je namapovaná.</value></data>
   <data name="Error_ExternalRoleMappingNotFound" xml:space="preserve"><value>Mapování role nebylo nalezeno.</value></data>
+  <data name="Error_AccessDenied" xml:space="preserve"><value>K této operaci nemáte oprávnění nebo váš účet již není aktivní.</value></data>
 </root>

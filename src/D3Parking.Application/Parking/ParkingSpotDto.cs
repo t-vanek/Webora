@@ -13,6 +13,9 @@ public sealed record ParkingSpotDto(
     int ResidentCapacity = 1,
     IReadOnlyList<ParkingSpotResidentDto>? Residents = null)
 {
+    /// <summary>SQL Server rowversion captured with the displayed details; required for admin edits.</summary>
+    public byte[] Version { get; init; } = [];
+
     public IReadOnlyList<ParkingSpotResidentDto> ResidentList => Residents ?? [];
 
     public int ResidentCount => ResidentList.Count > 0 ? ResidentList.Count : OwnerId is null ? 0 : 1;

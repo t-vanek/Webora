@@ -210,7 +210,8 @@
   <data name="Admin_UserEdit_DeleteVehicles" xml:space="preserve"><value>Vehicles unpaired</value></data>
   <data name="Admin_UserEdit_DeleteReservations" xml:space="preserve"><value>Reservations cancelled</value></data>
   <data name="Admin_UserEdit_DeleteQueue" xml:space="preserve"><value>Queues left</value></data>
-  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Visits cancelled</value></data>
+  <data name="Admin_UserEdit_DeleteVisitors" xml:space="preserve"><value>Visits to cancel</value></data>
+  <data name="Admin_UserEdit_DeleteVisitorsImpact" xml:space="preserve"><value>Future and ongoing visits hosted or created by this account will be cancelled, including visits for other hosts. Ended visits remain unchanged. Cancelled records are retained and each cancellation is audited.</value></data>
   <data name="Admin_UserEdit_DeleteMessages" xml:space="preserve"><value>Personal messages and devices</value></data>
   <data name="Admin_UserEdit_DeleteCases" xml:space="preserve"><value>Cases reassigned</value></data>
   <data name="Admin_UserEdit_DeleteHistory" xml:space="preserve"><value>{0} historical records will be retained anonymously for audit and analytics.</value></data>
@@ -416,8 +417,8 @@
   <data name="Settings_EntraScimUrl" xml:space="preserve"><value>Tenant URL:</value></data>
   <data name="Settings_EntraScimToken" xml:space="preserve"><value>SCIM bearer token</value></data>
   <data name="Settings_EntraScimTokenHelp" xml:space="preserve"><value>The only protection those endpoints have — generate a long random string and rotate it when someone with access to the tenant leaves.</value></data>
-  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Block a deprovisioned account</value></data>
-  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>An account the directory deactivates or deletes gets blocked (reversible, keeps history). Off leaves it alone. Deletion is never performed from a provisioning request.</value></data>
+  <data name="Settings_EntraScimBlock" xml:space="preserve"><value>Account departure</value></data>
+  <data name="Settings_EntraScimBlockHelp" xml:space="preserve"><value>Departure through Entra always blocks the account and cancels future and ongoing visits it hosts or created, including visits for other hosts. Finished visits are preserved. The last administrator cannot be deactivated. Provisioning never deletes the account.</value></data>
   <data name="Settings_EntraRoleMappingLink" xml:space="preserve"><value>Directory role mappings →</value></data>
   <data name="Settings_EntraSignInTooltip" xml:space="preserve"><value>Enables server-side OpenID Connect sign-in. Tenant ID, Client ID, and an application client secret are required.</value></data>
   <data name="Settings_EntraTenantIdTooltip" xml:space="preserve"><value>The directory users sign in from. Find it under Entra ID → Overview → Tenant ID.</value></data>
@@ -433,7 +434,7 @@
   <data name="Settings_EntraScimTooltip" xml:space="preserve"><value>SCIM is independent of sign-in. It synchronizes accounts from the Enterprise Application and uses its own bearer token.</value></data>
   <data name="Settings_EntraScimUrlTooltip" xml:space="preserve"><value>Copy this address to Enterprise Application → Provisioning → Tenant URL.</value></data>
   <data name="Settings_EntraScimTokenTooltip" xml:space="preserve"><value>Generate a long random token and enter the same value in Entra as the Secret Token. It is not the app registration client secret.</value></data>
-  <data name="Settings_EntraScimBlockTooltip" xml:space="preserve"><value>When Entra disables or deprovisions an account, D3Parking blocks it. Data and history are not deleted.</value></data>
+  <data name="Settings_EntraScimBlockTooltip" xml:space="preserve"><value>Blocking the account and cancelling its unfinished visits on departure is mandatory. History is preserved.</value></data>
   <data name="Settings_SaveEntra" xml:space="preserve"><value>Save Entra ID</value></data>
   <data name="Settings_DefaultRole_None" xml:space="preserve"><value>None</value></data>
   <data name="Settings_GeneralSection" xml:space="preserve"><value>General</value></data>
@@ -678,6 +679,7 @@
   <data name="Parking_Visitors_Booked" xml:space="preserve"><value>The visitor has a booked spot.</value></data>
   <data name="Parking_Visitors_Cancelled" xml:space="preserve"><value>The visitor booking was cancelled.</value></data>
   <data name="Parking_Visitor_Error_NameRequired" xml:space="preserve"><value>Fill in the visitor's name.</value></data>
+  <data name="Parking_Visitor_Error_HostUnavailable" xml:space="preserve"><value>The selected host no longer has an active account. Choose another host or create the booking without one.</value></data>
   <data name="Parking_Visitor_Error_NotVisitorSpot" xml:space="preserve"><value>This spot is reserved for visitors and managed by the reception.</value></data>
   <data name="Parking_Mismatch_PlateVisitor" xml:space="preserve"><value>visitor</value></data>
   <data name="Nav_Help" xml:space="preserve"><value>Help</value></data>
@@ -750,7 +752,7 @@
   <data name="Help_Profile_Li3" xml:space="preserve"><value>Team or department — puts you on the team leaderboard.</value></data>
   <data name="Help_AdminSection" xml:space="preserve"><value>For administrators</value></data>
   <data name="Help_Visitors_Q" xml:space="preserve"><value>How to book a spot for a visitor</value></data>
-  <data name="Help_Visitors_A1" xml:space="preserve"><value>Under Visitors, pick the window and a free visitor spot, then fill in the guest's name (company and plate are recommended). The guest needs no account and no credits.</value></data>
+  <data name="Help_Visitors_A1" xml:space="preserve"><value>In Visitors, open New visitor booking. Depending on parking settings, choose a date only (the whole local day), or a date and start/end times. Configured weekdays, public holidays and booking horizon apply. Select an available spot and enter the visitor name; company, license plate and host are optional. Visitors need no account or credits. A successful booking opens the upcoming visits list. On a conflict, availability is refreshed and your draft is kept; choose another spot or time.</value></data>
   <data name="Help_Visitors_A2" xml:space="preserve"><value>If you pick a host, they get a notification telling them where their guest parks. Visitor spots are carved out of the regular pool, so employees cannot take them — they are managed only here.</value></data>
   <data name="Help_Visitors_NoSpots" xml:space="preserve"><value>There is no active "Visitor" spot yet — until you create one under Parking spots, the visitor agenda has nothing to offer.</value></data>
   <data name="Help_MyReports_Q" xml:space="preserve"><value>My reports — what happens to them, and how to report a defect</value></data>
@@ -1591,7 +1593,7 @@
   <data name="Lot_Intro" xml:space="preserve"><value>A daily operational view of capacity, reservations, and events at each spot.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Manage spots</value></data>
   <data name="Lot_Overview_Label" xml:space="preserve"><value>Parking operations summary</value></data>
-  <data name="Lot_Overview_Available" xml:space="preserve"><value>Available capacity</value></data>
+  <data name="Lot_Overview_Available" xml:space="preserve"><value>Unreserved in this view</value></data>
   <data name="Lot_Overview_OfActive" xml:space="preserve"><value>of {0} active spots</value></data>
   <data name="Lot_Overview_Utilization" xml:space="preserve"><value>Offered capacity utilization</value></data>
   <data name="Lot_Overview_OccupancyAria" xml:space="preserve"><value>Capacity utilization {0} percent</value></data>
@@ -1621,7 +1623,7 @@
   <data name="Lot_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Lot_State_Free" xml:space="preserve"><value>Free</value></data>
   <data name="Lot_State_Booked" xml:space="preserve"><value>Planned</value></data>
-  <data name="Lot_State_Occupied" xml:space="preserve"><value>Occupied (vehicle present)</value></data>
+  <data name="Lot_State_Occupied" xml:space="preserve"><value>Legacy arrival record</value></data>
   <data name="Lot_State_ResidentHeld" xml:space="preserve"><value>Reserved for the resident</value></data>
   <data name="Lot_State_ResidentShared" xml:space="preserve"><value>Resident's, released to the pool</value></data>
   <data name="Lot_State_VisitorBooked" xml:space="preserve"><value>Reserved for a visitor</value></data>
@@ -2625,4 +2627,44 @@
   <data name="Parking_Planner_Detail_SourceSchedule" xml:space="preserve"><value>Parking schedule</value></data>
   <data name="Parking_Planner_Detail_PastText" xml:space="preserve"><value>This day has passed. The details are shown for reference only.</value></data>
   <data name="Parking_Planner_Detail_NoReservationText" xml:space="preserve"><value>You do not have a booking for this day yet.</value></data>
+  <data name="Parking_Admin_LoadFailed" xml:space="preserve"><value>Data could not be loaded. Availability and results cannot be verified. Try loading again.</value></data>
+  <data name="Parking_Admin_Loading" xml:space="preserve"><value>Loading parking data</value></data>
+  <data name="Parking_Admin_Retry" xml:space="preserve"><value>Reload</value></data>
+  <data name="Parking_Admin_DetailLoadFailed" xml:space="preserve"><value>The spot details could not be loaded. Open the spot again.</value></data>
+  <data name="Parking_Admin_CandidatesLoadFailed" xml:space="preserve"><value>Available residents could not be loaded. Reload the page.</value></data>
+  <data name="Parking_Admin_OperationUncertain" xml:space="preserve"><value>The result of the change could not be verified. Check the reloaded data before trying again; if loading failed, reload the page.</value></data>
+  <data name="Parking_Admin_DeactivateTitle" xml:space="preserve"><value>Take spot {0} out of service?</value></data>
+  <data name="Parking_Admin_DeactivateImpact" xml:space="preserve"><value>The spot will no longer accept new reservations. Existing bookings and their history remain; they are not cancelled or refunded automatically. Affected employee reservation holders will be notified. Coordinate any visitor bookings with reception.</value></data>
+  <data name="Parking_Admin_Saved" xml:space="preserve"><value>The change was saved.</value></data>
+  <data name="Parking_Admin_Created" xml:space="preserve"><value>Spot {0} was created.</value></data>
+  <data name="Parking_Error_ConcurrentChange" xml:space="preserve"><value>Another request changed this record. Your change was not saved. Review the reloaded data and make the change again if needed.</value></data>
+  <data name="Parking_Error_AccessDenied" xml:space="preserve"><value>You do not have permission to perform this operation.</value></data>
+  <data name="Parking_Error_InvalidSpotDetails" xml:space="preserve"><value>Check the spot code (up to 32 characters), type, notes (up to 512 characters), and resident capacity.</value></data>
+  <data name="Lot_PlanningNotice" xml:space="preserve"><value>This view uses reservations and allocations for the selected day. The app does not verify the physical presence of vehicles. Check a specific reservation window in the planner before using a free spot.</value></data>
+  <data name="Lot_CancelImpact" xml:space="preserve"><value>The reservation will be cancelled, its time slot released, its credits refunded, and its holder notified. The reservation history will be preserved.</value></data>
+  <data name="Help_ParkingOperations_Q" xml:space="preserve"><value>How do I inspect a spot and change a reservation?</value></data>
+  <data name="Help_ParkingOperations_A" xml:space="preserve"><value>In the parking overview, choose a day and optionally a state filter, then open a spot. Its calendar shows holders and times. The overview describes plans, not verified vehicle presence. With reservation management permission, choose a move target or confirm cancellation with a credit refund. Data reloads after success. If a conflict occurs, review the reloaded current state and repeat the change only if it still matches your intent.</value></data>
+  <data name="Help_ParkingSpots_Q" xml:space="preserve"><value>How do I change resident capacity or deactivate a spot?</value></data>
+  <data name="Help_ParkingSpots_A" xml:space="preserve"><value>In parking spot management, search for the code and choose Manage residents. Change the capacity and press Save; typing alone does not save it. A concurrent change is not overwritten: the app displays a conflict and reloads the current value. Deactivate opens an impact confirmation; Cancel leaves the spot unchanged. A message and the updated list state confirm success.</value></data>
+  <data name="Parking_Visitors_ModeAllDay" xml:space="preserve"><value>Parking configuration: all day. Select a date; the spot is reserved from midnight to the following midnight in {0}.</value></data>
+  <data name="Parking_Visitors_ModeTimeWindow" xml:space="preserve"><value>Parking configuration: time window. Select a date and start/end times in {0}. An end time of 00:00 means the end of the selected day.</value></data>
+  <data name="Parking_Visitors_AvailabilityFor" xml:space="preserve"><value>Availability for: {0}</value></data>
+  <data name="Parking_Visitor_Error_NonexistentTime" xml:space="preserve"><value>The selected time does not exist on this date because of daylight saving time. Choose another time.</value></data>
+  <data name="Parking_Visitor_Error_DetailsTooLong" xml:space="preserve"><value>Name and company may have up to 128 characters, and the license plate up to 16 characters.</value></data>
+  <data name="Parking_Visitors_SaveUncertain" xml:space="preserve"><value>The result could not be verified. Close the form and check upcoming visits before submitting the booking again.</value></data>
+  <data name="Parking_Visitors_ChooseSpot" xml:space="preserve"><value>Select a spot</value></data>
+  <data name="Parking_Visitors_NoHost" xml:space="preserve"><value>No host (optional)</value></data>
+  <data name="Parking_Visitor_Error_AlreadyCancelled" xml:space="preserve"><value>This visitor booking has already been cancelled.</value></data>
+  <data name="Parking_Visitor_Error_Ended" xml:space="preserve"><value>This visit has already ended. Historical bookings cannot be cancelled.</value></data>
+  <data name="Parking_Visitors_CancelLabel" xml:space="preserve"><value>Cancel the booking for visitor {0}</value></data>
+  <data name="Parking_Visitors_CancelTitle" xml:space="preserve"><value>Cancel this visitor booking?</value></data>
+  <data name="Parking_Visitors_KeepBooking" xml:space="preserve"><value>Keep booking</value></data>
+  <data name="Parking_Visitors_CancelImpact" xml:space="preserve"><value>Cancelling releases this booked interval for other visitors if the spot is active and current rules permit booking. The record is retained and the cancellation is recorded in the audit log.</value></data>
+  <data name="Parking_Visitors_CancelHostNotice" xml:space="preserve"><value>We will send the host a notification.</value></data>
+  <data name="Parking_Visitors_CancelUncertain" xml:space="preserve"><value>The cancellation result could not be verified. Close this dialog and check the list before trying again.</value></data>
+  <data name="Help_Visitors_A3" xml:space="preserve"><value>In the visitors list, choose Cancel booking for the relevant visit. The dialog shows the visitor, spot and interval. Keep booking or Close makes no change; Cancel booking performs and audits the cancellation. A successful cancellation removes the visit from the active list but retains its database record. If another operator has already cancelled it or the visit has ended, the page explains this and reloads the list. Visits that have already ended cannot be cancelled retrospectively.</value></data>
+  <data name="Help_Visitors_A4" xml:space="preserve"><value>When an account departs (deletion or deactivation through Entra), future and ongoing visits it hosts or created are cancelled, including visits for other hosts. Ended visits remain unchanged. In Users → account details → Access, review the number of visits to cancel before deleting the account; each cancellation is audited. New visits can only have an active host. If the selected host has since departed, choose another or confirm the booking again without a host; your draft is retained.</value></data>
+  <data name="Settings_UnsavedLeave" xml:space="preserve"><value>You have unsaved settings changes. Leave and discard them?</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>The save result could not be verified. Your draft remains in the form. Check saved settings in a new tab before retrying.</value></data>
+  <data name="Settings_ReloadFailed" xml:space="preserve"><value>The change was saved, but current values could not be loaded. Check settings in a new tab before making another change.</value></data>
 </root>

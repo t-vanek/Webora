@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using static Microsoft.Playwright.Assertions;
 
 namespace D3Parking.E2E.Tests;
 
@@ -29,6 +30,34 @@ public static class Pages
         await SubmitAsync(page);
     }
 
+    /// <summary>Creates its own spot through the admin UI and finds it regardless of paging.</summary>
+    public static async Task<string> CreateSpotAsync(IPage page)
+    {
+        var code = $"UI-{Guid.NewGuid():N}"[..20];
+        await GotoInteractiveAsync(page, "/admin/parking/spots");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Přidat místa", Exact = true }).ClickAsync();
+        var dialog = page.Locator(".spots-create-dialog");
+        await dialog.Locator("fluent-text-field#single-code input").FillAsync(code);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Přidat", Exact = true }).ClickAsync();
+        await Expect(dialog).ToContainTextAsync($"Místo {code} bylo vytvořeno.");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Zavřít", Exact = true }).ClickAsync();
+        await Expect(dialog).ToHaveCountAsync(0);
+        await SearchSpotsAsync(page, code, 1);
+        return code;
+    }
+
+    /// <summary>Waits for the filtered server result before acting on a row already on screen.</summary>
+    public static async Task SearchSpotsAsync(IPage page, string code, int expectedCount)
+    {
+        var search = page.Locator("fluent-search#spot-search input");
+        await search.FillAsync(code);
+        await search.BlurAsync();
+        await Expect(page.Locator(".spots-results-head > span"))
+            .ToHaveTextAsync($"Nalezeno míst: {expectedCount}");
+        await Expect(page.Locator(".spots-desktop-list tbody tr")).ToHaveCountAsync(expectedCount);
+        await Expect(page.Locator(".spots-desktop-list tr", new() { HasText = code }).First).ToBeVisibleAsync();
+    }
+
     /// <summary>
     /// Navigates and waits for the InteractiveServer circuit to attach before returning: the
     /// browser must acknowledge applying a render batch. Counting two incoming frames also
@@ -38,6 +67,17 @@ public static class Pages
     public static async Task GotoInteractiveAsync(IPage page, string url)
     {
         var attached = new TaskCompletionSource();
+        var sockets = 0;
+        var received = 0;
+        var scriptErrors = 0;
+        var failures = new List<string>();
+        void OnError(object? sender, string error) => scriptErrors++;
+        void OnFailure(object? sender, IRequest request)
+        {
+            if (request.ResourceType == "script") failures.Add(new Uri(request.Url).AbsolutePath);
+        }
+        page.PageError += OnError;
+        page.RequestFailed += OnFailure;
 
         void OnWebSocket(object? _, IWebSocket socket)
         {
@@ -59,12 +99,24 @@ public static class Pages
         page.WebSocket += OnWebSocket;
         try
         {
-            await page.GotoAsync(url);
-            await attached.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            var response = await page.GotoAsync(url);
+            try
+            {
+                await attached.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            }
+            catch (TimeoutException exception)
+            {
+                // Paths/status only: never include cookies, input values or URL query strings.
+                throw new TimeoutException($"Interactive circuit did not attach. HTTP {response?.Status}; " +
+                    $"path {new Uri(page.Url).AbsolutePath}; login form: {await page.Locator("input[name='Input.Password']").CountAsync()}; " +
+                    $"error banner visible: {await page.Locator("#blazor-error-ui").IsVisibleAsync()}; sockets {sockets}, frames {received}, JS errors {scriptErrors}, failed scripts {string.Join(", ", failures)}.", exception);
+            }
         }
         finally
         {
             page.WebSocket -= OnWebSocket;
+            page.PageError -= OnError;
+            page.RequestFailed -= OnFailure;
         }
     }
 }

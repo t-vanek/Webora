@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -121,23 +122,40 @@ public static class ScimEndpoints
         D3ParkingDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var identity = ReadIdentity(payload);
+        if (!TryReadActive(payload, out var active))
+        {
+            return ScimError(StatusCodes.Status400BadRequest, "Expected a user object with a boolean active attribute when provided.");
+        }
+        var identity = ReadIdentity(payload, active);
         if (identity is null)
         {
             return ScimError(StatusCodes.Status400BadRequest, "externalId and userName are required.");
         }
 
+        // Profil, případné propojení účtu a odchod se buď uloží společně, nebo vůbec.
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var result = await directory.SyncAsync(identity, cancellationToken);
         if (!result.Succeeded)
         {
             return ScimError(StatusCodes.Status400BadRequest, string.Join(" ", result.Errors));
         }
 
+        if (active is { } requestedActive)
+        {
+            var changed = await directory.SetActiveAsync(identity.Provider, identity.ObjectId, requestedActive, cancellationToken);
+            if (!changed.Succeeded)
+            {
+                return ScimError(StatusCodes.Status409Conflict, string.Join(" ", changed.Errors));
+            }
+        }
+
         var user = await dbContext.Users.AsNoTracking()
             .FirstAsync(u => u.Id == result.UserId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
-        // 201 on a fresh account, 200 when an existing one was adopted — Entra treats a 409 as a
-        // hard conflict to retry, which a legitimate re-provision would hit forever.
+        // Preserve the existing contract: 201 for a new account, 200 for an existing/adopted one.
+        // A successful repeated delivery is not a conflict.
         return Results.Json(ToScim(user), contentType: ScimContentType,
             statusCode: result.Created ? StatusCodes.Status201Created : StatusCodes.Status200OK);
     }
@@ -153,19 +171,37 @@ public static class ScimEndpoints
         D3ParkingDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        if (payload.ValueKind != JsonValueKind.Object)
+        {
+            return ScimError(StatusCodes.Status400BadRequest, "Expected a patch object.");
+        }
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var user = await FindAsync(dbContext, id, cancellationToken);
         if (user is null)
         {
             return ScimError(StatusCodes.Status404NotFound, "User not found.");
         }
 
-        var active = ReadActiveFromPatch(payload);
+        if (IsOtherDirectory(user))
+        {
+            return ScimError(StatusCodes.Status409Conflict, "The target account belongs to another directory.");
+        }
+
+        if (!TryReadActiveFromPatch(payload, out var active))
+        {
+            return ScimError(StatusCodes.Status400BadRequest, "Expected patch operations with boolean active values.");
+        }
         if (active is null)
         {
             // Nothing this endpoint acts on; report the account unchanged rather than fail the cycle.
             return Results.Json(ToScim(user), contentType: ScimContentType);
         }
 
+        if (user.ExternalProvider != ExternalProviders.EntraId || string.IsNullOrWhiteSpace(user.ExternalObjectId))
+        {
+            return ScimError(StatusCodes.Status409Conflict, "The target account is not linked to this directory.");
+        }
         var result = await directory.SetActiveAsync(
             user.ExternalProvider ?? ExternalProviders.EntraId,
             user.ExternalObjectId ?? string.Empty,
@@ -174,12 +210,13 @@ public static class ScimEndpoints
 
         if (!result.Succeeded)
         {
-            // A refusal here is nearly always the last-administrator guard. 409 tells Entra the
-            // request was understood and refused, so it stops retrying it as a transient fault.
+            // Report the refused transition as a conflict, for example when it would remove the
+            // last administrator. The client's retry policy is outside this endpoint's control.
             return ScimError(StatusCodes.Status409Conflict, string.Join(" ", result.Errors));
         }
 
         var refreshed = await FindAsync(dbContext, id, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.Json(ToScim(refreshed!), contentType: ScimContentType);
     }
 
@@ -190,13 +227,23 @@ public static class ScimEndpoints
         D3ParkingDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var user = await FindAsync(dbContext, id, cancellationToken);
         if (user is null)
         {
             return ScimError(StatusCodes.Status404NotFound, "User not found.");
         }
 
-        var parsed = ReadIdentity(payload);
+        if (IsOtherDirectory(user))
+        {
+            return ScimError(StatusCodes.Status409Conflict, "The target account belongs to another directory.");
+        }
+        if (!TryReadActive(payload, out var active))
+        {
+            return ScimError(StatusCodes.Status400BadRequest, "Expected a user object with a boolean active attribute when provided.");
+        }
+        var parsed = ReadIdentity(payload, active);
         if (parsed is null)
         {
             return ScimError(StatusCodes.Status400BadRequest, "externalId and userName are required.");
@@ -210,12 +257,24 @@ public static class ScimEndpoints
             return ScimError(StatusCodes.Status400BadRequest, string.Join(" ", result.Errors));
         }
 
-        if (!identity.Active)
+        // Při adopci místního účtu může tělo ukazovat na jinou existující identitu.
+        // Kontrola musí být před commitem; samotné odmítnutí po SyncAsync by nechalo cizí změny.
+        if (result.UserId != user.Id)
         {
-            await directory.SetActiveAsync(identity.Provider, identity.ObjectId, false, cancellationToken);
+            return ScimError(StatusCodes.Status409Conflict, "The supplied identity does not match the target account.");
+        }
+
+        if (active is { } requestedActive)
+        {
+            var changed = await directory.SetActiveAsync(identity.Provider, identity.ObjectId, requestedActive, cancellationToken);
+            if (!changed.Succeeded)
+            {
+                return ScimError(StatusCodes.Status409Conflict, string.Join(" ", changed.Errors));
+            }
         }
 
         var refreshed = await FindAsync(dbContext, id, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Results.Json(ToScim(refreshed!), contentType: ScimContentType);
     }
 
@@ -230,31 +289,63 @@ public static class ScimEndpoints
         D3ParkingDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var user = await FindAsync(dbContext, id, cancellationToken);
         if (user is null)
         {
             return ScimError(StatusCodes.Status404NotFound, "User not found.");
         }
 
+        if (IsOtherDirectory(user))
+        {
+            return ScimError(StatusCodes.Status409Conflict, "The target account belongs to another directory.");
+        }
+
+        if (user.ExternalProvider != ExternalProviders.EntraId || string.IsNullOrWhiteSpace(user.ExternalObjectId))
+        {
+            return ScimError(StatusCodes.Status409Conflict, "The target account is not linked to this directory.");
+        }
         var result = await directory.SetActiveAsync(
             user.ExternalProvider ?? ExternalProviders.EntraId,
             user.ExternalObjectId ?? string.Empty,
             active: false,
             cancellationToken);
 
-        return result.Succeeded
-            ? Results.NoContent()
-            : ScimError(StatusCodes.Status409Conflict, string.Join(" ", result.Errors));
+        if (!result.Succeeded)
+        {
+            return ScimError(StatusCodes.Status409Conflict, string.Join(" ", result.Errors));
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     /// <summary>Accepts either this application's own id or the directory's object id.</summary>
-    private static Task<ApplicationUser?> FindAsync(D3ParkingDbContext dbContext, string id, CancellationToken cancellationToken) =>
-        Guid.TryParse(id, out var localId)
-            ? dbContext.Users.AsNoTracking().FirstOrDefaultAsync(
-                u => u.Id == localId || u.ExternalObjectId == id, cancellationToken)
-            : dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.ExternalObjectId == id, cancellationToken);
+    private static async Task<ApplicationUser?> FindAsync(D3ParkingDbContext dbContext, string id, CancellationToken cancellationToken)
+    {
+        // ID vydané aplikací má přednost před shodným textem oid jiné identity.
+        if (Guid.TryParse(id, out var localId))
+        {
+            var local = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == localId, cancellationToken);
+            if (local is not null) return local;
+        }
+        return await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(
+            u => u.ExternalProvider == ExternalProviders.EntraId && u.ExternalObjectId == id, cancellationToken);
+    }
 
-    private static ExternalIdentity? ReadIdentity(JsonElement payload)
+    private static bool IsOtherDirectory(ApplicationUser user) =>
+        user.ExternalProvider is not null && user.ExternalProvider != ExternalProviders.EntraId;
+
+    private static bool TryReadActive(JsonElement payload, out bool? active)
+    {
+        active = null;
+        if (payload.ValueKind != JsonValueKind.Object) return false;
+        if (!payload.TryGetProperty("active", out var value)) return true;
+        active = ReadBoolean(value);
+        return active.HasValue;
+    }
+
+    private static ExternalIdentity? ReadIdentity(JsonElement payload, bool? active)
     {
         var externalId = GetString(payload, "externalId");
         var userName = GetString(payload, "userName");
@@ -272,9 +363,6 @@ public static class ScimEndpoints
                 .Where(part => !string.IsNullOrWhiteSpace(part)));
         }
 
-        var active = !payload.TryGetProperty("active", out var activeElement)
-            || activeElement.ValueKind != JsonValueKind.False;
-
         return new ExternalIdentity(
             ExternalProviders.EntraId,
             externalId!,
@@ -286,7 +374,7 @@ public static class ScimEndpoints
             // Provisioning says nothing about roles; app role claims at sign-in do. Null keeps this
             // push from being read as "revoke everything".
             Roles: null,
-            Active: active);
+            Active: active ?? true);
     }
 
     private static string? ReadPrimaryEmail(JsonElement payload)
@@ -328,22 +416,23 @@ public static class ScimEndpoints
     /// but the operation name's case and the boolean's type (real or stringified) both vary between
     /// its provisioning versions, so all the shapes are accepted.
     /// </summary>
-    private static bool? ReadActiveFromPatch(JsonElement payload)
+    private static bool TryReadActiveFromPatch(JsonElement payload, out bool? active)
     {
+        active = null;
         if (!payload.TryGetProperty("Operations", out var operations)
             && !payload.TryGetProperty("operations", out operations))
         {
-            return null;
+            return true;
         }
 
         if (operations.ValueKind != JsonValueKind.Array)
         {
-            return null;
+            return false;
         }
 
-        bool? active = null;
         foreach (var operation in operations.EnumerateArray())
         {
+            if (operation.ValueKind != JsonValueKind.Object) return false;
             var op = GetString(operation, "op") ?? GetString(operation, "Op");
             if (op is not null && !op.Equals("replace", StringComparison.OrdinalIgnoreCase)
                                && !op.Equals("add", StringComparison.OrdinalIgnoreCase))
@@ -360,16 +449,18 @@ public static class ScimEndpoints
 
             if (string.Equals(path, "active", StringComparison.OrdinalIgnoreCase))
             {
-                active = ReadBoolean(value) ?? active;
+                if (ReadBoolean(value) is not { } parsed) return false;
+                active = parsed;
             }
             else if (path is null && value.ValueKind == JsonValueKind.Object
                      && value.TryGetProperty("active", out var nested))
             {
-                active = ReadBoolean(nested) ?? active;
+                if (ReadBoolean(nested) is not { } parsed) return false;
+                active = parsed;
             }
         }
 
-        return active;
+        return true;
     }
 
     private static bool? ReadBoolean(JsonElement value) => value.ValueKind switch

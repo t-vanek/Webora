@@ -52,6 +52,10 @@ public interface ILotDashboardService
     /// </summary>
     Task<ParkingResult> CancelReservationAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default);
 
+    /// <summary>As above, but rejects a calendar entry changed since the manager opened it.</summary>
+    Task<ParkingResult> CancelReservationCheckedAsync(Guid reservationId, byte[] expectedVersion, Guid actingUserId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Moves a booking to another spot for the same window, keeping its price, status and history —
     /// the booking is re-pointed, not re-made, so nothing moves in the wallet. Fails when the target
@@ -60,4 +64,8 @@ public interface ILotDashboardService
     /// </summary>
     Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,
         bool confirmResidentImpact = false, CancellationToken cancellationToken = default);
+
+    /// <summary>As above, but rejects a calendar entry changed since the manager opened it.</summary>
+    Task<ParkingResult> MoveReservationCheckedAsync(Guid reservationId, Guid targetSpotId, byte[] expectedVersion,
+        Guid actingUserId, bool confirmResidentImpact = false, CancellationToken cancellationToken = default);
 }

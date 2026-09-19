@@ -1,10 +1,11 @@
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 @* Shared modal shell for short, focused administration tasks. The caller owns the form state;
    this component owns the interaction contract and visual structure. *@
-<div class="admin-dialog-backdrop @BackdropClass" tabindex="-1"
+<dialog role="dialog" aria-modal="true" @ref="_modal" class="admin-dialog-backdrop @BackdropClass" aria-labelledby="@_titleId"
      @onclick="CloseAsync" @onkeydown="HandleKeyDown">
-    <section @ref="_dialog" class="admin-dialog admin-dialog--@Size @Class" role="dialog" aria-modal="true" tabindex="-1"
+    <section @ref="_dialog" class="admin-dialog admin-dialog--@Size @Class" tabindex="-1"
              aria-labelledby="@_titleId" @onclick:stopPropagation="true">
         <header class="admin-dialog__head">
             <div>
@@ -21,11 +22,12 @@
             @ChildContent
         </div>
     </section>
-</div>
+</dialog>
 
 @code {
     private readonly string _titleId = $"admin-dialog-{Guid.NewGuid():N}";
     private ElementReference _dialog;
+    private ElementReference _modal;
 
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public string? Eyebrow { get; set; }
@@ -45,7 +47,7 @@
     {
         if (firstRender)
         {
-            await _dialog.FocusAsync();
+            await JS.InvokeVoidAsync("adminDialog.open", _modal, _dialog);
         }
     }
 }

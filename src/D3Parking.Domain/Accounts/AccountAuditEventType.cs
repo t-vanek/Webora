@@ -18,7 +18,7 @@ public enum AccountAuditEventType
     /// <summary>This account changed which permissions a role grants, or created/deleted a role.</summary>
     RolePermissionsChanged,
     SettingsChanged,
-    /// <summary>A spot manager cancelled or moved one of this account's parking reservations.</summary>
+    /// <summary>An authorized operator intervened in a parking reservation or created/cancelled a visitor booking.</summary>
     ReservationOverridden,
     /// <summary>An oversight case ended in a warning or a deduction against this account.</summary>
     OversightSanctioned,

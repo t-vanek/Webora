@@ -11,6 +11,7 @@
 @using Orientation = Microsoft.FluentUI.AspNetCore.Components.Orientation
 @using Align = Microsoft.FluentUI.AspNetCore.Components.Align
 @using TooltipPosition = Microsoft.FluentUI.AspNetCore.Components.TooltipPosition
+@inject ILogger<LotDashboard> Logger
 @inject ILotDashboardService Dashboard
 @inject IParkingSpotService Spots
 @inject ISiteSettingsService SiteSettings
@@ -37,10 +38,24 @@
     {
         <FluentMessageBar Intent="MessageIntent.Success" Type="MessageType.MessageBar" AllowDismiss="true">@_info</FluentMessageBar>
     }
-
-    @if (_board is null)
+    @if (_detailLoadFailed)
     {
-        <div class="loading"><FluentProgressRing /></div>
+        <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_DetailLoadFailed"]</FluentMessageBar>
+    }
+    @if (_trendsLoadFailed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+        <FluentButton Disabled="@_busy" OnClick="ReloadTrendsAsync">@L["Parking_Admin_Retry"]</FluentButton>
+    }
+
+    @if (_boardLoadFailed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+        <FluentButton OnClick="ReloadBoardAsync">@L["Parking_Admin_Retry"]</FluentButton>
+    }
+    else if (_boardLoading || _board is null)
+    {
+        <div class="loading" role="status" aria-label="@L["Parking_Admin_Loading"]"><FluentProgressRing /></div>
     }
     else
     {
@@ -126,8 +141,8 @@
                 <button type="button" class="lot-icon-button" title="@L["Lot_PrevDay"]" aria-label="@L["Lot_PrevDay"]"
                         @onclick="() => ShiftDayAsync(-1)">&#8249;</button>
                 <div class="field lot-date-field">
-                    <label>@L["Lot_Day"]</label>
-                    <input type="date" @bind="_day" @bind:after="ReloadBoardAsync" class="parking-input" />
+                    <label for="lot-day">@L["Lot_Day"]</label>
+                    <input id="lot-day" type="date" @bind="_day" @bind:after="ReloadBoardAsync" class="parking-input" />
                 </div>
                 <button type="button" class="lot-icon-button" title="@L["Lot_NextDay"]" aria-label="@L["Lot_NextDay"]"
                         @onclick="() => ShiftDayAsync(1)">&#8250;</button>
@@ -168,6 +183,7 @@
             </div>
         </section>
 
+        <div class="lot-day-notice">@L["Lot_PlanningNotice"]</div>
         @if (!_board.IsToday)
         {
             <div class="lot-day-notice">@L["Lot_NotToday"]</div>
@@ -386,13 +402,14 @@
                         </div>
                     </div>
 
+                    <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)" Context="spotManagement">
                     <div class="lot-detail__section lot-detail__section--actions">
                         <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_OperationsSection"]</FluentLabel>
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                             @if (_detail.IsActive)
                             {
                                 <FluentButton Appearance="Appearance.Outline" Disabled="@_busy"
-                                              OnClick="() => SetActiveAsync(false)">@L["Lot_Deactivate"]</FluentButton>
+                                              OnClick="RequestDeactivate">@L["Lot_Deactivate"]</FluentButton>
                             }
                             else
                             {
@@ -402,6 +419,7 @@
                         </FluentStack>
                     </div>
 
+                    </AuthorizeView>
                     @* This spot's own recent load — the per-spot answer to the lot-wide trend on the
                        analytics tab. Keyed on the spot so switching tiles rebuilds rather than
                        animating across spots. *@
@@ -464,16 +482,18 @@
                                         }
                                     </span>
                                     <span class="lot-calendar__actions">
+                                        <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageReservations)" Context="reservationManagement">
                                         @if (entry.CanCancel)
                                         {
                                             <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
-                                                          OnClick="() => CancelAsync(entry.ReservationId!.Value)">@L["Lot_CancelBooking"]</FluentButton>
+                                                          OnClick="() => RequestCancellation(entry)">@L["Lot_CancelBooking"]</FluentButton>
                                         }
                                         @if (entry.CanMove)
                                         {
                                             <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
                                                           OnClick="() => BeginMoveAsync(entry.ReservationId!.Value)">@L["Lot_MoveBooking"]</FluentButton>
                                         }
+                                        </AuthorizeView>
                                     </span>
                                 </div>
                                 @* Both sides are nullable, so a plain equality check was true for
@@ -482,7 +502,12 @@
                                 @if (entry.ReservationId is { } id && _moveReservationId == id)
                                 {
                                     <div class="lot-calendar__move">
-                                        @if (_moveTargets is null)
+                                        @if (_moveTargetsFailed)
+                                        {
+                                            <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+                                            <FluentButton OnClick="() => BeginMoveAsync(id)">@L["Parking_Admin_Retry"]</FluentButton>
+                                        }
+                                        else if (_moveTargets is null)
                                         {
                                             <FluentProgressRing Style="width:20px;height:20px" />
                                         }
@@ -500,7 +525,7 @@
                                                           Label="@L["Lot_MoveTo"]" />
                                             <FluentButton Appearance="Appearance.Accent" Disabled="@(_busy || string.IsNullOrEmpty(_moveTargetId))"
                                                           OnClick="ConfirmMoveAsync">@L["Lot_MoveConfirm"]</FluentButton>
-                                            <FluentButton Appearance="Appearance.Stealth" OnClick="CancelMove">@L["Lot_MoveAbort"]</FluentButton>
+                                            <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="CancelMove">@L["Lot_MoveAbort"]</FluentButton>
                                         }
                                     </div>
                                 }
@@ -641,7 +666,12 @@
                               ValueChanged="ChangeAnalyticsWindowAsync"
                               Label="@L["Lot_Window"]" />
             </div>
-            @if (_analytics is null)
+            @if (_analyticsLoadFailed)
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@L["Parking_Admin_LoadFailed"]</FluentMessageBar>
+                <FluentButton OnClick="ReloadAnalyticsAsync">@L["Parking_Admin_Retry"]</FluentButton>
+            }
+            else if (_analytics is null)
             {
                 <div class="loading"><FluentProgressRing /></div>
             }
@@ -847,7 +877,44 @@
 </FluentStack>
 
 
+@if (_deactivationSnapshot is { } deactivating)
+{
+    <AdminDialog Title="@L["Parking_Admin_DeactivateTitle", deactivating.Code]" Busy="@_busy"
+                 Class="spot-deactivate-dialog" OnClose="() => _deactivationSnapshot = null">
+        <p>@L["Parking_Admin_DeactivateImpact"]</p>
+        <div class="admin-dialog__actions">
+            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="() => _deactivationSnapshot = null">@L["Common_Cancel"]</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmDeactivateAsync">@L["Parking_Admin_Deactivate"]</FluentButton>
+        </div>
+    </AdminDialog>
+}
+@if (_cancellationEntry is { } cancelling)
+{
+    <AdminDialog Title="@L["Lot_CancelBooking"]" Busy="@_busy" Class="reservation-cancel-dialog" OnClose="() => _cancellationEntry = null">
+        <p>@_cancellationSpotCode · @cancelling.Date.ToString("d. M. yyyy") · @WhenLabel(cancelling)</p>
+        <p>@L["Lot_CancelImpact"]</p>
+        <div class="admin-dialog__actions">
+            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="() => _cancellationEntry = null">@L["Common_Cancel"]</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="ConfirmCancellationAsync">@L["Lot_CancelBooking"]</FluentButton>
+        </div>
+    </AdminDialog>
+}
+
 @code {
+    private bool _boardLoading;
+    private bool _boardLoadFailed;
+    private bool _detailLoadFailed;
+    private bool _trendsLoadFailed;
+    private bool _analyticsLoadFailed;
+    private bool _moveTargetsFailed;
+    private int _boardSequence;
+    private int _detailSequence;
+    private int _moveSequence;
+    private int _analyticsSequence;
+    private Guid? _selectedSpotId;
+    private SpotDetailDto? _deactivationSnapshot;
+    private SpotCalendarEntryDto? _cancellationEntry;
+    private string? _cancellationSpotCode;
     private const string BoardTab = "tab-board";
     private const string AnalyticsTab = "tab-analytics";
     private const string BoardViewGrid = "grid";
@@ -877,6 +944,7 @@
     private int _analyticsDays = 30;
 
     private Guid? _moveReservationId;
+    private byte[] _moveVersion = [];
     private IReadOnlyList<MoveTargetDto>? _moveTargets;
     private string? _moveTargetId;
 
@@ -903,7 +971,7 @@
     private readonly string _observerId = Guid.NewGuid().ToString("N");
     private bool _observing;
 
-    private bool HasMoreTiles => FilteredTileCount > _visibleTiles;
+    private bool HasMoreTiles => !_boardLoading && !_boardLoadFailed && FilteredTileCount > _visibleTiles;
 
     private int VisibleTileCount => Math.Min(_visibleTiles, FilteredTileCount);
 
@@ -1060,9 +1128,11 @@
     {
         var from = TimeZoneInfo.ConvertTime(entry.StartUtc, _tz);
         var to = TimeZoneInfo.ConvertTime(entry.EndUtc, _tz);
-        return from.TimeOfDay == TimeSpan.Zero && to.TimeOfDay == TimeSpan.Zero
-            ? L["Lot_Calendar_WholeDay"]
-            : $"{from:H\\:mm}–{to:H\\:mm}";
+        if (from.TimeOfDay == TimeSpan.Zero && to.TimeOfDay == TimeSpan.Zero && to.Date == from.Date.AddDays(1))
+            return L["Lot_Calendar_WholeDay"];
+        return from.Date == to.Date
+            ? $"{from:H:mm}–{to:H:mm}"
+            : $"{from:H:mm}–{to:d. M. H:mm}";
     }
 
     protected override async Task OnInitializedAsync()
@@ -1085,15 +1155,31 @@
 
     private async Task ReloadBoardAsync()
     {
-        _board = await Dashboard.GetBoardAsync(Day);
-        // How big each section is, taken from the whole board rather than from the tiles drawn so
-        // far — counting the drawn ones would shrink a section's chip while it is being revealed.
-        _sectionSizes = _board.Spots.GroupBy(s => s.Section).ToDictionary(g => g.Key, g => g.Count());
-
-        // The open detail must follow the day being looked at, or its calendar and the board disagree.
-        if (_detail is not null)
+        var sequence = ++_boardSequence;
+        var day = Day;
+        _boardLoading = true;
+        _boardLoadFailed = false;
+        ++_detailSequence;
+        CancelMove();
+        try
         {
-            await OpenDetailAsync(_detail.SpotId);
+            var board = await Dashboard.GetBoardAsync(day);
+            if (sequence != _boardSequence) return;
+            _board = board;
+            _sectionSizes = board.Spots.GroupBy(s => s.Section).ToDictionary(g => g.Key, g => g.Count());
+            if (_selectedSpotId is { } spotId) await OpenDetailAsync(spotId);
+        }
+        catch (Exception)
+        {
+            if (sequence != _boardSequence) return;
+            _boardLoadFailed = true;
+            _board = null;
+            _detail = null;
+            Logger.LogWarning("Loading the parking board failed.");
+        }
+        finally
+        {
+            if (sequence == _boardSequence) _boardLoading = false;
         }
     }
 
@@ -1179,7 +1265,7 @@
 
         // The summary's numbers come from the board and are already there; only its sparklines need
         // fetching, and they are their own query so the board tab never pays for them.
-        _trends ??= await Dashboard.GetSummaryTrendsAsync();
+        if (_trends is null) await ReloadTrendsAsync();
         if (_analytics is null)
         {
             await ReloadAnalyticsAsync();
@@ -1203,14 +1289,30 @@
 
     private async Task OpenDetailAsync(Guid spotId)
     {
+        var sequence = ++_detailSequence;
+        _selectedSpotId = spotId;
+        _detail = null;
+        _detailLoadFailed = false;
         CancelMove();
-        // Two weeks ahead from the day on the board: enough to see the week being planned without
-        // turning the panel into a scroll marathon.
-        _detail = await Dashboard.GetSpotDetailAsync(spotId, Day, 14);
+        var day = Day;
+        try
+        {
+            var detail = await Dashboard.GetSpotDetailAsync(spotId, day, 14, _userId);
+            if (sequence == _detailSequence) _detail = detail;
+        }
+        catch (Exception)
+        {
+            if (sequence != _detailSequence) return;
+            _detailLoadFailed = true;
+            Logger.LogWarning("Loading parking spot detail failed.");
+        }
     }
 
     private void CloseDetail()
     {
+        ++_detailSequence;
+        _selectedSpotId = null;
+        _detailLoadFailed = false;
         CancelMove();
         _detail = null;
     }
@@ -1226,8 +1328,36 @@
 
     private async Task ReloadAnalyticsAsync()
     {
+        var sequence = ++_analyticsSequence;
         var today = SiteTime.Today(DateTimeOffset.UtcNow, _tz);
-        _analytics = await Dashboard.GetAnalyticsAsync(today.AddDays(-(_analyticsDays - 1)), today);
+        var from = today.AddDays(-(_analyticsDays - 1));
+        _analytics = null;
+        _analyticsLoadFailed = false;
+        try
+        {
+            var analytics = await Dashboard.GetAnalyticsAsync(from, today);
+            if (sequence == _analyticsSequence) _analytics = analytics;
+        }
+        catch (Exception)
+        {
+            if (sequence == _analyticsSequence) _analyticsLoadFailed = true;
+            Logger.LogWarning("Loading parking analytics failed.");
+        }
+    }
+
+    private async Task ReloadTrendsAsync()
+    {
+        try
+        {
+            _trends = await Dashboard.GetSummaryTrendsAsync();
+            _trendsLoadFailed = false;
+        }
+        catch (Exception)
+        {
+            _trends = null;
+            _trendsLoadFailed = true;
+            Logger.LogWarning("Loading parking trends failed.");
+        }
     }
 
     /// <summary>All 24 hours of one weekday, zeros included — a heatmap row needs every cell.</summary>
@@ -1506,34 +1636,63 @@
         return options;
     }
 
-    private async Task SetActiveAsync(bool active)
-    {
-        if (_detail is null)
-        {
-            return;
-        }
+    private void RequestDeactivate() => _deactivationSnapshot = _detail;
 
-        await RunAsync(() => Spots.SetActiveAsync(_detail.SpotId, active),
-            active ? "Lot_Info_Activated" : "Lot_Info_Deactivated");
+    private async Task ConfirmDeactivateAsync()
+    {
+        if (_deactivationSnapshot is not { } detail) return;
+        await RunAsync(() => Spots.SetActiveCheckedAsync(detail.SpotId, false, detail.Version, _userId), "Lot_Info_Deactivated");
+        _deactivationSnapshot = null;
     }
 
-    private Task CancelAsync(Guid reservationId) =>
-        RunAsync(() => Dashboard.CancelReservationAsync(reservationId, _userId), "Lot_Info_Cancelled");
+    private async Task SetActiveAsync(bool active)
+    {
+        if (_detail is not { } detail) return;
+        await RunAsync(() => Spots.SetActiveCheckedAsync(detail.SpotId, active, detail.Version, _userId), "Lot_Info_Activated");
+    }
+
+    private void RequestCancellation(SpotCalendarEntryDto entry)
+    {
+        _cancellationEntry = entry;
+        _cancellationSpotCode = _detail?.Code;
+    }
+
+    private async Task ConfirmCancellationAsync()
+    {
+        if (_cancellationEntry?.ReservationId is not { } id) return;
+        await RunAsync(() => Dashboard.CancelReservationCheckedAsync(id, _cancellationEntry.Version, _userId), "Lot_Info_Cancelled");
+        _cancellationEntry = null;
+    }
 
     private async Task BeginMoveAsync(Guid reservationId)
     {
+        var sequence = ++_moveSequence;
         _moveReservationId = reservationId;
+        _moveVersion = _detail?.Calendar.FirstOrDefault(entry => entry.ReservationId == reservationId)?.Version ?? [];
         _moveTargets = null;
+        _moveTargetsFailed = false;
         _moveTargetId = null;
-        _moveTargets = await Dashboard.GetMoveTargetsAsync(reservationId);
-        _moveTargetId = _moveTargets.FirstOrDefault()?.SpotId.ToString();
+        try
+        {
+            var targets = await Dashboard.GetMoveTargetsAsync(reservationId, _userId);
+            if (sequence != _moveSequence) return;
+            _moveTargets = targets;
+            _moveTargetId = targets.FirstOrDefault()?.SpotId.ToString();
+        }
+        catch (Exception)
+        {
+            if (sequence == _moveSequence) _moveTargetsFailed = true;
+            Logger.LogWarning("Loading reservation move targets failed.");
+        }
     }
 
     private void CancelMove()
     {
+        ++_moveSequence;
         _moveReservationId = null;
         _moveTargets = null;
         _moveTargetId = null;
+        _moveTargetsFailed = false;
     }
 
     private async Task ConfirmMoveAsync()
@@ -1543,7 +1702,7 @@
             return;
         }
 
-        await RunAsync(() => Dashboard.MoveReservationAsync(reservationId, targetSpotId, _userId), "Lot_Info_Moved");
+        await RunAsync(() => Dashboard.MoveReservationCheckedAsync(reservationId, targetSpotId, _moveVersion, _userId), "Lot_Info_Moved");
         CancelMove();
     }
 
@@ -1554,43 +1713,31 @@
     /// </summary>
     private async Task RunAsync(Func<Task<ParkingResult>> action, string successKey)
     {
-        if (_busy)
-        {
-            return;
-        }
-
+        if (_busy) return;
         _busy = true;
         _error = null;
         _info = null;
         try
         {
-            var result = await action();
-            if (result.Succeeded)
+            try
             {
-                _info = L[successKey];
+                var result = await action();
+                if (result.Succeeded) _info = L[successKey];
+                else _error = result.Errors.FirstOrDefault() ?? "Parking_Error_InvalidState";
             }
-            else
+            catch (Exception)
             {
-                _error = result.Errors.FirstOrDefault() ?? "Parking_Error_InvalidState";
+                _error = "Parking_Admin_OperationUncertain";
+                Logger.LogWarning("A parking board operation failed; its result needs reloading.");
             }
+
+            await ReloadBoardAsync();
+            if (_trends is not null) await ReloadTrendsAsync();
+            if (_analytics is not null) await ReloadAnalyticsAsync();
         }
         finally
         {
             _busy = false;
-        }
-
-        // The service drops its cached aggregates on an override, so these re-read fresh numbers.
-        // The analytics tab's two queries are only refreshed once it has been opened — otherwise the
-        // intervention would pay for numbers nobody is looking at.
-        await ReloadBoardAsync();
-        if (_trends is not null)
-        {
-            _trends = await Dashboard.GetSummaryTrendsAsync();
-        }
-
-        if (_analytics is not null)
-        {
-            await ReloadAnalyticsAsync();
         }
     }
 }

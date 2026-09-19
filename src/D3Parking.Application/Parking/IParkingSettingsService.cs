@@ -8,6 +8,10 @@ public interface IParkingSettingsService
     /// <summary>The current incentive policy, cached for the hot reservation paths.</summary>
     Task<IncentivePolicy> GetPolicyAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>A fresh policy for administrative forms; bypasses the optional hot-path cache.</summary>
+    Task<IncentivePolicy> GetCurrentPolicyAsync(CancellationToken cancellationToken = default) =>
+        GetPolicyAsync(cancellationToken);
+
     /// <summary>How often the background maintenance should run.</summary>
     Task<TimeSpan> GetSweepIntervalAsync(CancellationToken cancellationToken = default);
 

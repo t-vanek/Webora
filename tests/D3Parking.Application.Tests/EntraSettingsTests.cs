@@ -130,7 +130,8 @@ public class EntraSettingsTests
         });
 
         var view = await withBlanks.GetForAdminAsync();
-        Assert.That(view.LockedFields, Is.Empty);
+        // Povinné blokování při odchodu není měnitelné nastavení nasazení.
+        Assert.That(view.LockedFields, Is.EquivalentTo(new[] { EntraFields.ScimBlockOnDeprovision }));
     }
 
     [Test]
@@ -150,6 +151,59 @@ public class EntraSettingsTests
             Assert.That(effective.Enabled, Is.False);
             Assert.That(effective.IsSignInConfigured, Is.False);
         });
+    }
+
+    [TestCase(false, null)]
+    [TestCase(true, "false")]
+    [TestCase(false, "false")]
+    public async Task Departure_blocking_cannot_be_disabled_by_legacy_stored_or_configured_values(
+        bool storedValue, string? configuredValue)
+    {
+        // Napodobení starší databáze; čtení nastavení její řádek samo nepřepisuje.
+        await using (var dbContext = await _factory.CreateDbContextAsync())
+        {
+            var row = EntraSettings.CreateDefault();
+            row.UpdateScim(enabled: false, blockOnDeprovision: storedValue);
+            dbContext.EntraSettings.Add(row);
+            await dbContext.SaveChangesAsync();
+        }
+
+        var service = CreateService(new()
+        {
+            ["EntraId:Scim:BlockOnDeprovision"] = configuredValue,
+        });
+
+        var effective = await service.GetEffectiveAsync();
+        var cached = service.GetEffective();
+        var view = await service.GetForAdminAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(effective.Scim.BlockOnDeprovision, Is.True);
+            Assert.That(cached.Scim.BlockOnDeprovision, Is.True);
+            Assert.That(view.Settings.ScimBlockOnDeprovision, Is.True);
+            Assert.That(view.IsLocked(EntraFields.ScimBlockOnDeprovision), Is.True);
+        });
+
+        await using var verify = await _factory.CreateDbContextAsync();
+        Assert.That((await verify.EntraSettings.AsNoTracking().SingleAsync()).ScimBlockOnDeprovision,
+            Is.EqualTo(storedValue));
+    }
+
+    [Test]
+    public async Task Saving_normalizes_the_legacy_departure_flag_even_when_the_request_and_configuration_disable_it()
+    {
+        var service = CreateService(new()
+        {
+            ["EntraId:Scim:BlockOnDeprovision"] = "false",
+        });
+
+        var saved = await service.UpdateAsync(Update(Settings() with { ScimBlockOnDeprovision = false }), _admin);
+
+        Assert.That(saved.Succeeded, Is.True, string.Join("; ", saved.Errors));
+        Assert.That((await service.GetEffectiveAsync()).Scim.BlockOnDeprovision, Is.True);
+        Assert.That((await service.GetForAdminAsync()).Settings.ScimBlockOnDeprovision, Is.True);
+        await using var verify = await _factory.CreateDbContextAsync();
+        Assert.That((await verify.EntraSettings.AsNoTracking().SingleAsync()).ScimBlockOnDeprovision, Is.True);
     }
 
     [Test]
