@@ -24,6 +24,11 @@ public class OccupancyMismatch : Entity
 
     public DateTimeOffset ReportedAtUtc { get; private set; }
 
+    /// <summary>The operational block lasts until the stored window ends or a manager clears it.</summary>
+    public DateTimeOffset? ResolvedAtUtc { get; private set; }
+
+    public void Resolve(DateTimeOffset at) => ResolvedAtUtc ??= at;
+
     /// <summary>The replacement spot booked for the reporter, when one was free.</summary>
     public Guid? RelocatedToSpotId { get; private set; }
 

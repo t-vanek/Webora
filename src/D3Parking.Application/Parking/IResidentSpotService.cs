@@ -18,21 +18,26 @@ public interface IResidentSpotService
     /// </summary>
     Task<ParkingResult> ReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
+    Task<ResidentReleasePreviewDto> PreviewReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
-    /// Takes still-unbooked released days in [fromDate, toDate] back out of the shared pool. A
-    /// confirmed guest plan is never displaced by self-service; exceptional changes belong to the
-    /// manager workflow. A pending waitlist offer is withdrawn without changing the waiter's
-    /// position.
+    /// Reclaims released days under the configured resident priority, deadline and replacement
+    /// rules. Started bookings always remain protected. A pending waitlist offer is withdrawn
+    /// without changing the waiter's position. The preview uses this same decision.
     /// </summary>
     Task<ParkingResult> ReclaimAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sets the standing usage plan: the weekdays the resident needs their spot, and whether the
-    /// remaining days are released into the pool ahead of time. Saving the plan re-applies it over
-    /// the whole horizon, so a day taken back by hand before the change may be released again.
+    /// remaining days are released into the pool ahead of time. Explicit kept/released days and
+    /// confirmed bookings survive changes; only unclaimed automatic releases are reconciled.
     /// </summary>
     Task<ParkingResult> SetUsagePlanAsync(Guid userId, Weekday plannedUseDays, bool autoReleaseUnplannedDays,
         CancellationToken cancellationToken = default);
+
+    Task<ResidentUsagePlanPreviewDto> PreviewUsagePlanAsync(Guid userId, Weekday plannedUseDays,
+        bool autoReleaseUnplannedDays, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases the upcoming days that residents' usage plans mark as not needed, as far ahead as the

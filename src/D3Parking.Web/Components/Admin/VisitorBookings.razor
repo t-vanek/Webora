@@ -272,6 +272,7 @@
     private bool _bookingsLoadFailed;
     private bool _availabilityLoading;
     private bool _availabilityFailed;
+    private bool _noBookableWindow;
     private long _availabilitySequence;
     private bool AllDay => _policy?.ReservationTimeMode == ReservationTimeMode.AllDay;
     private DateTimeOffset Start => AllDay ? SiteTime.Day(_day, _tz).Start : SiteTime.At(_day, _from, _tz);
@@ -281,7 +282,8 @@
     private DateOnly Today => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
     private DateOnly FirstBookableDay => _policy?.FirstBookableDate(Today) ?? Today;
     private DateOnly LastBookableDay => Today.AddDays(_policy?.ReservationHorizonDays ?? 14);
-    private string? SelectedWindowErrorKey => _policy is null ? null
+    private string? SelectedWindowErrorKey => _noBookableWindow ? "Parking_Visitors_NoBookableWindow"
+        : _policy is null ? null
         : _policy.GetReservationDateAvailability(_day, Today).ToParkingErrorKey() is { } dateError ? dateError
         : !AllDay && (_tz.IsInvalidTime(_day.ToDateTime(_from))
             || _tz.IsInvalidTime(_day.ToDateTime(_to)))
@@ -345,7 +347,7 @@
             _users = await UserAdmin.ListAsync(null);
             _visitorSpotCount = (await Spots.ListAsync(includeInactive: false)).Count(spot => spot.Type == ParkingSpotType.Visitor);
             _ready = true;
-            await ReloadFreeSpotsAsync();
+            await LoadFreeSpotsAsync(chooseInitialWindow: true);
             await ReloadBookingsAsync();
         }
         catch (Exception)
@@ -361,10 +363,12 @@
         _error = _info = null;
         _saveUncertain = false;
         _createOpen = true;
-        await ReloadFreeSpotsAsync();
+        await LoadFreeSpotsAsync(chooseInitialWindow: true);
     }
 
-    private async Task ReloadFreeSpotsAsync()
+    private Task ReloadFreeSpotsAsync() => LoadFreeSpotsAsync(chooseInitialWindow: false);
+
+    private async Task LoadFreeSpotsAsync(bool chooseInitialWindow)
     {
         var sequence = ++_availabilitySequence;
         var selectedId = SelectedSpot?.Id;
@@ -379,6 +383,23 @@
             if (sequence != _availabilitySequence) return;
             _policy = policy;
             _tz = timeZone;
+            _noBookableWindow = false;
+            if (chooseInitialWindow)
+            {
+                if (VisitorBookingWindowRules.FindInitialWindow(policy, DateTimeOffset.UtcNow, timeZone) is { } window)
+                {
+                    _day = SiteTime.Today(window.Start, timeZone);
+                    if (!AllDay)
+                    {
+                        _from = SiteTime.TimeOfDay(window.Start, timeZone);
+                        _to = SiteTime.TimeOfDay(window.End, timeZone);
+                    }
+                }
+                else
+                {
+                    _noBookableWindow = true;
+                }
+            }
             if (SelectedWindowErrorKey is not null) return;
             var free = await Visitors.GetFreeSpotsAsync(Start, End);
             if (sequence != _availabilitySequence) return;

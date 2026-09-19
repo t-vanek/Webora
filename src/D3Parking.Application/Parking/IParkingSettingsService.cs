@@ -26,13 +26,13 @@ public interface IParkingSettingsService
 
     Task<ParkingResult> UpdateAsync(ParkingSettingsDto settings, Guid actingUserId, CancellationToken cancellationToken = default);
 
-    /// <summary>Future records that the proposed calendar rules would make invalid.</summary>
+    /// <summary>Existing records preserved even when their windows do not match the proposed rules.</summary>
     Task<ParkingCalendarChangeImpactDto> GetCalendarChangeImpactAsync(
         ParkingSettingsDto settings,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(ParkingCalendarChangeImpactDto.None);
 
-    /// <summary>Updates settings, explicitly confirming cancellation of affected future records.</summary>
+    /// <summary>Updates rules for new requests. The legacy confirmation argument never cancels existing records.</summary>
     Task<ParkingResult> UpdateAsync(
         ParkingSettingsDto settings,
         Guid actingUserId,
@@ -73,5 +73,5 @@ public sealed record ParkingCalendarChangeImpactDto(
 
     public int Total => Reservations + QueueEntries + Handoffs + VisitorBookings + SpotReleases;
 
-    public bool RequiresConfirmation => Total > 0;
+    public bool RequiresConfirmation => false;
 }

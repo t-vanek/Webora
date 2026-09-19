@@ -275,7 +275,7 @@ public class LotDashboardTests
     }
 
     [Test]
-    public async Task A_checked_in_booking_cannot_be_cancelled_but_can_be_moved()
+    public async Task A_checked_in_booking_cannot_be_cancelled_or_moved_by_a_manager()
     {
         var from = await CreateSpotAsync("G-1");
         var to = await CreateSpotAsync("G-2");
@@ -288,18 +288,57 @@ public class LotDashboardTests
             "Cancelling a booking someone already arrived on is not a legal lifecycle move.");
         Assert.That(cancel.Errors, Is.EqualTo(new[] { "Parking_Error_InvalidState" }));
 
-        Assert.That((await dashboard.MoveReservationAsync(reservationId, to, _reservationManager)).Succeeded, Is.True);
+        Assert.That((await dashboard.MoveReservationAsync(reservationId, to, _reservationManager)).Errors,
+            Does.Contain("Parking_Error_StartedReservationProtected"));
 
         await using var dbContext = new D3ParkingDbContext(_options);
         var moved = await dbContext.Reservations.FindAsync(reservationId);
         Assert.Multiple(() =>
         {
-            Assert.That(moved!.SpotId, Is.EqualTo(to));
-            Assert.That(moved.Status, Is.EqualTo(ReservationStatus.CheckedIn), "A move keeps the check-in.");
-            Assert.That(moved.CreditsCharged, Is.EqualTo(15), "A move carries the price with it.");
+            Assert.That(moved!.SpotId, Is.EqualTo(from));
+            Assert.That(moved.Status, Is.EqualTo(ReservationStatus.CheckedIn));
+            Assert.That(moved.CreditsCharged, Is.EqualTo(15));
         });
         Assert.That(await dbContext.ParkerScores.FindAsync(holder), Is.Null,
-            "Nothing moves in the wallet: the booking is re-pointed, not refunded and re-charged.");
+            "A refused move does not change the wallet.");
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task A_started_booking_cannot_be_changed_even_by_a_manager(bool allDay)
+    {
+        var from = await CreateSpotAsync("LOCK-1");
+        var to = await CreateSpotAsync("LOCK-2");
+        var holder = Guid.NewGuid();
+        var (dayStart, dayEnd) = D3Parking.Domain.Common.SiteTime.Day(Today, TimeZoneInfo.Utc);
+        var booking = new Reservation(from, holder, allDay ? dayStart : Noon.AddHours(-1),
+            allDay ? dayEnd : Noon.AddHours(1), false, Noon.AddDays(-1), creditsCharged: 25);
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            db.Reservations.Add(booking);
+            await db.SaveChangesAsync();
+        }
+        var dashboard = CreateDashboard();
+        var shown = (await dashboard.GetSpotDetailAsync(from, Today, 1, _reservationManager))!.Calendar
+            .Single(entry => entry.ReservationId == booking.Id);
+        Assert.That(shown.CanCancel, Is.False);
+        Assert.That(shown.CanMove, Is.False);
+        Assert.That(await dashboard.GetMoveTargetsAsync(booking.Id, _reservationManager), Is.Empty);
+        var attempts = new[]
+        {
+            await dashboard.CancelReservationAsync(booking.Id, _reservationManager),
+            await dashboard.MoveReservationAsync(booking.Id, to, _reservationManager),
+            await dashboard.CancelReservationCheckedAsync(booking.Id, shown.Version, _reservationManager),
+            await dashboard.MoveReservationCheckedAsync(booking.Id, to, shown.Version, _reservationManager),
+        };
+        Assert.That(attempts.All(r => !r.Succeeded && r.Errors.Contains("Parking_Error_StartedReservationProtected")), Is.True);
+        await using var check = new D3ParkingDbContext(_options);
+        var saved = await check.Reservations.SingleAsync(r => r.Id == booking.Id);
+        Assert.That(saved.Status, Is.EqualTo(ReservationStatus.Reserved));
+        Assert.That(saved.SpotId, Is.EqualTo(from));
+        Assert.That(saved.CalendarSequence, Is.Zero);
+        Assert.That(await check.PointsLedgerEntries.AnyAsync(e => e.ReservationId == booking.Id), Is.False);
+        Assert.That(await check.AccountAuditEvents.AnyAsync(e => e.UserId == holder), Is.False);
     }
 
     [Test]
@@ -308,8 +347,8 @@ public class LotDashboardTests
         var from = await CreateSpotAsync("H-1");
         var taken = await CreateSpotAsync("H-2");
         var closed = await CreateSpotAsync("H-3", active: false);
-        var reservationId = await BookAsync(from, Guid.NewGuid());
-        await BookAsync(taken, Guid.NewGuid());
+        var reservationId = await BookAsync(from, Guid.NewGuid(), day: Today.AddDays(1));
+        await BookAsync(taken, Guid.NewGuid(), day: Today.AddDays(1));
         var dashboard = CreateDashboard();
 
         Assert.That((await dashboard.MoveReservationAsync(reservationId, taken, _reservationManager)).Errors,
@@ -329,7 +368,7 @@ public class LotDashboardTests
         var from = await CreateSpotAsync("J-1");
         await CreateSpotAsync("J-10");
         await CreateSpotAsync("J-2");
-        var reservationId = await BookAsync(from, Guid.NewGuid());
+        var reservationId = await BookAsync(from, Guid.NewGuid(), day: Today.AddDays(1));
 
         var targets = await CreateDashboard().GetMoveTargetsAsync(reservationId, _reservationManager);
 
@@ -693,9 +732,9 @@ public class LotDashboardTests
         var firstTarget = await CreateSpotAsync("STALE-2");
         var staleTarget = await CreateSpotAsync("STALE-3");
         var owner = Guid.NewGuid();
-        var reservationId = await BookAsync(original, owner, credits: 25);
+        var reservationId = await BookAsync(original, owner, day: Today.AddDays(1), credits: 25);
         var dashboard = CreateDashboard();
-        var shown = (await dashboard.GetSpotDetailAsync(original, Today, 1, _reservationManager))!.Calendar
+        var shown = (await dashboard.GetSpotDetailAsync(original, Today.AddDays(1), 1, _reservationManager))!.Calendar
             .Single(entry => entry.ReservationId == reservationId);
         Assert.That(shown.Version, Has.Length.EqualTo(8), "The UI must carry SQL Server's persisted rowversion.");
 
@@ -720,7 +759,7 @@ public class LotDashboardTests
         Assert.That(await check.AccountAuditEvents.CountAsync(e => e.UserId == owner), Is.EqualTo(1));
         Assert.That(await check.PointsLedgerEntries.AnyAsync(p => p.UserId == owner), Is.False);
 
-        var fresh = (await dashboard.GetSpotDetailAsync(firstTarget, Today, 1, _reservationManager))!.Calendar
+        var fresh = (await dashboard.GetSpotDetailAsync(firstTarget, Today.AddDays(1), 1, _reservationManager))!.Calendar
             .Single(entry => entry.ReservationId == reservationId);
         Assert.That(fresh.Version, Is.Not.EqualTo(shown.Version));
         var cancelled = await dashboard.CancelReservationCheckedAsync(reservationId, fresh.Version, _reservationManager);
@@ -734,8 +773,8 @@ public class LotDashboardTests
         var left = await CreateSpotAsync("RACE-2");
         var right = await CreateSpotAsync("RACE-3");
         var owner = Guid.NewGuid();
-        var reservationId = await BookAsync(original, owner, credits: 25);
-        var shown = (await CreateDashboard().GetSpotDetailAsync(original, Today, 1, _reservationManager))!.Calendar
+        var reservationId = await BookAsync(original, owner, day: Today.AddDays(1), credits: 25);
+        var shown = (await CreateDashboard().GetSpotDetailAsync(original, Today.AddDays(1), 1, _reservationManager))!.Calendar
             .Single(entry => entry.ReservationId == reservationId);
 
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

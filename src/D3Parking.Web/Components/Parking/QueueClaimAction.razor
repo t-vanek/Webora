@@ -1,0 +1,57 @@
+@inject IReservationService Reservations
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+@if (_confirm)
+{
+    <div class="parking-confirmation" role="group" aria-label="@L["Parking_AlternativeSpot_ReleaseConfirmationRequired"]">
+        <p>@L["Parking_AlternativeSpot_ReleaseConfirmationRequired"]</p>
+        <p><strong>@Entry.OfferedSpotCode</strong> · @Window</p>
+        <FluentButton Disabled="@(Disabled || _busy)" Appearance="Appearance.Accent" OnClick="() => ClaimAsync(true)">@L["Parking_AlternativeSpot_ConfirmAction"]</FluentButton>
+        <FluentButton Disabled="@_busy" Appearance="Appearance.Stealth" OnClick="() => _confirm = false">@L["Common_Cancel"]</FluentButton>
+    </div>
+}
+else
+{
+    <FluentButton Disabled="@(Disabled || _busy)" Appearance="Appearance.Accent" OnClick="() => ClaimAsync(false)">@L["Parking_Queue_Claim"]</FluentButton>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+    [Parameter, EditorRequired] public QueueEntryDto Entry { get; set; } = null!;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<ParkingResult> OnResult { get; set; }
+    private bool _busy;
+    private bool _confirm;
+    private (Guid Id, Guid? SpotId, DateTimeOffset Start, DateTimeOffset End, DateTimeOffset? Expires)? _confirmation;
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
+    private string Window => $"{TimeZoneInfo.ConvertTime(Entry.StartUtc, _zone):g} – {TimeZoneInfo.ConvertTime(Entry.EndUtc, _zone):g}";
+
+    protected override async Task OnInitializedAsync() => _zone = await SiteSettings.GetTimeZoneAsync();
+
+    protected override void OnParametersSet()
+    {
+        if (_confirmation is { } previous && previous != Identity())
+        {
+            _confirm = false;
+            _confirmation = null;
+        }
+    }
+
+    private (Guid, Guid?, DateTimeOffset, DateTimeOffset, DateTimeOffset?) Identity() =>
+        (Entry.Id, Entry.OfferedSpotId, Entry.StartUtc, Entry.EndUtc, Entry.OfferExpiresAtUtc);
+
+    private async Task ClaimAsync(bool confirmed)
+    {
+        if (_busy || Disabled) return;
+        _busy = true;
+        try
+        {
+            var result = await Reservations.ClaimQueueOfferAsync(UserId, Entry.Id, confirmed);
+            _confirm = result.Errors.Contains("Parking_AlternativeSpot_ReleaseConfirmationRequired");
+            _confirmation = _confirm ? Identity() : null;
+            if (!_confirm) await OnResult.InvokeAsync(result);
+        }
+        finally { _busy = false; }
+    }
+}

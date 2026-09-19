@@ -70,6 +70,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
 
     public DbSet<SpotRelease> SpotReleases => Set<SpotRelease>();
 
+    public DbSet<ResidentDayHold> ResidentDayHolds => Set<ResidentDayHold>();
+
     public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
 
     public DbSet<OccupancyMismatch> OccupancyMismatches => Set<OccupancyMismatch>();
@@ -439,6 +441,14 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             assignment.HasOne<ParkingSpotResident>().WithMany().HasForeignKey(a => a.ResidentId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.Entity<ResidentDayHold>(hold =>
+        {
+            hold.ToTable("ResidentDayHolds");
+            hold.HasKey(h => h.Id);
+            hold.HasIndex(h => new { h.SpotId, h.UserId, h.Date }).IsUnique();
+            hold.HasOne<ParkingSpot>().WithMany().HasForeignKey(h => h.SpotId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<SpotRelease>(release =>
         {
             release.ToTable("SpotReleases");
@@ -453,6 +463,7 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
             entry.ToTable("QueueEntries");
             entry.HasKey(q => q.Id);
             entry.Property(q => q.Status).HasConversion<string>().HasMaxLength(32);
+            entry.Property(q => q.RequiredSpotType).HasConversion<string>().HasMaxLength(32);
             entry.HasIndex(q => new { q.Status, q.CreatedAtUtc });
             entry.HasIndex(q => new { q.UserId, q.Status });
             // Matching and dashboard reads constrain the requested window after status.

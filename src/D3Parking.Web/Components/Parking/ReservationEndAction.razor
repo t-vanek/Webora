@@ -1,0 +1,61 @@
+@inject IReservationService Reservations
+@inject ISiteSettingsService SiteSettings
+@inject IStringLocalizer<SharedResource> L
+
+@if (_preview is { } preview)
+{
+    <div class="parking-confirmation" role="group" aria-label="@L["Parking_End_Confirm"]">
+        <p><strong>@Booking.SpotCode</strong> · @L[preview.Started ? "Parking_End_Started" : "Parking_End_Future"]</p>
+        @if (preview.Started && preview.CountsTowardWeeklyLimit) { <p>@L["Parking_End_Quota"]</p> }
+        @if (preview.UsesBudget)
+        {
+            <p>@L["Parking_End_Refund", preview.RefundCredits]</p>
+            @if (preview.RestoreVoucher) { <p>@L["Parking_End_Voucher"]</p> }
+            <p>@L["Parking_End_Deadline", TimeZoneInfo.ConvertTime(preview.RefundDeadlineUtc, _zone).ToString("g")]</p>
+        }
+        <FluentButton Disabled="@(Disabled || _busy)" Appearance="Appearance.Accent" OnClick="EndAsync">@L["Parking_End_Confirm"]</FluentButton>
+        <FluentButton Disabled="@_busy" Appearance="Appearance.Stealth" OnClick="() => _preview = null">@L["Common_Cancel"]</FluentButton>
+    </div>
+}
+else
+{
+    <FluentButton Disabled="@(Disabled || _busy)" Appearance="Appearance.Outline" OnClick="PreviewAsync">
+        @L[Booking.StartUtc <= DateTimeOffset.UtcNow ? "Parking_End_Early" : "Parking_Cancel"]
+    </FluentButton>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+    [Parameter, EditorRequired] public ReservationDto Booking { get; set; } = null!;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<ParkingResult> OnResult { get; set; }
+    private ReservationEndPreviewDto? _preview;
+    private bool _busy;
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
+    protected override async Task OnInitializedAsync() => _zone = await SiteSettings.GetTimeZoneAsync();
+
+    private async Task PreviewAsync()
+    {
+        if (_busy || Disabled) return;
+        _busy = true;
+        try
+        {
+            _preview = await Reservations.PreviewEndAsync(UserId, Booking.Id);
+            if (_preview is null) await OnResult.InvokeAsync(ParkingResult.Failure("Parking_Error_InvalidState"));
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task EndAsync()
+    {
+        if (_busy || Disabled) return;
+        _busy = true;
+        try
+        {
+            var result = await Reservations.CancelAsync(UserId, Booking.Id);
+            _preview = null;
+            await OnResult.InvokeAsync(result);
+        }
+        finally { _busy = false; }
+    }
+}

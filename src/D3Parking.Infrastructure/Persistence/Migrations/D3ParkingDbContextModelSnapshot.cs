@@ -1021,6 +1021,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ReservationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("ResolvedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<Guid>("SpotId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1600,11 +1603,18 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("EndUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<Guid?>("OfferEmailDeliveryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset?>("OfferExpiresAtUtc")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("OfferedSpotId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequiredSpotType")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<DateTimeOffset>("StartUtc")
                         .HasColumnType("datetimeoffset");
@@ -1677,6 +1687,9 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsOffPeak")
                         .HasColumnType("bit");
 
+                    b.Property<DateTimeOffset?>("RefundDeadlineUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("ReleasedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -1724,6 +1737,32 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("UserId", "Status", "StartUtc"), new[] { "EndUtc" });
 
                     b.ToTable("Reservations", (string)null);
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.ResidentDayHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("SpotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpotId", "UserId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("ResidentDayHolds", (string)null);
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.ResidentSpotHandoff", b =>
@@ -2649,6 +2688,15 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("D3Parking.Domain.Parking.ParkingSpotResident", b =>
+                {
+                    b.HasOne("D3Parking.Domain.Parking.ParkingSpot", null)
+                        .WithMany()
+                        .HasForeignKey("SpotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D3Parking.Domain.Parking.ResidentDayHold", b =>
                 {
                     b.HasOne("D3Parking.Domain.Parking.ParkingSpot", null)
                         .WithMany()

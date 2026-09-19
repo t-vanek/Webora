@@ -24,8 +24,8 @@ public class DeploymentCommandTests
         if (string.IsNullOrWhiteSpace(configured)) Assert.Ignore("Requires SQL Server and its service access to the local temporary backup directory.");
         var connection = new SqlConnectionStringBuilder(configured)
         { InitialCatalog = $"D3Parking_DeploymentAudit_{Guid.NewGuid():N}" }.ConnectionString;
-        // This native LocalDB test exercises SQL BACKUP/VERIFYONLY and migrations. It does not
-        // claim to test production TLS, service identities or a remote SQL server's filesystem.
+        // BACKUP/VERIFYONLY runs on the SQL host, which can be a local container. Inspect its
+        // own backup history instead of assuming the test runner shares the SQL filesystem.
         var root = Path.Combine(Path.GetTempPath(), $"d3parking-command-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path.Combine(root, "config"));
         Directory.CreateDirectory(Path.Combine(root, "secrets"));
@@ -59,11 +59,17 @@ public class DeploymentCommandTests
         try
         {
             await db.GetService<IRelationalDatabaseCreator>().CreateAsync();
+            var serverBackupDirectory = await db.Database.SqlQueryRaw<string>(
+                "SELECT CONVERT(nvarchar(4000), SERVERPROPERTY('InstanceDefaultBackupPath')) AS [Value]").SingleAsync();
+            var masterDataFile = await db.Database.SqlQueryRaw<string>(
+                "SELECT [physical_name] AS [Value] FROM sys.master_files WHERE database_id = DB_ID('master') AND file_id = 1").SingleAsync();
+            backups = serverBackupDirectory;
             Policy(backups);
             var preflight = await Run("preflight", 0);
             Assert.That(preflight.GetProperty("schema").GetProperty("pending").GetArrayLength(), Is.GreaterThan(30));
             Assert.That(await db.Database.GetAppliedMigrationsAsync(), Is.Empty);
-            Assert.That(Directory.GetFiles(backups), Is.Empty);
+            Assert.That(await db.Database.SqlQueryRaw<int>(
+                "SELECT COUNT(*) AS [Value] FROM msdb.dbo.backupset WHERE database_name = DB_NAME()").SingleAsync(), Is.Zero);
 
             builder.Configuration["deployment-expected-schema"] = "wrong";
             var stale = await Run("upgrade", 1);
@@ -71,7 +77,9 @@ public class DeploymentCommandTests
             Assert.That(stale.GetProperty("phase").GetString(), Is.EqualTo("migration approval"));
 
             builder.Configuration["deployment-expected-schema"] = "none";
-            Policy(Path.Combine(backups, "does-not-exist"));
+            // A missing directory may be created automatically by SQL Server. A data FILE can
+            // never be a backup directory, so this reliably exercises the failure on every host.
+            Policy(Path.Combine(masterDataFile, "not-a-directory"));
             var failedBackup = await Run("upgrade", 1);
             Assert.That(failedBackup.GetProperty("phase").GetString(), Is.EqualTo("database backup"));
             Assert.That(failedBackup.GetProperty("databaseMayHaveChanged").GetBoolean(), Is.False);
@@ -80,7 +88,9 @@ public class DeploymentCommandTests
             Policy(backups);
             var upgraded = await Run("upgrade", 0);
             Assert.That(upgraded.GetProperty("databaseMayHaveChanged").GetBoolean(), Is.True);
-            Assert.That(new FileInfo(upgraded.GetProperty("backup").GetString()!).Length, Is.GreaterThan(0));
+            Assert.That(await db.Database.SqlQueryRaw<decimal>(
+                "SELECT TOP (1) [backup_size] AS [Value] FROM msdb.dbo.backupset WHERE database_name = DB_NAME() ORDER BY backup_finish_date DESC")
+                .SingleAsync(), Is.GreaterThan(0));
             await DeploymentDatabase.RequireCurrentSchemaAsync(db, CancellationToken.None);
 
             // Model a crash after migration, before the service creates its first administrator.

@@ -74,6 +74,7 @@ public sealed class LotDashboardService(
                 s.Type,
                 s.IsActive,
                 s.OwnerId,
+                HasResidents = s.OwnerId != null || dbContext.ParkingSpotResidents.Any(r => r.SpotId == s.Id && r.RemovedAtUtc == null),
                 OwnerName = s.OwnerId == null
                     ? null
                     : dbContext.Users.Where(u => u.Id == s.OwnerId).Select(u => u.DisplayName ?? u.Email).FirstOrDefault(),
@@ -126,6 +127,9 @@ public sealed class LotDashboardService(
                 .ToListAsync(cancellationToken))
             .ToHashSet();
 
+        var blockedSpotIds = (await dbContext.OccupancyMismatches.AsNoTracking()
+            .Where(m => m.ResolvedAtUtc == null && m.EndUtc > now && m.ReportedAtUtc < dayEnd && m.EndUtc > dayStart)
+            .Select(m => m.SpotId).ToListAsync(cancellationToken)).ToHashSet();
         var signalFrom = now.AddDays(-SignalWindowDays);
         var mismatchesPerSpot = (await dbContext.OccupancyMismatches.AsNoTracking()
                 .Where(m => m.ReportedAtUtc >= signalFrom)
@@ -152,8 +156,9 @@ public sealed class LotDashboardService(
             visitorBySpot.TryGetValue(spot.Id, out var visitor);
 
             var state = ResolveState(spot.IsActive, reservation?.Status, visitor is not null,
-                offeredSpotIds.Contains(spot.Id), spot.OwnerId is not null,
+                offeredSpotIds.Contains(spot.Id), spot.HasResidents,
                 releasedSpotIds.Contains(spot.Id));
+            if (spot.IsActive && blockedSpotIds.Contains(spot.Id)) state = SpotBoardState.TemporarilyBlocked;
             var holder = reservation?.HolderName ?? visitor?.VisitorName;
             var from = reservation?.StartUtc ?? visitor?.StartUtc;
             var to = reservation?.EndUtc ?? visitor?.EndUtc;
@@ -191,16 +196,16 @@ public sealed class LotDashboardService(
         var held = tiles.Count(t => t.State == SpotBoardState.ResidentHeld);
         // Held resident spots are not "taken" but not offerable either; counting them out of the
         // denominator would read as 100 % full on a quiet day with many residents. Everything else
-        // adds up on purpose: occupied + booked + offered + free + held == activeSpots, because
-        // Inactive is the one remaining state and it can only fall to an inactive spot.
-        var bookable = activeSpots - held;
+        // adds up: occupied + booked + offered + free + held + blocked == activeSpots.
+        var temporarilyBlocked = tiles.Count(t => t.State == SpotBoardState.TemporarilyBlocked);
+        var bookable = activeSpots - held - temporarilyBlocked;
 
         var overview = new LotOverviewDto(
             TotalSpots: tiles.Count,
             ActiveSpots: activeSpots,
             InactiveSpots: tiles.Count - activeSpots,
-            ResidentSpots: tiles.Count(t => t.OwnerId is not null),
-            PoolSpots: tiles.Count(t => t.OwnerId is null && t.Type != ParkingSpotType.Visitor),
+            ResidentSpots: spots.Count(s => s.HasResidents),
+            PoolSpots: spots.Count(s => !s.HasResidents && s.Type != ParkingSpotType.Visitor),
             VisitorSpots: tiles.Count(t => t.Type == ParkingSpotType.Visitor),
             Occupied: occupied,
             Booked: booked,
@@ -213,7 +218,8 @@ public sealed class LotDashboardService(
             VisitorBookings: visitors.Count,
             ReportedMismatches: reportedMismatches,
             RelocatedMismatches: relocatedMismatches,
-            UnusedSharedDays: unusedSharedDays);
+            UnusedSharedDays: unusedSharedDays,
+            TemporarilyBlocked: temporarilyBlocked);
 
         // Section first, then the code read as a number, so D3-2 precedes D3-10 and the unnamed
         // section (codes with no letter prefix) sorts ahead of the named ones.
@@ -378,16 +384,16 @@ public sealed class LotDashboardService(
         var calendar = new List<SpotCalendarEntryDto>();
         foreach (var reservation in reservations)
         {
-            // A live booking is the manager's to override; a finished one is history.
+            // Started bookings keep their spot; administrative overrides apply only before start.
             var live = reservation.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn;
+            var protectedBooking = ReservationWindowRules.IsProtectedFromDisplacement(
+                reservation.StartUtc, reservation.EndUtc, reservation.Status, now);
             calendar.Add(new SpotCalendarEntryDto(
                 SpotCalendarKind.Reservation, SiteTime.Today(reservation.StartUtc, timeZone),
                 reservation.StartUtc, reservation.EndUtc, reservation.HolderName, reservation.Id,
                 reservation.Status, reservation.CreditsCharged,
-                // Cancelling is only a legal move on a booking nobody has arrived on; once checked in,
-                // moving it is the honest intervention (see the ILotDashboardService docs).
-                CanCancel: canManageReservations && reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now,
-                CanMove: canManageReservations && live && reservation.EndUtc > now) { Version = reservation.Version });
+                CanCancel: canManageReservations && reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > now && !protectedBooking,
+                CanMove: canManageReservations && live && reservation.EndUtc > now && !protectedBooking) { Version = reservation.Version });
         }
 
         foreach (var visitor in visitorBookings)
@@ -450,8 +456,12 @@ public sealed class LotDashboardService(
         var state = ResolveState(spot.IsActive, liveToday,
             visitorBookings.Any(v => v.StartUtc < todayEnd && v.EndUtc > todayStart),
             offeredFromQueue,
-            spot.OwnerId is not null,
+            spot.OwnerId is not null || await dbContext.ParkingSpotResidents.AnyAsync(r => r.SpotId == spot.Id && r.RemovedAtUtc == null, cancellationToken),
             releases.Contains(today));
+
+        var blockedUntil = await dbContext.OccupancyMismatches.Where(m => m.SpotId == spotId
+            && m.ResolvedAtUtc == null && m.EndUtc > now).Select(m => (DateTimeOffset?)m.EndUtc).MaxAsync(cancellationToken);
+        if (spot.IsActive && blockedUntil is not null) state = SpotBoardState.TemporarilyBlocked;
 
         var trend = await ComputeSpotTrendAsync(dbContext, timeZone,
             today.AddDays(-(SignalWindowDays - 1)), today, spotId, cancellationToken);
@@ -461,6 +471,7 @@ public sealed class LotDashboardService(
             calendar.OrderBy(e => e.StartUtc).ToList(), mismatches, stats, trend)
         {
             Version = dbContext.Entry(spot).Property<byte[]>("Version").CurrentValue ?? [],
+            BlockedUntilUtc = blockedUntil,
         };
     }
 
@@ -1017,7 +1028,7 @@ public sealed class LotDashboardService(
         var reservation = await dbContext.Reservations.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
         if (reservation is null || reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn)
-            || reservation.EndUtc <= now)
+            || reservation.EndUtc <= now || reservation.IsProtectedFromDisplacement(now))
         {
             return [];
         }
@@ -1051,8 +1062,10 @@ public sealed class LotDashboardService(
                 && q.OfferExpiresAtUtc > now && q.StartUtc < endUtc && q.EndUtc > startUtc)
             .Select(q => q.OfferedSpotId!.Value);
 
+        var blocked = dbContext.OccupancyMismatches.Where(m => m.ResolvedAtUtc == null && m.EndUtc > now
+            && m.ReportedAtUtc < endUtc && m.EndUtc > startUtc).Select(m => m.SpotId);
         var free = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && s.Id != excludeSpotId && s.Type != ParkingSpotType.Visitor
+            .Where(s => s.IsActive && !blocked.Contains(s.Id) && s.Id != excludeSpotId && s.Type != ParkingSpotType.Visitor
                 && !taken.Contains(s.Id) && !visitorTaken.Contains(s.Id) && !held.Contains(s.Id))
             .ToListAsync(cancellationToken);
 
@@ -1144,6 +1157,11 @@ public sealed class LotDashboardService(
         var spotCode = await dbContext.ParkingSpots.AsNoTracking()
             .Where(s => s.Id == reservation.SpotId).Select(s => s.Code).FirstAsync(cancellationToken);
 
+        if (reservation.IsProtectedFromDisplacement(now))
+        {
+            return ParkingResult.Failure("Parking_Error_StartedReservationProtected");
+        }
+
         reservation.Cancel(now);
 
         // Full refund however late, and the voucher back: unlike the holder's own late cancel this is
@@ -1164,14 +1182,16 @@ public sealed class LotDashboardService(
             $"Cancelled reservation {reservation.Id} on {spotCode} ({reservation.StartUtc:u}–{reservation.EndUtc:u}), refunded {reservation.CreditsCharged} credits.",
             now));
 
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         InvalidateAggregates();
 
-        await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+        await ParkingNotifications.EnqueueAsync(dbContext, now, reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminCancelled_Title"],
             messages.ForEconomy(policy, "Parking_Notify_AdminCancelled_Body", spotCode, reservation.CreditsCharged),
             cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
 
         return ParkingResult.Success;
     }
@@ -1239,6 +1259,11 @@ public sealed class LotDashboardService(
             return ParkingResult.Failure("Parking_Error_SameSpot");
         }
 
+        if (reservation.IsProtectedFromDisplacement(now))
+        {
+            return ParkingResult.Failure("Parking_Error_StartedReservationProtected");
+        }
+
         var target = await dbContext.ParkingSpots.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == targetSpotId, cancellationToken);
         if (target is null || !target.IsActive || target.Type == ParkingSpotType.Visitor)
@@ -1272,25 +1297,27 @@ public sealed class LotDashboardService(
             $"Moved reservation {reservation.Id} from {fromCode} to {target.Code} ({reservation.StartUtc:u}–{reservation.EndUtc:u}); affected residents: {string.Join(",", moveTarget.Residents.Select(r => r.UserId))}.",
             now));
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         InvalidateAggregates();
 
-        await notifications.NotifyAsync(reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+        await ParkingNotifications.EnqueueAsync(dbContext, now, reservation.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
             messages["Parking_Notify_AdminMoved_Title"],
             messages.ForEconomy(policy, "Parking_Notify_AdminMoved_Body", fromCode, target.Code),
             cancellationToken);
 
         foreach (var resident in moveTarget.Residents)
         {
-            await notifications.NotifyAsync(resident.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, resident.UserId, NotificationCategory.Administrative, NotificationLevel.Warning,
                 messages["Parking_Notify_ResidentMove_Title"],
                 messages["Parking_Notify_ResidentMove_Body", target.Code,
                     TimeZoneInfo.ConvertTime(reservation.StartUtc, timeZone).ToString("g"),
                     TimeZoneInfo.ConvertTime(reservation.EndUtc, timeZone).ToString("g")],
                 email: true, cancellationToken);
         }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
 
         return ParkingResult.Success;
     }

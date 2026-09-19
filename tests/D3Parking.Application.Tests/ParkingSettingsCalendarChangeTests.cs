@@ -68,8 +68,9 @@ public sealed class ParkingSettingsCalendarChangeTests
         }
     }
 
-    [Test]
-    public async Task Restricting_a_weekday_requires_confirmation_and_atomically_invalidates_future_records()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Restricting_a_weekday_preserves_every_existing_promise(bool legacyConfirmation)
     {
         var current = await _service.GetAsync();
         var saturday = new DateOnly(2026, 8, 29);
@@ -115,23 +116,9 @@ public sealed class ParkingSettingsCalendarChangeTests
         });
 
         var actingUserId = Guid.NewGuid();
-        var refused = await _service.UpdateAsync(changed, actingUserId);
-        Assert.That(refused.Succeeded, Is.False);
-
-        await using (var db = new D3ParkingDbContext(_options))
-        {
-            Assert.That((await db.Reservations.FindAsync(reservation.Id))!.Status,
-                Is.EqualTo(ReservationStatus.Reserved));
-            Assert.That((await db.VisitorBookings.FindAsync(visitor.Id))!.Status,
-                Is.EqualTo(VisitorBookingStatus.Booked));
-            Assert.That((await db.ParkingSettings.SingleAsync()).AllowedReservationWeekdays,
-                Is.EqualTo(current.AllowedReservationWeekdays));
-            Assert.That(await db.AccountAuditEvents.CountAsync(), Is.Zero,
-                "An unconfirmed change must not leave a settings or cancellation audit.");
-        }
-
-        var confirmed = await _service.UpdateAsync(changed, actingUserId, true);
-        Assert.That(confirmed.Succeeded, Is.True);
+        var saved = await _service.UpdateAsync(changed, actingUserId, legacyConfirmation);
+        Assert.That(saved.Succeeded, Is.True);
+        Assert.That(impact.RequiresConfirmation, Is.False);
 
         await using (var db = new D3ParkingDbContext(_options))
         {
@@ -151,30 +138,20 @@ public sealed class ParkingSettingsCalendarChangeTests
                 .ToListAsync();
             Assert.Multiple(() =>
             {
-                Assert.That(savedReservation!.Status, Is.EqualTo(ReservationStatus.Cancelled));
-                Assert.That(savedQueue!.Status, Is.EqualTo(QueueEntryStatus.Cancelled));
-                Assert.That(savedHandoff!.Status, Is.EqualTo(ResidentSpotHandoffStatus.Cancelled));
-                Assert.That(savedVisitor!.Status, Is.EqualTo(VisitorBookingStatus.Cancelled));
-                Assert.That(savedRelease, Is.Null);
-                Assert.That(savedScore!.Credits, Is.EqualTo(7));
-                Assert.That(refundCount, Is.EqualTo(1));
-                Assert.That(visitorAudits, Has.Count.EqualTo(1));
+                Assert.That(savedReservation!.Status, Is.EqualTo(ReservationStatus.Reserved));
+                Assert.That(savedQueue!.Status, Is.EqualTo(QueueEntryStatus.Waiting));
+                Assert.That(savedHandoff!.Status, Is.EqualTo(ResidentSpotHandoffStatus.Offered));
+                Assert.That(savedVisitor!.Status, Is.EqualTo(VisitorBookingStatus.Booked));
+                Assert.That(savedRelease, Is.Not.Null);
+                Assert.That(savedScore!.Credits, Is.Zero);
+                Assert.That(refundCount, Is.Zero);
+                Assert.That(visitorAudits, Is.Empty);
                 Assert.That(settingsAudits, Has.Count.EqualTo(1));
             });
 
-            var audit = visitorAudits.Single();
-            Assert.Multiple(() =>
-            {
-                Assert.That(audit.UserId, Is.EqualTo(actingUserId));
-                Assert.That(audit.Actor, Is.EqualTo($"admin:{actingUserId}"));
-                Assert.That(audit.OccurredAtUtc, Is.EqualTo(Now));
-                Assert.That(audit.Detail, Is.EqualTo(
-                    $"Visitor booking {visitor.Id}: cancelled; spot={spot.Id}; start={start:O}; end={end:O}; reason=calendar configuration change."));
-                Assert.That(audit.Detail, Does.Not.Contain(visitor.VisitorName));
-                Assert.That(audit.Detail, Does.Not.Contain(visitor.Company));
-                Assert.That(audit.Detail, Does.Not.Contain(visitor.LicensePlate));
-                Assert.That(settingsAudits.Single().Actor, Is.EqualTo($"admin:{actingUserId}"));
-            });
+            Assert.That(settingsAudits.Single().Actor, Is.EqualTo($"admin:{actingUserId}"));
+            Assert.That((await db.ParkingSettings.SingleAsync()).AllowedReservationWeekdays,
+                Is.EqualTo(Weekday.Workdays));
         }
     }
 
@@ -213,6 +190,67 @@ public sealed class ParkingSettingsCalendarChangeTests
             Is.EqualTo(current.AllowedReservationWeekdays));
         Assert.That(await check.AccountAuditEvents.CountAsync(), Is.Zero,
             "Neither audit may survive a rolled back configuration change.");
+    }
+
+    [TestCase(-1, false), TestCase(0, true), TestCase(360, true), TestCase(1439, true), TestCase(1440, false)]
+    public async Task Refund_cutoff_is_validated_and_persisted_in_the_supported_SQL_time_range(int minutes, bool valid)
+    {
+        var current = await _service.GetAsync();
+        var result = await _service.UpdateAsync(current with { ReleaseCutoff = TimeSpan.FromMinutes(minutes) }, Guid.NewGuid());
+        Assert.That(result.Succeeded, Is.EqualTo(valid));
+        if (valid)
+        {
+            await using var db = new D3ParkingDbContext(_options);
+            Assert.That((await db.ParkingSettings.SingleAsync()).ReleaseCutoff, Is.EqualTo(TimeSpan.FromMinutes(minutes)));
+        }
+        else Assert.That(result.Errors, Does.Contain(D3Parking.Application.Parking.ParkingSettingsValidator.ReleaseCutoffError));
+    }
+
+    [TestCase("same-day", 1)]
+    [TestCase("time-mode", 2)]
+    [TestCase("weekday", 1)]
+    [TestCase("horizon", 1)]
+    public async Task Configuration_changes_preserve_started_bookings_and_their_resident_releases(
+        string change, int preservedOutsideNewRules)
+    {
+        var current = (await _service.GetAsync()) with { ReservationTimeMode = ReservationTimeMode.AllDay };
+        Assert.That((await _service.UpdateAsync(current, Guid.NewGuid(), true)).Succeeded, Is.True);
+        var today = SiteTime.Today(Now, TimeZoneInfo.Utc);
+        var (start, end) = SiteTime.Day(today, TimeZoneInfo.Utc);
+        var owner = Guid.NewGuid();
+        var spot = new ParkingSpot("CFG-PROTECTED", ParkingSpotType.Standard);
+        spot.AssignOwner(owner);
+        var started = new Reservation(spot.Id, Guid.NewGuid(), start, end, false, Now.AddDays(-1), creditsCharged: 7);
+        var future = new Reservation(spot.Id, Guid.NewGuid(), start.AddDays(2), end.AddDays(2), false, Now.AddDays(-1));
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            db.ParkingSpots.Add(spot);
+            db.Reservations.AddRange(started, future);
+            db.SpotReleases.AddRange(new SpotRelease(spot.Id, owner, today, Now.AddDays(-1), 0),
+                new SpotRelease(spot.Id, owner, today.AddDays(2), Now.AddDays(-1), 0));
+            await db.SaveChangesAsync();
+        }
+        var proposed = change switch
+        {
+            "same-day" => current with { SameDayReservationsAllowed = false },
+            "time-mode" => current with { ReservationTimeMode = ReservationTimeMode.TimeWindow },
+            "weekday" => current with { AllowedReservationWeekdays = Weekday.Everyday & ~today.DayOfWeek.ToWeekday() },
+            _ => current with
+            {
+                ReservationHorizonDays = 1, ResidentPlanHorizonDays = 1,
+                AvailabilityLookaheadDays = 1, AvailabilityMinConsecutiveDays = 1,
+            },
+        };
+        Assert.That(D3Parking.Application.Parking.ParkingSettingsValidator.Validate(proposed), Is.Null);
+        Assert.That((await _service.GetCalendarChangeImpactAsync(proposed)).Reservations,
+            Is.EqualTo(preservedOutsideNewRules));
+        Assert.That((await _service.UpdateAsync(proposed, Guid.NewGuid(), true)).Succeeded, Is.True);
+        await using var check = new D3ParkingDbContext(_options);
+        Assert.That((await check.Reservations.SingleAsync(r => r.Id == started.Id)).Status, Is.EqualTo(ReservationStatus.Reserved));
+        Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == today), Is.True);
+        Assert.That(await check.PointsLedgerEntries.AnyAsync(e => e.ReservationId == started.Id), Is.False);
+        Assert.That((await check.Reservations.SingleAsync(r => r.Id == future.Id)).Status,
+            Is.EqualTo(ReservationStatus.Reserved));
     }
 
     private sealed class FailAfterSave : SaveChangesInterceptor

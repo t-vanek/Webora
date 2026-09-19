@@ -8,6 +8,8 @@ public enum OwnedSpotDayState
     /// <summary>The schedule could not resolve the day. UI must not infer availability or ownership.</summary>
     Unknown,
 
+    Unavailable,
+
     /// <summary>The shared-residency schedule assigns the physical spot to another resident.</summary>
     NotAssigned,
 
@@ -71,7 +73,10 @@ public sealed record ResidentSpotDayDto(
     ParkingUserLabelDto? ReleasedByResident,
     IReadOnlyList<ResidentSpotBookingDto> Bookings,
     bool IsAssignedToCurrentUser,
-    bool CanReclaim);
+    bool CanReclaim,
+    bool ReclaimBlockedByStartedBooking = false,
+    string? ReclaimUnavailableReason = null,
+    bool IsOperational = true);
 
 /// <summary>A resident's view of their reserved spot, with today's state and sharing controls.</summary>
 public sealed record OwnedSpotDto(
@@ -80,8 +85,8 @@ public sealed record OwnedSpotDto(
     ParkingSpotType Type,
     OwnedSpotDayState TodayState,
     bool ReleasedToday,
-    // Today-or-later released days. Every one can be reclaimed; TakenByGuest warns that doing so
-    // cancels another user's plan with a full refund and notification.
+    // Today-or-later released days, including protected bookings that cannot be reclaimed.
+    // Actual reclaim eligibility is exposed by DaySchedule and rechecked on mutation.
     IReadOnlyList<ReleasedDayDto> UpcomingReleases,
     // The standing usage plan: the weekdays the resident needs the spot, whether the rest are
     // released ahead of time, and how far ahead that reaches.
@@ -89,7 +94,8 @@ public sealed record OwnedSpotDto(
     bool AutoReleaseUnplannedDays,
     int PlanHorizonDays,
     IReadOnlyList<DateOnly>? AssignedDates = null,
-    IReadOnlyList<ResidentSpotDayDto>? Days = null)
+    IReadOnlyList<ResidentSpotDayDto>? Days = null,
+    bool IsActive = true)
 {
     public IReadOnlyList<DateOnly> ResidentAssignedDates => AssignedDates ?? [];
 

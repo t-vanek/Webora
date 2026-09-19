@@ -135,9 +135,9 @@
                     <span class="today-card__value">@r.SpotCode · @WindowWhen(r.StartUtc, r.EndUtc)</span>
                     <span class="today-card__meta">@L[$"Parking_State_{r.Status}"]</span>
                     <span class="today-card__actions">
-                        @if (r.Status == ReservationStatus.Reserved)
+                        @if (r.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn)
                         {
-                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.ReleaseAsync(_userId, r.Id))">@L["Parking_Release"]</FluentButton>
+                            <ReservationEndAction @key="r.Id" UserId="_userId" Booking="r" Disabled="_actionBusy" OnResult="result => RunAsync(() => Task.FromResult(result))" />
                         }
                     </span>
                 </div>
@@ -157,7 +157,7 @@
                             }
                         </span>
                         <span class="today-card__actions">
-                            <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Accent" OnClick="() => RunAsync(() => Reservations.ClaimQueueOfferAsync(_userId, q.Id))">@L["Parking_Queue_Claim"]</FluentButton>
+                            <QueueClaimAction @key="q.Id" UserId="_userId" Entry="q" Disabled="_actionBusy" OnResult="result => RunAsync(() => Task.FromResult(result))" />
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="() => RunAsync(() => Reservations.LeaveQueueAsync(_userId, q.Id))">@L["Parking_Queue_Leave"]</FluentButton>
                         </span>
                     }
@@ -685,10 +685,9 @@
     private RenderFragment ReservationActions(ReservationDto reservation) => __builder =>
     {
         <div class="reservation-actions">
-            @if (reservation.Status == ReservationStatus.Reserved && reservation.EndUtc > ReservationNow)
+            @if (reservation.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn && reservation.EndUtc > ReservationNow)
             {
-                <FluentButton OnClick="() => ReleaseAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Outline">@L["Parking_Release"]</FluentButton>
-                <FluentButton OnClick="() => CancelAsync(reservation.Id)" Disabled="@_actionBusy" Appearance="Appearance.Stealth">@L["Parking_Cancel"]</FluentButton>
+                <ReservationEndAction @key="reservation.Id" UserId="_userId" Booking="reservation" Disabled="_actionBusy" OnResult="result => RunAsync(() => Task.FromResult(result))" />
                 @if (CanReportBlocked(reservation))
                 {
                     <FluentButton OnClick="() => OpenBlockedPanel(reservation)" Appearance="Appearance.Stealth">@L["Parking_CantPark"]</FluentButton>
@@ -834,6 +833,7 @@
     private string ResidentStateTitle(ResidentSpotDayDto? day) => day switch
     {
         null => L["Parking_ResidentState_Unavailable_Title"].Value,
+        { State: OwnedSpotDayState.Unavailable } => L["Parking_Resident_OperationallyUnavailable"].Value,
         { State: OwnedSpotDayState.Held } => L["Parking_ResidentState_Held_Title"].Value,
         { State: OwnedSpotDayState.NotAssigned, AssignedResident: { } resident } =>
             L["Parking_ResidentState_AssignedToName", UserName(resident)].Value,
@@ -894,5 +894,5 @@
     }
 
     private string ReservationWhen(ReservationDto reservation) =>
-        WindowWhen(reservation.StartUtc, reservation.EndUtc);
+        WindowWhen(reservation.StartUtc, reservation.EffectiveEndUtc);
 }

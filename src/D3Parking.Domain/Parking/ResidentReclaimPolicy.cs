@@ -1,6 +1,6 @@
 namespace D3Parking.Domain.Parking;
 
-/// <summary>How strongly a resident may reclaim a day which a colleague has already booked.</summary>
+/// <summary>Resident priority before the colleague's booking starts. Started bookings are always protected.</summary>
 public enum ResidentReclaimPolicy
 {
     /// <summary>A confirmed booking is never changed by resident self-service.</summary>
@@ -9,13 +9,13 @@ public enum ResidentReclaimPolicy
     /// <summary>The resident may reclaim only before the configured protection deadline.</summary>
     AdvancePriority,
 
-    /// <summary>The resident may reclaim at any time, but only when the guest can be moved.</summary>
+    /// <summary>Before the booking starts, reclaim is allowed only with a replacement.</summary>
     ReplacementOnly,
 
     /// <summary>Before the deadline the resident has priority; afterwards a replacement is required.</summary>
     AdvanceOrReplacement,
 
-    /// <summary>The resident has priority at any time; the no-replacement action decides the fallback.</summary>
+    /// <summary>Before the booking starts, priority ignores the earlier deadline; the fallback still applies.</summary>
     AbsolutePriority,
 }
 

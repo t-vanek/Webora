@@ -220,6 +220,9 @@ public sealed class ResidentSpotHandoffService(
             return ParkingResult.Failure("Parking_Handoff_Error_PubliclyReleased");
         }
 
+        if (await ParkingCapacity.IsBlockedAsync(dbContext, residentSpot.Id, startUtc, endUtc, now, cancellationToken))
+            return ParkingResult.Failure("Parking_Error_SpotTemporarilyBlocked");
+
         var occupied = await dbContext.Reservations.AnyAsync(r => r.SpotId == residentSpot.Id
             && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
             && r.StartUtc < endUtc && r.EndUtc > startUtc, cancellationToken);
@@ -245,8 +248,6 @@ public sealed class ResidentSpotHandoffService(
                 maxCreditsAuthorized ?? 0);
         dbContext.ResidentSpotHandoffs.Add(handoff);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         var residentName = await UserNameAsync(residentId, cancellationToken);
         var recipientName = await UserNameAsync(recipientId, cancellationToken);
@@ -254,7 +255,7 @@ public sealed class ResidentSpotHandoffService(
         var baseUrl = await siteSettings.GetCanonicalBaseUrlAsync(cancellationToken);
         var actionUrl = baseUrl is null ? null : $"{baseUrl.TrimEnd('/')}/parking";
         var deadlineLocal = TimeZoneInfo.ConvertTime(expiresAt, timeZone).ToString("g");
-        await notifications.NotifyAsync(
+        await ParkingNotifications.EnqueueAsync(dbContext, now,
             targetId, NotificationCategory.SelfService, NotificationLevel.Info,
             messages[kind == ResidentSpotHandoffKind.ResidentOffer
                 ? "Parking_Notify_HandoffOffer_Title"
@@ -271,6 +272,9 @@ public sealed class ResidentSpotHandoffService(
                 DeadlineText: messages["Email_Handoff_Deadline", deadlineLocal].Value),
             cancellationToken);
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
         return ParkingResult.Success;
     }
 
@@ -291,20 +295,6 @@ public sealed class ResidentSpotHandoffService(
                 && residentId == actorId
                 ? ParkingResult.Failure("Parking_Handoff_Error_RequestCannotComplete")
                 : result;
-        }
-
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var handoff = await dbContext.ResidentSpotHandoffs.AsNoTracking()
-            .FirstAsync(h => h.Id == handoffId, cancellationToken);
-        var spotCode = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.Id == handoff.SpotId).Select(s => s.Code).FirstAsync(cancellationToken);
-
-        if (handoff.Kind == ResidentSpotHandoffKind.ResidentOffer)
-        {
-            var recipientName = await UserNameAsync(handoff.RecipientId, cancellationToken);
-            await notifications.NotifyAsync(handoff.ResidentId, NotificationCategory.SelfService, NotificationLevel.Info,
-                messages["Parking_Notify_HandoffAccepted_Title"],
-                messages["Parking_Notify_HandoffAccepted_Body", recipientName, spotCode], cancellationToken);
         }
 
         return result;
@@ -355,13 +345,13 @@ public sealed class ResidentSpotHandoffService(
         {
             handoff.Cancel(now);
         }
-        await dbContext.SaveChangesAsync(cancellationToken);
-
         var notifyUserId = decline ? initiator : (actorId == handoff.ResidentId ? handoff.RecipientId : handoff.ResidentId);
-        await notifications.NotifyAsync(notifyUserId, NotificationCategory.SelfService, NotificationLevel.Info,
+        await ParkingNotifications.EnqueueAsync(dbContext, now, notifyUserId, NotificationCategory.SelfService, NotificationLevel.Info,
             messages[decline ? "Parking_Notify_HandoffDeclined_Title" : "Parking_Notify_HandoffCancelled_Title"],
             messages[decline ? "Parking_Notify_HandoffDeclined_Body" : "Parking_Notify_HandoffCancelled_Body"],
             cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
         return ParkingResult.Success;
     }
 

@@ -41,6 +41,9 @@ public class Reservation : Entity
     /// <summary>Credits debited at booking; refunded in full on an early enough cancel or release.</summary>
     public int CreditsCharged { get; private set; }
 
+    /// <summary>Captured refund terms; null only for bookings created before this field existed.</summary>
+    public DateTimeOffset? RefundDeadlineUtc { get; private set; }
+
     /// <summary>True when this booking was claimed from the waitlist; a no-show on it is punished harder.</summary>
     public bool FromQueue { get; private set; }
 
@@ -60,7 +63,7 @@ public class Reservation : Entity
 
     public Reservation(Guid spotId, Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, bool isOffPeak,
         DateTimeOffset createdAtUtc, int creditsCharged = 0, bool fromQueue = false,
-        bool countsTowardWeeklyLimit = true)
+        bool countsTowardWeeklyLimit = true, DateTimeOffset? refundDeadlineUtc = null)
     {
         if (endUtc <= startUtc)
             throw new ArgumentException("Reservation end must be after its start.", nameof(endUtc));
@@ -74,6 +77,7 @@ public class Reservation : Entity
         CreatedAtUtc = createdAtUtc;
         CalendarUpdatedAtUtc = createdAtUtc;
         CreditsCharged = creditsCharged;
+        RefundDeadlineUtc = refundDeadlineUtc;
         FromQueue = fromQueue;
         CountsTowardWeeklyLimit = countsTowardWeeklyLimit;
     }
@@ -82,16 +86,18 @@ public class Reservation : Entity
     public bool Overlaps(DateTimeOffset startUtc, DateTimeOffset endUtc) =>
         startUtc < EndUtc && endUtc > StartUtc;
 
+    public bool IsProtectedFromDisplacement(DateTimeOffset now) =>
+        ReservationWindowRules.IsProtectedFromDisplacement(StartUtc, EndUtc, Status, now);
+
     /// <summary>
-    /// Re-points a live booking at another spot, keeping its window, price, status and history. This
-    /// is what a spot manager's "move" does: the booking is the same booking, so nothing is refunded
-    /// or re-charged and the holder keeps their check-in and any voucher that paid for it. A finished
-    /// booking (completed, released, no-showed, cancelled) is history and cannot be moved.
+    /// Re-points a future booking at another spot, keeping its window, price and history. Nothing
+    /// is refunded or re-charged and any voucher is preserved. Started, checked-in and finished
+    /// bookings cannot be moved, even if a caller omits the application-level protection check.
     /// </summary>
     public void MoveTo(Guid spotId, DateTimeOffset at)
     {
-        if (Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
-            throw new InvalidOperationException($"Cannot move a {Status} reservation.");
+        if (Status != ReservationStatus.Reserved || StartUtc <= at)
+            throw new InvalidOperationException("Only a future, unstarted reservation can be moved.");
 
         SpotId = spotId;
         SharedByResidentId = null;

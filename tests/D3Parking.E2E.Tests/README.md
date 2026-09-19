@@ -27,6 +27,18 @@ dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
 Remove-Item Env:BASE_URL
 ```
 
+## Cílené ověření rezervací na Linuxu
+
+Použijte SDK z `global.json` a nastavte `ConnectionStrings__SqlServer` na lokální testovací SQL Server. Kvůli výchozímu Windows runtime v projektu je pro Playwright nutné vybrat linuxový driver:
+
+```sh
+PATH="$HOME/.dotnet:$PATH" dotnet test tests/D3Parking.E2E.Tests -c Release \
+  -p:PlaywrightPlatform=linux-x64 --artifacts-path artifacts/e2e \
+  --filter 'FullyQualifiedName~NonResidentBookingTests|FullyQualifiedName~ResidentReclaimBookingTests|FullyQualifiedName~StartedBookingProtectionTests|FullyQualifiedName~ParkingRemainingWorkflowTests'
+```
+
+Tyto testy vyžadují izolovaný host vytvořený fixture, tedy bez `BASE_URL`. Ověřují dostupnost výběru data při zákazu rezervace, vysvětlení blokovaného vrácení při existující alternativě, ochranu dnešní celodenní rezervace a možnost dobrovolného uvolnění držitelem. `ParkingRemainingWorkflowTests` navíc pokrývá potvrzení fronty na obou stránkách, rezervaci spolurezidenta, obnovu bez ztráty rozepsaného plánu a odblokování místa správcem.
+
 ## Obsah
 
 - WebAppFixture.cs: izolovaný host, DB a přihlášený kontext.

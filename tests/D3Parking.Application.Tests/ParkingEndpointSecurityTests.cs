@@ -35,6 +35,7 @@ public class ParkingEndpointSecurityTests
     private HttpClient _client = null!;
     private readonly List<(string Method, object?[] Arguments)> _calls = [];
     private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly byte[] PhotoBytes = [0xff, 0xd8, 0xff, 0xe0, 1, 2, 3];
 
     [OneTimeSetUp]
     public async Task StartAsync()
@@ -99,7 +100,8 @@ public class ParkingEndpointSecurityTests
         {
             Assert.That(_calls, Has.Count.EqualTo(1));
             Assert.That(_calls[0].Arguments[0], Is.EqualTo(id));
-            Assert.That(await response.Content.ReadAsByteArrayAsync(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+            Assert.That(await response.Content.ReadAsByteArrayAsync(), Is.EqualTo(PhotoBytes));
+            Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("image/jpeg"));
         }
         else
         {
@@ -156,7 +158,7 @@ public class ParkingEndpointSecurityTests
             return method.Name switch
             {
                 nameof(IParkingSpotService.GetMismatchPhotoAsync) or nameof(IOversightService.GetDefectPhotoAsync) =>
-                    Task.FromResult<MismatchPhotoDto?>(new([1, 2, 3], "image/jpeg")),
+                    Task.FromResult<MismatchPhotoDto?>(new(PhotoBytes, "image/jpeg")),
                 nameof(IReservationService.GetMyReservationAsync) => Task.FromResult<ReservationDto?>(null),
                 nameof(INotificationService.MarkAllReadAsync) => Task.CompletedTask,
                 _ => throw new InvalidOperationException($"Unexpected data access: {method.Name}"),

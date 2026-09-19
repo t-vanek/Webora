@@ -46,20 +46,22 @@ public sealed class EmployeeLifecycleParkingHistoryTests
         }
     }
 
-    [Test]
-    public async Task Departure_preserves_finished_plans_and_refunds_only_unfinished_plans_once()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Departure_preserves_started_and_finished_plans_and_refunds_only_future_plans_once(bool checkedIn)
     {
         var now = DateTimeOffset.UtcNow;
         var userId = Guid.NewGuid();
-        var spot = new ParkingSpot("HISTORY-01", ParkingSpotType.Standard);
+        var spot = new ParkingSpot($"HISTORY-{checkedIn}", ParkingSpotType.Standard);
         var past = new Reservation(spot.Id, userId, now.AddDays(-3), now.AddDays(-2), false, now.AddDays(-5), 10);
         var pastCheckedIn = new Reservation(spot.Id, userId, now.AddDays(-2), now.AddDays(-1), false, now.AddDays(-5), 10);
         pastCheckedIn.CheckIn(now.AddDays(-2));
         var endedNow = new Reservation(spot.Id, userId, now.AddHours(-1), now, false, now.AddDays(-5), 10);
         var future = new Reservation(spot.Id, userId, now.AddDays(1), now.AddDays(1).AddHours(1), false, now.AddDays(-5), 10);
         var running = new Reservation(spot.Id, userId, now, now.AddMinutes(30), false, now.AddDays(-5), 10);
+        if (checkedIn) running.CheckIn(now);
         var all = new[] { past, pastCheckedIn, endedNow, future, running };
-        var historicalIds = new[] { past.Id, pastCheckedIn.Id, endedNow.Id };
+        var historicalIds = new[] { past.Id, pastCheckedIn.Id, endedNow.Id, running.Id };
         var originalVersions = all.ToDictionary(r => r.Id, r => (r.CalendarSequence, r.CalendarUpdatedAtUtc));
         var chargeIds = new List<Guid>();
 
@@ -84,8 +86,8 @@ public sealed class EmployeeLifecycleParkingHistoryTests
         await using (var preview = new D3ParkingDbContext(_options!))
         {
             var impact = await EmployeeLifecycleCleanup.PreviewAsync(preview, userId, CancellationToken.None);
-            Assert.That(impact.ActiveReservations, Is.EqualTo(2),
-                "The deletion preview must not count historical Reserved/CheckedIn rows as live work.");
+            Assert.That(impact.ActiveReservations, Is.EqualTo(1),
+                "Only a future booking may be cancelled; started and historical plans stay intact.");
         }
 
         // Both departure callers own the transaction. Repeat cleanup to cover synchronization retries.
@@ -114,11 +116,11 @@ public sealed class EmployeeLifecycleParkingHistoryTests
                 Assert.That((saved[id].CalendarSequence, saved[id].CalendarUpdatedAtUtc), Is.EqualTo(originalVersions[id]));
             }
             Assert.That(saved[future.Id].Status, Is.EqualTo(ReservationStatus.Cancelled));
-            Assert.That(saved[running.Id].Status, Is.EqualTo(ReservationStatus.Cancelled));
-            Assert.That(refunds.Select(e => e.ReservationId), Is.EquivalentTo(new Guid?[] { future.Id, running.Id }));
-            Assert.That(refunds.Sum(e => e.Points), Is.EqualTo(20));
+            Assert.That(saved[running.Id].Status, Is.EqualTo(checkedIn ? ReservationStatus.CheckedIn : ReservationStatus.Reserved));
+            Assert.That(refunds.Select(e => e.ReservationId), Is.EquivalentTo(new Guid?[] { future.Id }));
+            Assert.That(refunds.Sum(e => e.Points), Is.EqualTo(10));
         });
-        Assert.That(await verify.ParkerScores.Where(s => s.UserId == userId).Select(s => s.Credits).SingleAsync(), Is.EqualTo(70));
+        Assert.That(await verify.ParkerScores.Where(s => s.UserId == userId).Select(s => s.Credits).SingleAsync(), Is.EqualTo(60));
         Assert.That(await verify.PointsLedgerEntries.CountAsync(e => chargeIds.Contains(e.Id)
             && e.Reason == IncentiveReason.ReservationCharge && e.Points == -10), Is.EqualTo(5),
             "Original charges remain an unchanged historical trail.");

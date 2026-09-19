@@ -48,7 +48,7 @@ public interface ILotDashboardService
     /// The manager calls a booking off on the holder's behalf — the lot disagreed with the system and
     /// the holder is not at fault, so the charge is refunded in full however late it is (and any
     /// voucher that paid for it comes back). The holder is notified and the override is audited.
-    /// Only a not-yet-arrived (Reserved) booking can be cancelled; a checked-in one is moved instead.
+    /// Only a not-yet-started Reserved booking can be cancelled; started bookings keep their spot.
     /// </summary>
     Task<ParkingResult> CancelReservationAsync(Guid reservationId, Guid actingUserId, CancellationToken cancellationToken = default);
 
@@ -59,7 +59,7 @@ public interface ILotDashboardService
     /// <summary>
     /// Moves a booking to another spot for the same window, keeping its price, status and history —
     /// the booking is re-pointed, not re-made, so nothing moves in the wallet. Fails when the target
-    /// is not free for the window. A resident target requires explicit confirmation. The holder and
+    /// is not free for the window or the booking has started. A resident target requires explicit confirmation. The holder and
     /// residents allocated the affected days are notified and the override is audited.
     /// </summary>
     Task<ParkingResult> MoveReservationAsync(Guid reservationId, Guid targetSpotId, Guid actingUserId,

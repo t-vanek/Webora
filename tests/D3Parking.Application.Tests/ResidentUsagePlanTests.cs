@@ -75,7 +75,7 @@ public class ResidentUsagePlanTests
         var released = await residents.ApplyDuePlanReleasesAsync();
 
         var expected = UnplannedDaysInHorizon(Weekday.Workdays);
-        Assert.That(released, Is.EqualTo(expected.Count));
+        Assert.That(released, Is.Zero, "Saving the plan already applied its previewed changes.");
         Assert.That(await ReleasedDatesAsync(owner), Is.EqualTo(expected),
             "Exactly the days the plan does not claim may be shared — the workdays stay held.");
     }
@@ -121,8 +121,9 @@ public class ResidentUsagePlanTests
         var residents = CreateResidentService(Morning);
         Assert.That((await residents.SetUsagePlanAsync(owner, Weekday.Workdays, true)).Succeeded, Is.True);
 
-        var first = await residents.ApplyDuePlanReleasesAsync();
-        Assert.That(first, Is.GreaterThan(0), "The first run has the whole horizon to release.");
+        var first = (await ReleasedDatesAsync(owner)).Count;
+        Assert.That(first, Is.GreaterThan(0), "Saving the plan immediately covers the horizon.");
+        Assert.That(await residents.ApplyDuePlanReleasesAsync(), Is.Zero);
 
         Assert.That(await residents.ApplyDuePlanReleasesAsync(), Is.Zero,
             "The maintenance loop runs every few minutes; the same days must not be re-decided.");

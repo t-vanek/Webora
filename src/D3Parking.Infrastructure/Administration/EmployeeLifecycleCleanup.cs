@@ -30,8 +30,7 @@ internal static class EmployeeLifecycleCleanup
         }
         var pairedVehicles = await dbContext.CompanyVehicles.CountAsync(v => v.PairedUserId == userId, cancellationToken);
         var activeReservations = await dbContext.Reservations.CountAsync(r => r.UserId == userId
-            && r.EndUtc > now
-            && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn), cancellationToken);
+            && r.StartUtc > now && r.Status == ReservationStatus.Reserved, cancellationToken);
         var activeQueue = await dbContext.QueueEntries.CountAsync(q => q.UserId == userId
             && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered), cancellationToken);
         var visitors = await dbContext.VisitorBookings.CountAsync(v => v.Status == VisitorBookingStatus.Booked
@@ -131,11 +130,10 @@ internal static class EmployeeLifecycleCleanup
                 .ExecuteUpdateAsync(s => s.SetProperty(v => v.DriverEmail, (string?)null), cancellationToken);
         }
 
-        // Planned reservations remain Reserved after their window ends. Status alone therefore
-        // cannot identify live work: departure must not cancel history or refund consumed parking.
+        // Revoking access does not vacate a car. Preserve started bookings until their stored end;
+        // only future plans are cancelled and refunded, just like other administrative changes.
         var reservations = await dbContext.Reservations
-            .Where(r => r.UserId == userId && r.EndUtc > now
-                && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn))
+            .Where(r => r.UserId == userId && r.StartUtc > now && r.Status == ReservationStatus.Reserved)
             .ToListAsync(cancellationToken);
 
         var refundable = reservations.Where(r => r.Status == ReservationStatus.Reserved && r.CreditsCharged > 0).ToList();
@@ -159,15 +157,7 @@ internal static class EmployeeLifecycleCleanup
 
         foreach (var reservation in reservations)
         {
-            if (reservation.Status == ReservationStatus.Reserved)
-            {
-                reservation.Cancel(now);
-            }
-            else
-            {
-                // A car already on the lot is usage history, not a future capacity claim.
-                reservation.Complete(now);
-            }
+            reservation.Cancel(now);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

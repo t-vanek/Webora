@@ -43,6 +43,8 @@ public sealed class ParkingSpotResident : Entity
 
     public void SetUsagePlan(Weekday plannedUseDays, bool autoReleaseUnplannedDays)
     {
+        if (PlannedUseDays == plannedUseDays.Sanitize() && AutoReleaseUnplannedDays == autoReleaseUnplannedDays)
+            return;
         PlannedUseDays = plannedUseDays.Sanitize();
         AutoReleaseUnplannedDays = autoReleaseUnplannedDays;
         PlanAppliedThrough = null;

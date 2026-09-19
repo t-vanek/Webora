@@ -50,34 +50,10 @@ public sealed class ReservationService(
             return [];
         }
 
-        var requestDate = SiteTime.Today(startUtc, timeZone);
-
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        var blocked = dbContext.Reservations
-            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-                        && r.StartUtc < endUtc && r.EndUtc > startUtc)
-            .Select(r => r.SpotId);
-
-        var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
-
-        // Spots currently held for a waitlist offer are off the table until the claim window lapses.
-        var held = dbContext.QueueEntries
-            .Where(q => q.Status == QueueEntryStatus.Offered && q.OfferExpiresAtUtc > now
-                        && q.OfferedSpotId != null && q.StartUtc < endUtc && q.EndUtc > startUtc)
-            .Select(q => q.OfferedSpotId!.Value);
-
-        // Owned spots are hidden from the pool unless the resident's plan explicitly releases that day.
-        // Once a guest books one, the block above excludes it.
-        // Visitor-type spots belong to the reception's visitor agenda, never to the employee pool.
-        // Natural code order (D3-2 before D3-10) needs the comparer, so sort in memory.
-        var available = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor
-                && !blocked.Contains(s.Id) && !held.Contains(s.Id)
-                && (s.OwnerId == null || released.Contains(s.Id)))
-            .Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null))
-            .ToListAsync(cancellationToken);
-        return available.OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
+        var available = await ParkingCapacity.AvailableAsync(dbContext, startUtc, endUtc, now, timeZone, true, cancellationToken);
+        return available.Select(s => new ParkingSpotDto(s.Id, s.Code, s.Type, s.IsActive, s.Notes, s.OwnerId, null))
+            .OrderBy(s => s.Code, SpotCodeComparer.Instance).ToList();
     }
 
     public async Task<IReadOnlyList<ReservationDto>> GetMyReservationsAsync(Guid userId, bool upcomingOnly = false, CancellationToken cancellationToken = default)
@@ -160,12 +136,16 @@ public sealed class ReservationService(
     // RetryAsync turns a lost race under the serializable transaction (deadlock victim, stale
     // rowversion) into a fresh attempt whose checks re-run against the winner's committed state —
     // the user gets the friendly conflict failure instead of an error page.
-    public Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
-        bool confirmResidentRelease = false, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(
-            () => ReserveCoreAsync(userId, spotId, startUtc, endUtc, fromQueue: false, queueEntryId: null,
-                confirmResidentRelease, handoffId: null, handoffActorId: null, cancellationToken),
-            cancellationToken);
+    public async Task<ParkingResult> ReserveAsync(Guid userId, Guid spotId, DateTimeOffset startUtc, DateTimeOffset endUtc,
+        bool confirmResidentRelease = false, CancellationToken cancellationToken = default)
+    {
+        var result = await OptimisticConcurrency.RetryAsync(
+            () => ReserveCoreAsync(userId, spotId, startUtc, endUtc, false, null,
+                confirmResidentRelease, null, null, cancellationToken), cancellationToken);
+        if (result.ResidentSpotAutomaticallyReleased || result.Errors.Contains("Parking_Error_QueueHasPriority"))
+            await ProcessQueueAsync(cancellationToken);
+        return result;
+    }
 
     public async Task<ParkingResult> AcceptHandoffAsync(
         Guid actorId, Guid handoffId, CancellationToken cancellationToken = default)
@@ -219,14 +199,16 @@ public sealed class ReservationService(
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
 
-        // The UI is not the authority here: an already-open browser and a pending queue offer can
-        // both outlive an administrator's rule change. Every resulting booking is revalidated.
-        if (!ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
+        // New requests use current calendar rules. Existing queue/handoff intent keeps its stored
+        // window; its identity, ownership and live capacity are still checked in the transaction.
+        if (!fromQueue && handoffId is null
+            && !ReservationWindowRules.MatchesMode(startUtc, endUtc, policy.ReservationTimeMode, timeZone))
         {
             return ParkingResult.Failure("Parking_Error_ReservationTimeModeChanged");
         }
 
-        if (policy.GetReservationDateAvailability(startUtc, now, timeZone).ToParkingErrorKey() is { } dateError)
+        if (!fromQueue && handoffId is null
+            && policy.GetReservationDateAvailability(startUtc, now, timeZone).ToParkingErrorKey() is { } dateError)
         {
             return ParkingResult.Failure(dateError);
         }
@@ -291,6 +273,9 @@ public sealed class ReservationService(
         {
             return ParkingResult.Failure("Parking_Error_SpotInactive");
         }
+
+        if (await ParkingCapacity.IsBlockedAsync(dbContext, spotId, startUtc, endUtc, now, cancellationToken))
+            return ParkingResult.Failure("Parking_Error_SpotTemporarilyBlocked");
 
         // Visitor spots are the reception's territory (see VisitorBookingService) — an employee
         // booking would collide with a guest whom the reservation tables know nothing about.
@@ -410,7 +395,7 @@ public sealed class ReservationService(
         // A resident's own allocated spot is their entitlement, not a draw from the shared weekly
         // capacity. Direct plans on pool/shared spots consume the quota; queue claims were already
         // admitted under the same rule when the user joined the queue.
-        if (!fromQueue && !assignedForWholeWindow)
+        if (!assignedForWholeWindow)
         {
             var plannerError = await ValidateWeeklyPlannerLimitAsync(
                 dbContext, userId, startUtc, policy, timeZone, cancellationToken);
@@ -454,6 +439,23 @@ public sealed class ReservationService(
             if (heldByOther)
             {
                 return ParkingResult.Failure("Parking_Error_SpotHeld");
+            }
+        }
+
+        if (!fromQueue && !assignedForWholeWindow && handoff is null)
+        {
+            var waiting = await dbContext.QueueEntries.AsNoTracking()
+                .Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now
+                    && q.StartUtc < endUtc && q.EndUtc > startUtc)
+                .OrderBy(q => q.CreatedAtUtc).ThenBy(q => q.Id).ToListAsync(cancellationToken);
+            foreach (var waiter in waiting)
+            {
+                if (waiter.RequiredSpotType is { } type && type != spot.Type) continue;
+                if (!await QueueEntryIsEligibleAsync(dbContext, waiter, policy, timeZone, now, cancellationToken)) continue;
+                var freeForWaiter = await ParkingCapacity.AvailableAsync(dbContext, waiter.StartUtc, waiter.EndUtc,
+                    now, timeZone, true, cancellationToken);
+                if (freeForWaiter.Any(s => s.Id == spotId))
+                    return ParkingResult.Failure("Parking_Error_QueueHasPriority");
             }
         }
 
@@ -514,7 +516,8 @@ public sealed class ReservationService(
         }
 
         var reservation = new Reservation(spotId, userId, startUtc, endUtc, isOffPeak, now,
-            voucher is null ? cost : 0, fromQueue, countsTowardWeeklyLimit: !assignedForWholeWindow);
+            voucher is null ? cost : 0, fromQueue, countsTowardWeeklyLimit: !assignedForWholeWindow,
+            refundDeadlineUtc: startUtc - policy.ReleaseCutoff);
         reservation.AttributeSharedCapacity(sharedByResidentId);
         dbContext.Reservations.Add(reservation);
         if (voucher is not null)
@@ -547,7 +550,9 @@ public sealed class ReservationService(
         {
             var entry = await dbContext.QueueEntries
                 .FirstOrDefaultAsync(q => q.Id == entryId && q.UserId == userId, cancellationToken);
-            if (entry is null || entry.Status != QueueEntryStatus.Offered || entry.OfferedSpotId != spotId)
+            if (entry is null || entry.Status != QueueEntryStatus.Offered || entry.OfferedSpotId != spotId
+                || entry.StartUtc != startUtc || entry.EndUtc != endUtc
+                || entry.RequiredSpotType is { } requiredType && spot.Type != requiredType)
             {
                 return ParkingResult.Failure("Parking_Queue_Error_NoOffer");
             }
@@ -561,6 +566,14 @@ public sealed class ReservationService(
         }
 
         handoff?.Accept(reservation.Id, now);
+        if (handoff is { Kind: ResidentSpotHandoffKind.ResidentOffer })
+        {
+            var recipientName = await dbContext.Users.Where(u => u.Id == userId)
+                .Select(u => u.DisplayName ?? u.Email).FirstOrDefaultAsync(cancellationToken) ?? userId.ToString();
+            await ParkingNotifications.EnqueueAsync(dbContext, now, handoff.ResidentId, NotificationCategory.SelfService, NotificationLevel.Info,
+                messages["Parking_Notify_HandoffAccepted_Title"],
+                messages["Parking_Notify_HandoffAccepted_Body", recipientName, spot.Code], cancellationToken);
+        }
 
         // Achievements acknowledge only positive, observable outcomes. They are recorded in the
         // same transaction as the booking that proves them, so a retry cannot praise the same
@@ -568,28 +581,26 @@ public sealed class ReservationService(
         var newAchievements = await RecordPositiveAchievementsAsync(
             dbContext, reservation, spot.Code, sharedByResidentId, fromQueue, now, cancellationToken);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         if (granted > 0)
         {
-            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, userId, NotificationCategory.SelfService, NotificationLevel.Info,
                 messages["Parking_Notify_MonthlyCredit_Title"],
                 messages["Parking_Notify_MonthlyCredit_Body", granted], cancellationToken);
         }
 
-        await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+        await ParkingNotifications.EnqueueAsync(dbContext, now, userId, NotificationCategory.SelfService, NotificationLevel.Info,
             messages.ForEconomy(policy, "Parking_Notify_Reserved_Title"),
             voucher is not null
                 ? messages["Parking_Notify_Reserved_Body_FreeCompensation", spot.Code, cost]
                 : messages.ForEconomy(policy, "Parking_Notify_Reserved_Body", spot.Code, cost),
             cancellationToken);
 
-        await NotifyNewAchievementsAsync(newAchievements, cancellationToken);
+        await NotifyNewAchievementsAsync(dbContext, now, newAchievements, cancellationToken);
 
         foreach (var waiterId in withdrawnWaiters)
         {
-            await notifications.NotifyAsync(waiterId, NotificationCategory.SelfService, NotificationLevel.Warning,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, waiterId, NotificationCategory.SelfService, NotificationLevel.Warning,
                 messages["Parking_Notify_QueueHoldReclaimed_Title"],
                 messages["Parking_Notify_QueueHoldReclaimed_Body", spot.Code], cancellationToken);
         }
@@ -599,10 +610,14 @@ public sealed class ReservationService(
         // train people to ignore the sender.
         if (policy.CreditsEnabled && score.Credits < policy.BaseReservationCost)
         {
-            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Warning,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, userId, NotificationCategory.SelfService, NotificationLevel.Warning,
                 messages["Parking_Notify_LowBalance_Title"],
                 messages["Parking_Notify_LowBalance_Body", score.Credits], cancellationToken);
         }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
 
         return new ParkingResult
         {
@@ -652,25 +667,13 @@ public sealed class ReservationService(
             AutomaticCompensationAvailable: automaticCompensationAvailable);
     }
 
-    private static async Task<double> ComputeOccupancyAsync(D3ParkingDbContext dbContext, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
+    private async Task<double> ComputeOccupancyAsync(D3ParkingDbContext dbContext, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
     {
-        // Visitor spots are outside the employee pool, so they must not dilute the occupancy
-        // context shown to employees or any retained optional release-reward calculation.
-        var activeSpots = await dbContext.ParkingSpots.CountAsync(
-            s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
-        if (activeSpots == 0)
-        {
-            return 0.0;
-        }
-
-        var occupied = await dbContext.Reservations
-            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-                && r.StartUtc < endUtc && r.EndUtc > startUtc)
-            .Select(r => r.SpotId)
-            .Distinct()
-            .CountAsync(cancellationToken);
-
-        return Math.Min(1.0, (double)occupied / activeSpots);
+        var total = await dbContext.ParkingSpots.CountAsync(s => s.IsActive && s.Type != ParkingSpotType.Visitor, cancellationToken);
+        if (total == 0) return 0;
+        var free = await ParkingCapacity.AvailableAsync(dbContext, startUtc, endUtc, timeProvider.GetUtcNow(),
+            await siteSettings.GetTimeZoneAsync(cancellationToken), true, cancellationToken);
+        return 1.0 - (double)free.Count / total;
     }
 
     private static async Task<string?> ValidateWeeklyPlannerLimitAsync(
@@ -694,8 +697,8 @@ public sealed class ReservationService(
         var reservationStarts = await dbContext.Reservations.AsNoTracking()
             .Where(r => r.UserId == userId
                 && r.CountsTowardWeeklyLimit
-                && r.Status != ReservationStatus.Cancelled
-                && r.Status != ReservationStatus.Released
+                && (r.Status != ReservationStatus.Cancelled && r.Status != ReservationStatus.Released
+                    || r.Status == ReservationStatus.Released && r.ReleasedAtUtc >= r.StartUtc)
                 && r.StartUtc >= weekStartUtc && r.StartUtc < weekEndUtc)
             .Select(r => r.StartUtc)
             .ToListAsync(cancellationToken);
@@ -717,6 +720,25 @@ public sealed class ReservationService(
         }
 
         return "Parking_Error_WeeklyReservationLimit_NoLastMinute";
+    }
+
+    public async Task<ReservationEndPreviewDto?> PreviewEndAsync(Guid userId, Guid reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var booking = await db.Reservations.AsNoTracking().FirstOrDefaultAsync(r => r.Id == reservationId && r.UserId == userId, cancellationToken);
+        if (booking is null || booking.EndUtc <= now || booking.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn)) return null;
+        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var deadline = booking.RefundDeadlineUtc ?? booking.StartUtc - policy.ReleaseCutoff;
+        var timely = now <= deadline;
+        var redeemed = timely ? await db.ApologyVouchers.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.RedeemedReservationId == reservationId, cancellationToken) : null;
+        var voucher = redeemed is not null && redeemed.Status == ApologyVoucherStatus.Approved
+            && redeemed.ExpiresAtUtc > now && !await HoldsAnotherUsableVoucherAsync(db, redeemed, now, cancellationToken);
+        return new(booking.StartUtc <= now, timely ? booking.CreditsCharged : 0, voucher, deadline,
+            policy.CreditsEnabled || booking.CreditsCharged > 0 || voucher,
+            policy.WeeklyReservationLimitEnabled && booking.CountsTowardWeeklyLimit);
     }
 
     // User-facing planner mutations run under optimistic-concurrency retry: a double click or a
@@ -745,7 +767,7 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_ReservationNotFound");
         }
 
-        if (reservation.Status != ReservationStatus.Reserved)
+        if (reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
         {
             return ParkingResult.Failure("Parking_Error_InvalidState");
         }
@@ -755,12 +777,13 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
-        reservation.Release(now);
+        if (reservation.Status == ReservationStatus.CheckedIn) reservation.Complete(now);
+        else reservation.Release(now);
         var residentSpotAutomaticallyReturned = await RestoreAlternativeResidentReleasesAsync(
             dbContext, reservation, userId, timeZone, cancellationToken);
 
         // An early enough release frees the spot for others, so the charge is refunded in full.
-        var timely = policy.QualifiesForReleaseReward(reservation.StartUtc, now);
+        var timely = now <= (reservation.RefundDeadlineUtc ?? reservation.StartUtc - policy.ReleaseCutoff);
 
         // A voucher-paid booking gets its voucher back on the same timely terms as a refund.
         if (timely)
@@ -802,7 +825,7 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_ReservationNotFound");
         }
 
-        if (reservation.Status != ReservationStatus.Reserved)
+        if (reservation.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn))
         {
             return ParkingResult.Failure("Parking_Error_InvalidState");
         }
@@ -815,13 +838,16 @@ public sealed class ReservationService(
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
 
-        reservation.Cancel(now);
+        // A holder ending an already-started plan retains its elapsed interval and quota day.
+        if (reservation.Status == ReservationStatus.CheckedIn) reservation.Complete(now);
+        else if (reservation.StartUtc <= now) reservation.Release(now);
+        else reservation.Cancel(now);
         var residentSpotAutomaticallyReturned = await RestoreAlternativeResidentReleasesAsync(
             dbContext, reservation, userId, timeZone, cancellationToken);
 
         // Cancelling early enough to re-let the spot refunds the charge (or restores the apology
         // voucher that paid for it); a late cancel forfeits them.
-        var timely = policy.QualifiesForReleaseReward(reservation.StartUtc, now);
+        var timely = now <= (reservation.RefundDeadlineUtc ?? reservation.StartUtc - policy.ReleaseCutoff);
         if (timely && reservation.CreditsCharged > 0)
         {
             var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
@@ -850,7 +876,12 @@ public sealed class ReservationService(
     public Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(() => ReportBlockedSpotCoreAsync(userId, reservationId, relocate, photo, blockerPlate, cancellationToken), cancellationToken);
 
-    private async Task<BlockedSpotOutcome> ReportBlockedSpotCoreAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate, CancellationToken cancellationToken)
+    public Task<BlockedSpotOutcome> ReportBlockedResidentSpotAsync(Guid userId, Guid spotId, bool relocate,
+        BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ReportBlockedSpotCoreAsync(userId, Guid.Empty, relocate, photo,
+            blockerPlate, cancellationToken, spotId), cancellationToken);
+
+    private async Task<BlockedSpotOutcome> ReportBlockedSpotCoreAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate, CancellationToken cancellationToken, Guid? residentSpotId = null)
     {
         // The photo proof is not optional: without it the report voids a booking penalty-free on
         // bare word, and the spot manager would have nothing to judge the apology voucher by.
@@ -887,7 +918,25 @@ public sealed class ReservationService(
         await using var transaction = await dbContext.Database
             .BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
+        var now = timeProvider.GetUtcNow();
         var reservation = await FindOwnedAsync(dbContext, userId, reservationId, cancellationToken);
+        if (reservation is null && residentSpotId is { } assignedSpotId)
+        {
+            var ownSpot = await dbContext.ParkingSpots.FirstOrDefaultAsync(s => s.Id == assignedSpotId, cancellationToken);
+            var today = SiteTime.Today(now, timeZone);
+            var (start, end) = SiteTime.Day(today, timeZone);
+            if (ownSpot is null || !(await ResidentAllocation.AssignedDatesAsync(dbContext, ownSpot, userId,
+                    today, today, cancellationToken)).Contains(today)
+                || await dbContext.SpotReleases.AnyAsync(r => r.SpotId == assignedSpotId && r.Date == today, cancellationToken)
+                || await dbContext.Reservations.AnyAsync(r => r.SpotId == assignedSpotId
+                    && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+                    && r.StartUtc < end && r.EndUtc > start, cancellationToken))
+                return BlockedSpotOutcome.Failure("Parking_Error_NoOwnedSpot");
+            // Materialize only the reporter's existing entitlement for the incident history.
+            // This never charges credits or creates another overlapping right to capacity.
+            reservation = new Reservation(assignedSpotId, userId, start, end, false, now, countsTowardWeeklyLimit: false);
+            dbContext.Reservations.Add(reservation);
+        }
         if (reservation is null)
         {
             return BlockedSpotOutcome.Failure("Parking_Error_ReservationNotFound");
@@ -900,7 +949,6 @@ public sealed class ReservationService(
 
         // Recording the spot's state only makes sense while the driver can actually be standing
         // in front of it. This does not confirm arrival or change the planned reservation's state.
-        var now = timeProvider.GetUtcNow();
         if (now < reservation.StartUtc - EarlyBlockedReportWindow || now >= reservation.EndUtc)
         {
             return BlockedSpotOutcome.Failure("Parking_Error_BlockedReportWindow");
@@ -944,8 +992,7 @@ public sealed class ReservationService(
 
         // Void without penalty: the driver stands in front of an occupied spot through no fault
         // of their own, so the charge comes back in full no matter how close to the start. The
-        // spot stays bookable in the system (the squatter may leave any minute); repeated
-        // mismatches on one spot surface in the admin trend view instead.
+        // report temporarily blocks the spot until the window ends or a manager clears it.
         reservation.Cancel(now);
         var score = await GetOrCreateScoreAsync(dbContext, userId, cancellationToken);
         if (reservation.CreditsCharged > 0)
@@ -970,7 +1017,11 @@ public sealed class ReservationService(
                     && q.StartUtc < reservation.EndUtc && q.EndUtc > effectiveStartUtc)
                 .Select(q => q.OfferedSpotId!.Value)
                 .ToListAsync(cancellationToken);
-            var replacementSpotId = candidates.FirstOrDefault(id => id != reservation.SpotId && !held.Contains(id));
+            var originalType = await dbContext.ParkingSpots.Where(s => s.Id == reservation.SpotId)
+                .Select(s => s.Type).SingleAsync(cancellationToken);
+            var compatible = await dbContext.ParkingSpots.Where(s => candidates.Contains(s.Id) && s.Type == originalType)
+                .Select(s => s.Id).ToListAsync(cancellationToken);
+            var replacementSpotId = compatible.FirstOrDefault(id => id != reservation.SpotId && !held.Contains(id));
 
             if (replacementSpotId != Guid.Empty)
             {
@@ -978,7 +1029,7 @@ public sealed class ReservationService(
                 // nets to zero for the wallet while the ledger keeps a clean trail of the move.
                 replacement = new Reservation(replacementSpotId, userId, reservation.StartUtc, reservation.EndUtc,
                     reservation.IsOffPeak, now, reservation.CreditsCharged, reservation.FromQueue,
-                    reservation.CountsTowardWeeklyLimit);
+                    reservation.CountsTowardWeeklyLimit, reservation.RefundDeadlineUtc);
                 var replacementDate = SiteTime.Today(effectiveStartUtc, timeZone);
                 replacement.AttributeSharedCapacity(await dbContext.SpotReleases.AsNoTracking()
                     .Where(r => r.SpotId == replacementSpotId && r.Date == replacementDate)
@@ -992,6 +1043,9 @@ public sealed class ReservationService(
                         userId, IncentiveReason.ReservationCharge, -reservation.CreditsCharged, replacement.Id, now));
                 }
 
+                if (residentSpotId is not null)
+                    dbContext.SpotReleases.Add(new SpotRelease(reservation.SpotId, userId,
+                        SiteTime.Today(now, timeZone), now, 0, SpotReleaseSource.AlternativeBooking));
                 mismatch.MarkRelocated(replacementSpotId);
                 relocatedCode = await dbContext.ParkingSpots.AsNoTracking()
                     .Where(s => s.Id == replacementSpotId)
@@ -1035,12 +1089,10 @@ public sealed class ReservationService(
             }
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         if (voucherGranted)
         {
-            await notifications.NotifyAsync(userId, NotificationCategory.SelfService, NotificationLevel.Info,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, userId, NotificationCategory.SelfService, NotificationLevel.Info,
                 messages.ForEconomy(policy, "Parking_Notify_VoucherGranted_Title"),
                 messages.ForEconomy(policy, "Parking_Notify_VoucherGranted_Body"), cancellationToken);
 
@@ -1050,15 +1102,23 @@ public sealed class ReservationService(
             // case for this report within a sweep and tells the people who may actually judge it.
         }
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
+
         return relocatedCode is null
             ? BlockedSpotOutcome.Recorded(voucherGranted)
             : BlockedSpotOutcome.Relocated(relocatedCode, voucherGranted);
     }
-    public async Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default)
+    public Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => SendDueRemindersCoreAsync(cancellationToken), cancellationToken);
+
+    private async Task<int> SendDueRemindersCoreAsync(CancellationToken cancellationToken)
     {
         var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var now = timeProvider.GetUtcNow();
 
         // Remind once when the planned start is near. Past starts are ignored: the reminder is
@@ -1086,26 +1146,20 @@ public sealed class ReservationService(
             reservation.MarkReminderSent(now);
         }
 
-        // A conflicted row means the holder cancelled or a manager changed the booking while we
-        // were reading; the save keeps the rest and detached rows are simply not notified.
-        await OptimisticConcurrency.SaveSkippingConflictsAsync(dbContext, cancellationToken);
-
         var reminded = 0;
         foreach (var reservation in due)
         {
-            if (dbContext.Entry(reservation).State == EntityState.Detached)
-            {
-                continue;
-            }
-
             reminded++;
             var code = spotCodes.GetValueOrDefault(reservation.SpotId, string.Empty);
-            await notifications.NotifyAsync(reservation.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
+            await ParkingNotifications.EnqueueAsync(dbContext, now, reservation.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
                 messages["Parking_Notify_Reminder_Title"],
                 messages["Parking_Notify_Reminder_Body", code],
                 cancellationToken);
         }
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
         return reminded;
     }
 
@@ -1231,10 +1285,8 @@ public sealed class ReservationService(
 
         var waiting = await dbContext.QueueEntries.AsNoTracking()
             .Where(q => q.Status == QueueEntryStatus.Waiting)
-            .Select(q => new { q.UserId, q.StartUtc, q.EndUtc, q.CreatedAtUtc })
+            .Select(q => new { q.Id, q.UserId, q.StartUtc, q.EndUtc, q.CreatedAtUtc })
             .ToListAsync(cancellationToken);
-
-        int Priority(DateTimeOffset created) => (int)(now - created).TotalMinutes;
 
         var spotIds = mine.Where(q => q.OfferedSpotId != null).Select(q => q.OfferedSpotId!.Value).ToList();
         var codes = await dbContext.ParkingSpots.AsNoTracking()
@@ -1245,11 +1297,10 @@ public sealed class ReservationService(
         {
             // Position reflects the same first-come, first-served priority the matcher uses: how many overlapping
             // entries currently outrank me, plus one.
-            var myPriority = Priority(q.CreatedAtUtc);
             var position = q.Status == QueueEntryStatus.Offered
                 ? 0
                 : 1 + waiting.Count(w => w.StartUtc < q.EndUtc && w.EndUtc > q.StartUtc
-                    && Priority(w.CreatedAtUtc) > myPriority);
+                    && (w.CreatedAtUtc < q.CreatedAtUtc || w.CreatedAtUtc == q.CreatedAtUtc && w.Id.CompareTo(q.Id) < 0));
 
             return new QueueEntryDto(
                 q.Id, q.StartUtc, q.EndUtc, q.Status, position,
@@ -1260,9 +1311,14 @@ public sealed class ReservationService(
     }
 
     public Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => JoinQueueCoreAsync(userId, startUtc, endUtc, cancellationToken), cancellationToken);
+        JoinQueueAsync(userId, startUtc, endUtc, null, cancellationToken);
 
-    private async Task<ParkingResult> JoinQueueCoreAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken)
+    public Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc,
+        ParkingSpotType? requiredSpotType, CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => JoinQueueCoreAsync(userId, startUtc, endUtc, requiredSpotType, cancellationToken), cancellationToken);
+
+    private async Task<ParkingResult> JoinQueueCoreAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc,
+        ParkingSpotType? requiredSpotType, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         if (endUtc <= startUtc)
@@ -1318,7 +1374,9 @@ public sealed class ReservationService(
 
         // The waitlist only opens when the window is genuinely full (nothing the user could book now).
         var available = await GetAvailableSpotsAsync(startUtc, endUtc, cancellationToken);
-        if (available.Count > 0)
+        if (requiredSpotType == ParkingSpotType.Visitor || requiredSpotType is { } type && !Enum.IsDefined(type))
+            return ParkingResult.Failure("Parking_Error_InvalidState");
+        if (available.Any(s => requiredSpotType is null || s.Type == requiredSpotType))
         {
             return ParkingResult.Failure("Parking_Queue_Error_NotFull");
         }
@@ -1345,7 +1403,7 @@ public sealed class ReservationService(
             return ParkingResult.Failure(plannerError);
         }
 
-        dbContext.QueueEntries.Add(new QueueEntry(userId, startUtc, endUtc, now));
+        dbContext.QueueEntries.Add(new QueueEntry(userId, startUtc, endUtc, now, requiredSpotType));
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return ParkingResult.Success;
@@ -1377,9 +1435,13 @@ public sealed class ReservationService(
     }
 
     public Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default) =>
-        OptimisticConcurrency.RetryAsync(() => ClaimQueueOfferCoreAsync(userId, queueEntryId, cancellationToken), cancellationToken);
+        ClaimQueueOfferAsync(userId, queueEntryId, false, cancellationToken);
 
-    private async Task<ParkingResult> ClaimQueueOfferCoreAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken)
+    public Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, bool confirmResidentRelease,
+        CancellationToken cancellationToken = default) =>
+        OptimisticConcurrency.RetryAsync(() => ClaimQueueOfferCoreAsync(userId, queueEntryId, confirmResidentRelease, cancellationToken), cancellationToken);
+
+    private async Task<ParkingResult> ClaimQueueOfferCoreAsync(Guid userId, Guid queueEntryId, bool confirmResidentRelease, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -1399,7 +1461,7 @@ public sealed class ReservationService(
         // and balance check as any direct booking. The offer is re-checked and marked claimed inside
         // that booking's transaction, so the two cannot come apart.
         return await ReserveCoreAsync(userId, spotId, entry.StartUtc, entry.EndUtc, fromQueue: true, queueEntryId,
-            confirmResidentRelease: false, handoffId: null, handoffActorId: null, cancellationToken);
+            confirmResidentRelease, handoffId: null, handoffActorId: null, cancellationToken);
     }
 
     public async Task<int> ProcessQueueAsync(CancellationToken cancellationToken = default)
@@ -1407,9 +1469,6 @@ public sealed class ReservationService(
         var matched = await OptimisticConcurrency.RetryAsync(
             () => ProcessQueueCoreAsync(cancellationToken), cancellationToken);
 
-        // Delivery happens after the matching transaction and outside its retry boundary. A
-        // notification failure must never re-run an already committed matching decision.
-        await NotifyQueueMatchesAsync(matched, cancellationToken);
         return matched.Offers.Count;
     }
 
@@ -1440,26 +1499,44 @@ public sealed class ReservationService(
 
         // Expire passed windows; lapse stale offers back to waiting so the spot can move on.
         var lapsedOffers = new List<(QueueEntry Entry, Guid SpotId)>();
+        var withdrawnOffers = new List<(QueueEntry Entry, Guid SpotId)>();
+        var skipThisRound = new HashSet<Guid>();
+        var deliveryIds = active.Where(q => q.OfferEmailDeliveryId != null).Select(q => q.OfferEmailDeliveryId!.Value).ToList();
+        var deliveries = await dbContext.NotificationEmailDeliveries.AsNoTracking()
+            .Where(d => deliveryIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
         foreach (var entry in active)
         {
             if (entry.EndUtc <= now)
             {
                 entry.Expire();
             }
-            else if (!ReservationWindowRules.MatchesMode(
-                         entry.StartUtc, entry.EndUtc, policy.ReservationTimeMode, timeZone)
-                     || policy.GetReservationDateAvailability(entry.StartUtc, now, timeZone) != ReservationDateAvailability.Allowed)
-            {
-                // A settings change may make an older queue request invalid. Do not let it keep a
-                // spot held or turn into a booking that the current calendar would reject.
-                entry.Cancel();
-            }
             else if (entry.Status == QueueEntryStatus.Offered && entry.OfferExpiresAtUtc is { } expires && expires <= now)
             {
-                // Missed offers demote: the entry rejoins at the back so the next freed spot goes
-                // to the next in line, not back to the same unresponsive head of the queue.
-                lapsedOffers.Add((entry, entry.OfferedSpotId!.Value));
-                entry.RequeueAfterMissedOffer(now);
+                if (entry.OfferEmailDeliveryId is { } emailId && deliveries.TryGetValue(emailId, out var delivery)
+                    && (delivery.SentAtUtc is null || delivery.SentAtUtc >= expires))
+                {
+                    // Delivery failure is not the waiter's missed response. Release the capacity
+                    // for others, retain FIFO position and retry an offer after delivery recovers.
+                    withdrawnOffers.Add((entry, entry.OfferedSpotId!.Value));
+                    entry.WithdrawOffer();
+                    skipThisRound.Add(entry.Id);
+                }
+                else
+                {
+                    lapsedOffers.Add((entry, entry.OfferedSpotId!.Value));
+                    entry.RequeueAfterMissedOffer(now);
+                }
+            }
+            else if (entry.Status == QueueEntryStatus.Offered && entry.OfferedSpotId is { } offeredSpot)
+            {
+                var available = await ParkingCapacity.AvailableAsync(dbContext, entry.StartUtc, entry.EndUtc,
+                    now, timeZone, false, cancellationToken);
+                if (!available.Any(s => s.Id == offeredSpot && (entry.RequiredSpotType == null || s.Type == entry.RequiredSpotType)))
+                {
+                    withdrawnOffers.Add((entry, offeredSpot));
+                    entry.WithdrawOffer();
+                    entry.TrackOfferEmail(null);
+                }
             }
         }
 
@@ -1476,6 +1553,7 @@ public sealed class ReservationService(
             .Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now)
             .OrderByDescending(Priority)
             .ThenBy(q => q.CreatedAtUtc)
+            .ThenBy(q => q.Id)
             .ToList();
         // Load one consistent snapshot inside the transaction, avoiding two database round-trips
         // per waiter while retaining its locks until all offers have been saved.
@@ -1486,47 +1564,14 @@ public sealed class ReservationService(
                 && r.StartUtc < latestEnd && r.EndUtc > earliestStart)
             .Select(r => new QueueReservationSnapshot(r.SpotId, r.UserId, r.StartUtc, r.EndUtc))
             .ToListAsync(cancellationToken);
-        var candidateSpots = await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor)
-            .Select(s => new QueueSpotSnapshot(s.Id, s.OwnerId))
-            .ToListAsync(cancellationToken);
-        var requestDates = waiting
-            .Select(q => SiteTime.Today(q.StartUtc, timeZone))
-            .Distinct()
-            .ToList();
-        List<QueueReleaseSnapshot> releases = requestDates.Count == 0
-            ? []
-            : await dbContext.SpotReleases.AsNoTracking()
-                .Where(r => requestDates.Contains(r.Date))
-                .Select(r => new QueueReleaseSnapshot(r.SpotId, r.Date))
-                .ToListAsync(cancellationToken);
-        var releasedByDate = releases.ToLookup(r => r.Date, r => r.SpotId);
-        var candidatesByWindow = new Dictionary<(DateTimeOffset StartUtc, DateTimeOffset EndUtc), IReadOnlyList<Guid>>();
-
-        IReadOnlyList<Guid> CandidatesFor(QueueEntry entry)
-        {
-            var key = (entry.StartUtc, entry.EndUtc);
-            if (candidatesByWindow.TryGetValue(key, out var cached))
-            {
-                return cached;
-            }
-
-            var blocked = queuedReservations
-                .Where(r => r.StartUtc < entry.EndUtc && r.EndUtc > entry.StartUtc)
-                .Select(r => r.SpotId)
-                .ToHashSet();
-            var released = releasedByDate[SiteTime.Today(entry.StartUtc, timeZone)].ToHashSet();
-            var candidates = candidateSpots
-                .Where(s => !blocked.Contains(s.Id) && (s.OwnerId == null || released.Contains(s.Id)))
-                .Select(s => s.Id)
-                .ToList();
-            candidatesByWindow[key] = candidates;
-            return candidates;
-        }
+        var candidatesByWindow = new Dictionary<(DateTimeOffset Start, DateTimeOffset End), List<ParkingSpot>>();
 
         var offers = new List<(QueueEntry Entry, Guid SpotId)>();
         foreach (var entry in waiting)
         {
+            if (skipThisRound.Contains(entry.Id)
+                || entry.OfferEmailDeliveryId is { } emailId && deliveries.TryGetValue(emailId, out var pendingDelivery)
+                    && pendingDelivery.SentAtUtc is null) continue;
             // A user who already holds a reservation for the window could never claim the offer
             // (own-conflict) — skip them rather than pinning a spot on an unclaimable hold.
             var hasOverlappingReservation = queuedReservations.Any(r => r.UserId == entry.UserId
@@ -1536,9 +1581,17 @@ public sealed class ReservationService(
                 continue;
             }
 
-            var candidates = CandidatesFor(entry);
-            var spotId = candidates.FirstOrDefault(id => !heldEntries.Any(held =>
-                held.OfferedSpotId == id && held.Overlaps(entry.StartUtc, entry.EndUtc)));
+            if (!await QueueEntryIsEligibleAsync(dbContext, entry, policy, timeZone, now, cancellationToken)) continue;
+            var key = (entry.StartUtc, entry.EndUtc);
+            if (!candidatesByWindow.TryGetValue(key, out var candidates))
+            {
+                candidates = await ParkingCapacity.AvailableAsync(dbContext, entry.StartUtc, entry.EndUtc,
+                    now, timeZone, false, cancellationToken);
+                candidatesByWindow[key] = candidates;
+            }
+            var spotId = candidates.Where(s => entry.RequiredSpotType == null || s.Type == entry.RequiredSpotType)
+                .Select(s => s.Id).FirstOrDefault(id => !heldEntries.Any(held =>
+                    held.OfferedSpotId == id && held.Overlaps(entry.StartUtc, entry.EndUtc)));
             if (spotId == Guid.Empty)
             {
                 continue;
@@ -1551,24 +1604,31 @@ public sealed class ReservationService(
 
         // A lost race must retry the entire decision; dropping only the conflicting queue row
         // would leave other offers based on its stale reservation/hold snapshot.
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         var codes = new Dictionary<Guid, string>();
-        if (offers.Count > 0 || lapsedOffers.Count > 0)
+        if (offers.Count > 0 || lapsedOffers.Count > 0 || withdrawnOffers.Count > 0)
         {
-            var spotIdsToName = offers.Select(o => o.SpotId).Concat(lapsedOffers.Select(l => l.SpotId)).Distinct().ToList();
+            var spotIdsToName = offers.Select(o => o.SpotId).Concat(lapsedOffers.Select(l => l.SpotId))
+                .Concat(withdrawnOffers.Select(l => l.SpotId)).Distinct().ToList();
             codes = await dbContext.ParkingSpots.AsNoTracking()
                 .Where(s => spotIdsToName.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
         }
 
+        var matched = new QueueMatchResult(policy.QueueOfferMinutes, now + offerHold, timeZone,
+            offers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty),
+                o.Entry.OfferExpiresAtUtc, Entry: o.Entry)).ToList(),
+            lapsedOffers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty)))
+                .Concat(withdrawnOffers.Select(o => new QueueMatchNotification(o.Entry.UserId,
+                    codes.GetValueOrDefault(o.SpotId, string.Empty), KeepsPosition: true))).ToList());
+        await NotifyQueueMatchesAsync(dbContext, now, matched, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new QueueMatchResult(policy.QueueOfferMinutes, now + offerHold, timeZone,
-            offers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty))).ToList(),
-            lapsedOffers.Select(o => new QueueMatchNotification(o.Entry.UserId, codes.GetValueOrDefault(o.SpotId, string.Empty))).ToList());
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
+        return matched;
     }
 
-    private async Task NotifyQueueMatchesAsync(QueueMatchResult matched, CancellationToken cancellationToken)
+    private async Task NotifyQueueMatchesAsync(D3ParkingDbContext dbContext, DateTimeOffset now, QueueMatchResult matched, CancellationToken cancellationToken)
     {
         if (matched.Offers.Count > 0 || matched.LapsedOffers.Count > 0)
         {
@@ -1576,33 +1636,74 @@ public sealed class ReservationService(
             // local-time deadline. Without a configured canonical URL (dev) the button is omitted.
             var baseUrl = await siteSettings.GetCanonicalBaseUrlAsync(cancellationToken);
             var claimUrl = baseUrl is null ? null : $"{baseUrl.TrimEnd('/')}/parking";
-            var deadlineLocal = SiteTime.TimeOfDay(matched.ExpiresAtUtc, matched.TimeZone).ToString("HH\\:mm");
 
             foreach (var offer in matched.Offers)
             {
-                await notifications.NotifyAsync(offer.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
+                var expires = offer.ExpiresAtUtc ?? matched.ExpiresAtUtc;
+                var deadlineLocal = SiteTime.TimeOfDay(expires, matched.TimeZone).ToString("HH\\:mm");
+                var deliveryId = await ParkingNotifications.EnqueueAsync(dbContext, now, offer.UserId, NotificationCategory.SelfService, NotificationLevel.Warning,
                     messages["Parking_Notify_QueueOffer_Title"],
-                    messages["Parking_Notify_QueueOffer_Body", offer.SpotCode, matched.OfferMinutes],
+                    messages["Parking_Notify_QueueOffer_Body", offer.SpotCode, Math.Max(1, (int)Math.Ceiling((expires - now).TotalMinutes))],
                     email: true,
                     new NotificationEmailOptions(
                         ActionText: claimUrl is null ? null : messages["Email_QueueOffer_Action"].Value,
                         ActionUrl: claimUrl,
                         DeadlineText: messages["Email_QueueOffer_Deadline", deadlineLocal].Value),
                     cancellationToken);
+                offer.Entry?.TrackOfferEmail(deliveryId);
             }
 
             // The demoted waiter learns why the spot is gone — bell/push only, no email needed.
             foreach (var lapsed in matched.LapsedOffers)
             {
-                await notifications.NotifyAsync(lapsed.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
-                    messages["Parking_Notify_OfferLapsed_Title"],
-                    messages["Parking_Notify_OfferLapsed_Body", lapsed.SpotCode],
+                await ParkingNotifications.EnqueueAsync(dbContext, now, lapsed.UserId, NotificationCategory.SelfService, NotificationLevel.Info,
+                    messages[lapsed.KeepsPosition ? "Parking_Notify_OfferWithdrawn_Title" : "Parking_Notify_OfferLapsed_Title"],
+                    messages[lapsed.KeepsPosition ? "Parking_Notify_OfferWithdrawn_Body" : "Parking_Notify_OfferLapsed_Body", lapsed.SpotCode],
                     cancellationToken);
             }
         }
     }
 
-    private sealed record QueueMatchNotification(Guid UserId, string SpotCode);
+    private sealed record QueueMatchNotification(Guid UserId, string SpotCode, DateTimeOffset? ExpiresAtUtc = null,
+        bool KeepsPosition = false, QueueEntry? Entry = null);
+
+    private static async Task<bool> QueueEntryIsEligibleAsync(D3ParkingDbContext db, QueueEntry entry,
+        IncentivePolicy policy, TimeZoneInfo zone, DateTimeOffset now, CancellationToken ct)
+    {
+        if (entry.EndUtc <= now || entry.RequiredSpotType == ParkingSpotType.Visitor) return false;
+        if (entry.Status == QueueEntryStatus.Waiting && entry.OfferEmailDeliveryId is { } deliveryId
+            && await db.NotificationEmailDeliveries.AnyAsync(d => d.Id == deliveryId && d.SentAtUtc == null, ct)) return false;
+        if (await db.Users.AnyAsync(u => u.Id == entry.UserId && u.Status != AccountStatus.Active, ct)) return false;
+        if (await db.Reservations.AnyAsync(r => r.UserId == entry.UserId
+            && (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
+            && r.StartUtc < entry.EndUtc && r.EndUtc > entry.StartUtc, ct)) return false;
+        if (await ValidateWeeklyPlannerLimitAsync(db, entry.UserId, entry.StartUtc, policy, zone, ct) is not null) return false;
+        var score = await db.ParkerScores.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == entry.UserId, ct)
+            ?? new ParkerScore(entry.UserId);
+        if (score.QueueBannedUntilUtc > now) return false;
+        if (policy.CreditsEnabled)
+        {
+            score.GrantCreditIfDue(policy.MonthlyCreditAllowance, ParkerScore.PeriodOf(now, policy.BudgetRenewalPeriod, zone), now);
+            if (score.Credits < policy.ComputeReservationCost(0)
+                && !await db.ApologyVouchers.AnyAsync(v => v.UserId == entry.UserId && v.Status == ApologyVoucherStatus.Approved
+                    && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now, ct)) return false;
+        }
+        if (policy.ResidentAlternativeBookingPolicy == ResidentAlternativeBookingPolicy.Deny)
+        {
+            var own = await db.ParkingSpots.AsNoTracking().FirstOrDefaultAsync(s => s.OwnerId == entry.UserId
+                || db.ParkingSpotResidents.Any(r => r.SpotId == s.Id && r.UserId == entry.UserId && r.RemovedAtUtc == null), ct);
+            if (own is not null)
+            {
+                var first = SiteTime.Today(entry.StartUtc, zone);
+                var last = SiteTime.Today(entry.EndUtc.AddTicks(-1), zone);
+                var assigned = await ResidentAllocation.AssignedDatesAsync(db, own, entry.UserId, first, last, ct);
+                var released = await db.SpotReleases.Where(r => r.SpotId == own.Id && r.Date >= first && r.Date <= last)
+                    .Select(r => r.Date).ToListAsync(ct);
+                if (assigned.Any(d => !released.Contains(d))) return false;
+            }
+        }
+        return true;
+    }
 
     private sealed record QueueMatchResult(int OfferMinutes, DateTimeOffset ExpiresAtUtc, TimeZoneInfo TimeZone,
         IReadOnlyList<QueueMatchNotification> Offers, IReadOnlyList<QueueMatchNotification> LapsedOffers);
@@ -1689,37 +1790,25 @@ public sealed class ReservationService(
             return;
         }
 
-        var holdsAnotherUsable = await dbContext.ApologyVouchers.AnyAsync(v =>
-            v.UserId == voucher.UserId && v.Id != voucher.Id
-            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
-            && (v.Status == ApologyVoucherStatus.PendingApproval || v.Status == ApologyVoucherStatus.Approved),
-            cancellationToken);
-        if (!holdsAnotherUsable)
+        if (voucher.Status == ApologyVoucherStatus.Approved && voucher.ExpiresAtUtc > now
+            && !await HoldsAnotherUsableVoucherAsync(dbContext, voucher, now, cancellationToken))
         {
             voucher.Restore();
         }
     }
 
+    private static Task<bool> HoldsAnotherUsableVoucherAsync(D3ParkingDbContext db, ApologyVoucher voucher,
+        DateTimeOffset now, CancellationToken ct) => db.ApologyVouchers.AnyAsync(v =>
+            v.UserId == voucher.UserId && v.Id != voucher.Id
+            && v.RedeemedAtUtc == null && v.ExpiresAtUtc > now
+            && (v.Status == ApologyVoucherStatus.PendingApproval || v.Status == ApologyVoucherStatus.Approved), ct);
+
     // Raw availability for a window (active, unreserved, owned-spot visibility) without the waitlist
     // hold filter — the queue matcher manages holds itself in memory.
-    private static async Task<List<Guid>> AvailableSpotIdsAsync(D3ParkingDbContext dbContext, IncentivePolicy policy, TimeZoneInfo timeZone, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        var requestDate = SiteTime.Today(startUtc, timeZone);
-
-        var blocked = dbContext.Reservations
-            .Where(r => (r.Status == ReservationStatus.Reserved || r.Status == ReservationStatus.CheckedIn)
-                && r.StartUtc < endUtc && r.EndUtc > startUtc)
-            .Select(r => r.SpotId);
-
-        var released = dbContext.SpotReleases.Where(r => r.Date == requestDate).Select(r => r.SpotId);
-
-        return await dbContext.ParkingSpots.AsNoTracking()
-            .Where(s => s.IsActive && s.Type != ParkingSpotType.Visitor
-                && !blocked.Contains(s.Id)
-                && (s.OwnerId == null || released.Contains(s.Id)))
-            .Select(s => s.Id)
-            .ToListAsync(cancellationToken);
-    }
+    private static async Task<List<Guid>> AvailableSpotIdsAsync(D3ParkingDbContext dbContext, IncentivePolicy policy,
+        TimeZoneInfo timeZone, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset now, CancellationToken cancellationToken) =>
+        (await ParkingCapacity.AvailableAsync(dbContext, startUtc, endUtc, now, timeZone, false, cancellationToken))
+            .Select(s => s.Id).ToList();
 
     private static async Task<Dictionary<Guid, string>> GetSpotCodesAsync(D3ParkingDbContext dbContext, IReadOnlyList<Reservation> reservations, CancellationToken cancellationToken)
     {
@@ -1885,7 +1974,7 @@ public sealed class ReservationService(
         return awards;
     }
 
-    private async Task NotifyNewAchievementsAsync(
+    private async Task NotifyNewAchievementsAsync(D3ParkingDbContext dbContext, DateTimeOffset now,
         IReadOnlyCollection<AchievementAward> awards,
         CancellationToken cancellationToken)
     {
@@ -1899,7 +1988,7 @@ public sealed class ReservationService(
         foreach (var award in awards)
         {
             var name = messages[$"Parking_BadgeName_{award.Badge}"].Value;
-            await notifications.NotifyAsync(
+            await ParkingNotifications.EnqueueAsync(dbContext, now,
                 award.UserId,
                 NotificationCategory.SelfService,
                 NotificationLevel.Info,

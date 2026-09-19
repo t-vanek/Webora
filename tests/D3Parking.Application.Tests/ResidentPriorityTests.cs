@@ -53,6 +53,11 @@ public class ResidentPriorityTests
             .UseSqlServer(builder.ConnectionString)
             .Options;
 
+    }
+
+    [SetUp]
+    public async Task ResetDatabaseAsync()
+    {
         await using var dbContext = new D3ParkingDbContext(_options);
         await dbContext.Database.EnsureDeletedAsync();
         await dbContext.Database.EnsureCreatedAsync();
@@ -157,7 +162,8 @@ public class ResidentPriorityTests
             Assert.That(namedDay.AssignedResident?.Name, Is.EqualTo("Jan Novák"));
             Assert.That(namedDay.Bookings.Single().User.Name, Is.EqualTo("Petra Svobodová"));
             Assert.That(namedDay.Bookings.Single().ReservationId, Is.EqualTo(reservationId));
-            Assert.That(namedDay.CanReclaim, Is.True);
+            Assert.That(namedDay.CanReclaim, Is.False);
+            Assert.That(namedDay.ReclaimUnavailableReason, Is.Not.Empty);
         });
 
         var result = await residents.ReclaimAsync(owner, Tomorrow, Tomorrow);
@@ -213,7 +219,7 @@ public class ResidentPriorityTests
             });
             Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.False);
         }
-        Assert.That(sent.Sent, Does.Contain((guest, "Parking_Notify_ResidentMoved_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((guest, "Parking_Notify_ResidentMoved_Title")));
     }
 
     [Test]
@@ -257,7 +263,7 @@ public class ResidentPriorityTests
             Assert.That((await check.ParkerScores.SingleAsync(s => s.UserId == guest)).Credits, Is.EqualTo(10));
             Assert.That(await check.QueueEntries.AnyAsync(q => q.UserId == guest && q.Status == QueueEntryStatus.Waiting), Is.True);
         }
-        Assert.That(sent.Sent, Does.Contain((guest, "Parking_Notify_ResidentQueued_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((guest, "Parking_Notify_ResidentQueued_Title")));
     }
 
     [Test]
@@ -295,7 +301,7 @@ public class ResidentPriorityTests
                 && (q.Status == QueueEntryStatus.Waiting || q.Status == QueueEntryStatus.Offered)), Is.False);
             Assert.That(await check.SpotReleases.AnyAsync(r => r.SpotId == spot), Is.False);
         }
-        Assert.That(sent.Sent, Does.Contain((guest, "Parking_Notify_ResidentCancelled_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((guest, "Parking_Notify_ResidentCancelled_Title")));
     }
 
     [Test]
@@ -326,7 +332,7 @@ public class ResidentPriorityTests
         }
 
         var result = await residents.ReclaimAsync(owner, Today, Today);
-        Assert.That(result.Errors, Does.Contain("Parking_Error_ResidentReclaimManagerRequired"));
+        Assert.That(result.Errors, Does.Contain("Parking_Error_StartedReservationProtected"));
 
         await using var check = new D3ParkingDbContext(_options);
         Assert.That((await check.Reservations.SingleAsync(r => r.Id == reservationId)).Status,
@@ -367,7 +373,7 @@ public class ResidentPriorityTests
                 "The waiter lost the hold through no fault of theirs; their queue position must survive.");
         }
 
-        Assert.That(sent.Sent, Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
     }
 
     [Test]
@@ -407,7 +413,7 @@ public class ResidentPriorityTests
             Assert.That(entry.OfferedSpotId, Is.Null);
         }
 
-        Assert.That(sent.Sent, Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((waiter, "Parking_Notify_QueueHoldReclaimed_Title")));
     }
 
     [Test]

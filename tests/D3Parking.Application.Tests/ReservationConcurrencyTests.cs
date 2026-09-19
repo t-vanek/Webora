@@ -385,7 +385,7 @@ public class ReservationConcurrencyTests
     }
 
     [Test]
-    public async Task Named_handoff_does_not_bypass_the_global_booking_calendar()
+    public async Task An_existing_named_handoff_survives_a_later_calendar_restriction()
     {
         var residentId = Guid.NewGuid();
         var recipientId = Guid.NewGuid();
@@ -396,6 +396,8 @@ public class ReservationConcurrencyTests
             spot.Id, residentId, recipientId, sunday, sunday.AddHours(8), Now, Now.AddHours(6));
         await SeedAsync(db =>
         {
+            db.Users.Add(new ApplicationUser { Id = recipientId, UserName = $"recipient-{recipientId}", Status = AccountStatus.Active });
+            GrantParkingReserve(db, recipientId);
             db.ParkingSpots.Add(spot);
             db.ResidentSpotHandoffs.Add(handoff);
         });
@@ -412,14 +414,13 @@ public class ReservationConcurrencyTests
 
         var result = await service.AcceptHandoffAsync(recipientId, handoff.Id);
 
-        Assert.That(result.Succeeded, Is.False);
-        Assert.That(result.Errors, Does.Contain("Parking_Error_ReservationWeekdayNotAllowed"));
+        Assert.That(result.Succeeded, Is.True, string.Join(",", result.Errors));
         await using var db = new D3ParkingDbContext(_options);
         Assert.Multiple(() =>
         {
-            Assert.That(db.Reservations.Any(r => r.SpotId == spot.Id), Is.False);
+            Assert.That(db.Reservations.Any(r => r.SpotId == spot.Id && r.StartUtc == sunday), Is.True);
             Assert.That(db.ResidentSpotHandoffs.Single(h => h.Id == handoff.Id).Status,
-                Is.EqualTo(ResidentSpotHandoffStatus.Offered));
+                Is.EqualTo(ResidentSpotHandoffStatus.Accepted));
         });
     }
 

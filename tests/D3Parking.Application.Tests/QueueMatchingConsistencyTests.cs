@@ -136,11 +136,12 @@ public sealed class QueueMatchingConsistencyTests
         var reserved = await db.Reservations.AnyAsync(r => r.SpotId == spot.Id && r.Status == ReservationStatus.Reserved);
         Assert.Multiple(() =>
         {
-            Assert.That(offered ^ reserved, Is.True, "Exactly one competing operation obtains the window.");
+            Assert.That(offered, Is.True, "The existing eligible waiter always has priority, regardless of which transaction starts first.");
+            Assert.That(reserved, Is.False);
             Assert.That(booking.Result.Succeeded, Is.EqualTo(reserved));
             if (offered)
             {
-                Assert.That(booking.Result.Errors, Does.Contain("Parking_Error_SpotHeld"));
+                Assert.That(booking.Result.Errors.Any(e => e is "Parking_Error_SpotHeld" or "Parking_Error_QueueHasPriority"), Is.True);
             }
         });
     }

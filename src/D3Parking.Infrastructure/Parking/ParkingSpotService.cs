@@ -25,6 +25,24 @@ public sealed class ParkingSpotService(
     TimeProvider timeProvider,
     IStringLocalizer<ParkingMessages> messages) : IParkingSpotService
 {
+    public async Task<ParkingResult> ResolveTemporaryBlockAsync(Guid spotId, Guid actingUserId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        if (!await EffectivePermissions.HasActiveUserPermissionAsync(db, actingUserId, Permissions.Parking.ManageSpots, cancellationToken))
+            return ParkingResult.Failure("Parking_Error_AccessDenied");
+        var now = timeProvider.GetUtcNow();
+        var blocks = await db.OccupancyMismatches.Where(m => m.SpotId == spotId && m.ResolvedAtUtc == null && m.EndUtc > now)
+            .ToListAsync(cancellationToken);
+        if (blocks.Count == 0) return ParkingResult.Success;
+        foreach (var block in blocks) block.Resolve(now);
+        db.AccountAuditEvents.Add(new AccountAuditEvent(actingUserId, AccountAuditEventType.SettingsChanged,
+            $"admin:{actingUserId}", $"Parking spot {spotId}: physical obstruction cleared; reports={blocks.Count}.", now));
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return ParkingResult.Success;
+    }
+
     public async Task<IReadOnlyList<ParkingSpotDto>> ListAsync(bool includeInactive = true, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -489,15 +507,6 @@ public sealed class ParkingSpotService(
                 AccountAuditEventType.SettingsChanged, $"admin:{auditedActor}",
                 $"Parking spot {id}: active={active}; existing bookings retained.", timeProvider.GetUtcNow()));
         }
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
-        }
-
         // Deactivating a spot leaves its upcoming reservations stranded, so warn the holders to re-book.
         if (!active)
         {
@@ -509,14 +518,27 @@ public sealed class ParkingSpotService(
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            foreach (var holderId in affected)
+            affected.AddRange(await dbContext.ParkingSpotResidents.AsNoTracking()
+                .Where(r => r.SpotId == id && r.RemovedAtUtc == null).Select(r => r.UserId).ToListAsync(cancellationToken));
+            if (spot.OwnerId is { } owner) affected.Add(owner);
+            foreach (var holderId in affected.Distinct())
             {
-                await notifications.NotifyAsync(holderId, NotificationCategory.Administrative, NotificationLevel.Warning,
+                await ParkingNotifications.EnqueueAsync(dbContext, now, holderId, NotificationCategory.Administrative, NotificationLevel.Warning,
                     messages["Parking_Notify_SpotDeactivated_Title"],
                     messages["Parking_Notify_SpotDeactivated_Body", spot.Code], email: true, cancellationToken);
             }
         }
 
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ParkingResult.Failure("Parking_Error_ConcurrentChange");
+        }
+
+        await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
         return ParkingResult.Success;
     }
 

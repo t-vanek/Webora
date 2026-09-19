@@ -15,6 +15,8 @@ public class QueueEntry : Entity
 
     public DateTimeOffset EndUtc { get; private set; }
 
+    public ParkingSpotType? RequiredSpotType { get; private set; }
+
     public QueueEntryStatus Status { get; private set; } = QueueEntryStatus.Waiting;
 
     /// <summary>Join time; the queue is served first-in, first-out by this.</summary>
@@ -26,9 +28,15 @@ public class QueueEntry : Entity
     /// <summary>When the current offer's claim window closes; after this the hold lapses.</summary>
     public DateTimeOffset? OfferExpiresAtUtc { get; private set; }
 
+    /// <summary>Durable email for the current/withdrawn offer, when external delivery was requested.</summary>
+    public Guid? OfferEmailDeliveryId { get; private set; }
+
+    public void TrackOfferEmail(Guid? deliveryId) => OfferEmailDeliveryId = deliveryId;
+
     private QueueEntry() { }
 
-    public QueueEntry(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset createdAtUtc)
+    public QueueEntry(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, DateTimeOffset createdAtUtc,
+        ParkingSpotType? requiredSpotType = null)
     {
         if (endUtc <= startUtc)
             throw new ArgumentException("Queue window end must be after its start.", nameof(endUtc));
@@ -37,6 +45,7 @@ public class QueueEntry : Entity
         StartUtc = startUtc;
         EndUtc = endUtc;
         CreatedAtUtc = createdAtUtc;
+        RequiredSpotType = requiredSpotType;
     }
 
     public bool IsActive => Status is QueueEntryStatus.Waiting or QueueEntryStatus.Offered;
@@ -49,7 +58,8 @@ public class QueueEntry : Entity
     {
         Status = QueueEntryStatus.Offered;
         OfferedSpotId = spotId;
-        OfferExpiresAtUtc = expiresAtUtc;
+        OfferExpiresAtUtc = expiresAtUtc < EndUtc ? expiresAtUtc : EndUtc;
+        OfferEmailDeliveryId = null;
     }
 
     /// <summary>Drops an unclaimed offer back to waiting so the spot can go to the next in line.</summary>
@@ -69,6 +79,7 @@ public class QueueEntry : Entity
     public void RequeueAfterMissedOffer(DateTimeOffset at)
     {
         WithdrawOffer();
+        OfferEmailDeliveryId = null;
         CreatedAtUtc = at;
     }
 

@@ -18,6 +18,30 @@ public sealed class NotificationService(
 {
     private const int MaxBatchDeliveryConcurrency = 8;
 
+    public async Task PublishPersistedAsync(IReadOnlyCollection<Guid> notificationIds, CancellationToken cancellationToken = default)
+    {
+        if (notificationIds.Count == 0) return;
+        try
+        {
+            await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var records = await db.Notifications.AsNoTracking().Where(n => notificationIds.Contains(n.Id)).ToListAsync(cancellationToken);
+            foreach (var notification in records)
+            {
+                var rule = await ruleService.GetAsync(notification.Category, notification.Level, cancellationToken);
+                var preferences = await db.NotificationPreferences.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.UserId == notification.UserId, cancellationToken);
+                if (rule.LiveEnabled && (IsMandatory(notification.Level) || preferences is null
+                    || preferences.Allows(notification.Category) && !preferences.IsCurrentlyMuted(timeProvider.GetUtcNow())))
+                    await publisher.PublishAsync(notification.UserId, mapper.ToDto(notification), cancellationToken);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The committed inbox and email outbox remain available even when live push fails.
+            logger.LogWarning(ex, "Live delivery of persisted parking notifications failed.");
+        }
+    }
+
     public async Task<int> NotifyManyAsync(IReadOnlyCollection<NotificationRequest> requests, CancellationToken cancellationToken = default)
     {
         if (requests.Count == 0)

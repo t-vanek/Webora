@@ -34,12 +34,51 @@ public class MigrationDeploymentTests
             db.NotificationEmailDeliveries.Add(notification);
             await db.SaveChangesAsync();
             var before = await DeploymentDatabase.InspectAsync(db, CancellationToken.None);
-            Assert.That(before.Pending, Has.Length.EqualTo(1));
-            Assert.That(before.Risky, Is.Empty);
+            Assert.That(before.Pending, Does.Contain("20260914112604_AddDurableEmailOutbox"));
+            Assert.That(before.Risky, Is.EqualTo(new[] { "20260919191636_PreserveParkingWorkflowPromises" }),
+                "Freezing existing refund deadlines is an explicit data migration that the deployment review must show.");
             await db.Database.MigrateAsync();
             Assert.That(await db.ParkingSpots.AnyAsync(s => s.Id == spot.Id), Is.True);
             Assert.That(await db.NotificationEmailDeliveries.AnyAsync(d => d.Id == notification.Id && d.Message == "Keep me"), Is.True);
             Assert.That(await db.EmailDeliveries.CountAsync(), Is.Zero);
+            Assert.That(db.Database.HasPendingModelChanges(), Is.False);
+        }
+        finally { await db.Database.EnsureDeletedAsync(); }
+    }
+
+    [Test]
+    public async Task Parking_workflow_upgrade_preserves_bookings_and_freezes_existing_refund_terms()
+    {
+        var configured = Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer");
+        if (string.IsNullOrWhiteSpace(configured)) Assert.Ignore("Requires SQL Server; creates a unique temporary database.");
+        var connection = new SqlConnectionStringBuilder(configured)
+        { InitialCatalog = $"D3Parking_WorkflowUpgrade_{Guid.NewGuid():N}" }.ConnectionString;
+        await using var db = new D3ParkingDbContext(new DbContextOptionsBuilder<D3ParkingDbContext>().UseSqlServer(connection).Options);
+        try
+        {
+            await db.GetService<IMigrator>().MigrateAsync("20260914112604_AddDurableEmailOutbox");
+            var settings = D3Parking.Domain.Parking.ParkingSettings.CreateDefault();
+            db.ParkingSettings.Add(settings);
+            db.Entry(settings).Property(s => s.ReleaseCutoff).CurrentValue = TimeSpan.FromHours(2);
+            var spot = new D3Parking.Domain.Parking.ParkingSpot("WORKFLOW-UPGRADE", D3Parking.Domain.Parking.ParkingSpotType.Standard);
+            db.ParkingSpots.Add(spot);
+            await db.SaveChangesAsync();
+            var id = Guid.NewGuid();
+            var user = Guid.NewGuid();
+            var start = DateTimeOffset.UtcNow.AddDays(1);
+            var end = start.AddHours(8);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO [Reservations] ([Id], [SpotId], [UserId], [StartUtc], [EndUtc], [Status],
+                    [IsOffPeak], [CreatedAtUtc], [CreditsCharged], [FromQueue])
+                VALUES ({id}, {spot.Id}, {user}, {start}, {end}, N'Reserved', 0, {start.AddDays(-1)}, 10, 0)
+                """);
+            await db.Database.MigrateAsync();
+            var reservation = await db.Reservations.SingleAsync(r => r.Id == id);
+            Assert.That(reservation.Status, Is.EqualTo(D3Parking.Domain.Parking.ReservationStatus.Reserved));
+            Assert.That(reservation.RefundDeadlineUtc, Is.EqualTo(start.AddHours(-2)));
+            Assert.That(reservation.CreditsCharged, Is.EqualTo(10));
+            Assert.That(reservation.EndUtc, Is.EqualTo(end));
+            Assert.That(await db.ResidentDayHolds.CountAsync(), Is.Zero);
             Assert.That(db.Database.HasPendingModelChanges(), Is.False);
         }
         finally { await db.Database.EnsureDeletedAsync(); }

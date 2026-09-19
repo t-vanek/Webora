@@ -1,3 +1,4 @@
+using D3Parking.Domain.Parking;
 namespace D3Parking.Application.Parking;
 
 /// <summary>
@@ -56,6 +57,8 @@ public interface IReservationService
 
     Task<ParkingResult> CancelAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
 
+    Task<ReservationEndPreviewDto?> PreviewEndAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// The holder arrived and cannot physically park (the spot is blocked by another car).
     /// Records an occupancy mismatch (optionally with the blocking car's license plate), voids the
@@ -66,6 +69,9 @@ public interface IReservationService
     /// manager's approval.
     /// </summary>
     Task<BlockedSpotOutcome> ReportBlockedSpotAsync(Guid userId, Guid reservationId, bool relocate, BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default);
+
+    Task<BlockedSpotOutcome> ReportBlockedResidentSpotAsync(Guid userId, Guid spotId, bool relocate,
+        BlockedSpotPhoto? photo, string? blockerPlate = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a one-time planning reminder for reservations whose start is near. The reminder is
@@ -94,11 +100,17 @@ public interface IReservationService
     /// <summary>Join the waitlist for a window. Allowed only when the window is currently full.</summary>
     Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc, CancellationToken cancellationToken = default);
 
+    Task<ParkingResult> JoinQueueAsync(Guid userId, DateTimeOffset startUtc, DateTimeOffset endUtc,
+        ParkingSpotType? requiredSpotType, CancellationToken cancellationToken = default);
+
     /// <summary>Leave the waitlist; releases any spot currently held for the entry.</summary>
     Task<ParkingResult> LeaveQueueAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default);
 
     /// <summary>Claim the spot held for an offered waitlist entry by reserving it (charged as usual).</summary>
     Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, CancellationToken cancellationToken = default);
+
+    Task<ParkingResult> ClaimQueueOfferAsync(Guid userId, Guid queueEntryId, bool confirmResidentRelease,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Expires stale offers and past-window entries, then offers freed spots to the earliest waiting

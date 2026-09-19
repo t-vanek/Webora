@@ -16,6 +16,7 @@ public static class ParkingSettingsValidator
     public const string OccupancyWindowError = "Parking_Settings_OccupancyWindowInvalid";
     public const string OccupancyHourError = "Parking_Settings_OccupancySendHourInvalid";
     public const string BudgetError = "Parking_Settings_BudgetInvalid";
+    public const string ReleaseCutoffError = "Parking_Settings_ReleaseCutoffInvalid";
     public const string BudgetAllowanceError = "Parking_Settings_BudgetAllowanceInvalid";
     public const string OversightSlaError = "Parking_Settings_OversightSlaInvalid";
     public const string OversightRecurrenceError = "Parking_Settings_OversightRecurrenceInvalid";
@@ -51,6 +52,11 @@ public static class ParkingSettingsValidator
         if (settings.QueueOfferMinutes < 1)
         {
             return QueueError;
+        }
+
+        if (settings.ReleaseCutoff < TimeSpan.Zero || settings.ReleaseCutoff > TimeSpan.FromMinutes(1439))
+        {
+            return ReleaseCutoffError;
         }
 
         if (settings.AvailabilityFreeThresholdPercent is < 1 or > 99

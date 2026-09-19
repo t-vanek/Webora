@@ -45,11 +45,13 @@ public class VisitorBookingTests : AdminTest
             Assert.Ignore("Set D3PARKING_E2E_PROVISION=1 to provision the isolated visitor UI fixture.");
         if (!Uri.TryCreate(WebAppFixture.BaseUrl, UriKind.Absolute, out var url) || !url.IsLoopback)
             Assert.Fail("Visitor fixture provisioning is restricted to a loopback application URL.");
-        var configured = Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer");
+        var configured = WebAppFixture.IsolatedSqlConnection
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer");
         if (string.IsNullOrWhiteSpace(configured))
             Assert.Fail("Visitor fixture provisioning requires the local test application's SQL connection.");
         var connection = new SqlConnectionStringBuilder(configured);
-        if (!connection.InitialCatalog.StartsWith("D3Parking_LocalTest", StringComparison.Ordinal))
+        if (WebAppFixture.IsolatedSqlConnection is null
+            && !connection.InitialCatalog.StartsWith("D3Parking_LocalTest", StringComparison.Ordinal))
             Assert.Fail("Visitor fixture provisioning requires a D3Parking_LocalTest database.");
         var dataSource = connection.DataSource.StartsWith("tcp:", StringComparison.OrdinalIgnoreCase)
             ? connection.DataSource[4..] : connection.DataSource;
@@ -118,6 +120,47 @@ public class VisitorBookingTests : AdminTest
         // Other application areas still use the 30-second policy cache. The database must be
         // disposable and exclusive: background jobs can observe this temporary global policy.
         await Task.Delay(TimeSpan.FromSeconds(31));
+    }
+
+    [TestCase(ReservationTimeMode.AllDay)]
+    [TestCase(ReservationTimeMode.TimeWindow)]
+    public async Task A_new_form_prefills_a_valid_window_and_rechecks_calendar_settings_when_reopened(
+        ReservationTimeMode reopenedMode)
+    {
+        await SetModeAsync(reopenedMode == ReservationTimeMode.AllDay
+            ? ReservationTimeMode.TimeWindow : ReservationTimeMode.AllDay);
+        await Pages.GotoInteractiveAsync(Page, "/admin/parking/visitors");
+        await Page.Locator("#visitors-open-create button").ClickAsync();
+        await Expect(Dialog).ToBeVisibleAsync();
+        await Expect(Dialog).Not.ToContainTextAsync("Nelze rezervovat čas v minulosti.");
+        await Expect(Dialog.Locator("#visitors-spot")).ToContainTextAsync(_spotCode);
+        await Dialog.GetByRole(AriaRole.Button, new() { Name = "Zavřít", Exact = true }).ClickAsync();
+
+        // Change the shared calendar after loading the page, before opening the next form.
+        // Only one weekday is allowed; its next occurrence is always two local days away.
+        await using var db = new D3ParkingDbContext(_options!);
+        var allowedDay = _day.DayOfWeek.ToWeekday();
+        await db.ParkingSettings.Where(s => s.Id == ParkingSettings.SingletonId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.SameDayReservationsAllowed, false)
+                .SetProperty(p => p.AllowedReservationWeekdays, allowedDay)
+                .SetProperty(p => p.ReservationTimeMode, reopenedMode));
+        try
+        {
+            await Page.Locator("#visitors-open-create button").ClickAsync();
+            await Expect(Dialog.Locator("#visitors-date"))
+                .ToHaveValueAsync(_day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            await Expect(Dialog.Locator("input[type=time]"))
+                .ToHaveCountAsync(reopenedMode == ReservationTimeMode.AllDay ? 0 : 2);
+            await Expect(Dialog.Locator("#visitors-spot")).ToContainTextAsync(_spotCode);
+        }
+        finally
+        {
+            await db.ParkingSettings.Where(s => s.Id == ParkingSettings.SingletonId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.SameDayReservationsAllowed, true)
+                    .SetProperty(p => p.AllowedReservationWeekdays, Weekday.Everyday));
+        }
     }
 
     [Test]
@@ -219,19 +262,49 @@ public class VisitorBookingTests : AdminTest
         Assert.That(bookings[0].VisitorName, Is.EqualTo(competingName));
     }
 
-    [Test]
-    public async Task A_changed_time_mode_preserves_the_draft_and_refreshes_the_form()
+    [TestCase(ReservationTimeMode.AllDay, ReservationTimeMode.TimeWindow)]
+    [TestCase(ReservationTimeMode.TimeWindow, ReservationTimeMode.AllDay)]
+    public async Task A_changed_time_mode_preserves_the_draft_and_requires_resubmission_in_the_current_mode(
+        ReservationTimeMode originalMode, ReservationTimeMode currentMode)
     {
-        await OpenBookingAsync(ReservationTimeMode.AllDay);
+        await OpenBookingAsync(originalMode);
+        if (originalMode == ReservationTimeMode.TimeWindow)
+        {
+            await SetTimeAsync("visitors-from", "10:15");
+            await SetTimeAsync("visitors-to", "11:45");
+        }
         await SelectOwnSpotAndNameAsync();
-        await SetModeAsync(ReservationTimeMode.TimeWindow);
+        await SetModeAsync(currentMode);
 
         await BookButton.ClickAsync();
         await Expect(Dialog).ToContainTextAsync("Pravidlo času rezervace se mezitím změnilo");
-        await Expect(Dialog.Locator("input[type=time]")).ToHaveCountAsync(2);
+        await Expect(Dialog.Locator("input[type=time]"))
+            .ToHaveCountAsync(currentMode == ReservationTimeMode.AllDay ? 0 : 2);
         await Expect(NameInput).ToHaveValueAsync(_visitorName);
+        await Expect(Dialog.Locator("#visitors-date"))
+            .ToHaveValueAsync(_day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        await Expect(Dialog.Locator("#visitors-spot")).ToHaveJSPropertyAsync("value", _spotId.ToString());
         await using var db = new D3ParkingDbContext(_options!);
         Assert.That(await db.VisitorBookings.CountAsync(b => b.SpotId == _spotId), Is.Zero);
+
+        if (currentMode == ReservationTimeMode.TimeWindow)
+        {
+            await SetTimeAsync("visitors-from", "10:15");
+            await SetTimeAsync("visitors-to", "11:45");
+        }
+        await Expect(BookButton).ToBeEnabledAsync();
+        await BookButton.ClickAsync();
+        await Expect(Dialog).ToHaveCountAsync(0);
+        var booking = await db.VisitorBookings.SingleAsync(b => b.SpotId == _spotId);
+        var expected = currentMode == ReservationTimeMode.AllDay
+            ? SiteTime.Day(_day, _timeZone)
+            : (Start: SiteTime.At(_day, new TimeOnly(10, 15), _timeZone),
+               End: SiteTime.At(_day, new TimeOnly(11, 45), _timeZone));
+        Assert.Multiple(() =>
+        {
+            Assert.That(booking.StartUtc, Is.EqualTo(expected.Start));
+            Assert.That(booking.EndUtc, Is.EqualTo(expected.End));
+        });
     }
 
     [Test]

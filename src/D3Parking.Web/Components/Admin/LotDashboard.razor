@@ -94,6 +94,7 @@
                 <div class="lot-overview__metrics">
                     @OverviewMetric(_board.Overview.Booked, L["Lot_State_Booked"], "Booked")
                     @OverviewMetric(_board.Overview.ResidentHeld, L["Lot_Stat_ResidentHeld"], "ResidentHeld")
+                    @OverviewMetric(_board.Overview.TemporarilyBlocked, L["Lot_State_TemporarilyBlocked"], "TemporarilyBlocked")
                     @OverviewMetric(_board.Overview.VisitorBookings, L["Lot_Stat_Visitors"], "VisitorBooked")
                 </div>
             </div>
@@ -405,6 +406,11 @@
                     <AuthorizeView Policy="@PermissionPolicies.For(Permissions.Parking.ManageSpots)" Context="spotManagement">
                     <div class="lot-detail__section lot-detail__section--actions">
                         <FluentLabel Typo="Typography.Subject">@L["Lot_Detail_OperationsSection"]</FluentLabel>
+                        @if (_detail.BlockedUntilUtc is { } blockedUntil)
+                        {
+                            <p>@L["Parking_Block_Until", Local(blockedUntil, "g")]</p>
+                            <FluentButton Disabled="@_busy" OnClick="ClearTemporaryBlockAsync">@L["Parking_Block_Clear"]</FluentButton>
+                        }
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
                             @if (_detail.IsActive)
                             {
@@ -613,6 +619,7 @@
                         @CountRow(L["Lot_State_OfferedFromQueue"], _board.Overview.OfferedFromQueue.ToString(), null)
                         @CountRow(L["Lot_State_Free"], _board.Overview.Free.ToString(), null)
                         @CountRow(L["Lot_Stat_ResidentHeld"], _board.Overview.ResidentHeld.ToString(), null)
+                        @CountRow(L["Lot_State_TemporarilyBlocked"], _board.Overview.TemporarilyBlocked.ToString(), null)
                     </tbody>
                     <tfoot>
                         @TotalRow(L["Lot_Stat_ActiveSpots"], _board.Overview.ActiveSpots.ToString())
@@ -1644,6 +1651,9 @@
         await RunAsync(() => Spots.SetActiveCheckedAsync(detail.SpotId, false, detail.Version, _userId), "Lot_Info_Deactivated");
         _deactivationSnapshot = null;
     }
+
+    private Task ClearTemporaryBlockAsync() => _detail is null ? Task.CompletedTask
+        : RunAsync(() => Spots.ResolveTemporaryBlockAsync(_detail.SpotId, _userId), "Parking_Block_Cleared");
 
     private async Task SetActiveAsync(bool active)
     {

@@ -102,6 +102,7 @@ public class VoucherApprovalTests
     {
         var (userId, reservation) = await SeedBlockedReservationAsync("V-02");
         var photo = Photo(2);
+        var notificationsBefore = await DurableNotificationQueries.InboxAsync(_options);
 
         var outcome = await _reservations.ReportBlockedSpotAsync(userId, reservation.Id, relocate: false, photo);
 
@@ -119,9 +120,9 @@ public class VoucherApprovalTests
         Assert.That(voucher.Status, Is.EqualTo(ApologyVoucherStatus.PendingApproval),
             "A fresh voucher must wait for the spot manager's ruling.");
 
-        Assert.That(_notifications.Sent, Does.Contain((userId, "Parking_Notify_VoucherGranted_Title")),
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Contain((userId, "Parking_Notify_VoucherGranted_Title")),
             "The reporter learns the voucher awaits approval.");
-        Assert.That(_notifications.Sent.Select(s => s.Item1), Has.All.EqualTo(userId),
+        Assert.That((await DurableNotificationQueries.InboxAsync(_options)).Except(notificationsBefore).Select(s => s.UserId), Has.All.EqualTo(userId),
             "Calling the reviewers belongs to the oversight desk, which gates it on the permission "
             + "that may actually see the photograph — reporting must not notify anyone else from here.");
     }
@@ -153,7 +154,7 @@ public class VoucherApprovalTests
         Assert.That(outcome.VoucherGranted, Is.False);
         await using var db = new D3ParkingDbContext(_options);
         Assert.That(await db.ApologyVouchers.AnyAsync(v => v.UserId == userId), Is.False);
-        Assert.That(_notifications.Sent, Does.Not.Contain((userId, "Parking_Notify_VoucherGranted_Title")));
+        Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Not.Contain((userId, "Parking_Notify_VoucherGranted_Title")));
     }
 
     [Test]

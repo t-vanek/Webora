@@ -5,6 +5,10 @@ namespace D3Parking.Application.Notifications;
 
 public interface INotificationService
 {
+    /// <summary>Best-effort live delivery of existing inbox records; never creates duplicates.</summary>
+    Task PublishPersistedAsync(IReadOnlyCollection<Guid> notificationIds, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
     /// <summary>
     /// Stores a group of independent notifications in one database write, then delivers their live
     /// copies with bounded concurrency. Returns the number stored after preference filtering.

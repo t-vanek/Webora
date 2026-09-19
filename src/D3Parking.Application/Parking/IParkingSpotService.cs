@@ -5,6 +5,8 @@ namespace D3Parking.Application.Parking;
 /// <summary>Administration of the physical parking spots that make up the lot.</summary>
 public interface IParkingSpotService
 {
+    Task<ParkingResult> ResolveTemporaryBlockAsync(Guid spotId, Guid actingUserId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ParkingSpotDto>> ListAsync(bool includeInactive = true, CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -17,6 +17,8 @@
    page keeps them neutral instead of exposing the old live-parking control panel. *@
 
 <PageTitle>@L["Parking_Settings_Title"]</PageTitle>
+<FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">@L["Parking_Settings_CalendarPreserves"]</FluentMessageBar>
+
 
 <FluentStack Class="page-shell settings-page parking-settings-page" Orientation="Orientation.Vertical" VerticalGap="20">
     <div class="admin-head">
@@ -314,6 +316,9 @@
                                 <FluentNumberField Id="planner-budget-allowance" TValue="int" @bind-Value="_form.MonthlyCreditAllowance" Min="0" Step="10"
                                                    AriaLabel="@L["Parking_Settings_MonthlyAllowance"]" Style="width:100%" />
                             </div>
+                            <FluentNumberField TValue="int" @bind-Value="_form.ReleaseCutoffMinutes" Min="0" Max="1439" Step="5"
+                                               Label="@L["Parking_Settings_ReleaseCutoff"]" />
+                            <p>@L["Parking_Settings_RefundTermsHelp"]</p>
                             <div class="planner-setting-row">
                                 <div class="planner-setting-row__label">
                                     <label for="planner-budget-period">@L["Parking_Settings_BudgetRenewalPeriod"]</label>
@@ -562,6 +567,9 @@
                         </div>
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_ResidentPriorityHelp"]</FluentLabel>
+                    <FluentMessageBar Intent="MessageIntent.Info" Type="MessageType.MessageBar">
+                        @L["Parking_Settings_StartedBookingProtection"]
+                    </FluentMessageBar>
                     <div class="planner-settings-column">
                         <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
@@ -1198,10 +1206,10 @@
             0,
             0,
             0,
+            TimeSpan.FromMinutes(_form!.ReleaseCutoffMinutes),
             TimeSpan.Zero,
             TimeSpan.Zero,
-            TimeSpan.Zero,
-            _form!.ReservationTimeMode,
+            _form.ReservationTimeMode,
             _form.ReservationHorizonDays,
             _form.SameDayReservationsAllowed,
             _form.AllowedReservationWeekdays,

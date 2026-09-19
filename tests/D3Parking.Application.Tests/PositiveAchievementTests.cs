@@ -70,8 +70,8 @@ public sealed class PositiveAchievementTests
         await using var db = new D3ParkingDbContext(_options);
         Assert.That(await db.UserBadges.AnyAsync(b => b.UserId == userId
             && b.Badge == ParkingBadge.PlanningStarted), Is.True);
-        Assert.That(notifications.Sent, Does.Contain((userId, "Parking_Notify_Achievement_Title")));
-        Assert.That(notifications.EmailRequested, Does.Contain((userId, "Parking_Notify_Achievement_Title")));
+        Assert.That((await DurableNotificationQueries.InboxAsync(_options)), Does.Contain((userId, "Parking_Notify_Achievement_Title")));
+        Assert.That((await DurableNotificationQueries.EmailsAsync(_options)), Does.Contain((userId, "Parking_Notify_Achievement_Title")));
     }
 
     [Test]
@@ -101,7 +101,7 @@ public sealed class PositiveAchievementTests
             && c.SourceId == released.Id), Is.EqualTo(1));
         Assert.That(await db.UserBadges.AnyAsync(b => b.UserId == releaserId
             && b.Badge == ParkingBadge.PlaceForColleague), Is.True);
-        Assert.That(notifications.EmailRequested.Count(n => n.UserId == releaserId
+        Assert.That((await DurableNotificationQueries.EmailsAsync(_options)).Count(n => n.UserId == releaserId
             && n.Title == "Parking_Notify_Achievement_Title"), Is.EqualTo(1));
     }
 
@@ -134,7 +134,7 @@ public sealed class PositiveAchievementTests
             && c.SourceId == released.Id), Is.True);
         Assert.That(await db.UserBadges.AnyAsync(b => b.UserId == releaserId
             && b.Badge == ParkingBadge.QueueHelper), Is.True);
-        Assert.That(notifications.EmailRequested.Count(n => n.UserId == releaserId
+        Assert.That((await DurableNotificationQueries.EmailsAsync(_options)).Count(n => n.UserId == releaserId
             && n.Title == "Parking_Notify_Achievement_Title"), Is.EqualTo(2),
             "The first useful release and first queue help are two distinct reasons to say thank you.");
     }
@@ -165,7 +165,7 @@ public sealed class PositiveAchievementTests
             && c.Kind == ParkingContributionKind.ResidentShareUsed), Is.True);
         Assert.That(await db.UserBadges.AnyAsync(b => b.UserId == residentId
             && b.Badge == ParkingBadge.SharesWhenPossible), Is.True);
-        Assert.That(notifications.EmailRequested, Does.Contain((residentId, "Parking_Notify_Achievement_Title")));
+        Assert.That((await DurableNotificationQueries.EmailsAsync(_options)), Does.Contain((residentId, "Parking_Notify_Achievement_Title")));
     }
 
     [Test]

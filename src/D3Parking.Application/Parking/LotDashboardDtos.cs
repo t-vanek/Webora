@@ -35,6 +35,7 @@ public enum SpotBoardState
 
     /// <summary>Deactivated — out of the lot entirely.</summary>
     Inactive,
+    TemporarilyBlocked,
 }
 
 /// <summary>
@@ -74,7 +75,8 @@ public sealed record LotOverviewDto(
     /// <summary>Of those, the ones resolved by putting the driver on another spot.</summary>
     int RelocatedMismatches,
     /// <summary>Shared days in the recent window that nobody booked — capacity given away for nothing.</summary>
-    int UnusedSharedDays);
+    int UnusedSharedDays,
+    int TemporarilyBlocked = 0);
 
 /// <summary>One spot as a row on the board.</summary>
 public sealed record SpotTileDto(
@@ -124,7 +126,7 @@ public sealed record SpotCalendarEntryDto(
     Guid? ReservationId,
     ReservationStatus? Status,
     int CreditsCharged,
-    /// <summary>Whether an admin may still cancel this booking (only a not-yet-arrived reservation).</summary>
+    /// <summary>Whether an admin may still cancel this booking (only a not-yet-started reservation).</summary>
     bool CanCancel,
     /// <summary>Whether an admin may still move this booking to another spot.</summary>
     bool CanMove)
@@ -176,6 +178,8 @@ public sealed record SpotDetailDto(
     IReadOnlyList<SpotDayDto> Trend)
 {
     public byte[] Version { get; init; } = [];
+    public DateTimeOffset? BlockedUntilUtc { get; init; }
+
 }
 
 /// <summary>One cell of the weekday × hour demand heatmap: how many bookings covered that hour.</summary>

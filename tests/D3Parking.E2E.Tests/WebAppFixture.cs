@@ -29,6 +29,7 @@ public sealed class WebAppFixture
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
     private Process? _app;
     private string? _testConnection;
+    internal static string? IsolatedSqlConnection { get; private set; }
 
     [OneTimeSetUp]
     public async Task SetUpAsync()
@@ -88,6 +89,7 @@ public sealed class WebAppFixture
         _testConnection = new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer")
             ?? "Server=(localdb)\\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True")
         { InitialCatalog = $"D3Parking_E2E_{Guid.NewGuid():N}" }.ConnectionString;
+        IsolatedSqlConnection = _testConnection;
         var start = new ProcessStartInfo
         {
             FileName = "dotnet",
