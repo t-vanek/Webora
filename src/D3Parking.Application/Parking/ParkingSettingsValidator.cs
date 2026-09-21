@@ -29,6 +29,9 @@ public static class ParkingSettingsValidator
 
     public static string? Validate(ParkingSettingsDto settings)
     {
+        if ((settings.ReleaseMode is { } mode && !Enum.IsDefined(mode))
+            || !Enum.IsDefined(settings.ReleaseDeadline) || settings.ReleaseLeadMinutes is < 0 or > 525600)
+            return "Parking_Settings_ReleaseRulesInvalid";
         if (!Enum.IsDefined(settings.ReservationTimeMode)
             || settings.ReservationHorizonDays is < 1 or > 366
             || !Enum.IsDefined(settings.HolidayCalendarRegion))

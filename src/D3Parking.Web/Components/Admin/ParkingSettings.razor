@@ -123,6 +123,55 @@
                         </div>
                         <div class="planner-setting-row">
                             <div class="planner-setting-row__label">
+                                <span>@L["Parking_Settings_HandoffsEnabled"]</span>
+                                @PlannerTooltip("planner-handoffs-help", L["Parking_Settings_HandoffsEnabled_Help"].Value)
+                            </div>
+                            <FluentSwitch @bind-Value="_form.HandoffsEnabled"
+                                          AriaLabel="@L["Parking_Settings_HandoffsEnabled"]" />
+                        </div>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
+                                <label for="release-mode">@L["Release_Mode"]</label>
+                            </div>
+                            <select id="release-mode" class="parking-input" @bind="_form.ReleaseMode">
+                                @foreach (var mode in Enum.GetValues<ReservationReleaseMode>())
+                                {
+                                    <option value="@mode">@L[$"Release_Mode_{mode}"]</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="planner-setting-row">
+                            <label for="release-deadline">@L["Release_DeadlineMode"]</label>
+                            <select id="release-deadline" class="parking-input" @bind="_form.ReleaseDeadline">
+                                @foreach (var mode in Enum.GetValues<ReleaseDeadlineMode>())
+                                {
+                                    <option value="@mode">@L[$"Release_Deadline_{mode}"]</option>
+                                }
+                            </select>
+                        </div>
+                        @if (_form.ReleaseDeadline == ReleaseDeadlineMode.MinutesBeforeStart)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="release-lead-minutes">@L["Release_LeadMinutes"]</label>
+                                </div>
+                                <FluentNumberField Id="release-lead-minutes" TValue="int"
+                                                   @bind-Value="_form.ReleaseLeadMinutes" Min="0" Max="525600"
+                                                   AriaLabel="@L["Release_LeadMinutes"]" />
+                            </div>
+                        }
+                        @if (_form.ReleaseDeadline == ReleaseDeadlineMode.PreviousDayAtTime)
+                        {
+                            <div class="planner-setting-row">
+                                <div class="planner-setting-row__label">
+                                    <label for="release-time">@L["Release_PreviousDayTime"]</label>
+                                </div>
+                                <input id="release-time" class="parking-input" type="time" @bind="_form.ReleasePreviousDayTime" />
+                            </div>
+                        }
+                        <p class="planner-setting-help">@L["Release_RulesHelp"]</p>
+                        <div class="planner-setting-row">
+                            <div class="planner-setting-row__label">
                                 <label for="planner-weekdays">@L["Parking_Settings_WeekdayRule"]</label>
                                 @PlannerTooltip("planner-weekdays-help", L["Parking_Settings_WeekdayRuleTooltip"].Value)
                             </div>
@@ -397,8 +446,6 @@
                     </div>
                     <FluentLabel Typo="Typography.Body" Color="Color.Neutral">@L["Parking_Settings_TierPerksHelp"]</FluentLabel>
                     <div class="settings-grid">
-                        <FluentNumberField TValue="int" @bind-Value="_form.QueuePriorityPerTier" Min="0" Step="5" Disabled="@(!_perksOn)"
-                                           Label="@L["Parking_Settings_QueuePriorityPerTier"]" Style="width:100%" />
                         <FluentNumberField TValue="int" @bind-Value="_form.TierAllowanceBonus" Min="0" Step="5" Disabled="@(!_perksOn)"
                                            Label="@L["Parking_Settings_TierAllowanceBonus"]" Style="width:100%" />
                         <div class="settings-field settings-field--wide">
@@ -1010,9 +1057,8 @@
     private void TogglePerks(bool on)
     {
         _perksOn = on;
-        if (on && _form!.QueuePriorityPerTier == 0 && _form.TierAllowanceBonus == 0 && _form.TierDiscountPercent == 0)
+        if (on && _form!.TierAllowanceBonus == 0 && _form.TierDiscountPercent == 0)
         {
-            _form.QueuePriorityPerTier = 30;
             _form.TierAllowanceBonus = 20;
             _form.TierDiscountPercent = 5;
         }
@@ -1053,6 +1099,12 @@
             ReservationTimeMode = s.ReservationTimeMode,
             ReservationHorizonDays = s.ReservationHorizonDays,
             SameDayReservationsAllowed = s.SameDayReservationsAllowed,
+            SameDayReleasesAllowed = s.SameDayReleasesAllowed,
+            HandoffsEnabled = s.HandoffsEnabled,
+            ReleaseMode = s.ReleaseMode ?? (s.SameDayReleasesAllowed ? ReservationReleaseMode.DuringReservation : ReservationReleaseMode.PreviousDay),
+            ReleaseDeadline = s.ReleaseDeadline,
+            ReleaseLeadMinutes = s.ReleaseLeadMinutes,
+            ReleasePreviousDayTime = s.ReleasePreviousDayTime ?? new TimeOnly(18, 0),
             AllowedReservationWeekdays = s.AllowedReservationWeekdays,
             HolidayCalendarRegion = s.HolidayCalendarRegion,
             PublicHolidayReservationsAllowed = s.PublicHolidayReservationsAllowed,
@@ -1101,7 +1153,6 @@
             TierSilverPoints = s.TierSilverPoints,
             TierGoldPoints = s.TierGoldPoints,
             TierPlatinumPoints = s.TierPlatinumPoints,
-            QueuePriorityPerTier = s.QueuePriorityPerTier,
             TierAllowanceBonus = s.TierAllowanceBonus,
             TierDiscountPercent = s.TierDiscountPercent,
             ReputationDecayPercent = s.ReputationDecayPercent,
@@ -1150,7 +1201,7 @@
         };
         _pointsOn = s.ReleasePoints > 0;
         _demandOn = s.DemandReleaseOccupancyPercent > 0 || s.DemandReleaseQueueBonus > 0;
-        _perksOn = s.QueuePriorityPerTier > 0 || s.TierAllowanceBonus > 0 || s.TierDiscountPercent > 0;
+        _perksOn = s.TierAllowanceBonus > 0 || s.TierDiscountPercent > 0;
         _decayOn = s.ReputationDecayPercent > 0;
         _hasOrientationMap = await SettingsService.GetOrientationMapAsync() is not null;
     }
@@ -1288,7 +1339,9 @@
             _form.ResidentProtectionDeadlineMode, _form.ResidentProtectionLeadHours,
             _form.ResidentProtectionPreviousDayTime, _form.ResidentNoReplacementAction,
             _form.ResidentAlternativeBookingPolicy,
-            _form.HolidayCalendarRegion, _form.PublicHolidayReservationsAllowed);
+            _form.HolidayCalendarRegion, _form.PublicHolidayReservationsAllowed,
+            _form.ReleaseMode != ReservationReleaseMode.PreviousDay,
+            _form.ReleaseMode, _form.ReleaseDeadline, _form.ReleaseLeadMinutes, _form.ReleasePreviousDayTime, _form.HandoffsEnabled);
 
         if (ParkingSettingsValidator.Validate(dto) is { } settingsValidationError)
         {
@@ -1390,6 +1443,12 @@
         public ReservationTimeMode ReservationTimeMode { get; set; }
         public int ReservationHorizonDays { get; set; }
         public bool SameDayReservationsAllowed { get; set; } = true;
+        public bool SameDayReleasesAllowed { get; set; } = true;
+        public bool HandoffsEnabled { get; set; } = true;
+        public ReservationReleaseMode ReleaseMode { get; set; } = ReservationReleaseMode.DuringReservation;
+        public ReleaseDeadlineMode ReleaseDeadline { get; set; }
+        public int ReleaseLeadMinutes { get; set; } = 120;
+        public TimeOnly ReleasePreviousDayTime { get; set; } = new(18, 0);
         public Weekday AllowedReservationWeekdays { get; set; } = Weekday.Everyday;
         public HolidayCalendarRegion HolidayCalendarRegion { get; set; } = HolidayCalendarRegion.CzechRepublic;
         public bool PublicHolidayReservationsAllowed { get; set; }
@@ -1438,7 +1497,6 @@
         public int TierSilverPoints { get; set; }
         public int TierGoldPoints { get; set; }
         public int TierPlatinumPoints { get; set; }
-        public int QueuePriorityPerTier { get; set; }
         public int TierAllowanceBonus { get; set; }
         public int TierDiscountPercent { get; set; }
         public int ReputationDecayPercent { get; set; }

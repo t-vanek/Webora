@@ -2,6 +2,8 @@ namespace D3Parking.Application.Parking;
 
 public interface IResidentSpotHandoffService
 {
+    Task<ResidentSpotHandoffPage> GetMinePageAsync(Guid userId, int pageIndex, int pageSize,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ResidentSpotHandoffDto>> GetMineAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ResidentSpotHandoffUserDto>> SearchRecipientsAsync(
@@ -28,3 +30,6 @@ public interface IResidentSpotHandoffService
 
     Task<ParkingResult> CancelAsync(Guid actorId, Guid handoffId, CancellationToken cancellationToken = default);
 }
+
+public sealed record ResidentSpotHandoffPage(
+    IReadOnlyList<ResidentSpotHandoffDto> Items, int TotalCount, int PageIndex, int PageSize);

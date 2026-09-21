@@ -30,7 +30,6 @@
         {
             <FluentMessageBar Intent="MessageIntent.Warning" Type="MessageType.MessageBar">@L["Parking_Resident_OperationallyUnavailable"]</FluentMessageBar>
         }
-        <FluentButton Appearance="Appearance.Outline" Disabled="@(_actionBusy || _blockedBusy)" OnClick="OpenResidentBlockedPanel">@L["Parking_CantPark"] · @own.Code</FluentButton>
     }
 
     @if (_alternativeConfirmationSpot is { } alternativeSpot)
@@ -390,9 +389,17 @@
                             @SmartHint("resident-tools-hint", L["Parking_Owned_ResidentToolsHint", ownedSpot.Code].Value, forceIcon: true)
                         </div>
                         <p>@L["Parking_Owned_ResidentToolsSubtitle"]</p>
+                        @if (_policy is { } releasePolicy)
+                        {
+                            <p>@L[$"Release_Mode_{releasePolicy.EffectiveReleaseMode}"] · @L["Release_ResidentMidnight"]</p>
+                            @if (releasePolicy.ReleaseAllowedUntil(SiteTime.At(DateOnly.FromDateTime(_releaseFrom), TimeOnly.MinValue, _tz), _tz) is { } releaseDeadline)
+                            {
+                                <p>@L["Release_AllowedUntil", TimeZoneInfo.ConvertTime(releaseDeadline, _tz).ToString("g")]</p>
+                            }
+                        }
                     </div>
 
-                    <details class="owned-section">
+                    <details @key="_releaseSectionVersion" class="owned-section" open="@_releaseSectionOpen">
                         <summary class="owned-section__summary">
                             <span class="owned-section__label">
                                 <span>@L["Parking_Owned_ReleaseSection"]</span>
@@ -599,6 +606,7 @@
     @if (_myQueue is { Count: > 0 })
     {
         <FluentLabel Typo="Typography.Subject">@L["Parking_Queue_MyQueue"]</FluentLabel>
+        <p>@L["Parking_Queue_FifoExplanation"]</p>
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
             @foreach (var q in _myQueue)
             {
@@ -635,7 +643,11 @@
         <div class="form-panel">
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                 <FluentLabel Typo="Typography.Subject">@L["Parking_Blocked_Title", blocked.SpotCode]</FluentLabel>
-                <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_Text"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L[_blockedResidentSpotId is null ? "Parking_Blocked_Text" : "Parking_Blocked_ResidentText"]</FluentLabel>
+                    @if (_policy?.CreditsEnabled == true && _blockedResidentSpotId is null)
+                    {
+                        <p>@L["Parking_Blocked_RefundExplanation"]</p>
+                    }
                 @* Mandatory proof: a photo of the blocked spot, ideally straight from the camera
                    (capture hint). The spot manager judges it before the apology voucher becomes
                    redeemable, and each picture can back exactly one report. *@
@@ -1012,13 +1024,12 @@
     };
 
     private bool CanReleaseSelectedResidentDayToday =>
-        SelectedDateAllowsNewReservation
+        (_policy?.ValidateResidentRelease(_day, DateTimeOffset.UtcNow, _tz) is null)
         && _day == PlannerToday
         && SelectedResidentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true };
 
     private bool CanManageSelectedResidentRelease =>
-        SelectedDateAllowsNewReservation
-        && _day >= PlannerToday
+        _day >= ReleaseToday && (_policy?.ValidateResidentRelease(_day, DateTimeOffset.UtcNow, _tz) is null)
         && SelectedResidentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true };
 
     private bool CanReclaimSelectedResidentDay =>
@@ -1458,6 +1469,10 @@
     private bool _releaseRangeInitialized;
 
     private DateOnly ReleaseToday => SiteTime.Today(DateTimeOffset.UtcNow, _tz);
+    private DateOnly FirstReleaseDay => Enumerable.Range(0, 368).Select(ReleaseToday.AddDays)
+        .First(date => _policy?.ValidateResidentRelease(date, DateTimeOffset.UtcNow, _tz) is null);
+    private bool _releaseSectionOpen;
+    private int _releaseSectionVersion;
     private ResidentReleasePreviewDto? _releasePreview;
     private int ReleaseRangeDayCount => _releasePreview?.Dates.Count ?? 0;
     private int ReleaseRangeLength
@@ -1495,6 +1510,8 @@
             {
                 return L["Parking_Error_PastDate"].Value;
             }
+            if (_policy?.ValidateResidentRelease(from, DateTimeOffset.UtcNow, _tz) is { } releaseError)
+                return L[releaseError].Value;
 
             if (to < from)
             {
@@ -1538,7 +1555,7 @@
             return false;
         }
     }
-    private string ReleaseMinDate => ReleaseToday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    private string ReleaseMinDate => FirstReleaseDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     private string ReleaseMaxDate => ReleaseMaxDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     // Monday-first, labelled from the request culture's own abbreviations — a plan editor needs no
@@ -1979,6 +1996,8 @@
 
     private async Task FocusResidentManagementAsync()
     {
+        _releaseSectionOpen = true;
+        _releaseSectionVersion++;
         if (_day >= ReleaseToday)
         {
             _releasePreset = ReleasePreset.OneDay;
@@ -1987,6 +2006,7 @@
             await RefreshReleasePreviewAsync();
         }
 
+        await InvokeAsync(StateHasChanged);
         await Task.Yield();
         await _residentTools.FocusAsync();
     }
@@ -2165,12 +2185,12 @@
     {
         var released = _ownedSpot?.UpcomingReleases.Select(day => day.Date).ToHashSet() ?? [];
         return _ownedSpot?.ResidentAssignedDates
-            .Where(candidate => candidate >= ReleaseToday
+            .Where(candidate => candidate >= FirstReleaseDay
                 && candidate <= ReleaseMaxDay
                 && !released.Contains(candidate))
             .Order()
             .Select(candidate => (DateOnly?)candidate)
-            .FirstOrDefault() ?? ReleaseToday;
+            .FirstOrDefault() ?? FirstReleaseDay;
     }
 
     private async Task ReleaseOwnedAsync()
@@ -2441,18 +2461,19 @@
             && now < reservation.EndUtc;
     }
 
-    private void OpenResidentBlockedPanel()
+    private async Task OpenResidentBlockedPanel()
     {
         if (_ownedSpot is not { } own) return;
         var (start, end) = SiteTime.Day(PlannerToday, _tz);
         var now = DateTimeOffset.UtcNow;
-        OpenBlockedPanel(new ReservationDto(Guid.Empty, own.SpotId, own.Code, own.Type, _userId,
+        await OpenBlockedPanel(new ReservationDto(Guid.Empty, own.SpotId, own.Code, own.Type, _userId,
             start, end, ReservationStatus.Reserved, false, now, null, null, null, 0, now));
         _blockedResidentSpotId = own.SpotId;
     }
 
-    private void OpenBlockedPanel(ReservationDto reservation)
+    private async Task OpenBlockedPanel(ReservationDto reservation)
     {
+        _policy = await ParkingSettings.GetCurrentPolicyAsync();
         _blockedResidentSpotId = null;
         _error = _info = _blockedMessage = null;
         _blockerPlate = null;
@@ -2508,7 +2529,9 @@
                 : relocate
                     ? L["Parking_Blocked_NoSpot"]
                     : L["Parking_Blocked_Recorded"];
-            if (outcome.VoucherGranted && _policy?.CreditsEnabled == true)
+            if (outcome.CreditsEnabled && outcome.RefundedCredits > 0)
+                _blockedMessage += " " + L["Parking_Blocked_Refunded", outcome.RefundedCredits];
+            if (outcome.VoucherGranted && outcome.CreditsEnabled)
             {
                 _blockedMessage += " " + L["Parking_Blocked_VoucherGranted"];
             }

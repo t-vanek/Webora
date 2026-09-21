@@ -9,6 +9,18 @@ public class ResidentSpotHandoffDomainTests
     private static readonly DateTimeOffset Now = new(2026, 8, 21, 8, 0, 0, TimeSpan.Zero);
 
     [Test]
+    public void Handoffs_default_to_enabled_and_setting_flows_into_policy()
+    {
+        var settings = ParkingSettings.CreateDefault();
+        Assert.That(settings.ToPolicy().HandoffsEnabled, Is.True);
+        settings.SetHandoffsEnabled(false);
+        Assert.That(settings.HandoffsEnabled, Is.False);
+        Assert.That(settings.ToPolicy().HandoffsEnabled, Is.False);
+        settings.SetHandoffsEnabled(true);
+        Assert.That(settings.ToPolicy().HandoffsEnabled, Is.True);
+    }
+
+    [Test]
     public void Resident_offer_waits_for_its_named_recipient()
     {
         var residentId = Guid.NewGuid();

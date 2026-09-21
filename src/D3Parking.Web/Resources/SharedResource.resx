@@ -594,13 +594,13 @@
   <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>Rezervaci lze dokončit až po začátku jejího okna.</value></data>
   <data name="Parking_CantPark" xml:space="preserve"><value>Nemůžu zaparkovat</value></data>
   <data name="Parking_Blocked_Title" xml:space="preserve"><value>Na místě {0} se nedá zaparkovat?</value></data>
-  <data name="Parking_Blocked_Text" xml:space="preserve"><value>Zaznamenáme stav místa a plán zrušíme s plnou vratkou. Můžeme vám rovnou najít jiné volné místo.</value></data>
+  <data name="Parking_Blocked_Text" xml:space="preserve"><value>Zaznamenáme stav místa a původní rezervaci zrušíme. Můžeme vám rovnou najít jiné volné místo.</value></data>
   <data name="Parking_Blocked_Relocate" xml:space="preserve"><value>Najít mi jiné místo</value></data>
   <data name="Parking_Blocked_RecordOnly" xml:space="preserve"><value>Jen zaznamenat stav</value></data>
   <data name="Parking_Blocked_Back" xml:space="preserve"><value>Zpět</value></data>
-  <data name="Parking_Relocated" xml:space="preserve"><value>Máte místo {0}. Stav původního místa jsme zaznamenali — nepočítá se vám jako nedostavení.</value></data>
-  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>Stav jsme zaznamenali a rezervaci zrušili s plnou vratkou — nepočítá se jako nedostavení.</value></data>
-  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>Žádné jiné místo teď bohužel není volné. Stav jsme zaznamenali a rezervaci zrušili s plnou vratkou — zkuste se postavit do fronty.</value></data>
+  <data name="Parking_Relocated" xml:space="preserve"><value>Máte náhradní místo {0}. Stav původního místa jsme zaznamenali.</value></data>
+  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>Hlášení zablokovaného místa jsme zaznamenali.</value></data>
+  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>Žádné jiné vhodné místo teď není volné. Hlášení jsme zaznamenali.</value></data>
   <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>Stav místa lze zaznamenat jen v době okna rezervace.</value></data>
   <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>Denní limit záznamů o stavu místa je vyčerpán.</value></data>
   <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Okno</value></data>
@@ -1588,9 +1588,9 @@
   <data name="Account_Vehicle_NotPairable" xml:space="preserve"><value>Tato SPZ je vedena ve firemním vozovém parku, ale samoobslužné spárování není dostupné. Obraťte se prosím na správce.</value></data>
   <data name="Register_LicensePlate" xml:space="preserve"><value>SPZ vozidla</value></data>
   <data name="Register_LicensePlateHint" xml:space="preserve"><value>Pokud jezdíte firemním vozem, SPZ vás po aktivaci účtu propojí s vozovým parkem.</value></data>
-  <data name="Nav_AdminLot" xml:space="preserve"><value>Plocha parkoviště</value></data>
-  <data name="Nav_Short_Lot" xml:space="preserve"><value>Plocha</value></data>
-  <data name="Lot_Title" xml:space="preserve"><value>Plocha parkoviště</value></data>
+  <data name="Nav_AdminLot" xml:space="preserve"><value>Analýza</value></data>
+  <data name="Nav_Short_Lot" xml:space="preserve"><value>Analýza</value></data>
+  <data name="Lot_Title" xml:space="preserve"><value>Analýza</value></data>
   <data name="Lot_Intro" xml:space="preserve"><value>Denní provozní přehled kapacity, rezervací a událostí na jednotlivých místech.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Správa míst</value></data>
   <data name="Lot_Overview_Label" xml:space="preserve"><value>Souhrn provozu parkoviště</value></data>
@@ -1759,7 +1759,7 @@
   <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
   <data name="Nav_AdminOversight" xml:space="preserve"><value>Provozní dohled</value></data>
   <data name="Nav_Short_Oversight" xml:space="preserve"><value>Dohled</value></data>
-  <data name="Home_Card_Analytics" xml:space="preserve"><value>Obsazenost, trendy a odmítnutá poptávka</value></data>
+  <data name="Home_Card_Analytics" xml:space="preserve"><value>Plán rezervací, kapacita a čekající poptávka</value></data>
   <data name="Home_Card_Audit" xml:space="preserve"><value>Historie změn účtů a oprávnění</value></data>
   <data name="Perm_Parking_View" xml:space="preserve"><value>Zobrazit parkoviště</value></data>
   <data name="Perm_Parking_View_Desc" xml:space="preserve"><value>Základ pro každého parkujícího: vidí parkoviště, volná místa a svůj stav.</value></data>
@@ -2697,4 +2697,110 @@
   </data>
   <data name="Parking_Notify_OfferWithdrawn_Title" xml:space="preserve"><value>Nabídka byla stažena, pořadí zůstává</value></data>
   <data name="Parking_Notify_OfferWithdrawn_Body" xml:space="preserve"><value>Nabídka místa {0} byla stažena kvůli nedostupnosti místa nebo nedoručené zprávě. Tvoje původní pořadí ve frontě zůstává zachované.</value></data>
+  <data name="Parking_Settings_SameDayReleasesAllowed" xml:space="preserve"><value>Povolit uvolnění v den rezervace</value></data>
+  <data name="Parking_Settings_SameDayReleasesHelp" xml:space="preserve"><value>Platí pro rezidenty i nerezidenty. Zapnuto: lze uvolnit i dnešní místo nebo ukončit probíhající rezervaci. Vypnuto: lze uvolňovat pouze od zítřka, podle časového pásma parkoviště. Pravidla vrácení kreditů se nemění.</value></data>
+  <data name="Parking_Error_SameDayReleaseNotAllowed" xml:space="preserve"><value>Uvolnění v den rezervace je vypnuté. Uvolňovat můžete pouze rezervace a rezidentní dny od zítřka.</value></data>
+  <data name="Release_Mode" xml:space="preserve"><value>Kdy lze uvolnit rezervaci</value></data>
+  <data name="Release_Mode_PreviousDay" xml:space="preserve"><value>Pouze do předchozího dne</value></data>
+  <data name="Release_Mode_BeforeStart" xml:space="preserve"><value>I v den rezervace, před začátkem</value></data>
+  <data name="Release_Mode_DuringReservation" xml:space="preserve"><value>I během rezervace</value></data>
+  <data name="Release_DeadlineMode" xml:space="preserve"><value>Dodatečná uzávěrka uvolnění</value></data>
+  <data name="Release_Deadline_None" xml:space="preserve"><value>Bez dodatečné uzávěrky</value></data>
+  <data name="Release_Deadline_PreviousDayAtTime" xml:space="preserve"><value>Předchozí den v určený čas</value></data>
+  <data name="Release_Deadline_MinutesBeforeStart" xml:space="preserve"><value>Počet minut před začátkem</value></data>
+  <data name="Release_LeadMinutes" xml:space="preserve"><value>Minimální předstih v minutách</value></data>
+  <data name="Release_PreviousDayTime" xml:space="preserve"><value>Čas předchozího dne</value></data>
+  <data name="Release_RulesHelp" xml:space="preserve"><value>Platí dřívější z hranic režimu a uzávěrky. Rozhoduje časové pásmo parkoviště. Celodenní rezervace a rezidentní den začínají o půlnoci. Pravidla vrácení kreditů jsou samostatná.</value></data>
+  <data name="Release_AllowedUntil" xml:space="preserve"><value>Uvolnit lze před {0} (čas parkoviště).</value></data>
+  <data name="Release_DuringAllowed" xml:space="preserve"><value>Rezervaci můžete ukončit i během parkování.</value></data>
+  <data name="Release_ResidentMidnight" xml:space="preserve"><value>Rezidentní den začíná o půlnoci.</value></data>
+  <data name="Parking_Error_ReleaseAlreadyStarted" xml:space="preserve"><value>Rezervace již začala. Nastavení umožňuje uvolnění pouze před začátkem.</value></data>
+  <data name="Parking_Error_ReleaseDeadlinePassed" xml:space="preserve"><value>Termín pro uvolnění této rezervace již uplynul.</value></data>
+  <data name="Parking_Settings_ReleaseRulesInvalid" xml:space="preserve"><value>Zkontrolujte režim a uzávěrku uvolnění. Předstih musí být 0 až 525 600 minut.</value></data>
+  <data name="Parking_Queue_FifoExplanation" xml:space="preserve"><value>Místa nabízíme podle pořadí přihlášení bez zvýhodnění rezidentů, rolí nebo bodů. Pozice je orientační pro překrývající se termíny a vhodné typy míst. Nepotvrzená nabídka vás přesune na konec fronty; při neodeslaném e-mailu se pořadí zachová.</value></data>
+  <data name="Parking_Blocked_ResidentText" xml:space="preserve"><value>Zaznamenáme, že na vašem přiděleném místě nelze zaparkovat. Můžeme vám najít jiné volné místo pro dnešek.</value></data>
+  <data name="Parking_Blocked_RefundExplanation" xml:space="preserve"><value>Pokud náhradní rezervace nevznikne, vrátíme kredity zaplacené za původní rezervaci. Při přesunu se zaplacená částka použije na náhradní rezervaci.</value></data>
+  <data name="Parking_Blocked_Refunded" xml:space="preserve"><value>Vrátili jsme vám {0} kreditů.</value></data>
+  <data name="Parking_Settings_HandoffsEnabled" xml:space="preserve"><value>Povolit předání místa</value></data>
+  <data name="Parking_Settings_HandoffsEnabled_Help" xml:space="preserve"><value>Umožní nabídky, žádosti a přijetí předání místa. Vypnutí zachová existující rezervace i historii; čekající nabídky lze nadále zrušit nebo odmítnout.</value></data>
+  <data name="Parking_Handoff_Error_Disabled" xml:space="preserve"><value>Předání místa je nyní administrátorem vypnuté.</value></data>
+  <data name="Analysis_Intro" xml:space="preserve"><value>Rezervace a poptávka po dnech. Podklady pro plánování kapacity, nikoli živá obsazenost parkoviště.</value></data>
+  <data name="Analysis_Period" xml:space="preserve"><value>Období</value></data>
+  <data name="Analysis_Next14" xml:space="preserve"><value>Příštích 14 dní</value></data>
+  <data name="Analysis_Next28" xml:space="preserve"><value>Příštích 28 dní</value></data>
+  <data name="Analysis_Last28" xml:space="preserve"><value>Posledních 28 dní</value></data>
+  <data name="Analysis_Refresh" xml:space="preserve"><value>Obnovit data</value></data>
+  <data name="Analysis_Capacity" xml:space="preserve"><value>Aktuální kapacita: {0} aktivních míst</value></data>
+  <data name="Analysis_NoCapacity" xml:space="preserve"><value>Nejsou evidována žádná aktivní parkovací místa.</value></data>
+  <data name="Analysis_Summary" xml:space="preserve"><value>Přehled plánování</value></data>
+  <data name="Analysis_Average" xml:space="preserve"><value>Průměrně rezervovaných míst</value></data>
+  <data name="Analysis_SpotsPerDay" xml:space="preserve"><value>míst za den ve vybraném období</value></data>
+  <data name="Analysis_Peak" xml:space="preserve"><value>Nejvíce rezervovaný den</value></data>
+  <data name="Analysis_NoBookings" xml:space="preserve"><value>V období nejsou žádné rezervace</value></data>
+  <data name="Analysis_QueuePeak" xml:space="preserve"><value>Nejvíce čekajících žádostí za den</value></data>
+  <data name="Analysis_QueueHelp" xml:space="preserve"><value>Aktuálně čekající žádosti včetně platných nabídek; nejde o historii fronty.</value></data>
+  <data name="Analysis_Daily" xml:space="preserve"><value>Plán po dnech</value></data>
+  <data name="Analysis_DailyHelp" xml:space="preserve"><value>Sledujte dny se souběhem rezervací a čekajících žádostí. Více rezervací stejného místa v jednom dni se počítá jako jedno místo.</value></data>
+  <data name="Analysis_Day" xml:space="preserve"><value>Den</value></data>
+  <data name="Analysis_Booked" xml:space="preserve"><value>Rezervovaná místa</value></data>
+  <data name="Analysis_Share" xml:space="preserve"><value>Podíl kapacity</value></data>
+  <data name="Analysis_Unbooked" xml:space="preserve"><value>Bez rezervace</value></data>
+  <data name="Analysis_Waiting" xml:space="preserve"><value>Čekající žádosti</value></data>
+  <data name="Analysis_Interpretation" xml:space="preserve"><value>Jak data číst</value></data>
+  <data name="Analysis_Method" xml:space="preserve"><value>Započítáváme evidované aktivní a dokončené rezervace a rezervace návštěv na aktuálně aktivních místech. Nejde o měření skutečného parkování. Místo bez rezervace nemusí být dostupné: může být přidělené rezidentovi, blokované nebo nabídnuté ve frontě. Částečná rezervace se v denním přehledu počítá za celý den. Historii vztahujeme k dnešní kapacitě.</value></data>
+  <data name="Analysis_PlanningTip" xml:space="preserve"><value>Pokud na stejný den čekají žádosti, prověřte uvolnění rezidentních míst a požadované typy míst. Nízký počet rezervací daleko dopředu ještě neznamená nízkou konečnou poptávku.</value></data>
+  <data name="Analysis_HorizonPeriod" xml:space="preserve"><value>Celý rezervační horizont</value></data>
+  <data name="Analysis_CurrentRules" xml:space="preserve"><value>Aktuální pravidla plánování</value></data>
+  <data name="Analysis_AllDayMode" xml:space="preserve"><value>Celodenní rezervace</value></data>
+  <data name="Analysis_TimeMode" xml:space="preserve"><value>Rezervace na časová okna</value></data>
+  <data name="Analysis_HorizonEnd" xml:space="preserve"><value>Nové rezervace do {0} včetně</value></data>
+  <data name="Analysis_WeeklyLimit" xml:space="preserve"><value>Osobní limit sdílené kapacity: {0} dní za týden. Nemění fyzickou kapacitu parkoviště.</value></data>
+  <data name="Analysis_NoWeeklyLimit" xml:space="preserve"><value>Osobní týdenní limit je vypnutý.</value></data>
+  <data name="Analysis_HistoryAverage" xml:space="preserve"><value>míst za kalendářní den ({0} dní)</value></data>
+  <data name="Analysis_OpenAverage" xml:space="preserve"><value>míst za den povolený pro nové rezervace ({0} dní)</value></data>
+  <data name="Analysis_TimeWindowHelp" xml:space="preserve"><value>V časovém režimu počítáme místa s rezervací alespoň na část dne. Podíl kapacity není hodinové vytížení a neukazuje volná časová okna.</value></data>
+  <data name="Analysis_DateRule" xml:space="preserve"><value>Nové rezervace</value></data>
+  <data name="Analysis_Date_Allowed" xml:space="preserve"><value>Povoleny</value></data>
+  <data name="Analysis_Date_Past" xml:space="preserve"><value>Minulost</value></data>
+  <data name="Analysis_Date_OutsideReservationHorizon" xml:space="preserve"><value>Mimo horizont</value></data>
+  <data name="Analysis_Date_SameDayNotAllowed" xml:space="preserve"><value>Dnešní rezervace zakázány</value></data>
+  <data name="Analysis_Date_PublicHolidayNotAllowed" xml:space="preserve"><value>Státní svátek – zakázány</value></data>
+  <data name="Analysis_Date_WeekendNotAllowed" xml:space="preserve"><value>Víkend – zakázány</value></data>
+  <data name="Analysis_Date_WeekdayNotAllowed" xml:space="preserve"><value>Den v týdnu zakázán</value></data>
+  <data name="Analysis_HistoryRules" xml:space="preserve"><value>Historická nastavení se neevidují. Minulé dny proto nefiltrujeme podle dnešních pravidel; aktuální pravidla výše jsou pouze kontext. Aktuální frontu v historii nezobrazujeme.</value></data>
+  <data name="Analysis_CurrentRulesHelp" xml:space="preserve"><value>Budoucí období je omezené rezervačním horizontem. Průměr zahrnuje jen dny povolené aktuálním kalendářem. Existující rezervace i žádosti v zakázaných dnech zůstávají v tabulce a maximálních hodnotách viditelné. Povolený den nezaručuje rezervaci: rozhoduje také dostupnost místa a osobní limity.</value></data>
+  <data name="Analysis_ReleaseRule" xml:space="preserve"><value>Možnost uvolnění rezervací: {0}. Dodatečná uzávěrka:</value></data>
+  <data name="Analysis_LeadMinutes" xml:space="preserve"><value>{0} minut před začátkem</value></data>
+  <data name="Analysis_LeadChart" xml:space="preserve"><value>Jak se plánuje</value></data>
+  <data name="Analysis_LeadChartHint" xml:space="preserve"><value>Předstih vytvoření rezervací začínajících ve vybraném období, včetně zrušených.</value></data>
+  <data name="Analysis_OutcomeChart" xml:space="preserve"><value>Dodržení plánu</value></data>
+  <data name="Analysis_OutcomeChartHint" xml:space="preserve"><value>Pouze uplynulé rezervace začínající v období. Stav v systému, nikoli potvrzení příjezdu.</value></data>
+  <data name="Analysis_CapacityChart" xml:space="preserve"><value>Využití kapacity rezervacemi</value></data>
+  <data name="Analysis_CapacityChartHint" xml:space="preserve"><value>Rezervovaná místa vůči dnešní aktivní kapacitě. Rezidentní přidělení bez rezervace není započítané.</value></data>
+  <data name="Analysis_CapacityTimeHint" xml:space="preserve"><value>Místa rezervovaná alespoň na část dne vůči dnešní kapacitě; nejde o hodinové vytížení ani fyzickou obsazenost.</value></data>
+  <data name="Analysis_WeeklyChart" xml:space="preserve"><value>Sloupce: průměr za úseky po 7 dnech; datum značí začátek úseku.</value></data>
+  <data name="Analysis_DailyChart" xml:space="preserve"><value>Sloupce: jednotlivé dny.</value></data>
+  <data name="Analysis_ChartEmpty" xml:space="preserve"><value>Pro tento graf zatím nejsou data.</value></data>
+  <data name="Analysis_Bucket_SameDay" xml:space="preserve"><value>V den rezervace</value></data>
+  <data name="Analysis_Bucket_OneToTwo" xml:space="preserve"><value>1–2 dny předem</value></data>
+  <data name="Analysis_Bucket_ThreeToSeven" xml:space="preserve"><value>3–7 dní předem</value></data>
+  <data name="Analysis_Bucket_EightPlus" xml:space="preserve"><value>8 a více dní</value></data>
+  <data name="Analysis_Bucket_Kept" xml:space="preserve"><value>Bez zrušení / uvolnění</value></data>
+  <data name="Analysis_Bucket_Released" xml:space="preserve"><value>Uvolněné</value></data>
+  <data name="Analysis_Bucket_Cancelled" xml:space="preserve"><value>Zrušené</value></data>
+  <data name="Analysis_Bucket_NoShow" xml:space="preserve"><value>Evidované nedostavení</value></data>
+  <data name="Analysis_Pagination" xml:space="preserve"><value>Stránkování denního plánu</value></data>
+  <data name="Analysis_Previous" xml:space="preserve"><value>Předchozí</value></data>
+  <data name="Analysis_Next" xml:space="preserve"><value>Další</value></data>
+  <data name="Analysis_Page" xml:space="preserve"><value>Strana {0} z {1}</value></data>
+  <data name="Handoff_Grid_Spot" xml:space="preserve"><value>Místo</value></data>
+  <data name="Handoff_Grid_Window" xml:space="preserve"><value>Termín</value></data>
+  <data name="Handoff_Grid_Person" xml:space="preserve"><value>Účastník</value></data>
+  <data name="Handoff_Grid_Status" xml:space="preserve"><value>Stav</value></data>
+  <data name="Handoff_Grid_Actions" xml:space="preserve"><value>Akce</value></data>
+  <data name="Handoff_Grid_Pagination" xml:space="preserve"><value>Stránkování nabídek a žádostí</value></data>
+  <data name="Handoff_Grid_PageSize" xml:space="preserve"><value>Řádků na stránku</value></data>
+  <data name="Handoff_Grid_Empty" xml:space="preserve"><value>Zatím nemáte žádné nabídky ani žádosti.</value></data>
+  <data name="Fleet_Menu_For" xml:space="preserve"><value>Akce pro vozidlo {0}</value></data>
+  <data name="Fleet_Grid_Unpaired" xml:space="preserve"><value>Nespárováno</value></data>
 </root>

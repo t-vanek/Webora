@@ -99,4 +99,10 @@ public sealed record ParkingSettingsDto(
     ResidentNoReplacementAction ResidentNoReplacementAction,
     ResidentAlternativeBookingPolicy ResidentAlternativeBookingPolicy,
     HolidayCalendarRegion HolidayCalendarRegion = HolidayCalendarRegion.CzechRepublic,
-    bool PublicHolidayReservationsAllowed = false);
+    bool PublicHolidayReservationsAllowed = false,
+    bool SameDayReleasesAllowed = true,
+    ReservationReleaseMode? ReleaseMode = null,
+    ReleaseDeadlineMode ReleaseDeadline = ReleaseDeadlineMode.None,
+    int ReleaseLeadMinutes = 120,
+    TimeOnly? ReleasePreviousDayTime = null,
+    bool HandoffsEnabled = true);

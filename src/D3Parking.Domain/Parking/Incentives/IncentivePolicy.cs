@@ -35,6 +35,50 @@ public sealed record IncentivePolicy
     /// <summary>Whether a new booking may start on the current local calendar day.</summary>
     public bool SameDayReservationsAllowed { get; init; } = true;
 
+    /// <summary>Allow holders to release today's capacity, including an ongoing booking.</summary>
+    public bool SameDayReleasesAllowed { get; init; } = true;
+    public bool HandoffsEnabled { get; init; } = true;
+
+    public ReservationReleaseMode? ReleaseMode { get; init; }
+    public ReleaseDeadlineMode ReleaseDeadline { get; init; }
+    public int ReleaseLeadMinutes { get; init; } = 120;
+    public TimeOnly ReleasePreviousDayTime { get; init; } = new(18, 0);
+    public ReservationReleaseMode EffectiveReleaseMode => ReleaseMode ??
+        (SameDayReleasesAllowed ? ReservationReleaseMode.DuringReservation : ReservationReleaseMode.PreviousDay);
+
+    public DateTimeOffset? ReleaseAllowedUntil(DateTimeOffset start, TimeZoneInfo zone)
+    {
+        var date = SiteTime.Today(start, zone);
+        DateTimeOffset? modeDeadline = EffectiveReleaseMode switch
+        {
+            ReservationReleaseMode.PreviousDay => SiteTime.At(date, TimeOnly.MinValue, zone),
+            ReservationReleaseMode.BeforeStart => start,
+            _ => null,
+        };
+        DateTimeOffset? configuredDeadline = ReleaseDeadline switch
+        {
+            ReleaseDeadlineMode.PreviousDayAtTime => SiteTime.At(date.AddDays(-1), ReleasePreviousDayTime, zone),
+            ReleaseDeadlineMode.MinutesBeforeStart => start.AddMinutes(-ReleaseLeadMinutes),
+            _ => null,
+        };
+        return modeDeadline is null ? configuredDeadline : configuredDeadline is null ? modeDeadline :
+            modeDeadline < configuredDeadline ? modeDeadline : configuredDeadline;
+    }
+
+    public string? ValidateRelease(DateTimeOffset start, DateTimeOffset now, TimeZoneInfo zone)
+    {
+        if (EffectiveReleaseMode == ReservationReleaseMode.PreviousDay && SiteTime.Today(start, zone) <= SiteTime.Today(now, zone))
+            return "Parking_Error_SameDayReleaseNotAllowed";
+        if (EffectiveReleaseMode == ReservationReleaseMode.BeforeStart && now >= start)
+            return "Parking_Error_ReleaseAlreadyStarted";
+        return ReleaseAllowedUntil(start, zone) is { } deadline && now >= deadline
+            ? "Parking_Error_ReleaseDeadlinePassed" : null;
+    }
+
+    public string? ValidateResidentRelease(DateOnly date, DateTimeOffset now, TimeZoneInfo zone) =>
+        date < SiteTime.Today(now, zone) ? "Parking_Error_PastDate" :
+        ValidateRelease(SiteTime.At(date, TimeOnly.MinValue, zone), now, zone);
+
     public Weekday AllowedReservationWeekdays { get; init; } = Weekday.Everyday;
 
     public HolidayCalendarRegion HolidayCalendarRegion { get; init; } = HolidayCalendarRegion.CzechRepublic;

@@ -364,6 +364,12 @@ public class FleetPairingTests
         CompanyVehicleDto Row(string plate) => list.Single(v => v.Plate == plate);
 
         Assert.That(Row("POOL 100").PairingState, Is.EqualTo(FleetPairingState.ManualOnly));
+        var actionPage = await fleet.ListAdminPageAsync(
+            new FleetVehicleListQuery(State: FleetVehicleStateFilter.ActionRequired), 0, 100);
+        Assert.That(actionPage.Items.Any(v => v.Plate == "POOL 100"), Is.False);
+        Assert.That(actionPage.Items.Any(v => v.Plate == "GHST 200"), Is.True);
+        var summary = await fleet.GetAdminSummaryAsync();
+        Assert.That(summary.ActionCount, Is.EqualTo(actionPage.TotalCount));
         Assert.That(Row("GHST 200").PairingState, Is.EqualTo(FleetPairingState.NoAccount));
         Assert.That(Row("PLAT 300").PairingState, Is.EqualTo(FleetPairingState.PlateMissing));
         Assert.That(Row("REDY 400").PairingState, Is.EqualTo(FleetPairingState.ReadyToPair));

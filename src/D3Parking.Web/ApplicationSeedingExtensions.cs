@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using D3Parking.Infrastructure.Identity;
+using D3Parking.Infrastructure.Parking;
 using D3Parking.Infrastructure.Persistence;
 
 namespace D3Parking.Web;
 
-public static class IdentitySeedingExtensions
+public static class ApplicationSeedingExtensions
 {
-    public static async Task SeedIdentityAsync(this WebApplication app)
+    public static async Task SeedApplicationAsync(this WebApplication app)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var services = scope.ServiceProvider;
@@ -26,5 +27,8 @@ public static class IdentitySeedingExtensions
 
         var seeder = services.GetRequiredService<IdentitySeeder>();
         await seeder.SeedAsync();
+
+        var parkingLotSeeder = services.GetRequiredService<ParkingLotSeeder>();
+        await parkingLotSeeder.SeedAsync();
     }
 }

@@ -28,22 +28,32 @@ public sealed class ResidentSpotHandoffService(
 
     public async Task<IReadOnlyList<ResidentSpotHandoffDto>> GetMineAsync(
         Guid userId, CancellationToken cancellationToken = default)
+        => (await GetMinePageAsync(userId, 0, 100, cancellationToken)).Items;
+
+    public async Task<ResidentSpotHandoffPage> GetMinePageAsync(
+        Guid userId, int pageIndex, int pageSize, CancellationToken cancellationToken = default)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var now = timeProvider.GetUtcNow();
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         await ExpireDueAsync(dbContext, now, cancellationToken);
 
-        var handoffs = await dbContext.ResidentSpotHandoffs.AsNoTracking()
-            .Where(h => h.ResidentId == userId || h.RecipientId == userId)
+        var query = dbContext.ResidentSpotHandoffs.AsNoTracking()
+            .Where(h => h.ResidentId == userId || h.RecipientId == userId);
+        var total = await query.CountAsync(cancellationToken);
+        pageIndex = Math.Clamp(pageIndex, 0, Math.Max(0, (total - 1) / pageSize));
+        var handoffs = await query
             .OrderByDescending(h => h.Status == ResidentSpotHandoffStatus.PendingResident
                 || h.Status == ResidentSpotHandoffStatus.Offered)
-            .ThenBy(h => h.StartUtc)
-            .Take(100)
+            .ThenByDescending(h => h.CreatedAtUtc)
+            .ThenBy(h => h.Id)
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
         if (handoffs.Count == 0)
         {
-            return [];
+            return new([], total, pageIndex, pageSize);
         }
 
         var userIds = handoffs.SelectMany(h => new[] { h.ResidentId, h.RecipientId }).Distinct().ToList();
@@ -55,12 +65,13 @@ public sealed class ResidentSpotHandoffService(
             .Where(s => spotIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.Code, cancellationToken);
 
-        return handoffs.Select(h => new ResidentSpotHandoffDto(
+        var items = handoffs.Select(h => new ResidentSpotHandoffDto(
             h.Id, h.SpotId, spots.GetValueOrDefault(h.SpotId, string.Empty),
             h.ResidentId, names.GetValueOrDefault(h.ResidentId, string.Empty),
             h.RecipientId, names.GetValueOrDefault(h.RecipientId, string.Empty),
             h.Kind, h.Status, h.StartUtc, h.EndUtc, h.CreatedAtUtc, h.ExpiresAtUtc,
             h.MaxCreditsAuthorized, h.ReservationId)).ToList();
+        return new(items, total, pageIndex, pageSize);
     }
 
     public async Task<IReadOnlyList<ResidentSpotHandoffUserDto>> SearchRecipientsAsync(
@@ -174,7 +185,9 @@ public sealed class ResidentSpotHandoffService(
             return ParkingResult.Failure("Parking_Handoff_Error_InvalidWindow");
         }
 
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+        if (!policy.HandoffsEnabled)
+            return ParkingResult.Failure("Parking_Handoff_Error_Disabled");
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var windowError = ValidateWindow(policy, timeZone, startUtc, endUtc, now);
         if (windowError is not null)
@@ -281,6 +294,8 @@ public sealed class ResidentSpotHandoffService(
     public async Task<ParkingResult> AcceptAsync(
         Guid actorId, Guid handoffId, CancellationToken cancellationToken = default)
     {
+        if (!(await parkingSettings.GetCurrentPolicyAsync(cancellationToken)).HandoffsEnabled)
+            return ParkingResult.Failure("Parking_Handoff_Error_Disabled");
         await using var previewContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var preview = await previewContext.ResidentSpotHandoffs.AsNoTracking()
             .FirstOrDefaultAsync(h => h.Id == handoffId, cancellationToken);

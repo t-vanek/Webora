@@ -236,8 +236,57 @@ public class StartedReservationProtectionTests
         new TestDbContextFactory(_options), new FakeParkingSettings(policy ?? Policy), new FakeSiteSettings(),
         new FixedTimeProvider(Now), new NullNotificationService(), new PassthroughLocalizer<ParkingMessages>());
 
-    private ReservationService Reservations() => new(
-        new TestDbContextFactory(_options), new FakeParkingSettings(Policy), new FakeSiteSettings(),
+    [TestCase(false, 0, false)]
+    [TestCase(false, 1, true)]
+    [TestCase(true, 0, true)]
+    public async Task Holder_cancellation_and_preview_obey_the_same_release_rule(bool allowToday, int dayOffset, bool permitted)
+    {
+        var (_, _, booking) = await SeedAsync(Today.AddDays(dayOffset), SpotReleaseSource.Manual, false);
+        var service = Reservations(Policy with { SameDayReleasesAllowed = allowToday });
+        var preview = await service.PreviewEndAsync(booking.UserId, booking.Id);
+        Assert.That(preview, Is.Not.Null);
+        Assert.That(preview!.Error, permitted ? Is.Null : Is.EqualTo("Parking_Error_SameDayReleaseNotAllowed"));
+        var result = await service.CancelAsync(booking.UserId, booking.Id);
+        Assert.That(result.Succeeded, Is.EqualTo(permitted));
+        await using var db = new D3ParkingDbContext(_options);
+        var saved = await db.Reservations.SingleAsync(r => r.Id == booking.Id);
+        Assert.That(saved.Status, Is.EqualTo(!permitted ? ReservationStatus.Reserved :
+            dayOffset == 0 ? ReservationStatus.Released : ReservationStatus.Cancelled));
+    }
+
+    [Test]
+    public async Task Release_endpoint_cannot_bypass_same_day_cancellation_restriction()
+    {
+        var (_, _, booking) = await SeedAsync(Today, SpotReleaseSource.Manual, false);
+        var result = await Reservations(Policy with { SameDayReleasesAllowed = false }).ReleaseAsync(booking.UserId, booking.Id);
+        Assert.That(result.Errors, Does.Contain("Parking_Error_SameDayReleaseNotAllowed"));
+        await using var db = new D3ParkingDbContext(_options);
+        Assert.That((await db.Reservations.SingleAsync(r => r.Id == booking.Id)).Status, Is.EqualTo(ReservationStatus.Reserved));
+    }
+
+    [TestCase(false, 0, false)]
+    [TestCase(false, 1, true)]
+    [TestCase(true, 0, true)]
+    public async Task Resident_release_and_preview_obey_the_same_release_rule(bool allowToday, int dayOffset, bool permitted)
+    {
+        var date = Today.AddDays(dayOffset);
+        var (owner, spot, booking) = await SeedAsync(date, SpotReleaseSource.Manual, false);
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            await db.Reservations.Where(r => r.Id == booking.Id).ExecuteDeleteAsync();
+            await db.SpotReleases.Where(r => r.SpotId == spot.Id).ExecuteDeleteAsync();
+        }
+        var service = Residents(Policy with { SameDayReleasesAllowed = allowToday });
+        var preview = await service.PreviewReleaseAsync(owner, date, date);
+        Assert.That(preview.Error, permitted ? Is.Null : Is.EqualTo("Parking_Error_SameDayReleaseNotAllowed"));
+        var result = await service.ReleaseAsync(owner, date, date);
+        Assert.That(result.Succeeded, Is.EqualTo(permitted));
+        await using var verify = new D3ParkingDbContext(_options);
+        Assert.That(await verify.SpotReleases.AnyAsync(r => r.SpotId == spot.Id && r.Date == date), Is.EqualTo(permitted));
+    }
+
+    private ReservationService Reservations(IncentivePolicy? policy = null) => new(
+        new TestDbContextFactory(_options), new FakeParkingSettings(policy ?? Policy), new FakeSiteSettings(),
         new FixedTimeProvider(Now), new NullNotificationService(), new PassthroughLocalizer<ParkingMessages>());
 
     private async Task<(Guid Owner, ParkingSpot Spot, Reservation Booking)> SeedAsync(

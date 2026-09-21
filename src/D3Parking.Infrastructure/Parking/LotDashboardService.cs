@@ -475,6 +475,60 @@ public sealed class LotDashboardService(
         };
     }
 
+    public async Task<PlanningAnalysisDto> GetPlanningAnalysisAsync(
+        DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        if (to < from || to.DayNumber - from.DayNumber > 366)
+            throw new ArgumentOutOfRangeException(nameof(to));
+        var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var (start, _) = SiteTime.Day(from, timeZone);
+        var (_, end) = SiteTime.Day(to, timeZone);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        // A compact projection: no users, photos, individual calendars or live board queries.
+        var plans = await db.Reservations.AsNoTracking()
+            .Where(r => r.StartUtc >= start && r.StartUtc < end)
+            .Select(r => new { r.CreatedAtUtc, r.StartUtc, r.EndUtc, r.Status })
+            .ToListAsync(cancellationToken);
+        var leadDays = plans.Select(r => Math.Max(0,
+            SiteTime.Today(r.StartUtc, timeZone).DayNumber - SiteTime.Today(r.CreatedAtUtc, timeZone).DayNumber)).ToList();
+        var ended = plans.Where(r => r.EndUtc <= now).ToList();
+        var activeIds = await db.ParkingSpots.AsNoTracking().Where(s => s.IsActive)
+            .Select(s => s.Id).ToListAsync(cancellationToken);
+        var bookings = await HonouredDaysAsync(db, timeZone, from, to, activeIds, cancellationToken);
+        var queues = await db.QueueEntries.AsNoTracking()
+            .Where(q => q.StartUtc < end && q.EndUtc > start && q.EndUtc > now
+                && (q.Status == QueueEntryStatus.Waiting
+                    || (q.Status == QueueEntryStatus.Offered && q.OfferExpiresAtUtc > now)))
+            .Select(q => new { q.StartUtc, q.EndUtc }).ToListAsync(cancellationToken);
+        var bookedByDay = bookings.GroupBy(b => b.Date).ToDictionary(g => g.Key, g => g.Count());
+        var waitingByDay = queues.SelectMany(q => LocalDaysOf(q.StartUtc, q.EndUtc, timeZone)
+                .Where(d => d >= from && d <= to))
+            .GroupBy(d => d).ToDictionary(g => g.Key, g => g.Count());
+        return new PlanningAnalysisDto(activeIds.Count,
+            Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
+                .Select(offset => from.AddDays(offset))
+                .Select(day => new PlanningDayDto(day, bookedByDay.GetValueOrDefault(day),
+                    waitingByDay.GetValueOrDefault(day))).ToList())
+        {
+            Policy = policy,
+            Today = SiteTime.Today(now, timeZone),
+            LeadTimes = [
+                new("SameDay", leadDays.Count(d => d == 0)),
+                new("OneToTwo", leadDays.Count(d => d is >= 1 and <= 2)),
+                new("ThreeToSeven", leadDays.Count(d => d is >= 3 and <= 7)),
+                new("EightPlus", leadDays.Count(d => d >= 8)),
+            ],
+            Outcomes = [
+                new("Kept", ended.Count(r => r.Status is ReservationStatus.Completed or ReservationStatus.Reserved or ReservationStatus.CheckedIn)),
+                new("Released", ended.Count(r => r.Status == ReservationStatus.Released)),
+                new("Cancelled", ended.Count(r => r.Status == ReservationStatus.Cancelled)),
+                new("NoShow", ended.Count(r => r.Status == ReservationStatus.NoShow)),
+            ],
+        };
+    }
+
     public async Task<LotAnalyticsDto> GetAnalyticsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
     {
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);

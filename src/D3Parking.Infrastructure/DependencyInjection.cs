@@ -87,6 +87,7 @@ public static class DependencyInjection
         // database (admin-editable) and read through IParkingSettingsService (cached).
         services.AddScoped<IParkingSettingsService, ParkingSettingsService>();
         services.AddScoped<IParkingSpotService, ParkingSpotService>();
+        services.AddScoped<ParkingLotSeeder>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<ICalendarSubscriptionService, CalendarSubscriptionService>();
         services.AddScoped<IAchievementService, AchievementService>();

@@ -199,11 +199,20 @@
                             </span>
                         }
                     }
-                    @if (TodayAllowsNewReservation
-                         && residentDay is { State: OwnedSpotDayState.Held, IsAssignedToCurrentUser: true })
+                    @if (residentDay is { IsAssignedToCurrentUser: true, AllocationState: ResidentAllocationState.AssignedToCurrentUser })
                     {
                         <span class="today-card__actions">
+                            @if (residentDay.State == OwnedSpotDayState.Held
+                                 && _policy.ValidateResidentRelease(Today, DateTimeOffset.UtcNow, _tz) is null)
+                            {
                             <FluentButton Disabled="@_actionBusy" Appearance="Appearance.Stealth" OnClick="ReleaseOwnedTodayAsync">@L["Parking_ResidentState_ReleaseDay"]</FluentButton>
+                            }
+                            @if (_myReservations?.Any(r => (r.Status is ReservationStatus.Reserved or ReservationStatus.CheckedIn)
+                                && r.StartUtc < SiteTime.Day(Today, _tz).End
+                                && r.EndUtc > DateTimeOffset.UtcNow) != true)
+                            {
+                                <FluentButton Disabled="@(_actionBusy || _blockedBusy)" Appearance="Appearance.Outline" OnClick="OpenResidentBlockedPanel">@L["Parking_CantPark"]</FluentButton>
+                            }
                         </span>
                     }
                     else if (residentDay is { State: OwnedSpotDayState.SharedFree, CanReclaim: true })
@@ -333,7 +342,11 @@
             <div class="form-panel">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
                     <FluentLabel Typo="Typography.Subject">@L["Parking_Blocked_Title", blocked.SpotCode]</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_Text"]</FluentLabel>
+                    <FluentLabel Typo="Typography.Body">@L[_blockedResidentSpotId is null ? "Parking_Blocked_Text" : "Parking_Blocked_ResidentText"]</FluentLabel>
+                    @if (_policy.CreditsEnabled == true && _blockedResidentSpotId is null)
+                    {
+                        <p>@L["Parking_Blocked_RefundExplanation"]</p>
+                    }
                     <div>
                         <FluentLabel Typo="Typography.Body">@L["Parking_Blocked_PhotoLabel"]</FluentLabel>
                         <InputFile OnChange="OnBlockedPhotoSelectedAsync" accept="image/jpeg,image/png,image/webp"
@@ -730,14 +743,28 @@
         && ReservationNow >= reservation.StartUtc - TimeSpan.FromMinutes(15)
         && ReservationNow < reservation.EndUtc;
 
-    private void OpenBlockedPanel(ReservationDto reservation)
+    private async Task OpenBlockedPanel(ReservationDto reservation)
     {
+        _policy = await ParkingSettings.GetCurrentPolicyAsync();
+        _blockedResidentSpotId = null;
         _error = _info = _blockedMessage = null;
         _blockerPlate = null;
         _blockedPhoto = null;
         _blockedPhotoName = null;
         _blockedPhotoError = null;
         _blockedTarget = reservation;
+    }
+
+    private Guid? _blockedResidentSpotId;
+
+    private async Task OpenResidentBlockedPanel()
+    {
+        if (_ownedSpot is not { } own) return;
+        var (start, end) = SiteTime.Day(Today, _tz);
+        var now = DateTimeOffset.UtcNow;
+        await OpenBlockedPanel(new ReservationDto(Guid.Empty, own.SpotId, own.Code, own.Type, _userId,
+            start, end, ReservationStatus.Reserved, false, now, null, null, null, 0, now));
+        _blockedResidentSpotId = own.SpotId;
     }
 
     private async Task OnBlockedPhotoSelectedAsync(InputFileChangeEventArgs e)
@@ -769,8 +796,9 @@
         _blockedBusy = true;
         try
         {
-            var outcome = await Reservations.ReportBlockedSpotAsync(
-                _userId, blocked.Id, relocate, _blockedPhoto, _blockerPlate);
+            var outcome = _blockedResidentSpotId is { } ownSpotId
+                ? await Reservations.ReportBlockedResidentSpotAsync(_userId, ownSpotId, relocate, _blockedPhoto, _blockerPlate)
+                : await Reservations.ReportBlockedSpotAsync(_userId, blocked.Id, relocate, _blockedPhoto, _blockerPlate);
             if (!outcome.Succeeded)
             {
                 _error = outcome.Error;
@@ -783,7 +811,9 @@
                 : relocate
                     ? L["Parking_Blocked_NoSpot"]
                     : L["Parking_Blocked_Recorded"];
-            if (outcome.VoucherGranted && _creditsEnabled)
+            if (outcome.CreditsEnabled && outcome.RefundedCredits > 0)
+                _blockedMessage += " " + L["Parking_Blocked_Refunded", outcome.RefundedCredits];
+            if (outcome.VoucherGranted && outcome.CreditsEnabled)
             {
                 _blockedMessage += " " + L["Parking_Blocked_VoucherGranted"];
             }

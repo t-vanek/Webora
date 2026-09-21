@@ -8,6 +8,8 @@ namespace D3Parking.Application.Parking;
 /// </summary>
 public sealed record BlockedSpotOutcome(bool Succeeded, string? Error, string? RelocatedToSpotCode, bool VoucherGranted = false)
 {
+    public int RefundedCredits { get; init; }
+    public bool CreditsEnabled { get; init; }
     public static BlockedSpotOutcome Recorded(bool voucherGranted) => new(true, null, null, voucherGranted);
 
     public static BlockedSpotOutcome Relocated(string spotCode, bool voucherGranted) => new(true, null, spotCode, voucherGranted);

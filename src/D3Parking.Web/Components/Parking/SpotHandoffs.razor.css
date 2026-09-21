@@ -1,3 +1,15 @@
+.handoff-grid-scroll { overflow-x: auto; width: 100%; border: 1px solid var(--brand-hairline, #ddd); border-radius: 8px; margin-top: 12px; }
+.handoff-history-grid { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.handoff-history-grid th, .handoff-history-grid td { padding: 12px 14px; border-bottom: 1px solid var(--brand-hairline, #ddd); vertical-align: middle; }
+.handoff-history-grid thead { background: var(--neutral-layer-2, #f5f5f5); }
+.handoff-history-grid tbody tr:last-child > * { border-bottom: 0; }
+.handoff-history-grid td:nth-child(2) { min-width: 180px; }
+.handoff-grid-status { display: inline-block; padding: 3px 8px; border-radius: 6px; background: var(--neutral-layer-2, #f5f5f5); white-space: nowrap; }
+.handoff-grid-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.handoff-grid-pagination { display: flex; gap: 12px; align-items: center; justify-content: end; flex-wrap: wrap; margin-top: 14px; }
+.handoff-grid-pagination select { width: 75px; }
+@media (max-width: 700px) { .handoff-grid-pagination { justify-content: start; } }
+
 .resident-handoff-tile {
     gap: 14px;
     padding: 18px;

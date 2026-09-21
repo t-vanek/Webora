@@ -227,6 +227,8 @@ public sealed class ReservationService(
         ResidentSpotHandoff? handoff = null;
         if (handoffId is { } directHandoffId)
         {
+            if (!(await parkingSettings.GetCurrentPolicyAsync(cancellationToken)).HandoffsEnabled)
+                return ParkingResult.Failure("Parking_Handoff_Error_Disabled");
             handoff = await dbContext.ResidentSpotHandoffs
                 .FirstOrDefaultAsync(h => h.Id == directHandoffId, cancellationToken);
             var actorMayAccept = handoff is not null && handoff.IsActive
@@ -370,6 +372,10 @@ public sealed class ReservationService(
 
                 if (datesToShare.Count > 0)
                 {
+                    var releasePolicy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+                    var releaseFailure = datesToShare.Select(date => releasePolicy.ValidateResidentRelease(date, now, timeZone)).FirstOrDefault(error => error is not null);
+                    if (releaseFailure is not null) return ParkingResult.Failure(releaseFailure);
+
                     if (policy.ResidentAlternativeBookingPolicy == ResidentAlternativeBookingPolicy.Deny)
                     {
                         return ParkingResult.Failure("Parking_Error_AlternativeSpotDenied");
@@ -729,7 +735,9 @@ public sealed class ReservationService(
         var now = timeProvider.GetUtcNow();
         var booking = await db.Reservations.AsNoTracking().FirstOrDefaultAsync(r => r.Id == reservationId && r.UserId == userId, cancellationToken);
         if (booking is null || booking.EndUtc <= now || booking.Status is not (ReservationStatus.Reserved or ReservationStatus.CheckedIn)) return null;
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+        var zone = await siteSettings.GetTimeZoneAsync(cancellationToken);
+        var releaseError = policy.ValidateRelease(booking.StartUtc, now, zone);
         var deadline = booking.RefundDeadlineUtc ?? booking.StartUtc - policy.ReleaseCutoff;
         var timely = now <= deadline;
         var redeemed = timely ? await db.ApologyVouchers.AsNoTracking()
@@ -738,7 +746,8 @@ public sealed class ReservationService(
             && redeemed.ExpiresAtUtc > now && !await HoldsAnotherUsableVoucherAsync(db, redeemed, now, cancellationToken);
         return new(booking.StartUtc <= now, timely ? booking.CreditsCharged : 0, voucher, deadline,
             policy.CreditsEnabled || booking.CreditsCharged > 0 || voucher,
-            policy.WeeklyReservationLimitEnabled && booking.CountsTowardWeeklyLimit);
+            policy.WeeklyReservationLimitEnabled && booking.CountsTowardWeeklyLimit, releaseError,
+            policy.ReleaseAllowedUntil(booking.StartUtc, zone));
     }
 
     // User-facing planner mutations run under optimistic-concurrency retry: a double click or a
@@ -749,7 +758,7 @@ public sealed class ReservationService(
     private async Task<ParkingResult> ReleaseCoreAsync(Guid userId, Guid reservationId, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -776,6 +785,9 @@ public sealed class ReservationService(
         {
             return ParkingResult.Failure("Parking_Error_PastWindow");
         }
+
+        if (policy.ValidateRelease(reservation.StartUtc, now, timeZone) is { } releaseError)
+            return ParkingResult.Failure(releaseError);
 
         if (reservation.Status == ReservationStatus.CheckedIn) reservation.Complete(now);
         else reservation.Release(now);
@@ -839,6 +851,10 @@ public sealed class ReservationService(
         }
 
         // A holder ending an already-started plan retains its elapsed interval and quota day.
+        policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
+        if (policy.ValidateRelease(reservation.StartUtc, now, timeZone) is { } releaseError)
+            return ParkingResult.Failure(releaseError);
+
         if (reservation.Status == ReservationStatus.CheckedIn) reservation.Complete(now);
         else if (reservation.StartUtc <= now) reservation.Release(now);
         else reservation.Cancel(now);
@@ -1106,9 +1122,14 @@ public sealed class ReservationService(
         await transaction.CommitAsync(cancellationToken);
         await ParkingNotifications.PublishAsync(dbContext, notifications, cancellationToken);
 
-        return relocatedCode is null
+        var outcome = relocatedCode is null
             ? BlockedSpotOutcome.Recorded(voucherGranted)
             : BlockedSpotOutcome.Relocated(relocatedCode, voucherGranted);
+        return outcome with
+        {
+            CreditsEnabled = policy.CreditsEnabled,
+            RefundedCredits = policy.CreditsEnabled && replacement is null ? reservation.CreditsCharged : 0,
+        };
     }
     public Task<int> SendDueRemindersAsync(CancellationToken cancellationToken = default) =>
         OptimisticConcurrency.RetryAsync(() => SendDueRemindersCoreAsync(cancellationToken), cancellationToken);
@@ -1284,8 +1305,8 @@ public sealed class ReservationService(
         }
 
         var waiting = await dbContext.QueueEntries.AsNoTracking()
-            .Where(q => q.Status == QueueEntryStatus.Waiting)
-            .Select(q => new { q.Id, q.UserId, q.StartUtc, q.EndUtc, q.CreatedAtUtc })
+            .Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now)
+            .Select(q => new { q.Id, q.UserId, q.StartUtc, q.EndUtc, q.CreatedAtUtc, q.RequiredSpotType })
             .ToListAsync(cancellationToken);
 
         var spotIds = mine.Where(q => q.OfferedSpotId != null).Select(q => q.OfferedSpotId!.Value).ToList();
@@ -1295,11 +1316,12 @@ public sealed class ReservationService(
 
         return mine.Select(q =>
         {
-            // Position reflects the same first-come, first-served priority the matcher uses: how many overlapping
-            // entries currently outrank me, plus one.
+            // Estimated position among older overlapping requests competing for compatible types.
+            // Actual matching also checks availability and eligibility for each complete window.
             var position = q.Status == QueueEntryStatus.Offered
                 ? 0
                 : 1 + waiting.Count(w => w.StartUtc < q.EndUtc && w.EndUtc > q.StartUtc
+                    && (w.RequiredSpotType == null || q.RequiredSpotType == null || w.RequiredSpotType == q.RequiredSpotType)
                     && (w.CreatedAtUtc < q.CreatedAtUtc || w.CreatedAtUtc == q.CreatedAtUtc && w.Id.CompareTo(q.Id) < 0));
 
             return new QueueEntryDto(
@@ -1547,12 +1569,9 @@ public sealed class ReservationService(
             .ToList();
 
         // Achievements never affect access. The queue remains first-come, first-served.
-        int Priority(QueueEntry q) => (int)(now - q.CreatedAtUtc).TotalMinutes;
-
         var waiting = active
             .Where(q => q.Status == QueueEntryStatus.Waiting && q.EndUtc > now)
-            .OrderByDescending(Priority)
-            .ThenBy(q => q.CreatedAtUtc)
+            .OrderBy(q => q.CreatedAtUtc)
             .ThenBy(q => q.Id)
             .ToList();
         // Load one consistent snapshot inside the transaction, avoiding two database round-trips

@@ -251,8 +251,8 @@ public class AdminTests : AdminTest
         await Page.Locator("#fleet-open-add").ClickAsync();
         await Expect(Page.Locator(".fleet-editor")).ToBeVisibleAsync();
         await Expect(Page.Locator(".fleet-dialog-backdrop")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".fleet-editor")).ToHaveAttributeAsync("role", "dialog");
-        await Expect(Page.Locator(".fleet-editor")).ToHaveAttributeAsync("aria-modal", "true");
+        await Expect(Page.Locator(".fleet-dialog-backdrop")).ToHaveAttributeAsync("role", "dialog");
+        await Expect(Page.Locator(".fleet-dialog-backdrop")).ToHaveAttributeAsync("aria-modal", "true");
         await Expect(Page.Locator(".fleet-workspace")).Not.ToHaveClassAsync(new Regex("has-side"));
 
         // Unique plate per run — the database persists between test runs. Same retry idiom as
@@ -275,12 +275,13 @@ public class AdminTests : AdminTest
 
         await Expect(row).ToBeVisibleAsync();
         // No driver email was filled in, so the funnel column reads "manual pairing only".
-        await Expect(row.Locator(".state-pill")).ToHaveTextAsync("Jen ruční párování");
+        await Expect(row.Locator(".state-pill")).ToHaveTextAsync("Nespárováno");
 
         // Editing an existing record uses the same modal shell as creation, not the detail sidebar.
-        await row.Locator(".fleet-vehicle-link").ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Upravit$") }).ClickAsync();
+        await row.Locator(".fleet-edit").ClickAsync();
         await Expect(Page.Locator(".fleet-dialog-backdrop")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".fleet-side")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("fluent-text-field#fleet-plate input")).ToHaveValueAsync(plate);
         await Expect(Page.Locator("#fleet-save")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Zrušit$") }).ClickAsync();
         await Expect(Page.Locator(".fleet-dialog-backdrop")).ToHaveCountAsync(0);
@@ -288,10 +289,12 @@ public class AdminTests : AdminTest
         // Pairing is a separate focused decision, so it opens in the same dialog pattern instead
         // of expanding a form inside the vehicle detail sidebar.
         await row.Locator(".fleet-vehicle-link").ClickAsync();
+        await Expect(Page.Locator(".fleet-detail-dialog")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".fleet-side")).ToHaveCountAsync(0);
         await Page.Locator("#fleet-open-pair").ClickAsync();
         await Expect(Page.Locator(".fleet-pairing-backdrop")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".fleet-pairing-dialog")).ToHaveAttributeAsync("role", "dialog");
-        await Expect(Page.Locator(".fleet-pairing-dialog")).ToHaveAttributeAsync("aria-modal", "true");
+        await Expect(Page.Locator(".fleet-pairing-backdrop")).ToHaveAttributeAsync("role", "dialog");
+        await Expect(Page.Locator(".fleet-pairing-backdrop")).ToHaveAttributeAsync("aria-modal", "true");
         await Page.Locator(".fleet-pairing-dialog").GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Zrušit$|^Cancel$") }).ClickAsync();
         await Expect(Page.Locator(".fleet-pairing-backdrop")).ToHaveCountAsync(0);
     }

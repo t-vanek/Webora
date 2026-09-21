@@ -6114,6 +6114,14 @@ h1:focus {
     line-height: 1.4;
 }
 
+.planner-setting-help {
+    max-width: 596px;
+    margin: 0;
+    color: var(--neutral-foreground-hint);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .planner-tooltip-trigger {
     display: inline-flex;
     align-items: center;
@@ -8532,7 +8540,10 @@ h1:focus {
     grid-template-columns: minmax(0, 1fr) minmax(350px, 410px);
 }
 
-.fleet-registry,
+.fleet-registry { min-width: 0; }
+.fleet-pager { flex-wrap: wrap; }
+.fleet-pager select { width: 80px; }
+
 .fleet-side {
     min-width: 0;
     max-height: max(460px, calc(100vh - 390px));
@@ -8573,12 +8584,11 @@ h1:focus {
     text-transform: uppercase;
 }
 
-.fleet-table th:nth-child(1) { width: 17%; }
-.fleet-table th:nth-child(2) { width: 20%; }
+.fleet-table th:nth-child(1) { width: 22%; }
+.fleet-table th:nth-child(2) { width: 25%; }
 .fleet-table th:nth-child(3) { width: 17%; }
-.fleet-table th:nth-child(4) { width: 25%; }
-.fleet-table th:nth-child(5) { width: 15%; }
-.fleet-table th:nth-child(6) { width: 48px; }
+.fleet-table th:nth-child(4) { width: 20%; }
+.fleet-table th:nth-child(5) { width: 145px; }
 
 .fleet-table tbody tr:hover,
 .fleet-table tbody tr.is-selected {
@@ -8649,6 +8659,30 @@ h1:focus {
 
 .fleet-table__actions {
     text-align: right !important;
+    white-space: nowrap;
+}
+
+.fleet-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.fleet-row-actions .fleet-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.fleet-detail-dialog .fleet-side__actions {
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 4px;
+    gap: 10px;
 }
 
 .fleet-more {

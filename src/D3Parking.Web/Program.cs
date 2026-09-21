@@ -180,8 +180,9 @@ builder.Host.UseWolverine(opts =>
 
 var app = builder.Build();
 
-// Migrate in Development before any settings reader touches the database; validate in production.
-await app.SeedIdentityAsync();
+// Migrate in Development before any settings reader touches the database; validate in production,
+// then initialize built-in identity data and the configured physical parking spaces.
+await app.SeedApplicationAsync();
 
 // Publishes the Entra sign-in scheme if the stored settings ask for it. Done before the first
 // request so the pipeline is settled, and repeated by the settings page on every save.

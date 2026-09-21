@@ -594,13 +594,13 @@
   <data name="Parking_Error_CompleteTooEarly" xml:space="preserve"><value>A reservation can be completed only after its window has started.</value></data>
   <data name="Parking_CantPark" xml:space="preserve"><value>I can't park</value></data>
   <data name="Parking_Blocked_Title" xml:space="preserve"><value>Can't park at spot {0}?</value></data>
-  <data name="Parking_Blocked_Text" xml:space="preserve"><value>We'll record the spot's state and cancel the plan with a full refund. We can also find you another free spot right away.</value></data>
+  <data name="Parking_Blocked_Text" xml:space="preserve"><value>We'll record the spot's state and cancel the original reservation. We can also find you another free spot.</value></data>
   <data name="Parking_Blocked_Relocate" xml:space="preserve"><value>Find me another spot</value></data>
   <data name="Parking_Blocked_RecordOnly" xml:space="preserve"><value>Just record it</value></data>
   <data name="Parking_Blocked_Back" xml:space="preserve"><value>Back</value></data>
-  <data name="Parking_Relocated" xml:space="preserve"><value>You've got spot {0}. The original spot's state was recorded — this doesn't count as a no-show.</value></data>
-  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>The state was recorded and the reservation cancelled with a full refund — it doesn't count as a no-show.</value></data>
-  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>No other spot is free right now. The state was recorded and the reservation cancelled with a full refund — consider joining the queue.</value></data>
+  <data name="Parking_Relocated" xml:space="preserve"><value>Your replacement spot is {0}. The original spot's state was recorded.</value></data>
+  <data name="Parking_Blocked_Recorded" xml:space="preserve"><value>Your blocked-spot report was recorded.</value></data>
+  <data name="Parking_Blocked_NoSpot" xml:space="preserve"><value>No suitable replacement spot is available right now. Your report was recorded.</value></data>
   <data name="Parking_Error_BlockedReportWindow" xml:space="preserve"><value>A spot's state can be recorded only during the reservation window.</value></data>
   <data name="Parking_Error_BlockedReportLimit" xml:space="preserve"><value>You've reached today's limit for recorded spot states.</value></data>
   <data name="Parking_Mismatch_Window" xml:space="preserve"><value>Window</value></data>
@@ -1588,9 +1588,9 @@
   <data name="Account_Vehicle_NotPairable" xml:space="preserve"><value>This plate is in the company fleet registry, but self-service pairing is not available. Please contact an administrator.</value></data>
   <data name="Register_LicensePlate" xml:space="preserve"><value>License plate</value></data>
   <data name="Register_LicensePlateHint" xml:space="preserve"><value>If you drive a company car, the plate connects you with the fleet after your account is activated.</value></data>
-  <data name="Nav_AdminLot" xml:space="preserve"><value>Lot floor</value></data>
-  <data name="Nav_Short_Lot" xml:space="preserve"><value>Lot</value></data>
-  <data name="Lot_Title" xml:space="preserve"><value>Lot floor</value></data>
+  <data name="Nav_AdminLot" xml:space="preserve"><value>Analysis</value></data>
+  <data name="Nav_Short_Lot" xml:space="preserve"><value>Analysis</value></data>
+  <data name="Lot_Title" xml:space="preserve"><value>Analysis</value></data>
   <data name="Lot_Intro" xml:space="preserve"><value>A daily operational view of capacity, reservations, and events at each spot.</value></data>
   <data name="Lot_LinkSpots" xml:space="preserve"><value>Manage spots</value></data>
   <data name="Lot_Overview_Label" xml:space="preserve"><value>Parking operations summary</value></data>
@@ -1759,7 +1759,7 @@
   <data name="Nav_Short_Audit" xml:space="preserve"><value>Audit</value></data>
   <data name="Nav_AdminOversight" xml:space="preserve"><value>Oversight</value></data>
   <data name="Nav_Short_Oversight" xml:space="preserve"><value>Overs.</value></data>
-  <data name="Home_Card_Analytics" xml:space="preserve"><value>Occupancy, trends and turned-away demand</value></data>
+  <data name="Home_Card_Analytics" xml:space="preserve"><value>Reservation plans, capacity and pending demand</value></data>
   <data name="Home_Card_Audit" xml:space="preserve"><value>History of account and permission changes</value></data>
   <data name="Perm_Parking_View" xml:space="preserve"><value>See the lot</value></data>
   <data name="Perm_Parking_View_Desc" xml:space="preserve"><value>The baseline every parker needs: the lot, spot availability and their own standing.</value></data>
@@ -2697,4 +2697,110 @@
   </data>
   <data name="Parking_Notify_OfferWithdrawn_Title" xml:space="preserve"><value>Offer withdrawn, queue position retained</value></data>
   <data name="Parking_Notify_OfferWithdrawn_Body" xml:space="preserve"><value>The offer for {0} was withdrawn because the spot became unavailable or its message was not delivered. Your original queue position is preserved.</value></data>
+  <data name="Parking_Settings_SameDayReleasesAllowed" xml:space="preserve"><value>Allow releases on the reservation day</value></data>
+  <data name="Parking_Settings_SameDayReleasesHelp" xml:space="preserve"><value>Applies to residents and non-residents. On: release today's space or end an ongoing reservation. Off: only release reservations and resident days from tomorrow, using the lot's time zone. Credit refund rules remain unchanged.</value></data>
+  <data name="Parking_Error_SameDayReleaseNotAllowed" xml:space="preserve"><value>Same-day release is disabled. You can only release reservations and resident days from tomorrow.</value></data>
+  <data name="Release_Mode" xml:space="preserve"><value>When reservations can be released</value></data>
+  <data name="Release_Mode_PreviousDay" xml:space="preserve"><value>Only before the reservation day</value></data>
+  <data name="Release_Mode_BeforeStart" xml:space="preserve"><value>On the reservation day, before it starts</value></data>
+  <data name="Release_Mode_DuringReservation" xml:space="preserve"><value>Including during the reservation</value></data>
+  <data name="Release_DeadlineMode" xml:space="preserve"><value>Additional release deadline</value></data>
+  <data name="Release_Deadline_None" xml:space="preserve"><value>No additional deadline</value></data>
+  <data name="Release_Deadline_PreviousDayAtTime" xml:space="preserve"><value>At a specified time on the previous day</value></data>
+  <data name="Release_Deadline_MinutesBeforeStart" xml:space="preserve"><value>Minutes before the start</value></data>
+  <data name="Release_LeadMinutes" xml:space="preserve"><value>Minimum notice in minutes</value></data>
+  <data name="Release_PreviousDayTime" xml:space="preserve"><value>Time on the previous day</value></data>
+  <data name="Release_RulesHelp" xml:space="preserve"><value>The earlier mode boundary or deadline applies, in the lot's time zone. All-day bookings and resident days start at midnight. Credit refund rules are separate.</value></data>
+  <data name="Release_AllowedUntil" xml:space="preserve"><value>Release before {0} (lot time).</value></data>
+  <data name="Release_DuringAllowed" xml:space="preserve"><value>You can end this reservation during parking.</value></data>
+  <data name="Release_ResidentMidnight" xml:space="preserve"><value>Resident days start at midnight.</value></data>
+  <data name="Parking_Error_ReleaseAlreadyStarted" xml:space="preserve"><value>This reservation has started. Releases are only allowed before the start.</value></data>
+  <data name="Parking_Error_ReleaseDeadlinePassed" xml:space="preserve"><value>The release deadline for this reservation has passed.</value></data>
+  <data name="Parking_Settings_ReleaseRulesInvalid" xml:space="preserve"><value>Check the release mode and deadline. Notice must be between 0 and 525,600 minutes.</value></data>
+  <data name="Parking_Queue_FifoExplanation" xml:space="preserve"><value>Spaces are offered in joining order, without resident, role or points privileges. Position is an estimate for overlapping windows and compatible space types. An unclaimed offer moves you to the back; an unsent email preserves your position.</value></data>
+  <data name="Parking_Blocked_ResidentText" xml:space="preserve"><value>We'll record that your assigned spot is blocked. We can find you another available spot for today.</value></data>
+  <data name="Parking_Blocked_RefundExplanation" xml:space="preserve"><value>If no replacement reservation is made, the credits paid for the original reservation will be refunded. When relocated, that amount pays for the replacement reservation.</value></data>
+  <data name="Parking_Blocked_Refunded" xml:space="preserve"><value>We refunded {0} credits.</value></data>
+  <data name="Parking_Settings_HandoffsEnabled" xml:space="preserve"><value>Enable spot handoffs</value></data>
+  <data name="Parking_Settings_HandoffsEnabled_Help" xml:space="preserve"><value>Allows offers, requests and acceptance of spot handoffs. Disabling preserves existing reservations and history; pending offers can still be cancelled or declined.</value></data>
+  <data name="Parking_Handoff_Error_Disabled" xml:space="preserve"><value>Spot handoffs are currently disabled by the administrator.</value></data>
+  <data name="Analysis_Intro" xml:space="preserve"><value>Daily reservations and demand to support capacity planning, not live parking occupancy.</value></data>
+  <data name="Analysis_Period" xml:space="preserve"><value>Period</value></data>
+  <data name="Analysis_Next14" xml:space="preserve"><value>Next 14 days</value></data>
+  <data name="Analysis_Next28" xml:space="preserve"><value>Next 28 days</value></data>
+  <data name="Analysis_Last28" xml:space="preserve"><value>Last 28 days</value></data>
+  <data name="Analysis_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Analysis_Capacity" xml:space="preserve"><value>Current capacity: {0} active spots</value></data>
+  <data name="Analysis_NoCapacity" xml:space="preserve"><value>No active parking spots are configured.</value></data>
+  <data name="Analysis_Summary" xml:space="preserve"><value>Planning summary</value></data>
+  <data name="Analysis_Average" xml:space="preserve"><value>Average booked spots</value></data>
+  <data name="Analysis_SpotsPerDay" xml:space="preserve"><value>spots per day in the selected period</value></data>
+  <data name="Analysis_Peak" xml:space="preserve"><value>Most booked day</value></data>
+  <data name="Analysis_NoBookings" xml:space="preserve"><value>No reservations in this period</value></data>
+  <data name="Analysis_QueuePeak" xml:space="preserve"><value>Peak daily pending requests</value></data>
+  <data name="Analysis_QueueHelp" xml:space="preserve"><value>Currently pending requests including valid offers; not historical queue data.</value></data>
+  <data name="Analysis_Daily" xml:space="preserve"><value>Daily plan</value></data>
+  <data name="Analysis_DailyHelp" xml:space="preserve"><value>Look for days with bookings and pending requests. Multiple bookings of one spot on the same day count as one spot.</value></data>
+  <data name="Analysis_Day" xml:space="preserve"><value>Day</value></data>
+  <data name="Analysis_Booked" xml:space="preserve"><value>Booked spots</value></data>
+  <data name="Analysis_Share" xml:space="preserve"><value>Capacity share</value></data>
+  <data name="Analysis_Unbooked" xml:space="preserve"><value>Without booking</value></data>
+  <data name="Analysis_Waiting" xml:space="preserve"><value>Pending requests</value></data>
+  <data name="Analysis_Interpretation" xml:space="preserve"><value>How to read this data</value></data>
+  <data name="Analysis_Method" xml:space="preserve"><value>Counts include recorded active and completed reservations and visitor bookings on currently active spots. This is not measured physical occupancy. A spot without a booking may be resident-held, blocked or offered in the queue. A partial-day booking counts for the whole day here. Historical figures use today's capacity.</value></data>
+  <data name="Analysis_PlanningTip" xml:space="preserve"><value>When requests are waiting for a day, review resident releases and requested spot types. Few advance bookings do not necessarily mean low final demand.</value></data>
+  <data name="Analysis_HorizonPeriod" xml:space="preserve"><value>Full booking horizon</value></data>
+  <data name="Analysis_CurrentRules" xml:space="preserve"><value>Current planning rules</value></data>
+  <data name="Analysis_AllDayMode" xml:space="preserve"><value>All-day reservations</value></data>
+  <data name="Analysis_TimeMode" xml:space="preserve"><value>Time-window reservations</value></data>
+  <data name="Analysis_HorizonEnd" xml:space="preserve"><value>New bookings through {0} inclusive</value></data>
+  <data name="Analysis_WeeklyLimit" xml:space="preserve"><value>Personal shared-capacity limit: {0} days per week. This does not change physical parking capacity.</value></data>
+  <data name="Analysis_NoWeeklyLimit" xml:space="preserve"><value>The personal weekly limit is disabled.</value></data>
+  <data name="Analysis_HistoryAverage" xml:space="preserve"><value>spots per calendar day ({0} days)</value></data>
+  <data name="Analysis_OpenAverage" xml:space="preserve"><value>spots per day allowed for new bookings ({0} days)</value></data>
+  <data name="Analysis_TimeWindowHelp" xml:space="preserve"><value>In time-window mode, a spot counts if booked for any part of the day. Capacity share is not hourly utilization and does not show free time slots.</value></data>
+  <data name="Analysis_DateRule" xml:space="preserve"><value>New bookings</value></data>
+  <data name="Analysis_Date_Allowed" xml:space="preserve"><value>Allowed</value></data>
+  <data name="Analysis_Date_Past" xml:space="preserve"><value>Past</value></data>
+  <data name="Analysis_Date_OutsideReservationHorizon" xml:space="preserve"><value>Outside horizon</value></data>
+  <data name="Analysis_Date_SameDayNotAllowed" xml:space="preserve"><value>Same-day bookings disabled</value></data>
+  <data name="Analysis_Date_PublicHolidayNotAllowed" xml:space="preserve"><value>Public holiday – disabled</value></data>
+  <data name="Analysis_Date_WeekendNotAllowed" xml:space="preserve"><value>Weekend – disabled</value></data>
+  <data name="Analysis_Date_WeekdayNotAllowed" xml:space="preserve"><value>Weekday disabled</value></data>
+  <data name="Analysis_HistoryRules" xml:space="preserve"><value>Historical settings are not recorded. Past days are not filtered by today's rules; the current rules above provide context only. The current queue is hidden in history.</value></data>
+  <data name="Analysis_CurrentRulesHelp" xml:space="preserve"><value>Future periods are capped at the booking horizon. The average includes only days allowed by the current calendar. Existing bookings and requests on blocked days remain visible in the table and peak figures. An allowed day does not guarantee a booking: spot availability and personal limits still apply.</value></data>
+  <data name="Analysis_ReleaseRule" xml:space="preserve"><value>Reservation release mode: {0}. Additional deadline:</value></data>
+  <data name="Analysis_LeadMinutes" xml:space="preserve"><value>{0} minutes before the start</value></data>
+  <data name="Analysis_LeadChart" xml:space="preserve"><value>Planning ahead</value></data>
+  <data name="Analysis_LeadChartHint" xml:space="preserve"><value>Creation lead time for reservations starting in this period, including cancellations.</value></data>
+  <data name="Analysis_OutcomeChart" xml:space="preserve"><value>Plan outcomes</value></data>
+  <data name="Analysis_OutcomeChartHint" xml:space="preserve"><value>Only elapsed reservations starting in the period. Recorded status, not proof of arrival.</value></data>
+  <data name="Analysis_CapacityChart" xml:space="preserve"><value>Capacity covered by bookings</value></data>
+  <data name="Analysis_CapacityChartHint" xml:space="preserve"><value>Booked spots against today's active capacity. Resident allocations without bookings are not counted.</value></data>
+  <data name="Analysis_CapacityTimeHint" xml:space="preserve"><value>Spots booked for any part of a day against today's capacity; not hourly utilization or physical occupancy.</value></data>
+  <data name="Analysis_WeeklyChart" xml:space="preserve"><value>Bars: averages over 7-day groups; date marks the start.</value></data>
+  <data name="Analysis_DailyChart" xml:space="preserve"><value>Bars: individual days.</value></data>
+  <data name="Analysis_ChartEmpty" xml:space="preserve"><value>No data for this chart yet.</value></data>
+  <data name="Analysis_Bucket_SameDay" xml:space="preserve"><value>Same day</value></data>
+  <data name="Analysis_Bucket_OneToTwo" xml:space="preserve"><value>1–2 days ahead</value></data>
+  <data name="Analysis_Bucket_ThreeToSeven" xml:space="preserve"><value>3–7 days ahead</value></data>
+  <data name="Analysis_Bucket_EightPlus" xml:space="preserve"><value>8+ days ahead</value></data>
+  <data name="Analysis_Bucket_Kept" xml:space="preserve"><value>Not cancelled / released</value></data>
+  <data name="Analysis_Bucket_Released" xml:space="preserve"><value>Released</value></data>
+  <data name="Analysis_Bucket_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Analysis_Bucket_NoShow" xml:space="preserve"><value>Recorded no-show</value></data>
+  <data name="Analysis_Pagination" xml:space="preserve"><value>Daily plan pagination</value></data>
+  <data name="Analysis_Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Analysis_Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Analysis_Page" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Handoff_Grid_Spot" xml:space="preserve"><value>Spot</value></data>
+  <data name="Handoff_Grid_Window" xml:space="preserve"><value>Dates</value></data>
+  <data name="Handoff_Grid_Person" xml:space="preserve"><value>Participant</value></data>
+  <data name="Handoff_Grid_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Handoff_Grid_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Handoff_Grid_Pagination" xml:space="preserve"><value>Offers and requests pagination</value></data>
+  <data name="Handoff_Grid_PageSize" xml:space="preserve"><value>Rows per page</value></data>
+  <data name="Handoff_Grid_Empty" xml:space="preserve"><value>You have no offers or requests yet.</value></data>
+  <data name="Fleet_Menu_For" xml:space="preserve"><value>Actions for vehicle {0}</value></data>
+  <data name="Fleet_Grid_Unpaired" xml:space="preserve"><value>Unpaired</value></data>
 </root>

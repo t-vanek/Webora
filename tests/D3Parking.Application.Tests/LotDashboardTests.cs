@@ -64,6 +64,7 @@ public class LotDashboardTests
         dbContext.AccountAuditEvents.RemoveRange(dbContext.AccountAuditEvents);
         dbContext.OccupancyMismatches.RemoveRange(dbContext.OccupancyMismatches);
         dbContext.QueueEntries.RemoveRange(dbContext.QueueEntries);
+        dbContext.ResidentSpotHandoffs.RemoveRange(dbContext.ResidentSpotHandoffs);
         dbContext.Reservations.RemoveRange(dbContext.Reservations);
         dbContext.SpotReleases.RemoveRange(dbContext.SpotReleases);
         dbContext.VisitorBookings.RemoveRange(dbContext.VisitorBookings);
@@ -82,6 +83,73 @@ public class LotDashboardTests
             await using var dbContext = new D3ParkingDbContext(_options);
             await dbContext.Database.EnsureDeletedAsync();
         }
+    }
+
+    [Test]
+    public async Task Handoff_pages_are_bounded_stable_and_private_to_the_user()
+    {
+        var spot = await CreateSpotAsync("PAGE-1");
+        var user = Guid.NewGuid();
+        await using (var db = new D3ParkingDbContext(_options))
+        {
+            for (var i = 0; i < 23; i++)
+                db.ResidentSpotHandoffs.Add(ResidentSpotHandoff.CreateOffer(
+                    spot, user, Guid.NewGuid(), Noon.AddDays(1), Noon.AddDays(2),
+                    Noon.AddMinutes(-i), Noon.AddHours(6)));
+            db.ResidentSpotHandoffs.Add(ResidentSpotHandoff.CreateOffer(
+                spot, Guid.NewGuid(), Guid.NewGuid(), Noon.AddDays(1), Noon.AddDays(2),
+                Noon, Noon.AddHours(6)));
+            await db.SaveChangesAsync();
+        }
+        var service = new ResidentSpotHandoffService(new TestDbContextFactory(_options),
+            null!, null!, null!, new FixedTimeProvider(Noon), null!, null!);
+        var first = await service.GetMinePageAsync(user, 0, 10);
+        var second = await service.GetMinePageAsync(user, 1, 10);
+        var last = await service.GetMinePageAsync(user, 999, 10);
+        Assert.That(first.TotalCount, Is.EqualTo(23));
+        Assert.That(first.Items, Has.Count.EqualTo(10));
+        Assert.That(first.Items.Select(i => i.Id).Intersect(second.Items.Select(i => i.Id)), Is.Empty);
+        Assert.That(last.PageIndex, Is.EqualTo(2));
+        Assert.That(last.Items, Has.Count.EqualTo(3));
+        Assert.That((await service.GetMinePageAsync(user, 0, 10)).Items.Select(i => i.Id),
+            Is.EqualTo(first.Items.Select(i => i.Id)));
+    }
+
+    [Test]
+    public async Task Planning_analysis_excludes_cancelled_bookings_and_inactive_capacity()
+    {
+        var booked = await CreateSpotAsync("PLAN-1");
+        var cancelled = await CreateSpotAsync("PLAN-2");
+        var inactive = await CreateSpotAsync("PLAN-3", active: false);
+        await BookAsync(booked, Guid.NewGuid());
+        await BookAsync(cancelled, Guid.NewGuid(), status: ReservationStatus.Cancelled);
+        await BookAsync(inactive, Guid.NewGuid());
+
+        var result = await CreateDashboard().GetPlanningAnalysisAsync(Today, Today.AddDays(1));
+
+        Assert.That(result.ActiveSpots, Is.EqualTo(2));
+        Assert.That(result.Days, Has.Count.EqualTo(2));
+        Assert.That(result.Days[0].BookedSpots, Is.EqualTo(1));
+        Assert.That(result.Days[0].BookingPercent(result.ActiveSpots), Is.EqualTo(50));
+        Assert.That(result.Days[1].BookedSpots, Is.Zero);
+        Assert.That(result.Days[0].WaitingRequests, Is.Zero);
+        Assert.That(result.LeadTimes.Sum(b => b.Count), Is.EqualTo(3),
+            "Planning includes cancelled reservations and retired spots, unlike current capacity.");
+        Assert.That(result.Outcomes.Sum(b => b.Count), Is.Zero,
+            "A reservation whose window has not ended has no final outcome yet.");
+    }
+
+    [Test]
+    public async Task Planning_outcomes_use_only_elapsed_reservations_starting_in_the_period()
+    {
+        var spot = await CreateSpotAsync("OUTCOME-1");
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-1));
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(-2), status: ReservationStatus.Cancelled);
+        await BookAsync(spot, Guid.NewGuid(), day: Today.AddDays(1));
+        var result = await CreateDashboard().GetPlanningAnalysisAsync(Today.AddDays(-2), Today.AddDays(1));
+        Assert.That(result.Outcomes.Single(b => b.Key == "Kept").Count, Is.EqualTo(1));
+        Assert.That(result.Outcomes.Single(b => b.Key == "Cancelled").Count, Is.EqualTo(1));
+        Assert.That(result.Outcomes.Sum(b => b.Count), Is.EqualTo(2));
     }
 
     [Test]

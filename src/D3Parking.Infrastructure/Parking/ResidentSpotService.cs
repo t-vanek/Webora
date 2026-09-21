@@ -195,7 +195,7 @@ public sealed class ResidentSpotService(
 
     private async Task<ParkingResult> ReleaseCoreAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, timeZone);
@@ -205,9 +205,9 @@ public sealed class ResidentSpotService(
             return ParkingResult.Failure("Parking_Error_InvalidRange");
         }
 
-        if (fromDate < today)
+        if (policy.ValidateResidentRelease(fromDate, now, timeZone) is { } releaseError)
         {
-            return ParkingResult.Failure("Parking_Error_PastDate");
+            return ParkingResult.Failure(releaseError);
         }
 
         if (toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays)
@@ -280,12 +280,12 @@ public sealed class ResidentSpotService(
     public async Task<ResidentReleasePreviewDto> PreviewReleaseAsync(Guid userId, DateOnly fromDate, DateOnly toDate,
         CancellationToken cancellationToken = default)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
         var zone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, zone);
         if (toDate < fromDate) return new([], null, "Parking_Error_InvalidRange");
-        if (fromDate < today) return new([], null, "Parking_Error_PastDate");
+        if (policy.ValidateResidentRelease(fromDate, now, zone) is { } releaseError) return new([], null, releaseError);
         if (toDate.DayNumber - fromDate.DayNumber >= policy.MaxReleaseRangeDays) return new([], null, "Parking_Error_RangeTooLong");
         if (toDate > policy.ResidentPlanHorizonEnd(today)) return new([], null, "Parking_Error_ReservationHorizon");
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -411,7 +411,8 @@ public sealed class ResidentSpotService(
         var plan = new List<(DateOnly Date, int Points)>();
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            if (!policy.IsReservationDateAllowed(date)
+            if (policy.ValidateResidentRelease(date, now, timeZone) is not null
+                || !policy.IsReservationDateAllowed(date)
                 || alreadyReleased.Contains(date)
                 || heldDates.Contains(date)
                 || claimedDays.Contains(date)
@@ -842,7 +843,7 @@ public sealed class ResidentSpotService(
     private async Task<ResidentUsagePlanPreviewDto> ChangeUsagePlanAsync(Guid userId, Weekday plannedUseDays,
         bool autoReleaseUnplannedDays, bool apply, CancellationToken cancellationToken)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
         var zone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, zone);
@@ -908,7 +909,7 @@ public sealed class ResidentSpotService(
 
     public async Task<int> ApplyDuePlanReleasesAsync(CancellationToken cancellationToken = default)
     {
-        var policy = await parkingSettings.GetPolicyAsync(cancellationToken);
+        var policy = await parkingSettings.GetCurrentPolicyAsync(cancellationToken);
         var timeZone = await siteSettings.GetTimeZoneAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var today = SiteTime.Today(now, timeZone);

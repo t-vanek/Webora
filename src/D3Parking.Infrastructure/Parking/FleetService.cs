@@ -141,8 +141,7 @@ public sealed class FleetService(
         {
             FleetVehicleStateFilter.Paired => query.Where(v => v.IsActive && v.PairingState == FleetPairingState.Paired),
             FleetVehicleStateFilter.ActionRequired => query.Where(v => v.IsActive &&
-                (v.PairingState == FleetPairingState.ManualOnly ||
-                 v.PairingState == FleetPairingState.NoAccount ||
+                (v.PairingState == FleetPairingState.NoAccount ||
                  v.PairingState == FleetPairingState.PlateMissing ||
                  v.PairingState == FleetPairingState.Locked)),
             FleetVehicleStateFilter.ManualOnly => query.Where(v => v.IsActive && v.PairingState == FleetPairingState.ManualOnly),
@@ -207,7 +206,7 @@ public sealed class FleetService(
         var paired = groups.Where(g => g.IsActive && g.PairingState == FleetPairingState.Paired).Sum(g => g.Count);
         var manual = groups.Where(g => g.IsActive && g.PairingState == FleetPairingState.ManualOnly).Sum(g => g.Count);
         var action = groups.Where(g => g.IsActive && g.PairingState is
-            FleetPairingState.ManualOnly or FleetPairingState.NoAccount or FleetPairingState.PlateMissing or FleetPairingState.Locked)
+            FleetPairingState.NoAccount or FleetPairingState.PlateMissing or FleetPairingState.Locked)
             .Sum(g => g.Count);
         var assigned = groups.Where(g => g.IsActive && g.Assigned).Sum(g => g.Count);
 

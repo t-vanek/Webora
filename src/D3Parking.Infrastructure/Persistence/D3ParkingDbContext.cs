@@ -694,6 +694,8 @@ public class D3ParkingDbContext(DbContextOptions<D3ParkingDbContext> options)
                 .HasDefaultValue(ReservationTimeMode.TimeWindow);
             settings.Property(s => s.ReservationHorizonDays).HasDefaultValue(14);
             settings.Property(s => s.SameDayReservationsAllowed).HasDefaultValue(true);
+            settings.Property(s => s.SameDayReleasesAllowed).HasDefaultValue(true);
+            settings.Property(s => s.HandoffsEnabled).HasDefaultValue(true);
             settings.Property(s => s.AllowedReservationWeekdays)
                 .HasDefaultValue(Weekday.Everyday)
                 .HasSentinel((Weekday)(-1));

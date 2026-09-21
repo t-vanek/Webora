@@ -1,11 +1,28 @@
 @inject IReservationService Reservations
 @inject ISiteSettingsService SiteSettings
 @inject IStringLocalizer<SharedResource> L
+@inject IParkingSettingsService ParkingSettings
+
+@if (_policy is { } policy)
+{
+    <p class="parking-release-rule">
+        @if (policy.ReleaseAllowedUntil(Booking.StartUtc, _zone) is { } deadline)
+        {
+            @L["Release_AllowedUntil", TimeZoneInfo.ConvertTime(deadline, _zone).ToString("g")]
+        }
+        else { @L["Release_DuringAllowed"] }
+    </p>
+}
 
 @if (_preview is { } preview)
 {
     <div class="parking-confirmation" role="group" aria-label="@L["Parking_End_Confirm"]">
         <p><strong>@Booking.SpotCode</strong> · @L[preview.Started ? "Parking_End_Started" : "Parking_End_Future"]</p>
+        @if (preview.Error is { } error) { <p role="alert">@L[error]</p> }
+        @if (preview.ReleaseDeadlineUtc is { } releaseDeadline)
+        {
+            <p>@L["Release_AllowedUntil", TimeZoneInfo.ConvertTime(releaseDeadline, _zone).ToString("g")]</p>
+        }
         @if (preview.Started && preview.CountsTowardWeeklyLimit) { <p>@L["Parking_End_Quota"]</p> }
         @if (preview.UsesBudget)
         {
@@ -13,7 +30,7 @@
             @if (preview.RestoreVoucher) { <p>@L["Parking_End_Voucher"]</p> }
             <p>@L["Parking_End_Deadline", TimeZoneInfo.ConvertTime(preview.RefundDeadlineUtc, _zone).ToString("g")]</p>
         }
-        <FluentButton Disabled="@(Disabled || _busy)" Appearance="Appearance.Accent" OnClick="EndAsync">@L["Parking_End_Confirm"]</FluentButton>
+        <FluentButton Disabled="@(Disabled || _busy || preview.Error is not null)" Appearance="Appearance.Accent" OnClick="EndAsync">@L["Parking_End_Confirm"]</FluentButton>
         <FluentButton Disabled="@_busy" Appearance="Appearance.Stealth" OnClick="() => _preview = null">@L["Common_Cancel"]</FluentButton>
     </div>
 }
@@ -32,6 +49,8 @@ else
     private ReservationEndPreviewDto? _preview;
     private bool _busy;
     private TimeZoneInfo _zone = TimeZoneInfo.Utc;
+    private D3Parking.Domain.Parking.Incentives.IncentivePolicy? _policy;
+    protected override async Task OnParametersSetAsync() => _policy = await ParkingSettings.GetPolicyAsync();
     protected override async Task OnInitializedAsync() => _zone = await SiteSettings.GetTimeZoneAsync();
 
     private async Task PreviewAsync()

@@ -108,6 +108,8 @@ public class VoucherApprovalTests
 
         Assert.That(outcome.Succeeded, Is.True, outcome.Error);
         Assert.That(outcome.VoucherGranted, Is.True);
+        Assert.That(outcome.CreditsEnabled, Is.True);
+        Assert.That(outcome.RefundedCredits, Is.EqualTo(reservation.CreditsCharged));
 
         await using var db = new D3ParkingDbContext(_options);
         var mismatch = await db.OccupancyMismatches.SingleAsync(m => m.ReporterId == userId);
@@ -152,6 +154,8 @@ public class VoucherApprovalTests
 
         Assert.That(outcome.Succeeded, Is.True, outcome.Error);
         Assert.That(outcome.VoucherGranted, Is.False);
+        Assert.That(outcome.CreditsEnabled, Is.False);
+        Assert.That(outcome.RefundedCredits, Is.Zero);
         await using var db = new D3ParkingDbContext(_options);
         Assert.That(await db.ApologyVouchers.AnyAsync(v => v.UserId == userId), Is.False);
         Assert.That(await DurableNotificationQueries.InboxAsync(_options), Does.Not.Contain((userId, "Parking_Notify_VoucherGranted_Title")));

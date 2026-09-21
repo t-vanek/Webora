@@ -33,6 +33,26 @@ public class ParkingSettings : Entity, IAggregateRoot
 
     public bool SameDayReservationsAllowed { get; private set; } = true;
 
+    public bool SameDayReleasesAllowed { get; private set; } = true;
+    public bool HandoffsEnabled { get; private set; } = true;
+    public void SetHandoffsEnabled(bool enabled) => HandoffsEnabled = enabled;
+    public ReservationReleaseMode? ReleaseMode { get; private set; }
+    public ReleaseDeadlineMode ReleaseDeadline { get; private set; }
+    public int ReleaseLeadMinutes { get; private set; } = 120;
+    public TimeOnly ReleasePreviousDayTime { get; private set; } = new(18, 0);
+
+    public void SetReleaseRules(ReservationReleaseMode? mode, ReleaseDeadlineMode deadline, int leadMinutes, TimeOnly previousDayTime)
+    {
+        if ((mode is { } value && !Enum.IsDefined(value)) || !Enum.IsDefined(deadline) || leadMinutes is < 0 or > 525600)
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        ReleaseMode = mode;
+        ReleaseDeadline = deadline;
+        ReleaseLeadMinutes = leadMinutes;
+        ReleasePreviousDayTime = previousDayTime;
+    }
+
+    public void SetSameDayReleasesAllowed(bool allowed) => SameDayReleasesAllowed = allowed;
+
     /// <summary>Local weekdays on which employees may start a new reservation.</summary>
     public Weekday AllowedReservationWeekdays { get; private set; } = Weekday.Everyday;
 
@@ -451,7 +471,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         TierSilverPoints = Math.Max(0, tierSilverPoints);
         TierGoldPoints = Math.Max(TierSilverPoints, tierGoldPoints);
         TierPlatinumPoints = Math.Max(TierGoldPoints, tierPlatinumPoints);
-        QueuePriorityPerTier = Math.Max(0, queuePriorityPerTier);
+        QueuePriorityPerTier = 0; // Legacy storage only; access is strictly FIFO.
         TierAllowanceBonus = Math.Max(0, tierAllowanceBonus);
         TierDiscountPercent = Math.Clamp(tierDiscountPercent, 0, 30);
         ReputationDecayPercent = Math.Clamp(reputationDecayPercent, 0, 100);
@@ -563,6 +583,12 @@ public class ParkingSettings : Entity, IAggregateRoot
         ReservationTimeMode = ReservationTimeMode,
         ReservationHorizonDays = ReservationHorizonDays,
         SameDayReservationsAllowed = SameDayReservationsAllowed,
+        SameDayReleasesAllowed = SameDayReleasesAllowed,
+        HandoffsEnabled = HandoffsEnabled,
+        ReleaseMode = ReleaseMode,
+        ReleaseDeadline = ReleaseDeadline,
+        ReleaseLeadMinutes = ReleaseLeadMinutes,
+        ReleasePreviousDayTime = ReleasePreviousDayTime,
         AllowedReservationWeekdays = AllowedReservationWeekdays,
         HolidayCalendarRegion = HolidayCalendarRegion,
         PublicHolidayReservationsAllowed = PublicHolidayReservationsAllowed,
@@ -611,7 +637,7 @@ public class ParkingSettings : Entity, IAggregateRoot
         TierSilverPoints = TierSilverPoints,
         TierGoldPoints = TierGoldPoints,
         TierPlatinumPoints = TierPlatinumPoints,
-        QueuePriorityPerTier = QueuePriorityPerTier,
+        QueuePriorityPerTier = 0,
         TierAllowanceBonus = TierAllowanceBonus,
         TierDiscountPercent = TierDiscountPercent,
         ReputationDecayPercent = ReputationDecayPercent,

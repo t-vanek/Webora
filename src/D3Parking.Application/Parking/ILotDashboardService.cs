@@ -7,6 +7,8 @@ namespace D3Parking.Application.Parking;
 /// </summary>
 public interface ILotDashboardService
 {
+    Task<PlanningAnalysisDto> GetPlanningAnalysisAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// The board for one local day: lot-level counts plus every spot as a row, ordered by the section
     /// its code implies and then by that code read as a number. For today the rows reflect the live

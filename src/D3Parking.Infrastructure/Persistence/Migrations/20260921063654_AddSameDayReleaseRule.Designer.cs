@@ -4,6 +4,7 @@ using D3Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace D3Parking.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D3ParkingDbContext))]
-    partial class D3ParkingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921063654_AddSameDayReleaseRule")]
+    partial class AddSameDayReleaseRule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1155,11 +1158,6 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<bool>("HandoffsEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
                     b.Property<bool>("HighOccupancyCampaignsEnabled")
                         .HasColumnType("bit");
 
@@ -1340,20 +1338,8 @@ namespace D3Parking.Infrastructure.Persistence.Migrations
                     b.Property<TimeSpan>("ReleaseCutoff")
                         .HasColumnType("time");
 
-                    b.Property<int>("ReleaseDeadline")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReleaseLeadMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ReleaseMode")
-                        .HasColumnType("int");
-
                     b.Property<int>("ReleasePoints")
                         .HasColumnType("int");
-
-                    b.Property<TimeOnly>("ReleasePreviousDayTime")
-                        .HasColumnType("time");
 
                     b.Property<TimeSpan>("ReminderLeadTime")
                         .HasColumnType("time");

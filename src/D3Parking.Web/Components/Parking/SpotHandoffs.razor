@@ -2,6 +2,7 @@
 @inject IParkingSettingsService ParkingSettings
 @inject ISiteSettingsService SiteSettings
 @inject IStringLocalizer<SharedResource> L
+@inject ILogger<SpotHandoffs> Logger
 
 <section class="resident-tools resident-handoff-tile handoff-card" aria-labelledby="spot-handoffs-title">
     <header class="handoff-card__header">
@@ -9,7 +10,7 @@
             <FluentIcon Value="@(new Icons.Regular.Size20.People())" Color="Color.Accent" />
             <div>
                 <h2 id="spot-handoffs-title">@L["Parking_Handoff_Title"]</h2>
-                <p>@L[!BookingAllowed ? "Parking_Handoff_BlockedSubtitle" : CanOffer ? "Parking_Handoff_OfferSubtitle" : IsResident ? "Parking_Handoff_ResidentSubtitle" : "Parking_Handoff_RequestSubtitle"]</p>
+                <p>@L[!_policy.HandoffsEnabled ? "Parking_Handoff_Error_Disabled" : !BookingAllowed ? "Parking_Handoff_BlockedSubtitle" : CanOffer ? "Parking_Handoff_OfferSubtitle" : IsResident ? "Parking_Handoff_ResidentSubtitle" : "Parking_Handoff_RequestSubtitle"]</p>
             </div>
         </div>
         <span class="handoff-card__window">@WindowText</span>
@@ -29,21 +30,12 @@
         <p class="handoff-card__policy">@ReclaimPolicyText</p>
     }
 
-    @if (!IsResident && ActionRequiredItems.Count > 0)
-    {
-        <section class="handoff-priority" aria-labelledby="handoff-priority-title">
-            <h3 id="handoff-priority-title">@L["Parking_Handoff_ActionRequired"]</h3>
-            <div class="reservation-list">
-                @foreach (var item in ActionRequiredItems)
-                {
-                    @HandoffItem(item)
-                }
-            </div>
-        </section>
-    }
-
     <div class="resident-handoff-grid">
-        @if (!BookingAllowed)
+        @if (!_policy.HandoffsEnabled)
+        {
+            <p>@L["Parking_Handoff_Error_Disabled"]</p>
+        }
+        else if (!BookingAllowed)
         {
             <div class="handoff-action-card handoff-action-card--blocked">
                 <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" Color="Color.Warning" />
@@ -125,32 +117,52 @@
         }
     </div>
 
-    @if (IsResident && _items.Count > 0)
-    {
-        <div class="handoff-history">
-            <h3>@L["Parking_Handoff_History"]</h3>
-            <div class="reservation-list">
-                @foreach (var item in _items.Take(12))
-                {
-                    @HandoffItem(item)
-                }
+    <div class="handoff-history" aria-busy="@_historyLoading">
+        <h3>@L["Parking_Handoff_History"] <span>(@_totalCount)</span></h3>
+        @if (_historyLoading)
+        {
+            <p role="status">@L["Parking_Admin_Loading"]</p>
+        }
+        else if (_items.Count == 0)
+        {
+            <p>@L["Handoff_Grid_Empty"]</p>
+        }
+        else
+        {
+            <div class="handoff-grid-scroll" tabindex="0" role="region" aria-label="@L["Parking_Handoff_History"]">
+                <table class="handoff-history-grid">
+                    <thead><tr>
+                        <th scope="col">@L["Handoff_Grid_Spot"]</th>
+                        <th scope="col">@L["Handoff_Grid_Window"]</th>
+                        <th scope="col">@L["Handoff_Grid_Person"]</th>
+                        <th scope="col">@L["Handoff_Grid_Status"]</th>
+                        <th scope="col">@L["Handoff_Grid_Actions"]</th>
+                    </tr></thead>
+                    <tbody>
+                        @foreach (var item in _items)
+                        {
+                            <tr @key="item.Id">
+                                <th scope="row">@item.SpotCode</th>
+                                <td>@FormatWindow(item.StartUtc, item.EndUtc)</td>
+                                <td>@Counterparty(item)</td>
+                                <td><span class="handoff-grid-status">@L[$"Parking_Handoff_Status_{item.Status}"]</span></td>
+                                <td><div class="handoff-grid-actions">@HandoffActions(item)</div></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
-        </div>
-    }
-    else if (!IsResident && HistoryItems.Count > 0)
-    {
-        <details class="handoff-collapsible handoff-history-collapsible">
-            <summary class="handoff-collapsible__summary">
-                <span>@L["Parking_Handoff_HistoryWithCount", HistoryItems.Count]</span>
-            </summary>
-            <div class="reservation-list">
-                @foreach (var item in HistoryItems)
-                {
-                    @HandoffItem(item)
-                }
-            </div>
-        </details>
-    }
+        }
+        <nav class="handoff-grid-pagination" aria-label="@L["Handoff_Grid_Pagination"]">
+            <label for="handoff-page-size">@L["Handoff_Grid_PageSize"]</label>
+            <select id="handoff-page-size" class="parking-input" @bind="_pageSize" @bind:after="ResetPageAsync" disabled="@(_busy || _historyLoading)">
+                <option value="10">10</option><option value="20">20</option><option value="50">50</option>
+            </select>
+            <FluentButton Disabled="@(_busy || _historyLoading || _pageIndex == 0)" OnClick="@(() => LoadPageAsync(_pageIndex - 1))">@L["Analysis_Previous"]</FluentButton>
+            <span>@L["Analysis_Page", _pageIndex + 1, PageCount]</span>
+            <FluentButton Disabled="@(_busy || _historyLoading || _pageIndex + 1 >= PageCount)" OnClick="@(() => LoadPageAsync(_pageIndex + 1))">@L["Analysis_Next"]</FluentButton>
+        </nav>
+    </div>
 </section>
 
 @code {
@@ -180,14 +192,11 @@
     private Guid? SelectedResident => Guid.TryParse(_residentId, out var id) ? id : null;
     private string WindowText => FormatWindow(StartUtc, EndUtc);
     private string ReclaimPolicyText => L[$"Parking_Handoff_Reclaim_{_policy.ResidentReclaimPolicy}"];
-    private IReadOnlyList<ResidentSpotHandoffDto> ActionRequiredItems => _items
-        .Where(CanAccept)
-        .Take(12)
-        .ToList();
-    private IReadOnlyList<ResidentSpotHandoffDto> HistoryItems => _items
-        .Where(item => !CanAccept(item))
-        .Take(12)
-        .ToList();
+    private int _pageIndex;
+    private int _pageSize = 10;
+    private int _totalCount;
+    private bool _historyLoading;
+    private int PageCount => Math.Max(1, (_totalCount + _pageSize - 1) / _pageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,10 +262,30 @@
         }
     }
 
-    private async Task ReloadAsync() => _items = await Handoffs.GetMineAsync(UserId);
+    private Task ReloadAsync() => LoadPageAsync(_pageIndex);
+    private Task ResetPageAsync() => LoadPageAsync(0);
+    private async Task LoadPageAsync(int page)
+    {
+        if (_historyLoading) return;
+        _historyLoading = true;
+        try
+        {
+            var result = await Handoffs.GetMinePageAsync(UserId, page, _pageSize);
+            _items = result.Items;
+            _totalCount = result.TotalCount;
+            _pageIndex = result.PageIndex;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load handoff page");
+            _error = "Parking_Admin_LoadFailed";
+        }
+        finally { _historyLoading = false; }
+    }
 
     private bool CanAccept(ResidentSpotHandoffDto item) =>
-        _policy.GetReservationDateAvailability(item.StartUtc, DateTimeOffset.UtcNow, _timeZone)
+        _policy.HandoffsEnabled
+        && _policy.GetReservationDateAvailability(item.StartUtc, DateTimeOffset.UtcNow, _timeZone)
             == ReservationDateAvailability.Allowed
         && item.Status switch
     {
@@ -269,14 +298,8 @@
         ResidentSpotHandoffStatus.Offered or ResidentSpotHandoffStatus.PendingResident
         && (item.Kind == ResidentSpotHandoffKind.ResidentOffer ? item.ResidentId == UserId : item.RecipientId == UserId);
 
-    private RenderFragment HandoffItem(ResidentSpotHandoffDto item) => __builder =>
+    private RenderFragment HandoffActions(ResidentSpotHandoffDto item) => __builder =>
     {
-        <article class="reservation-card">
-            <div>
-                <strong>@item.SpotCode · @FormatWindow(item.StartUtc, item.EndUtc)</strong>
-                <div>@Counterparty(item)</div>
-                <small>@L[$"Parking_Handoff_Status_{item.Status}"]</small>
-            </div>
             @if (CanAccept(item))
             {
                 <FluentButton Appearance="Appearance.Accent" Disabled="@_busy" OnClick="() => AcceptAsync(item.Id)">
@@ -292,7 +315,7 @@
                 <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy"
                               OnClick="() => CancelAsync(item.Id)">@L["Parking_Handoff_Cancel"]</FluentButton>
             }
-        </article>
+
     };
 
     private string Counterparty(ResidentSpotHandoffDto item) => item.Kind switch

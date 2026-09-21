@@ -83,7 +83,7 @@
             <span>@ActiveViewDescription</span>
         </div>
 
-        <div class="fleet-workspace @(SideOpen ? "has-side" : null)">
+        <div class="fleet-workspace">
             <div class="fleet-registry">
                 @if (_summary.TotalCount == 0)
                 {
@@ -110,7 +110,7 @@
                                     <th scope="col">@L["Fleet_Table_Driver"]</th>
                                     <th scope="col">@L["Fleet_Table_Parking"]</th>
                                     <th scope="col">@L["Fleet_Table_Pairing"]</th>
-                                    <th scope="col">@L["Fleet_Table_Activity"]</th>
+
                                     <th scope="col" class="fleet-table__actions">@L["Fleet_Table_Actions"]</th>
                                 </tr>
                             </thead>
@@ -123,42 +123,53 @@
                                             <button type="button" class="fleet-vehicle-link" aria-pressed="@(_selected?.Id == vehicle.Id ? "true" : "false")"
                                                     @onclick="() => SelectVehicle(vehicle)">
                                                 <span>@vehicle.Plate</span>
-                                                <small>@(string.IsNullOrWhiteSpace(vehicle.Name) ? L[$"Fleet_Type_{vehicle.Type}"] : vehicle.Name)</small>
+                                                <small>@L[$"Fleet_Type_{vehicle.Type}"]@(string.IsNullOrWhiteSpace(vehicle.Name) ? "" : $" · {vehicle.Name}")</small>
                                             </button>
                                         </th>
                                         <td>
                                             <div class="fleet-cell-stack">
                                                 <span>@(vehicle.PairedUserName ?? L["Fleet_Driver_Unpaired"].Value)</span>
-                                                <small>@(vehicle.DriverEmail ?? L["Fleet_Driver_NoEmail"].Value)</small>
+                                                @if (!string.IsNullOrWhiteSpace(vehicle.DriverEmail))
+                                                {
+                                                    <small>@vehicle.DriverEmail</small>
+                                                }
                                             </div>
                                         </td>
                                         <td>
                                             <div class="fleet-cell-stack">
-                                                <span>@L[$"Fleet_Type_{vehicle.Type}"]</span>
+
                                                 <small>@(vehicle.SpotCode is null ? L["Fleet_Parking_NoSpot"] : L["Fleet_Parking_Spot", vehicle.SpotCode])</small>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="fleet-cell-stack">
-                                                <span class="state-pill @pill.Css" title="@pill.Hint">@pill.Label</span>
-                                                <small>@PairingNextStep(vehicle)</small>
+                                                <span class="state-pill @pill.Css" title="@pill.Hint">@(vehicle.PairingState == FleetPairingState.ManualOnly ? L["Fleet_Grid_Unpaired"] : pill.Label)</span>
+
                                             </div>
                                         </td>
-                                        <td class="fleet-table__activity">@PairingActivity(vehicle)</td>
+
                                         <td class="fleet-table__actions">
-                                            <button type="button" class="fleet-more" title="@L["Fleet_Action_Detail"]"
-                                                    aria-label="@L["Fleet_Action_DetailFor", vehicle.Plate]" @onclick="() => SelectVehicle(vehicle)">
+                                            <div class="fleet-row-actions">
+                                            <FluentButton Class="fleet-edit" Appearance="Appearance.Outline"
+                                                          Disabled="@_busy" OnClick="() => BeginEditAsync(vehicle)">
+                                                @L["Fleet_Admin_Edit"]
+                                            </FluentButton>
+                                            <button type="button" id="@($"fleet-menu-{vehicle.Id}")" class="fleet-more" title="@L["Fleet_Table_Actions"]"
+                                                    aria-haspopup="menu" aria-label="@L["Fleet_Menu_For", vehicle.Plate]" @onclick="() => OpenMenu(vehicle)">
                                                 <FluentIcon Value="@(new Icons.Regular.Size20.MoreHorizontal())" Color="Color.Custom" CustomColor="currentColor" />
                                             </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
-                    @if (PageCount > 1)
+                    @if (_totalCount > 0)
                     {
-                        <div class="pager" aria-label="@L["Fleet_Pagination_Label"]">
+                        <div class="pager fleet-pager" aria-label="@L["Fleet_Pagination_Label"]">
+                            <label for="fleet-page-size">@L["Handoff_Grid_PageSize"]</label>
+                            <select id="fleet-page-size" class="parking-input" @bind="PageSize" @bind:after="ApplyPageSizeAsync"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select>
                             <FluentButton Appearance="Appearance.Outline" Disabled="@(_pageIndex == 0)"
                                           OnClick="() => GoToPageAsync(_pageIndex - 1)">@L["Common_PrevPage"]</FluentButton>
                             <span>@L["Common_PageOf", _pageIndex + 1, PageCount]</span>
@@ -169,20 +180,19 @@
                 }
             </div>
 
-            @if (_selected is not null && !_editorOpen)
+
+        </div>
+    }
+</FluentStack>
+            @if (_selected is not null && !_editorOpen && !_pairingOpen)
             {
                 var selectedPill = StatePill(_selected);
-                <aside class="admin-panel fleet-side" aria-live="polite" aria-label="@L["Fleet_Detail_Label"]">
-                    <div class="fleet-side__head">
-                        <div>
-                            <span class="fleet-side__eyebrow">@L["Fleet_Detail_Vehicle"]</span>
-                            <strong>@_selected.Plate</strong>
-                        </div>
-                        <button type="button" class="fleet-more" aria-label="@L["Fleet_Action_Close"]" @onclick="CloseSide">
-                            <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" Color="Color.Custom" CustomColor="currentColor" />
-                        </button>
-                    </div>
-
+                <AdminDialog Title="@_selected.Plate" Eyebrow="@L["Fleet_Detail_Label"]"
+                             Class="fleet-detail-dialog" Size="medium" Busy="@_busy" OnClose="CloseSide">
+                    @if (_error is not null)
+                    {
+                        <FluentMessageBar Intent="MessageIntent.Error">@L[_error]</FluentMessageBar>
+                    }
                     <div class="fleet-detail__status">
                         <span class="state-pill @selectedPill.Css">@selectedPill.Label</span>
                         <span class="state-pill state-pill--@(_selected.IsActive ? "on" : "off")">
@@ -206,6 +216,7 @@
                     <section class="fleet-detail__section">
                         <h3>@L["Fleet_Detail_Pairing"]</h3>
                         @DetailFact(L["Fleet_Admin_PairedUser"], _selected.PairedUserName ?? L["Fleet_Admin_NotPaired"])
+                        @DetailFact(L["Fleet_Table_Activity"], PairingActivity(_selected))
                         <p class="fleet-detail__note">@PairingNextStep(_selected)</p>
                     </section>
 
@@ -230,11 +241,17 @@
                             <FluentButton Appearance="Appearance.Stealth" Disabled="@_busy" OnClick="() => DeleteAsync(_selected.Id)">@L["Fleet_Admin_Delete"]</FluentButton>
                         }
                     </div>
-                </aside>
+                </AdminDialog>
             }
-        </div>
-    }
-</FluentStack>
+<FluentMenuProvider />
+@if (_menuVehicle is { } menuVehicle)
+{
+    <FluentMenu @key="menuVehicle.Id" Anchor="@($"fleet-menu-{menuVehicle.Id}")" @bind-Open="_menuOpen">
+        <FluentMenuItem OnClick="() => SelectVehicle(menuVehicle)">@L["Fleet_Action_Detail"]</FluentMenuItem>
+        <FluentMenuItem OnClick="() => PairFromMenuAsync(menuVehicle)">@PairActionLabel(menuVehicle)</FluentMenuItem>
+        <FluentMenuItem Disabled="@_busy" OnClick="() => ToggleFromMenuAsync(menuVehicle)">@L[menuVehicle.IsActive ? "Fleet_Admin_Deactivate" : "Fleet_Admin_Activate"]</FluentMenuItem>
+    </FluentMenu>
+}
 
 @if (_editorOpen)
 {
@@ -245,6 +262,10 @@
                  BackdropClass="fleet-dialog-backdrop"
                  Busy="@_busy"
                  OnClose="CloseSide">
+        @if (_error is not null)
+        {
+            <FluentMessageBar Intent="MessageIntent.Error" Type="MessageType.MessageBar" role="alert">@L[_error]</FluentMessageBar>
+        }
         @if (_optionsBusy)
         {
             <div class="loading"><FluentProgressRing /></div>
@@ -288,7 +309,7 @@
                             {
                                 <FluentButton Id="fleet-save" Appearance="Appearance.Accent" Disabled="@_busy" OnClick="SaveEditAsync">@L["Fleet_Admin_Save"]</FluentButton>
                             }
-                            <FluentButton Appearance="Appearance.Outline" OnClick="CloseSide">@L["Fleet_Admin_Cancel"]</FluentButton>
+                            <FluentButton Appearance="Appearance.Outline" Disabled="@_busy" OnClick="CloseSide">@L["Fleet_Admin_Cancel"]</FluentButton>
                         </div>
             </div>
         }
@@ -348,7 +369,9 @@
     private const string FleetViewAction = "action";
     private const string FleetViewManual = "manual";
     private const string FleetViewInactive = "inactive";
-    private const int PageSize = 25;
+    private int PageSize = 10;
+    private bool _menuOpen;
+    private CompanyVehicleDto? _menuVehicle;
 
     private IReadOnlyList<CompanyVehicleDto>? _vehicles;
     private FleetDirectorySummary? _summary;
@@ -393,7 +416,7 @@
     private int ActionVehicleCount => _summary?.ActionCount ?? 0;
     private int AssignedSpotCount => _summary?.AssignedSpotCount ?? 0;
     private int PageCount => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)PageSize));
-    private bool SideOpen => !_editorOpen && _selected is not null;
+
     private bool HasActiveFilters => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_typeFilter) || !string.IsNullOrEmpty(_parkingFilter);
 
     private string ActiveViewDescription => _view switch
@@ -559,8 +582,22 @@
         await LoadPageAsync();
     }
 
+    private Task ApplyPageSizeAsync() => GoToPageAsync(0);
+    private void OpenMenu(CompanyVehicleDto vehicle) { _menuVehicle = vehicle; _menuOpen = true; }
+    private async Task PairFromMenuAsync(CompanyVehicleDto vehicle)
+    {
+        SelectVehicle(vehicle);
+        await BeginPairAsync();
+    }
+    private async Task ToggleFromMenuAsync(CompanyVehicleDto vehicle)
+    {
+        _menuOpen = false;
+        await SetActiveAsync(vehicle.Id, !vehicle.IsActive);
+        _selected = null;
+    }
     private void SelectVehicle(CompanyVehicleDto vehicle)
     {
+        _menuOpen = false;
         _selected = vehicle;
         _editorOpen = false;
         _pairingOpen = false;
@@ -570,6 +607,7 @@
 
     private async Task BeginCreateAsync()
     {
+        _error = _info = null;
         ResetForm();
         _selected = null;
         _editorOpen = true;
@@ -578,6 +616,9 @@
 
     private async Task BeginEditAsync(CompanyVehicleDto vehicle)
     {
+        _menuOpen = false;
+        _pairingOpen = false;
+        _pairingConfirmed = false;
         _error = _info = null;
         _editing = vehicle;
         _formPlate = vehicle.Plate;
@@ -836,6 +877,8 @@
 
     private async Task LoadPageAsync(CancellationToken cancellationToken = default)
     {
+        _menuOpen = false;
+        _menuVehicle = null;
         var page = await Fleet.ListAdminPageAsync(CurrentFilter(), _pageIndex, PageSize, cancellationToken);
         ApplyPage(page);
     }

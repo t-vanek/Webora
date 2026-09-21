@@ -81,7 +81,7 @@ public sealed class ParkingSettingsService(
             s.QueueOfferMinutes, s.QueueNoShowPenaltyPoints, s.QueueNoShowCreditPenalty, s.QueueNoShowBanDays, s.QueueNoShowAllowancePenalty,
             s.DemandReleaseOccupancyPercent, s.DemandReleaseQueueBonus, s.MaxReleaseReward,
             s.StreakBonusPerLevel, s.StreakBonusCap, s.TierSilverPoints, s.TierGoldPoints, s.TierPlatinumPoints,
-            s.QueuePriorityPerTier, s.TierAllowanceBonus, s.TierDiscountPercent,
+            0, s.TierAllowanceBonus, s.TierDiscountPercent,
             s.ReputationDecayPercent, s.ReputationDecayIntervalDays,
             s.AdaptivePricingEnabled, s.AdaptiveTargetOccupancyPercent, s.AdaptiveGainPercent, s.AdaptiveDeadbandPercent,
             s.AdaptiveStepMaxPercent, s.AdaptivePeakMinPercent, s.AdaptivePeakMaxPercent, s.AdaptiveIntervalMinutes,
@@ -97,7 +97,8 @@ public sealed class ParkingSettingsService(
             s.ResidentReclaimPolicy, s.ManualReleasesAreBinding, s.ResidentProtectionDeadlineMode,
             s.ResidentProtectionLeadHours, s.ResidentProtectionPreviousDayTime, s.ResidentNoReplacementAction,
             s.ResidentAlternativeBookingPolicy,
-            s.HolidayCalendarRegion, s.PublicHolidayReservationsAllowed);
+            s.HolidayCalendarRegion, s.PublicHolidayReservationsAllowed, s.SameDayReleasesAllowed,
+            s.ReleaseMode, s.ReleaseDeadline, s.ReleaseLeadMinutes, s.ReleasePreviousDayTime, s.HandoffsEnabled);
     }
 
     public Task<ParkingResult> UpdateAsync(
@@ -186,6 +187,9 @@ public sealed class ParkingSettingsService(
             dto.ResidentProtectionLeadHours, dto.ResidentProtectionPreviousDayTime, dto.ResidentNoReplacementAction,
             dto.ResidentAlternativeBookingPolicy,
             dto.HolidayCalendarRegion, dto.PublicHolidayReservationsAllowed);
+        settings.SetSameDayReleasesAllowed(dto.SameDayReleasesAllowed);
+        settings.SetHandoffsEnabled(dto.HandoffsEnabled);
+        settings.SetReleaseRules(dto.ReleaseMode, dto.ReleaseDeadline, dto.ReleaseLeadMinutes, dto.ReleasePreviousDayTime ?? new TimeOnly(18, 0));
 
         if (calendarChanged)
         {
@@ -208,6 +212,9 @@ public sealed class ParkingSettingsService(
             actingUserId, AccountAuditEventType.SettingsChanged, $"admin:{actingUserId}",
             $"Parking planner: mode={settings.ReservationTimeMode} horizon={settings.ReservationHorizonDays}d " +
             $"sameDay={settings.SameDayReservationsAllowed} " +
+            $"sameDayReleases={settings.SameDayReleasesAllowed} " +
+            $"handoffs={settings.HandoffsEnabled} " +
+            $"releaseMode={settings.ReleaseMode} deadline={settings.ReleaseDeadline} leadMinutes={settings.ReleaseLeadMinutes} previousDayTime={settings.ReleasePreviousDayTime} " +
             $"weekdays={settings.AllowedReservationWeekdays} holidays={settings.HolidayCalendarRegion}:" +
             $"{(settings.PublicHolidayReservationsAllowed ? "allowed" : "blocked")} " +
             $"weeklyLimit={(settings.WeeklyReservationLimitEnabled ? settings.WeeklyReservationLimit : 0)} " +
