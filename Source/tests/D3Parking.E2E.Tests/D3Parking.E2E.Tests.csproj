@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/D3Parking.Infrastructure/D3Parking.Infrastructure.csproj" />
+    <ProjectReference Include="../../D3Parking.Infrastructure/D3Parking.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

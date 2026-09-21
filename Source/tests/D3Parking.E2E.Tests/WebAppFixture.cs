@@ -94,7 +94,7 @@ public sealed class WebAppFixture
         {
             FileName = "dotnet",
             Arguments =
-                $"run --project src/D3Parking.Web/D3Parking.Web.csproj -c Release --artifacts-path artifacts/e2e-host --no-launch-profile --urls {BaseUrl}",
+                $"run --project D3Parking.Web/D3Parking.Web.csproj -c Release --artifacts-path artifacts/e2e-host --no-launch-profile --urls {BaseUrl}",
             WorkingDirectory = root,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -138,12 +138,12 @@ public sealed class WebAppFixture
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "D3Soft.D3Parking.slnx")))
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "D3Soft.Parking.WebApp.slnx")))
         {
             dir = dir.Parent;
         }
 
-        return dir?.FullName ?? throw new InvalidOperationException("Could not locate the source root (D3Soft.D3Parking.slnx).");
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate the source root (D3Soft.Parking.WebApp.slnx).");
     }
 
     private static int FreePort()

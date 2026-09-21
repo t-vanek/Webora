@@ -176,7 +176,7 @@ if (-not $SkipRestore) {
     Write-SetupLog 'Restoring local .NET tools and NuGet packages...'
     & dotnet tool restore | ForEach-Object { [Console]::Error.WriteLine($_) }
     if ($LASTEXITCODE -ne 0) { throw 'dotnet tool restore failed.' }
-    & dotnet restore D3Soft.D3Parking.slnx | ForEach-Object { [Console]::Error.WriteLine($_) }
+    & dotnet restore D3Soft.Parking.WebApp.slnx | ForEach-Object { [Console]::Error.WriteLine($_) }
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
 }
 

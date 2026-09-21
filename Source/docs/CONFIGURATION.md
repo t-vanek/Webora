@@ -8,9 +8,9 @@ Běžné nastavení SQL, SMTP, veřejné adresy, prvního správce a HTTPS prov�
 
 | Soubor | Pro koho je a co v něm nastavovat |
 |---|---|
-| `src/D3Parking.Web/appsettings.json` | Výchozí hodnoty serveru ve zdrojích. Komentáře vysvětlují geokódování, vzdálenosti, poštu, proxy a logování. Skutečná produkční hesla sem nepatří. |
-| `src/D3Parking.Web/appsettings.Development.json` | Pouze vývoj na vlastním PC: LocalDB, známý testovací správce a testovací push klíče. Nejde o předlohu produkčních přihlašovacích údajů. |
-| `src/D3Parking.Web.Client/wwwroot/appsettings*.json` | Nastavení klienta, které si může stáhnout každý návštěvník. Zde je jen logování. Nikdy sem nedávejte SQL, hesla ani soukromé klíče. |
+| `D3Parking.Web/appsettings.json` | Výchozí hodnoty serveru ve zdrojích. Komentáře vysvětlují geokódování, vzdálenosti, poštu, proxy a logování. Skutečná produkční hesla sem nepatří. |
+| `D3Parking.Web/appsettings.Development.json` | Pouze vývoj na vlastním PC: LocalDB, známý testovací správce a testovací push klíče. Nejde o předlohu produkčních přihlašovacích údajů. |
+| `D3Parking.Web.Client/wwwroot/appsettings*.json` | Nastavení klienta, které si může stáhnout každý návštěvník. Zde je jen logování. Nikdy sem nedávejte SQL, hesla ani soukromé klíče. |
 | `C:\D3Parking\config\appsettings.json` | Skutečné sdílené nastavení nainstalovaného serveru: veřejná adresa, porty, certifikáty a SMTP. Vytváří a komentuje průvodce. |
 | `C:\D3Parking\secrets\secrets.json` | Neveřejná hesla aplikace a připojení k SQL. Průvodce vysvětluje i tyto položky, ale soubor stále obsahuje tajemství. |
 | `C:\D3Parking\config\deployment.json` | Pokyny průvodci: Windows služba, adresy kontrol, cesta SQL záloh a schválené migrace. |

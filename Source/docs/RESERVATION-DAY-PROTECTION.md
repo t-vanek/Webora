@@ -103,7 +103,7 @@ Následná [oprava bodů 4–12](PARKING-WORKFLOW-FIXES.md) oddělila pravidla n
 
 ## Provedení a ověření
 
-Společné pravidlo je v [ReservationWindowRules.cs](../src/D3Parking.Domain/Parking/ReservationWindowRules.cs). Přesun chrání i samotná doména [Reservation.cs](../src/D3Parking.Domain/Parking/Reservation.cs). Kontroly používají vrácení rezidentovi, správa parkoviště a změny nastavení; úklid při odebrání zaměstnance zachovává započaté rezervace. Zamítnutá operace nemění místo, stav, interval, kredity, frontu ani revizi kalendáře.
+Společné pravidlo je v [ReservationWindowRules.cs](../D3Parking.Domain/Parking/ReservationWindowRules.cs). Přesun chrání i samotná doména [Reservation.cs](../D3Parking.Domain/Parking/Reservation.cs). Kontroly používají vrácení rezidentovi, správa parkoviště a změny nastavení; úklid při odebrání zaměstnance zachovává započaté rezervace. Zamítnutá operace nemění místo, stav, interval, kredity, frontu ani revizi kalendáře.
 
 - [StartedReservationProtectionTests.cs](../tests/D3Parking.Application.Tests/StartedReservationProtectionTests.cs): 160 kombinací pěti priorit, čtyř náhradních akcí, dostupné/nedostupné náhrady a čtyř variant zdroje/závaznosti uvolnění; dále hranice místní půlnoci v 23/24/25hodinovém dni, doménový zákaz přesunu, dobrovolné ukončení držitelem, změna režimu, rezervace vytvořená během dne a atomické hromadné vrácení s následným samostatným řešením zítřka.
 - Rozšířené testy správy parkoviště, změn kalendáře a odebrání zaměstnance ověřují ochranu i mimo rezidentní samoobsluhu. Dosavadní testy budoucích přesunů, priorit, konfliktů a souběhu kontrolují zachování těchto cest.

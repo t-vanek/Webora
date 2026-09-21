@@ -7,7 +7,7 @@
       "runtimeArgs": [
         "run",
         "--project",
-        "Source/src/D3Parking.Web",
+        "Source/D3Parking.Web",
         "-c",
         "Release",
         "--no-launch-profile",

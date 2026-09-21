@@ -47,7 +47,7 @@ fi
 log "Restoring the dotnet-ef tool..."
 dotnet tool restore
 log "Restoring NuGet packages..."
-dotnet restore D3Soft.D3Parking.slnx
+dotnet restore D3Soft.Parking.WebApp.slnx
 
 # --- Playwright ------------------------------------------------------------
 # The base image preinstalls a browser under $PLAYWRIGHT_BROWSERS_PATH; this is

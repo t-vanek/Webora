@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="D3Parking.Application/D3Parking.Application.csproj" />
+  <Project Path="D3Parking.Contracts/D3Parking.Contracts.csproj" />
+  <Project Path="D3Parking.Domain/D3Parking.Domain.csproj" />
+  <Project Path="D3Parking.Infrastructure/D3Parking.Infrastructure.csproj" />
+  <Project Path="D3Parking.Web.Client/D3Parking.Web.Client.csproj" />
+  <Project Path="D3Parking.Web/D3Parking.Web.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/D3Parking.Application.Tests/D3Parking.Application.Tests.csproj" />
+    <Project Path="tests/D3Parking.E2E.Tests/D3Parking.E2E.Tests.csproj" />
+  </Folder>
+</Solution>

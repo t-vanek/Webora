@@ -87,7 +87,7 @@ try {
     $null = New-Item -ItemType Directory -Force -Path $app, $database
     Write-Host '[2/5] Obnovení závislostí a sestavení. Může trvat několik minut; toto okno nezavírejte.'
     Write-Host "Podrobný průběh sestavení: $work/publish.log"
-    & dotnet publish src/D3Parking.Web/D3Parking.Web.csproj -c Release --self-contained true -r win-x64 --artifacts-path (Join-Path $work 'build') -o $app `
+    & dotnet publish D3Parking.Web/D3Parking.Web.csproj -c Release --self-contained true -r win-x64 --artifacts-path (Join-Path $work 'build') -o $app `
         "-p:Version=$Version" "-p:SourceRevisionId=$commit" '-p:ContinuousIntegrationBuild=true' '-p:RestoreLockedMode=true' '-p:DebugType=None' '-p:DebugSymbols=false' *> (Join-Path $work 'publish.log')
     if ($LASTEXITCODE -ne 0) { throw "Sestavení dotnet publish selhalo. Přesná chyba je v $work/publish.log. Pokud chyba souvisí s délkou cesty, zvolte kratší zapisovatelnou základnu pomocí -WorkPath (např. C:\BuildWork)." }
     # Publish only application outputs. Development credentials must never enter a release.

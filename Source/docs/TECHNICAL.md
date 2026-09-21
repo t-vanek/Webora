@@ -84,16 +84,16 @@ Nominatim geokóduje adresy. Haversine počítá vzdálenost offline; volitelný
 ## Vývoj a testy
 
 ```powershell
-dotnet restore D3Soft.D3Parking.slnx
+dotnet restore D3Soft.Parking.WebApp.slnx
 dotnet tool restore --tool-manifest dotnet-tools.json
-dotnet run --project src/D3Parking.Web
+dotnet run --project D3Parking.Web
 
 $env:ConnectionStrings__SqlServer = 'Server=(localdb)\MSSQLLocalDB;Database=unused;Trusted_Connection=True;TrustServerCertificate=True'
 dotnet test tests/D3Parking.Application.Tests -c Release --artifacts-path artifacts/tests
 dotnet test tests/D3Parking.E2E.Tests -c Release --artifacts-path artifacts/e2e
 pwsh -File deployment/tests.ps1
 
-dotnet ef migrations add Nazev --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web
+dotnet ef migrations add Nazev --project D3Parking.Infrastructure --startup-project D3Parking.Web
 ```
 
 Manifest nástroje je historicky v kořeni (`dotnet-tools.json`), proto je restore výslovný. Po uvedeném restore funguje `dotnet ef`; ověřeno příkazem `dotnet ef --version` (10.0.8). Produkční deployment tento vývojový nástroj nepotřebuje.

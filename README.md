@@ -1,4 +1,4 @@
-# D3Soft.D3Parking
+# D3Soft.Parking.WebApp
 
 Firemní plánovač parkování v češtině a angličtině. Uživatelé rezervují místa, rezidenti sdílejí dny nebo je nabízejí kolegům, recepce eviduje návštěvy a správci řeší hlášení, vozový park a oprávnění.
 
@@ -18,14 +18,16 @@ Současný plánovač nevyžaduje potvrzování příjezdu ani odjezdu. Voliteln
 
 ## Vývoj na Windows
 
+Solution pro sestavení je `Source/D3Soft.Parking.WebApp.slnx`. Aplikační projekty `D3Parking.*` leží přímo ve složce `Source`, testovací projekty v `Source/tests`.
+
 1. Nainstalujte SDK z `Source/global.json` a SQL Server Express LocalDB nebo vlastní testovací SQL Server.
 2. Z kořene repozitáře přejděte do hlavní složky zdrojů a spusťte:
 
    ```powershell
    Set-Location Source
-   dotnet restore D3Soft.D3Parking.slnx
+   dotnet restore D3Soft.Parking.WebApp.slnx
    dotnet tool restore --tool-manifest dotnet-tools.json
-   dotnet run --project src/D3Parking.Web
+   dotnet run --project D3Parking.Web
    ```
 
 3. Otevřete adresu vypsanou aplikací. Vývojové údaje: `admin@d3parking.local` / `Admin123$`, pouze v `Development`. Toto prostředí automaticky aplikuje migrace.

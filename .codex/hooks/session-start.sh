@@ -126,7 +126,7 @@ umask 077
 if [ "${D3PARKING_SKIP_RESTORE:-false}" != "true" ]; then
   log "Restoring local .NET tools and NuGet packages..."
   dotnet tool restore >&2
-  dotnet restore D3Soft.D3Parking.slnx >&2
+  dotnet restore D3Soft.Parking.WebApp.slnx >&2
 fi
 
 printf '%s\n' \

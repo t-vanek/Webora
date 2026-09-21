@@ -50,7 +50,7 @@ Absence check-inu sama o sobě není chyba. Znamená ale, že systém nesmí zam
 
 **Provedeno:** výběr data a času nerezidentovi zůstává dostupný i při zakázaném dnešku, víkendu či svátku a nezmizí ani po výběru zakázaného data. Stávající vysvětlení a zákaz hledání zůstávají účinné do výběru povoleného termínu. Ověřeno v prohlížeči pro celodenní i časový režim. Tlačítko pro automatický výběr nejbližšího dne a společný týdenní plánovač nejsou součástí této opravy.
 
-Zdroj: [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), ř. 94, 460, 1695 a 1834.
+Zdroj: [Reserve.razor](../D3Parking.Web/Components/Parking/Reserve.razor), ř. 94, 460, 1695 a 1834.
 
 ### 2. P1 — Rezident může opět blokovat dvě místa — opraveno
 
@@ -60,7 +60,7 @@ Zdroj: [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), �
 
 **Provedeno:** `ReclaimCoreAsync` ve stejné serializable transakci před jakoukoli změnou ověřuje živé rezervace rezidenta na jiných místech. Překryv s reálně vracenými dny odmítne s konkrétním vysvětlením. Kontrola zahrnuje hromadné vrácení a přijaté adresné předání, včetně části předání přesahující požadovaný rozsah. Zrušené, uvolněné, dokončené a již skončené rezervace neblokují vrácení; rezervace téhož fyzického místa není druhým nárokem. Dialog rezidenta při známém překryvu ukáže důvod a vypne akci vrácení. Pro návrat se používá již existující atomická cesta zrušení alternativy a vrácení volného automaticky uvolněného vlastního dne. Samostatná výměna zahrnující obsazené vlastní místo ani změny přidělování rezidentů nejsou součástí této opravy.
 
-Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 360–408; [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 353–559.
+Zdroj: [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 360–408; [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 353–559.
 
 ### 3. P1 — Přesun rezervace během dne nepřesune auto — opraveno
 
@@ -70,7 +70,7 @@ Nastavení `ManualReleasesAreBinding` tomu nezabrání: omezuje vytlačení bez 
 
 **Přijaté řešení a provedení:** celodenní rezervace drží stejné místo od místní půlnoci do následující půlnoci, časová od začátku do konce intervalu. Rezident ani správce ji během této doby nemohou přesunout či odebrat, a to při žádné prioritě ani dostupnosti náhrad. Ochrana vychází z uloženého intervalu a přežije změnu režimu či kalendáře. Držitel ji podle výslovného rozhodnutí uživatele smí dobrovolně zrušit nebo uvolnit. Budoucí rezervace se dál řídí konfigurací. Zákaz se kontroluje ve službách i při doménovém přesunu; UI vysvětluje důvod. Podrobná matice priorit, lhůt, závaznosti a náhradních akcí je v [samostatném rozboru](RESERVATION-DAY-PROTECTION.md).
 
-Zdroj: [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 415–491; [Reservation.cs](../src/D3Parking.Domain/Parking/Reservation.cs), metoda `MoveTo`.
+Zdroj: [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 415–491; [Reservation.cs](../D3Parking.Domain/Parking/Reservation.cs), metoda `MoveTo`.
 
 ### 4. P1 — Pravidla pro vytvoření rezervace se používají i k rušení existujících — opraveno
 
@@ -84,7 +84,7 @@ Samotná změna konfigurace má náhled a potvrzení, což je správně. Ve slu�
 
 **Provedeno:** Běžné uložení konfigurace zachovává rezervace, frontu, soukromá předání, návštěvy i uvolnění. Dříve založená fronta a předání mohou dokončit svůj uložený interval i po změně kalendáře či režimu. Nové žádosti se řídí aktuálními pravidly. Převzetí dál ověřuje živou kapacitu a ostatní podmínky.
 
-Zdroj: [ParkingSettingsService.cs](../src/D3Parking.Infrastructure/Parking/ParkingSettingsService.cs), ř. 399–529; [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 1441–1455; [SharedResource.resx](../src/D3Parking.Web/Resources/SharedResource.resx), klíč `Parking_Settings_SameDayReservationsTooltip`.
+Zdroj: [ParkingSettingsService.cs](../D3Parking.Infrastructure/Parking/ParkingSettingsService.cs), ř. 399–529; [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 1441–1455; [SharedResource.resx](../D3Parking.Web/Resources/SharedResource.resx), klíč `Parking_Settings_SameDayReservationsTooltip`.
 
 ### 5. P2 — Pravidelný plán a ruční výjimky nejsou samostatně modelované — opraveno
 
@@ -96,7 +96,7 @@ Zdroj: [ParkingSettingsService.cs](../src/D3Parking.Infrastructure/Parking/Parki
 
 **Provedeno:** Ruční vrácení zapisuje trvalou výjimku ResidentDayHold. Nová ruční nabídka téhož dne ji výslovně odstraní. Změna pravidelného plánu má náhled konkrétních dat, ihned doplní nová uvolnění a vrací pouze volná automatická uvolnění. Manuální uvolnění, rezervace a aktivní nabídky fronty zachovává. Stejné hodnoty nemění zpracovaný horizont.
 
-Zdroj: [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 693–855; [ParkingSpotResident.cs](../src/D3Parking.Domain/Parking/ParkingSpotResident.cs), `SetUsagePlan`; [ParkingSettingsService.cs](../src/D3Parking.Infrastructure/Parking/ParkingSettingsService.cs), ř. 203–216.
+Zdroj: [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 693–855; [ParkingSpotResident.cs](../D3Parking.Domain/Parking/ParkingSpotResident.cs), `SetUsagePlan`; [ParkingSettingsService.cs](../D3Parking.Infrastructure/Parking/ParkingSettingsService.cs), ř. 203–216.
 
 ### 6. P2 — Potvrzení uvolnění vlastního místa nefunguje přes frontu — opraveno
 
@@ -106,7 +106,7 @@ Zdroj: [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/Resident
 
 **Provedeno:** Parkování i úvodní stránka používají společnou akci převzetí. Požadavek ConfirmRelease zobrazí potvrzení konkrétní nabídky a intervalu; potvrzené převzetí atomicky uvolní vlastní přidělený den. Změna identity nabídky potvrzení zneplatní.
 
-Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 393–396 a 1401–1402; [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), ř. 1969–1995 a 2343–2346; [Home.razor](../src/D3Parking.Web/Components/Pages/Home.razor), ř. 160.
+Zdroj: [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 393–396 a 1401–1402; [Reserve.razor](../D3Parking.Web/Components/Parking/Reserve.razor), ř. 1969–1995 a 2343–2346; [Home.razor](../D3Parking.Web/Components/Pages/Home.razor), ř. 160.
 
 ### 7. P2 — Sdílený rezident nemůže využít uvolnění spolurezidenta přes běžné hledání — opraveno
 
@@ -116,7 +116,7 @@ Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/Reservati
 
 **Provedeno:** Seznam dostupných míst skrývá vlastní fyzické místo pouze při vlastním přidělení pro vybraný den. Veřejně uvolněný den spolurezidenta lze běžně rezervovat; spotřebovává týdenní limit sdílené kapacity.
 
-Zdroj: [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), ř. 1145–1153 a 1550–1558; [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 136–145; [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 1319–1323.
+Zdroj: [Reserve.razor](../D3Parking.Web/Components/Parking/Reserve.razor), ř. 1145–1153 a 1550–1558; [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 136–145; [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 1319–1323.
 
 ### 8. P2 — Fronta chrání nabídku, ale negarantuje přednost při novém uvolnění — opraveno
 
@@ -126,7 +126,7 @@ Přímá rezervace respektuje již existující nabídky, nikoli samotné čekaj
 
 **Provedeno:** Přímá veřejná rezervace uvnitř stejné serializable transakce kontroluje dřívější způsobilé čekající pro daný typ a celý interval. Uvolnění a alternativní rezervace vyvolávají zpracování fronty. Matcher přeskakuje nezpůsobilé čekající a respektuje vybraný typ. Neplatná provozní nabídka se stáhne bez ztráty pořadí.
 
-Zdroj: [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 235–250; [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 431–456, 758–783 a 1472–1549; [ParkingMaintenanceService.cs](../src/D3Parking.Web/Parking/ParkingMaintenanceService.cs), ř. 54–56.
+Zdroj: [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 235–250; [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 431–456, 758–783 a 1472–1549; [ParkingMaintenanceService.cs](../D3Parking.Web/Parking/ParkingMaintenanceService.cs), ř. 54–56.
 
 ### 9. P2 — „Uvolnit“ a „Zrušit“ mají téměř stejný význam; ztrácí se již proběhlá část — opraveno
 
@@ -140,7 +140,7 @@ V celodenním režimu má rezervace začátek o půlnoci. I s nulovým `ReleaseC
 
 **Provedeno:** Před začátkem se nabízí storno, po začátku předčasné ukončení, vždy s náhledem refundace. Zahájený a dobrovolně ukončený den dál spotřebovává týdenní limit. Historie zachovává původní interval i efektivní konec. Nové rezervace ukládají refundní lhůtu; administrace ji skutečně ukládá a validuje v rozsahu 0–1439 minut před začátkem.
 
-Zdroj: [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), ř. 1285–1288; [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 694–699 a 724–847; [ParkingSettings.razor](../src/D3Parking.Web/Components/Admin/ParkingSettings.razor), ř. 508–524 a 1197–1203.
+Zdroj: [Reserve.razor](../D3Parking.Web/Components/Parking/Reserve.razor), ř. 1285–1288; [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 694–699 a 724–847; [ParkingSettings.razor](../D3Parking.Web/Components/Admin/ParkingSettings.razor), ř. 508–524 a 1197–1203.
 
 ### 10. P2 — Provozní problém místa není součástí jeho dostupnosti — opraveno
 
@@ -152,7 +152,7 @@ Deaktivace ponechá existující rezervace a upozorní jejich držitele. Reziden
 
 **Provedeno:** Hlášení fyzické překážky místo blokuje do uloženého konce intervalu nebo výslovného uvolnění správcem s oprávněním ManageSpots. Blokaci respektuje hledání, fronta, přímé rezervace i náhrady. Automatická náhrada je stejného typu. Incident může nahlásit i implicitně přidělený rezident; při náhradě neponechá dva nároky. Deaktivace je viditelná a oznámená i rezidentům bez rezervace.
 
-Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 890–904 a 945–979; [ParkingSpotService.cs](../src/D3Parking.Infrastructure/Parking/ParkingSpotService.cs), ř. 501–516; [OwnedSpotDto.cs](../src/D3Parking.Application/Parking/OwnedSpotDto.cs).
+Zdroj: [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 890–904 a 945–979; [ParkingSpotService.cs](../D3Parking.Infrastructure/Parking/ParkingSpotService.cs), ř. 501–516; [OwnedSpotDto.cs](../D3Parking.Application/Parking/OwnedSpotDto.cs).
 
 ### 11. P2 — Potvrzení změny a doručení informace nejsou jeden spolehlivý proces — opraveno
 
@@ -164,7 +164,7 @@ Přesun a zrušení při vrácení rezidentovi mají navíc různou úroveň ozn
 
 **Provedeno:** Záznam do schránky a případný e-mail do trvalé odchozí fronty vznikají ve stejné transakci jako nabídka, rezervace, předání nebo vynucená změna. Schránka uchová změnu parkování i při vypnuté kategorii; osobní preference dál řídí volitelné externí doručení. Expirace nabídky nepřesáhne konec intervalu. Při nedoručeném e-mailu se kapacita uvolní dalším, původní pořadí zůstane zachované a další nabídka počká na obnovení doručení.
 
-Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 571–586 a 1565–1591; [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 558–590; [NotificationService.cs](../src/D3Parking.Infrastructure/Notifications/NotificationService.cs), ř. 116–173.
+Zdroj: [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 571–586 a 1565–1591; [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 558–590; [NotificationService.cs](../D3Parking.Infrastructure/Notifications/NotificationService.cs), ř. 116–173.
 
 ### 12. P2 — Zobrazení dostupnosti a akcí nevychází z úplného stavu — opraveno
 
@@ -177,7 +177,7 @@ Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/Reservati
 
 **Provedeno:** Hledání a cenový kontext sdílejí výpočet kapacity včetně rezidentů, nabídek a blokací. CanReclaim používá tentýž rozhodovací kód jako provedení a vrací důvod zamítnutí. Hromadné uvolnění ukazuje skutečná dotčená data a další přidělený den. Otevřené parkování obnovuje data po 10 sekundách i bez změny politiky, při zachování rozepsaného plánu. Zákaz nových rezervací neskrývá existující rezidentský stav.
 
-Zdroj: [ReservationService.cs](../src/D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 655–673; [ResidentSpotService.cs](../src/D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 136–145 a 332–344; [Reserve.razor](../src/D3Parking.Web/Components/Parking/Reserve.razor), ř. 1067–1101, 1402–1411 a 2033.
+Zdroj: [ReservationService.cs](../D3Parking.Infrastructure/Parking/ReservationService.cs), ř. 655–673; [ResidentSpotService.cs](../D3Parking.Infrastructure/Parking/ResidentSpotService.cs), ř. 136–145 a 332–344; [Reserve.razor](../D3Parking.Web/Components/Parking/Reserve.razor), ř. 1067–1101, 1402–1411 a 2033.
 
 ## Původní návrhy dalších stavů a pravidel
 

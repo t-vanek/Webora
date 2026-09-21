@@ -116,7 +116,7 @@ public static class D3ParkingCommandLineTest {
     $strictDocument=[Text.Json.JsonDocument]::Parse((Get-Content -LiteralPath (Join-Path $package 'release.json') -Raw),$strictOptions)
     $strictDocument.Dispose()
     Assert-Test (-not (Get-Content -LiteralPath $json -Raw).Contains('// D3Parking:')) 'Release manifests and operation state remain strict JSON without comments'
-    foreach ($relative in @('src/D3Parking.Web/appsettings.json','src/D3Parking.Web/appsettings.Development.json','src/D3Parking.Web.Client/wwwroot/appsettings.json','src/D3Parking.Web.Client/wwwroot/appsettings.Development.json')) {
+    foreach ($relative in @('D3Parking.Web/appsettings.json','D3Parking.Web/appsettings.Development.json','D3Parking.Web.Client/wwwroot/appsettings.json','D3Parking.Web.Client/wwwroot/appsettings.Development.json')) {
         $settingsText=Get-Content -LiteralPath (Join-Path (Split-Path $PSScriptRoot) $relative) -Raw
         $null=$settingsText | ConvertFrom-Json
         Assert-Test ($settingsText.Contains('// D3Parking:')) "Application configuration includes parseable Czech help: $relative"
