@@ -222,7 +222,7 @@ Kontroly první revize před zprovozněním SQL Serveru:
 | Kontrola | Výsledek |
 | --- | --- |
 | `dotnet test tests/D3Parking.Application.Tests/D3Parking.Application.Tests.csproj --no-restore` | **138 passed, 237 skipped, 0 failed**, celkem 375; zahrnuje 8 nových HTTP bezpečnostních testů |
-| `dotnet build D3Parking.slnx -c Release --no-restore` | **Úspěch, 0 chyb, 0 varování**, včetně E2E projektu |
+| `dotnet build D3Soft.D3Parking.slnx -c Release --no-restore` | **Úspěch, 0 chyb, 0 varování**, včetně E2E projektu |
 | `dotnet ef migrations has-pending-model-changes --no-build --project src/D3Parking.Infrastructure --startup-project src/D3Parking.Web` | **Žádné změny modelu od poslední migrace**, bez kontaktu s produkční databází |
 | `git diff --check` | Úspěch |
 | Nové SQL testy, rozšířené SQL testy dashboardu | Zkompilováno, **přeskočeno**, SQL Server chybí |
@@ -320,7 +320,7 @@ runtime adresáři `diagnostics`; obsahují jen lokální testovací data.
 | Nová administrace ve skutečném prohlížeči | **3 prošly, 0 selhalo**; zahrnuty také ve společném běhu | `results/e2e-admin-verified.trx` |
 | Reprodukce opravené navigace rolí/skupin po restartu webu | **2 prošly, 0 selhalo**; před opravou obě selhaly | `results/e2e-navigation-fixed.trx` |
 | Společný E2E běh současných obrazovek s explicitním vyřazením 15 odstraněných mapových scénářů | **61 prošlo, 0 selhalo, 0 přeskočeno**, 2 min 41 s; včetně všech 9 rezidentních scénářů a jejich úklidu | `results/e2e-final.trx` |
-| `dotnet build D3Parking.slnx -c Release --no-restore` po konečné změně | **Úspěch, 0 chyb, 0 varování** | `build-release.log` |
+| `dotnet build D3Soft.D3Parking.slnx -c Release --no-restore` po konečné změně | **Úspěch, 0 chyb, 0 varování** | `build-release.log` |
 | `git diff --check` | **Úspěch** | pracovní strom |
 
 Výsledek 61/61 je výslovně **filtrovaný běh**, nikoli zelená neomezená sada všech 76 E2E testů.
@@ -703,7 +703,7 @@ Nebyly ukládány změny konfigurace ani vytvářeny či rušeny rezervace. Doč
 popisu webu byl použit pouze k ověření ztráty neuloženého formuláře.
 P0 problém nebyl touto UI kontrolou potvrzen; nejde o potvrzení absence bezpečnostních chyb.
 
-Odkazy níže jsou relativní ke kořeni repozitáře; řádky odpovídají pracovnímu stromu při auditu.
+Odkazy níže jsou relativní ke složce `Source`; řádky odpovídají pracovnímu stromu při auditu.
 „Prohlížeč“ znamená reprodukované chování, „kód“ doloženou implementaci bez dané runtime
 reprodukce, „riziko“ scénář, jehož skutečný výskyt nebyl potvrzen.
 

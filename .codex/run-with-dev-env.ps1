@@ -18,6 +18,7 @@ $envFile = Join-Path $repoDir '.codex/dev.windows.env'
 
 & $setupScript -SkipRestore -Backend $Backend | Out-Null
 . $envFile
+Set-Location (Join-Path $repoDir 'Source')
 
 & $Executable @CommandArguments
 exit $LASTEXITCODE

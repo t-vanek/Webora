@@ -8,7 +8,7 @@ Windows x64 se službou `D3Parking` (název lze změnit při inicializaci), Powe
 
 1. Získejte zdroje běžným Gitem z firemního repozitáře. Hostitel Gitu není předepsaný.
 2. Nainstalujte SDK přesně z `global.json`. Proveďte testy dle TECHNICAL.md, včetně SQL testů. Commitněte prověřené změny včetně lock souborů.
-3. V kořeni repozitáře otevřete **PowerShell 7.4+**. Builder nevyžaduje spuštění jako správce. Bez parametrů se zeptá na novou verzi:
+3. Ve složce `Source` otevřete **PowerShell 7.4+**. Builder nevyžaduje spuštění jako správce. Bez parametrů se zeptá na novou verzi:
 
    ```powershell
    .\build-release.ps1
@@ -21,7 +21,7 @@ Windows x64 se službou `D3Parking` (název lze změnit při inicializaci), Powe
 
 `-AllowDirty` slouží pouze k místnímu ověření rozpracované změny: metadata označí `.dirty` a `dirty=true`; deployment do Staging/Production jej odmítne. Skript neprovádí commit ani neoznačuje testy za splněné. Před ostrým vydáním je nutný čistý Git commit.
 
-`-OutputPath` mění jen umístění hotového vydání. Mezivýsledky jsou mimo klon, aby dlouhá cesta ke zdrojům neprodlužovala cesty generované SDK. Pokud je i váš `%TEMP%` příliš dlouhý nebo nemá dost místa, zadejte krátkou zapisovatelnou základnu, například `.\build-release.ps1 -Version 1.2.3 -WorkPath C:\BuildWork`. Builder v ní vždy vytvoří nový unikátní podadresář; existující pracovní soubory nepřepisuje ani nemaže. Relativní `-WorkPath` se vyhodnocuje vůči kořeni repozitáře. Změna systémového nastavení dlouhých cest ani administrátorská oprávnění nejsou potřeba.
+`-OutputPath` mění jen umístění hotového vydání. Mezivýsledky jsou mimo klon, aby dlouhá cesta ke zdrojům neprodlužovala cesty generované SDK. Pokud je i váš `%TEMP%` příliš dlouhý nebo nemá dost místa, zadejte krátkou zapisovatelnou základnu, například `.\build-release.ps1 -Version 1.2.3 -WorkPath C:\BuildWork`. Builder v ní vždy vytvoří nový unikátní podadresář; existující pracovní soubory nepřepisuje ani nemaže. Relativní `-WorkPath` se vyhodnocuje vůči složce `Source`. Změna systémového nastavení dlouhých cest ani administrátorská oprávnění nejsou potřeba.
 
 ### Když se okno builderu rychle zavře
 

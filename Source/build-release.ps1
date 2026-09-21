@@ -103,7 +103,7 @@ try {
     foreach ($name in @('ADMIN-GUIDE.md', 'DEPLOYMENT.md', 'CONFIGURATION.md', 'AUDIT.md')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "docs/$name") -Destination (Join-Path $package "docs/$name")
     }
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE') -Destination $package
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../LICENSE') -Destination $package
     Write-Host '[4/5] Přiložení průvodce, dokumentace a kontrolních součtů souborů...'
     $files = @(Get-ChildItem -LiteralPath $package -File -Recurse | Sort-Object FullName | ForEach-Object {
         @{ path = [IO.Path]::GetRelativePath($package, $_.FullName).Replace('\', '/'); sha256 = (Get-FileHash -LiteralPath $_.FullName).Hash }

@@ -84,7 +84,7 @@ Nominatim geokóduje adresy. Haversine počítá vzdálenost offline; volitelný
 ## Vývoj a testy
 
 ```powershell
-dotnet restore D3Parking.slnx
+dotnet restore D3Soft.D3Parking.slnx
 dotnet tool restore --tool-manifest dotnet-tools.json
 dotnet run --project src/D3Parking.Web
 

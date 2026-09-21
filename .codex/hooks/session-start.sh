@@ -5,7 +5,8 @@
 set -euo pipefail
 
 REPO_DIR="$(git rev-parse --show-toplevel)"
-cd "$REPO_DIR"
+SOURCE_DIR="$REPO_DIR/Source"
+cd "$SOURCE_DIR"
 
 log() { printf '[codex-setup] %s\n' "$*" >&2; }
 
@@ -120,12 +121,12 @@ umask 077
   if [ -n "$SMTP_PORT" ]; then
     printf 'export Smtp__Port=%q\n' "$SMTP_PORT"
   fi
-} > .codex/dev.env
+} > "$REPO_DIR/.codex/dev.env"
 
 if [ "${D3PARKING_SKIP_RESTORE:-false}" != "true" ]; then
   log "Restoring local .NET tools and NuGet packages..."
   dotnet tool restore >&2
-  dotnet restore D3Parking.slnx >&2
+  dotnet restore D3Soft.D3Parking.slnx >&2
 fi
 
 printf '%s\n' \

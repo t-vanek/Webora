@@ -138,12 +138,12 @@ public sealed class WebAppFixture
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "D3Parking.slnx")))
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "D3Soft.D3Parking.slnx")))
         {
             dir = dir.Parent;
         }
 
-        return dir?.FullName ?? throw new InvalidOperationException("Could not locate the repo root (D3Parking.slnx).");
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate the source root (D3Soft.D3Parking.slnx).");
     }
 
     private static int FreePort()

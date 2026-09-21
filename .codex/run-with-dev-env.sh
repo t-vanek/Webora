@@ -29,4 +29,5 @@ if [ -n "${Smtp__Port:-}" ]; then
   export Smtp__Port
 fi
 
+cd "$REPO_DIR/Source"
 exec "$@"

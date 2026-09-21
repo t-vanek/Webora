@@ -13,7 +13,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 REPO_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-cd "$REPO_DIR"
+cd "$REPO_DIR/Source"
 
 log() { echo "[session-start] $*"; }
 
@@ -47,7 +47,7 @@ fi
 log "Restoring the dotnet-ef tool..."
 dotnet tool restore
 log "Restoring NuGet packages..."
-dotnet restore D3Parking.slnx
+dotnet restore D3Soft.D3Parking.slnx
 
 # --- Playwright ------------------------------------------------------------
 # The base image preinstalls a browser under $PLAYWRIGHT_BROWSERS_PATH; this is

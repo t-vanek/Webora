@@ -12,7 +12,8 @@ $repoDir = (& git rev-parse --show-toplevel).Trim()
 if (-not $repoDir) {
     throw 'Could not locate the repository root.'
 }
-Set-Location $repoDir
+$sourceDir = Join-Path $repoDir 'Source'
+Set-Location $sourceDir
 
 function Write-SetupLog([string]$Message) {
     [Console]::Error.WriteLine("[codex-setup:windows] $Message")
@@ -169,13 +170,13 @@ $windowsEnv = @(
 if (-not [string]::IsNullOrWhiteSpace($smtpPort)) {
     $windowsEnv += "`$env:Smtp__Port = '$smtpPort'"
 }
-Set-Content -LiteralPath '.codex/dev.windows.env' -Value $windowsEnv -Encoding utf8
+Set-Content -LiteralPath (Join-Path $repoDir '.codex/dev.windows.env') -Value $windowsEnv -Encoding utf8
 
 if (-not $SkipRestore) {
     Write-SetupLog 'Restoring local .NET tools and NuGet packages...'
     & dotnet tool restore | ForEach-Object { [Console]::Error.WriteLine($_) }
     if ($LASTEXITCODE -ne 0) { throw 'dotnet tool restore failed.' }
-    & dotnet restore D3Parking.slnx | ForEach-Object { [Console]::Error.WriteLine($_) }
+    & dotnet restore D3Soft.D3Parking.slnx | ForEach-Object { [Console]::Error.WriteLine($_) }
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
 }
 
